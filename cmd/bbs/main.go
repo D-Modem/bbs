@@ -153,7 +153,9 @@ func serve(cfg *server.Config) int {
 	b := bbs.New(cfg.Settings, st, lg)
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
-	if err := server.New(b, cfg.Listeners).Run(ctx); err != nil {
+	srv := server.New(b, cfg.Listeners)
+	srv.Graphics = cfg.Graphics
+	if err := srv.Run(ctx); err != nil {
 		lg.Printf("%v", err)
 		return 1
 	}

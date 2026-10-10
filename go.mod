@@ -5,6 +5,7 @@ go 1.22
 require (
 	github.com/racingmars/go3270 v0.9.13
 	golang.org/x/crypto v0.31.0
+	golang.org/x/image v0.23.0
 	golang.org/x/term v0.27.0
 	modernc.org/sqlite v1.33.1
 )
@@ -24,3 +25,5 @@ require (
 	modernc.org/strutil v1.2.0 // indirect
 	modernc.org/token v1.1.0 // indirect
 )
+
+replace github.com/racingmars/go3270 => github.com/Neo-Desktop/go3270-sec v0.9.14-0.20261010172004-e50b7be8095a

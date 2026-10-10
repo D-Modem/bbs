@@ -70,6 +70,7 @@ func (l *Listener) path() string { return strings.TrimPrefix(l.Address, "unix:")
 type Server struct {
 	B         *bbs.BBS
 	Listeners []*Listener
+	Graphics  ui3270.Graphics // for 3270s
 
 	mu    sync.Mutex
 	perIP map[string]int
@@ -234,6 +235,13 @@ func (c timedConn) Write(p []byte) (int, error) {
 
 func (s *Server) handle(nc net.Conn, l *Listener) {
 	defer nc.Close()
+	// a bug in a protocol library (go3270 has had panics a client could
+	// cause) costs this caller their call, not everyone theirs
+	defer func() {
+		if r := recover(); r != nil {
+			s.B.Log.Printf("[listen %s] panic: %v", l.Name, r)
+		}
+	}()
 	c := timedConn{nc}
 	remote := "local"
 	if c.RemoteAddr() != nil && c.RemoteAddr().String() != "" && c.RemoteAddr().String() != "@" {
@@ -349,9 +357,9 @@ func (s *Server) tn3270(tc *telnet.Conn, l *Listener, node *bbs.Node) error {
 	}
 	node.Caller.Via = "tn3270"
 	node.Caller.Terminal = dev.TerminalType()
-	rows, cols := dev.AltDimensions()
-	s.B.Log.Printf("node %d: tn3270 %s, %dx%d", node.Num, dev.TerminalType(), cols, rows)
-	return ui3270.Run(s.B, node, raw, dev, ui3270.Options{CreateTrusted: l.CreateUsers})
+	s.B.Log.Printf("node %d: tn3270 %s", node.Num, ui3270.Capabilities(dev))
+	return ui3270.Run(s.B, node, raw, dev, ui3270.Options{CreateTrusted: l.CreateUsers,
+		Graphics: s.Graphics})
 }
 
 // what terminal types say about ANSI and UTF-8

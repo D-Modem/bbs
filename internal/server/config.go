@@ -11,11 +11,13 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
+	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
 )
 
 // Config is the whole configuration.
 type Config struct {
 	Settings  bbs.Settings
+	Graphics  ui3270.Graphics
 	Database  string
 	Log       string // syslog, stderr, none, or a file
 	Listeners []*Listener
@@ -99,6 +101,13 @@ func (c *Config) general(g *config.Section) error {
 	if s.NewUsers, err = g.Bool("new_users", s.NewUsers); err != nil {
 		return err
 	}
+	if c.Graphics.Symbols, err = g.Bool("tn3270_symbols", true); err != nil {
+		return err
+	}
+	if c.Graphics.Vector, err = g.Bool("tn3270_vector", false); err != nil {
+		return err
+	}
+	c.Graphics.LogoFile = g.String("tn3270_logo", "")
 	ints := []struct {
 		key      string
 		p        *int

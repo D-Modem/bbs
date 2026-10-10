@@ -32,6 +32,7 @@ const maxResponse = 64 * 1024
 type Options struct {
 	// a trusted user unknown here gets an account of its own
 	CreateTrusted bool
+	Graphics      Graphics
 }
 
 // guard limits what is read for one screen.
@@ -64,6 +65,9 @@ type ui struct {
 	o        Options
 	user     *store.User
 	deadline time.Time // the login's limit
+	logo     *logo     // nil: no graphics logo
+	logoAt   [2]int    // where the vector logo goes on this screen
+	drawn    bool      // vector graphics are on the screen
 }
 
 // Run is a caller's session on a 3270, from the logon screen to the
@@ -74,6 +78,7 @@ func Run(b *bbs.BBS, n *bbs.Node, conn net.Conn, dev go3270.DevInfo, o Options) 
 	if u.rows < 24 || u.cols < 80 {
 		u.rows, u.cols = 24, 80
 	}
+	u.setupGraphics()
 	err := u.run()
 	if errors.Is(err, errLogoff) {
 		err = nil
@@ -101,6 +106,18 @@ func (u *ui) show(scr go3270.Screen, vals map[string]string) (go3270.Response, m
 			break
 		}
 	}
+	if u.drawn {
+		// vector graphics stay until the terminal is reset: Erase/Reset,
+		// to the alternate screen size if that is what go3270 writes to
+		flag := byte(0)
+		if u.rows != 24 || u.cols != 80 {
+			flag = 0x80
+		}
+		if err := go3270.WriteStructuredFields(u.g, []byte{0x03, flag}); err != nil {
+			return go3270.Response{}, nil, err
+		}
+		u.drawn = false
+	}
 	for {
 		u.g.n = 0
 		d := time.Now().Add(u.b.IdleTimeout)
@@ -111,6 +128,7 @@ func (u *ui) show(scr go3270.Screen, vals map[string]string) (go3270.Response, m
 		resp, err := go3270.ShowScreenOpts(scr, vals, u.g, go3270.ScreenOpts{
 			AltScreen: u.dev, Codepage: u.dev.Codepage(),
 			CursorRow: crow, CursorCol: ccol,
+			PostSendCallback: func(any) error { return u.drawLogo() },
 		})
 		u.g.SetReadDeadline(time.Time{})
 		if err != nil {
@@ -206,6 +224,10 @@ func (u *ui) logon() error {
 		}
 		scr := u.frame("Logon", keys, msg)
 		row := 2
+		if lf, n := u.logoFields(2, 2); n > 0 {
+			scr = append(scr, lf...)
+			row += n + 1
+		}
 		for _, l := range strings.Split(strings.TrimRight(u.b.Banner, "\n"), "\n") {
 			if row > u.rows-10 {
 				break
@@ -333,7 +355,8 @@ func (u *ui) mainMenu() error {
 			scr = append(scr, u.text(3, 2, "Your last call was "+
 				u.user.LastLogin.Format("2006-01-02 15:04")+".", go3270.Blue, false))
 		}
-		items := []string{"Message areas", mail, "Who's online", "User list", "Your profile", "System info"}
+		items := []string{"Message areas", mail, "Who's online", "User list", "Your profile", "System info", "Your terminal"}
+		scr = append(scr, u.boxed(4, 2, 5+len(items)+1, 40, go3270.Blue)...)
 		for i, it := range items {
 			scr = append(scr, u.text(5+i, 4, strconv.Itoa(i+1), go3270.Yellow, true),
 				u.text(5+i, 7, it, go3270.Green, false))
@@ -376,12 +399,14 @@ func (u *ui) mainMenu() error {
 			err = u.profile()
 		case "6":
 			err = u.info()
+		case "7":
+			err = u.terminal()
 		case "X":
 			u.b.Log.Printf("node %d: %s logged off", u.n.Num, u.user.Name)
 			u.goodbye(u.b.Goodbye)
 			return errLogoff
 		default:
-			msg = "Choose 1 to 6, or X."
+			msg = "Choose 1 to 7, or X."
 		}
 		if err != nil {
 			return err
@@ -564,7 +589,7 @@ func (u *ui) messageScreen(m *store.Message, title, keys, msg string, off int) (
 		u.text(2, 6, m.Subject, go3270.White, true),
 		u.text(3, 0, "Date:", go3270.Turquoise, false),
 		u.text(3, 6, m.Created.Format("2006-01-02 15:04"), go3270.Green, false),
-		u.text(4, 0, strings.Repeat("-", u.cols-2), go3270.Blue, false))
+		u.text(4, 0, u.rule(u.cols-2), go3270.Blue, false))
 	// the body as written: lines of up to 79, the width of the text editor
 	width := min(u.cols-1, bbs.MaxLineLen)
 	lines := bbs.Wrap(m.Body, width)
@@ -674,7 +699,7 @@ func (u *ui) editor(title, to, subject string, body []string,
 		scr = append(scr,
 			u.text(1, 0, "To      ===>", go3270.Turquoise, false),
 			u.text(2, 0, "Subject ===>", go3270.Turquoise, false),
-			u.text(3, 0, strings.Repeat("-", u.cols-2), go3270.Blue, false))
+			u.text(3, 0, u.rule(u.cols-2), go3270.Blue, false))
 		scr = append(scr, u.input(1, 13, bbs.MaxNameLen, "to", false)...)
 		scr = append(scr, u.input(2, 13, bbs.MaxSubjectLen, "subject", false)...)
 		for i := 0; i < room; i++ {
@@ -974,5 +999,16 @@ func (u *ui) info() error {
 		fmt.Sprintf("Messages:  %d in %d areas", msgs, len(areas)),
 		fmt.Sprintf("Nodes:     %d of %d in use", len(b.Nodes()), b.MaxNodes),
 		"Software:  bbs-sec, with telnet, TN3270, rlogin and modem callers")
+	if len(areas) > 0 {
+		lines = append(lines, "", "Messages by area:")
+		most := 0
+		for _, a := range areas {
+			most = max(most, a.Messages)
+		}
+		for _, a := range areas {
+			lines = append(lines, fmt.Sprintf("  %s %5d %s", bbs.Fit(a.Name, 20), a.Messages,
+				u.bar(a.Messages, most, u.cols-32)))
+		}
+	}
 	return u.list("System info", "", lines)
 }

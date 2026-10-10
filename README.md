@@ -65,6 +65,16 @@ make install    # /usr/local/bin/bbs, and /etc/bbs/bbs.conf if there is none
 
 There is no cgo: SQLite is [modernc.org/sqlite](https://modernc.org/sqlite).
 
+go3270 is replaced (in `go.mod`) by the
+[go3270-sec](https://github.com/Neo-Desktop/go3270-sec) fork, which adds
+the query replies and graphics.  While that repository is private, Go
+needs to fetch it from GitHub itself, with your credentials:
+
+```
+export GOPRIVATE=github.com/Neo-Desktop/*     # the Makefile sets this
+git config --global url."git@github.com:".insteadOf "https://github.com/"   # or a token
+```
+
 ## Starting
 
 ```
@@ -232,6 +242,29 @@ x3270 -model 3279-4 localhost:2300
 `tn3270 = no` on a listener sends 3270s the text BBS (which they cannot
 show).
 
+### 3270 graphics
+
+The BBS reads everything the terminal says of itself when it connects (its
+query replies) and uses what it has:
+
+| | terminals | used for |
+|---|---|---|
+| graphic escape (code page 310) | nearly all: x3270, c3270, wc3270, PCOMM, Vista | the box around the main menu, rules, bar charts in System info; ASCII otherwise |
+| programmed symbols | IBM PCOMM, HostExplorer, Quick3270 | the logo on the logon screen: the system's name in a pixel font, or `tn3270_logo` (a PNG), cut into character cells and loaded as a symbol set |
+| vector graphics | PCOMM (host graphics, native protocol), HostExplorer | the logo as a bitmap image instead, with `tn3270_vector = yes`; experimental |
+
+Option 7 of the 3270 main menu, *Your terminal*, shows what the terminal
+reported: code page, cell size, graphic escape, its symbol sets and Load PS
+formats, vector graphics, and every query reply in hex.  The log has a line
+of it for each 3270 that connects.  It is the place to start when an
+emulator does not show the logo.
+
+In PCOMM, programmed symbols and vector graphics need host graphics turned
+on in the session's configuration, with the native protocol for vector
+graphics (see PCOMM's *3270 Emulator User's Reference*, "Host Graphics").  The formats are from IBM's
+[3270 Data Stream Programmer's Reference, GA23-0059-07](https://bitsavers.org/pdf/ibm/3174/GA23-0059-07_3270_Data_Stream_Programmers_Reference_199206.pdf)
+and Greg Price's [3270 Graphics](https://www.prycroft6.com.au/misc/3270grfx.html).
+
 ## Security
 
 - Passwords are bcrypt (cost 12); unknown users take as long to refuse as
@@ -268,7 +301,7 @@ show).
 | `internal/server` | listeners, session headers, rlogin, telling 3270s from the rest |
 | `internal/telnet` | the server side of telnet: options, terminal type, window size, the handoff to go3270 |
 | `internal/textui` | the text BBS: line editing, ANSI detection, paging, the menus |
-| `internal/ui3270` | the 3270 BBS: screens and PF keys on go3270 |
+| `internal/ui3270` | the 3270 BBS: screens and PF keys on go3270, and its graphics |
 | `internal/bbs` | the BBS itself: nodes, logins, new users, posting, cleaning text |
 | `internal/store` | the SQLite database |
 | `internal/config` | the configuration file |
@@ -280,5 +313,7 @@ configuration, telnet negotiation and the 3270 handoff) and whole sessions
 against a running server on unix sockets: a modem caller with a trusted
 modemmenu header, one whose header is not trusted, a login and a post, a
 new user, rlogin with a right and a wrong password and trusted, throttling
-by caller ID, all lines busy, a telnet ANSI client, and a TN3270 client
-taken through go3270's negotiation to the logon screen and out with PF3.
+by caller ID, all lines busy, a telnet ANSI client, a TN3270 client
+taken through go3270's negotiation to the logon screen and out with PF3,
+and TN3270 clients that report programmed symbols (the logo is loaded and
+shown), vector graphics (the logo is drawn) or neither (nothing is sent).

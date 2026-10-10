@@ -16,6 +16,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
 )
 
 func init() { store.BcryptCost = 4 } // fast hashes for tests
@@ -29,6 +30,12 @@ type env struct {
 // start runs a BBS with the listeners (their Address a socket name in a
 // temporary directory) and two users, alice and sysop.
 func start(t *testing.T, tweak func(*bbs.Settings), ls ...*Listener) *env {
+	t.Helper()
+	return startGraphics(t, ui3270.Graphics{}, tweak, ls...)
+}
+
+// startGraphics is start with 3270 graphics settings.
+func startGraphics(t *testing.T, g ui3270.Graphics, tweak func(*bbs.Settings), ls ...*Listener) *env {
 	t.Helper()
 	dir, err := os.MkdirTemp("", "bbs")
 	if err != nil {
@@ -70,7 +77,9 @@ func start(t *testing.T, tweak func(*bbs.Settings), ls ...*Listener) *env {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	go func() {
-		New(b, ls).Run(ctx)
+		srv := New(b, ls)
+		srv.Graphics = g
+		srv.Run(ctx)
 		close(done)
 	}()
 	t.Cleanup(func() {
@@ -423,5 +432,135 @@ func TestTN3270(t *testing.T) {
 	nodes := e.b.Nodes()
 	if len(nodes) > 1 {
 		t.Errorf("nodes: %+v", nodes)
+	}
+}
+
+// a PCOMM-like client's query replies: usable area with a 9x16 cell,
+// character sets with Load PS (formats 1 and 3) and two loadable sets, and
+// with vector, the Segment reply
+func queryReply(vector bool) []byte {
+	usable := []byte{0x81, 0x81, 0x01, 0x00, 0, 80, 0, 24, 0x01, 0, 1, 0, 0x50, 0, 1, 0, 0x50, 9, 16}
+	charsets := []byte{0x81, 0x85, 0xb2, 0x00, 9, 16, 0x50, 0, 0, 0, 7,
+		0x00, 0x00, 0x00, 0x02, 0xb9, 0x04, 0x17,
+		0x01, 0x00, 0xf1, 0x03, 0xc3, 0x01, 0x36,
+		0x02, 0x80, 0xff, 0x00, 0x00, 0x00, 0x00,
+		0x03, 0x80, 0xff, 0x00, 0x00, 0x00, 0x00}
+	replies := [][]byte{usable, charsets}
+	if vector {
+		replies = append(replies, []byte{0x81, 0xb0, 0x00})
+	}
+	r := []byte{0x88}
+	for _, q := range replies {
+		r = append(r, byte((len(q)+2)>>8), byte(len(q)+2))
+		r = append(r, q...)
+	}
+	var out []byte
+	for _, b := range r {
+		out = append(out, b)
+		if b == iac {
+			out = append(out, iac)
+		}
+	}
+	return append(out, iac, eor)
+}
+
+// graphicsSession connects a PCOMM-like client and returns the records it
+// gets up to and including the logon screen, and the one after it.
+func graphicsSession(t *testing.T, g ui3270.Graphics, vector bool) (before [][]byte, logon []byte, after []byte, e *env) {
+	e = startGraphics(t, g, nil, &Listener{Name: "telnet", Kind: "telnet", Address: "telnet.sock",
+		TN3270: true, ANSI: "auto", UTF8: "auto"})
+	c, err := net.Dial("unix", filepath.Join(e.dir, "telnet.sock"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { c.Close() })
+	tc := &tnClient{c: c, ttype: "IBM-3278-2-E"}
+	cp := go3270.Codepage1047()
+	for i := 0; i < 10; i++ {
+		rec := tc.record(t)
+		if len(rec) > 3 && rec[0] == 0xf3 && rec[3] == 0x01 { // WSF Read Partition: the query
+			tc.c.Write(queryReply(vector))
+			continue
+		}
+		if strings.Contains(cp.Decode(rec), "Logon") {
+			logon = rec
+			break
+		}
+		before = append(before, rec)
+	}
+	if logon == nil {
+		t.Fatal("no logon screen")
+	}
+	if vector {
+		after = tc.record(t)
+	}
+	return before, logon, after, e
+}
+
+func TestProgrammedSymbolsLogo(t *testing.T) {
+	before, logon, _, e := graphicsSession(t, ui3270.Graphics{Symbols: true}, false)
+	// the logo's symbols are loaded before the logon screen: WSF, Load PS
+	// into the first loadable set (RWS 2) as LCID C1, format 1
+	var lps []byte
+	for _, r := range before {
+		if len(r) > 8 && r[0] == 0xf3 && r[3] == 0x06 {
+			lps = r
+		}
+	}
+	if lps == nil {
+		t.Fatalf("no Load PS among %x", before)
+	}
+	if lps[4]&0x0f != 1 || lps[5] != 0xc1 || lps[6] != 0x41 || lps[7] != 0x02 {
+		t.Errorf("Load PS header % x", lps[:8])
+	}
+	if n := (len(lps) - 8) % 18; n != 0 {
+		t.Errorf("Load PS data is not whole format 1 symbols: %d bytes", len(lps)-8)
+	}
+	// the logon screen shows them: a field in character set C1
+	if !bytes.Contains(logon, []byte{0x43, 0xc1}) {
+		t.Errorf("no character set C1 field on the logon screen")
+	}
+	_ = e
+}
+
+func TestNoSymbolsWithoutSupport(t *testing.T) {
+	// the plain TN3270 client of TestTN3270 says nothing of symbols: none
+	// are loaded even with the setting on
+	e := startGraphics(t, ui3270.Graphics{Symbols: true, Vector: true}, nil,
+		&Listener{Name: "telnet", Kind: "telnet", Address: "telnet.sock", TN3270: true})
+	c, err := net.Dial("unix", filepath.Join(e.dir, "telnet.sock"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	tc := &tnClient{c: c, ttype: "IBM-3278-2-E"}
+	cp := go3270.Codepage1047()
+	for i := 0; i < 5; i++ {
+		rec := tc.record(t)
+		if len(rec) > 0 && rec[0] == 0xf3 {
+			if len(rec) > 3 && rec[3] != 0x01 {
+				t.Fatalf("a structured field other than the query: % x", rec)
+			}
+			tc.c.Write([]byte{0x88, iac, eor})
+			continue
+		}
+		if strings.Contains(cp.Decode(rec), "Logon") {
+			if bytes.Contains(rec, []byte{0x43, 0xc1}) {
+				t.Error("symbols used without support")
+			}
+			return
+		}
+	}
+	t.Fatal("no logon screen")
+}
+
+func TestVectorLogo(t *testing.T) {
+	_, logon, after, _ := graphicsSession(t, ui3270.Graphics{Symbols: true, Vector: true}, true)
+	if bytes.Contains(logon, []byte{0x43, 0xc1}) {
+		t.Error("symbols as well as vector graphics")
+	}
+	// after the screen: WSF, Object Picture with a segment
+	if len(after) < 12 || after[0] != 0xf3 || after[3] != 0x0f || after[4] != 0x10 || after[8] != 0x70 {
+		t.Fatalf("no Object Picture after the logon screen: % x", after[:min(len(after), 16)])
 	}
 }

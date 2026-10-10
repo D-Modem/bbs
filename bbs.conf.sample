@@ -23,6 +23,15 @@ log = syslog
 ;motd = "The line is down for maintenance on Sunday."
 ;motd_file = /etc/bbs/motd.txt
 goodbye = Thanks for calling.
+; 3270 graphics.  Box drawing (graphic escape) is used wherever the
+; terminal has it.  tn3270_symbols: the logo (the system's name, or
+; tn3270_logo, a PNG: dark or opaque pixels are drawn) loaded as programmed
+; symbols on terminals that take them (IBM PCOMM, HostExplorer; not the
+; x3270 family).  tn3270_vector: the logo drawn with vector graphics instead
+; on terminals that have them (PCOMM with host graphics on); experimental
+tn3270_symbols = yes
+tn3270_vector = no
+;tn3270_logo = /etc/bbs/logo.png
 ; callers may make their own accounts (NEW at the login, PF5 on a 3270)
 new_users = yes
 ; callers at once, on all listeners together
