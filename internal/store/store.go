@@ -46,8 +46,10 @@ type Area struct {
 	ID          int64
 	Name        string
 	Description string
-	SysopOnly   bool // only sysops post
+	SysopOnly   bool   // only sysops post
+	Newsgroup   string // its newsgroup ("": not one)
 	Messages    int
+	FirstID     int64
 	LastID      int64
 }
 
@@ -64,6 +66,12 @@ type Message struct {
 	ReplyTo int64
 	Created time.Time
 	Read    bool // mail only
+
+	// a newsgroup's article: its Message-ID, where it came from ("" from
+	// here, else the peer's name) and the article as it is sent
+	MessageID string
+	Origin    string
+	Raw       []byte
 }
 
 // Store is the database.
@@ -166,6 +174,10 @@ func Open(path string) (*Store, error) {
 	// is not busy enough to want more
 	db.SetMaxOpenConns(1)
 	if _, err := db.Exec(schema); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	if err := migrate(db); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
@@ -349,14 +361,16 @@ func (s *Store) DeleteArea(id int64) error {
 	return s.exec1(`DELETE FROM areas WHERE id = ?`, id)
 }
 
-const areaQuery = `SELECT a.id, a.name, a.description, a.sysop_only,
+const areaQuery = `SELECT a.id, a.name, a.description, a.sysop_only, COALESCE(a.newsgroup, ''),
 	(SELECT COUNT(*) FROM messages m WHERE m.area_id = a.id),
+	(SELECT COALESCE(MIN(m.id), 0) FROM messages m WHERE m.area_id = a.id),
 	(SELECT COALESCE(MAX(m.id), 0) FROM messages m WHERE m.area_id = a.id)
 	FROM areas a`
 
 func scanArea(row interface{ Scan(...any) error }) (*Area, error) {
 	var a Area
-	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopOnly, &a.Messages, &a.LastID)
+	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopOnly, &a.Newsgroup, &a.Messages,
+		&a.FirstID, &a.LastID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -391,13 +405,14 @@ func (s *Store) AreaByName(name string) (*Area, error) {
 	return scanArea(s.db.QueryRow(areaQuery+` WHERE a.name = ?`, name))
 }
 
-const msgCols = `id, area_id, from_id, from_name, to_name, subject, body, reply_to, created`
+const msgCols = `id, area_id, from_id, from_name, to_name, subject, body, reply_to, created,
+	COALESCE(message_id, ''), origin`
 
 func scanMessage(row interface{ Scan(...any) error }) (*Message, error) {
 	var m Message
 	var created int64
 	err := row.Scan(&m.ID, &m.AreaID, &m.FromID, &m.From, &m.To, &m.Subject,
-		&m.Body, &m.ReplyTo, &created)
+		&m.Body, &m.ReplyTo, &created, &m.MessageID, &m.Origin)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -412,13 +427,30 @@ func (s *Store) Post(m *Message) (int64, error) {
 		return 0, err
 	}
 	defer tx.Rollback()
-	res, err := tx.Exec(`INSERT INTO messages (area_id, from_id, from_name, to_name, subject, body, reply_to, created)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, m.AreaID, m.FromID, m.From, m.To, m.Subject, m.Body, m.ReplyTo, now())
+	var msgid any
+	if m.MessageID != "" {
+		msgid = m.MessageID
+	}
+	res, err := tx.Exec(`INSERT INTO messages (area_id, from_id, from_name, to_name, subject, body, reply_to, created,
+		message_id, origin, raw)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, m.AreaID, m.FromID, m.From, m.To, m.Subject, m.Body, m.ReplyTo, now(),
+		msgid, m.Origin, m.Raw)
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return 0, ErrExists
+		}
 		return 0, err
 	}
-	if _, err := tx.Exec(`UPDATE users SET posts = posts + 1 WHERE id = ?`, m.FromID); err != nil {
-		return 0, err
+	if m.MessageID != "" {
+		if _, err := tx.Exec(`INSERT OR IGNORE INTO history (message_id, seen) VALUES (?, ?)`,
+			m.MessageID, now()); err != nil {
+			return 0, err
+		}
+	}
+	if m.FromID > 0 {
+		if _, err := tx.Exec(`UPDATE users SET posts = posts + 1 WHERE id = ?`, m.FromID); err != nil {
+			return 0, err
+		}
 	}
 	id, _ := res.LastInsertId()
 	return id, tx.Commit()

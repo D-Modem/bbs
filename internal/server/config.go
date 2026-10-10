@@ -13,6 +13,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
 	"github.com/Neo-Desktop/bbs-sec/internal/logo"
+	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
 )
 
@@ -27,10 +28,15 @@ type Config struct {
 	UploadQuota  int64         // a user's uploads a day (0: no limit)
 	FTP          *ftp.Settings // nil: no FTP server
 	FTPAdvertise string        // the FTP server's address, as users are told it
-	Database     string
-	Log          string // syslog, stderr, none, or a file
-	Listeners    []*Listener
-	Warnings     []string
+
+	News       bbs.NewsSettings
+	MaxArticle int64
+	NNTP       *nntp.ServerSettings // nil: no NNTP server
+	Peers      []*nntp.Peer
+	Database   string
+	Log        string // syslog, stderr, none, or a file
+	Listeners  []*Listener
+	Warnings   []string
 }
 
 // DefaultListeners are used when the file has no [listen] section: telnet
@@ -61,6 +67,9 @@ func Load(path string) (*Config, error) {
 	if err := c.files(cf.Get("general", "")); err != nil {
 		return nil, fmt.Errorf("[general] %w", err)
 	}
+	if err := c.newsSections(cf); err != nil {
+		return nil, err
+	}
 	if err := c.ftpSection(cf.Get("ftp", "")); err != nil {
 		return nil, fmt.Errorf("[ftp] %w", err)
 	}
@@ -84,7 +93,9 @@ func Load(path string) (*Config, error) {
 		c.Listeners = DefaultListeners()
 	}
 	for _, s := range cf.Sections {
-		if s.Kind != "general" && s.Kind != "listen" && s.Kind != "ftp" {
+		switch s.Kind {
+		case "general", "listen", "ftp", "news", "nntp", "peer":
+		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}
 	}

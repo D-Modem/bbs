@@ -99,6 +99,8 @@ type BBS struct {
 	Log   *log.Logger
 	// FTPAddress is where users are told to fetch files ("": no FTP)
 	FTPAddress string
+	// News is how articles made here are signed (newsgroup areas)
+	News NewsSettings
 
 	mu       sync.Mutex
 	nodes    map[int]*Node
@@ -406,6 +408,7 @@ func (n *Node) Post(a *store.Area, to, subject string, body []string, replyTo in
 	if m.Body == "" {
 		return 0, errors.New("the message is empty")
 	}
+	n.b.MakeArticle(u, a, m)
 	id, err := n.b.Store.Post(m)
 	if err == nil {
 		n.b.Log.Printf("node %d: %s posted #%d in %s", n.Num, u.Name, id, a.Name)

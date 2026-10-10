@@ -10,6 +10,8 @@
 //	bbs [-config FILE] area add NAME [DESCRIPTION] [-sysop-only]
 //	bbs [-config FILE] area del NAME
 //	bbs [-config FILE] area list
+//	bbs [-config FILE] area newsgroup AREA GROUP|-
+//	bbs [-config FILE] news sync [PEER]
 //	bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
 //	bbs [-config FILE] filearea del|list [NAME]
 //	bbs [-config FILE] file add AREA PATH [DESCRIPTION] [-as NAME]
@@ -37,6 +39,8 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
+	"github.com/Neo-Desktop/bbs-sec/internal/news"
+	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
 	"github.com/Neo-Desktop/bbs-sec/internal/server"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
@@ -52,6 +56,8 @@ func usage() {
   bbs [-config FILE] area add NAME [DESCRIPTION] [-sysop-only]
   bbs [-config FILE] area del NAME
   bbs [-config FILE] area list
+  bbs [-config FILE] area newsgroup AREA GROUP|-    (- : not a newsgroup)
+  bbs [-config FILE] news sync [PEER]               exchange articles with peers now
   bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
   bbs [-config FILE] filearea del NAME
   bbs [-config FILE] filearea list
@@ -101,6 +107,14 @@ func main() {
 		if cfg.FTP != nil {
 			fmt.Printf("ftp: %s, tls %s\n", cfg.FTP.Address, cfg.FTP.TLS)
 		}
+		fmt.Printf("news: %s\n", cfg.News.PathHost)
+		if cfg.NNTP != nil {
+			fmt.Printf("nntp: %s, tls %s\n", cfg.NNTP.Address, cfg.NNTP.TLS)
+		}
+		for _, p := range cfg.Peers {
+			fmt.Printf("[peer %s] %s, groups %s, pull %v, push %v, every %v\n", p.Name, p.Address,
+				p.Groups, p.Pull, p.Push, p.Interval)
+		}
 		fmt.Println("configuration OK")
 	case "init":
 		st := open(cfg)
@@ -124,6 +138,8 @@ func main() {
 		userCmd(cfg, args)
 	case "area":
 		areaCmd(cfg, args)
+	case "news":
+		newsCmd(cfg, args)
 	case "filearea":
 		fileAreaCmd(cfg, args)
 	case "file":
@@ -178,12 +194,28 @@ func serve(cfg *server.Config) int {
 	st := open(cfg)
 	defer st.Close()
 	b := bbs.New(cfg.Settings, st, lg)
+	b.News = cfg.News
 	if b.Files, err = files.Open(st, cfg.FilesDir, cfg.MaxFileSize, cfg.UploadQuota); err != nil {
 		lg.Printf("files: %v", err)
 		return 1
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
+	svc := &nntp.Service{B: b, MaxArticle: int(cfg.MaxArticle)}
+	if cfg.NNTP != nil {
+		ns, err := nntp.NewServer(svc, *cfg.NNTP, cfg.Peers)
+		if err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+		go func() {
+			if err := ns.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
+	svc.RunPeers(ctx, cfg.Peers)
 	if cfg.FTP != nil {
 		fs, err := ftp.New(b, *cfg.FTP)
 		if err != nil {
@@ -351,6 +383,9 @@ func areaCmd(cfg *server.Config, args []string) {
 			if a.SysopOnly {
 				only = " (sysop posts only)"
 			}
+			if a.Newsgroup != "" {
+				only += " [" + a.Newsgroup + "]"
+			}
 			fmt.Printf("%-20s %5d messages  %s%s\n", a.Name, a.Messages, a.Description, only)
 		}
 	case "add":
@@ -366,6 +401,28 @@ func areaCmd(cfg *server.Config, args []string) {
 			fatal(err)
 		}
 		fmt.Println("added", a.Name)
+	case "newsgroup":
+		if len(words) != 3 {
+			usage()
+		}
+		a, err := st.AreaByName(words[1])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", words[1], err))
+		}
+		group := words[2]
+		if group == "-" {
+			group = ""
+		} else if !news.ValidGroup(group) {
+			fatal(errors.New("a newsgroup name is lower case words with dots: bbs.general"))
+		}
+		if err := st.SetNewsgroup(a.ID, group); err != nil {
+			fatal(err)
+		}
+		if group == "" {
+			fmt.Println(a.Name, "is no longer a newsgroup")
+		} else {
+			fmt.Println(a.Name, "is", group)
+		}
 	case "del":
 		if len(words) != 2 {
 			usage()
@@ -506,4 +563,33 @@ func firstSysop(st *store.Store) *store.User {
 	}
 	fatal(errors.New("there is no sysop: bbs user add NAME -sysop"))
 	return nil
+}
+
+func newsCmd(cfg *server.Config, args []string) {
+	words, _ := split(args)
+	if len(words) == 0 || words[0] != "sync" || len(words) > 2 {
+		usage()
+	}
+	st := open(cfg)
+	defer st.Close()
+	lg := log.New(os.Stderr, "bbs: ", log.LstdFlags)
+	b := bbs.New(cfg.Settings, st, lg)
+	b.News = cfg.News
+	svc := &nntp.Service{B: b, MaxArticle: int(cfg.MaxArticle)}
+	n := 0
+	for _, p := range cfg.Peers {
+		if len(words) == 2 && p.Name != words[1] {
+			continue
+		}
+		n++
+		pushed, pulled, err := svc.Sync(p)
+		fmt.Printf("%s: %d sent, %d taken", p.Name, pushed, pulled)
+		if err != nil {
+			fmt.Printf(": %v", err)
+		}
+		fmt.Println()
+	}
+	if n == 0 {
+		fatal(errors.New("no such peer"))
+	}
 }

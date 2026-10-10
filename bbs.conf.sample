@@ -142,3 +142,48 @@ address = 127.0.0.1:2513
 ;idle_timeout = 300
 ; the address users are told, in the file areas
 ;advertise = bbs.example.org:2121
+
+; Newsgroups: a message area with a newsgroup name (bbs area newsgroup
+; General bbs.general) is a newsgroup, served by NNTP to newsreaders and
+; kept in step with peer news servers.  [news] names this site in Path and
+; Message-IDs; it defaults to the machine's name
+;[news]
+;hostname = news.example.org
+;domain = news.example.org
+;organization = D-Modem BBS
+; the largest article taken (from readers and peers)
+;max_article = 64K
+
+; The NNTP server.  Without this section there is none (peers still sync)
+;[nntp]
+;address = :1119
+; no, optional (STARTTLS), required (no AUTHINFO before STARTTLS), implicit
+; (TLS from the first byte, NNTPS: usually port 563)
+;tls = required
+;cert_file = /etc/bbs/cert.pem
+;key_file = /etc/bbs/key.pem
+; read = anyone, or users: AUTHINFO first.  post = yes: logged-in users post
+;read = anyone
+;post = yes
+;max_clients = 32
+;max_per_ip = 8
+;idle_timeout = 600
+
+; A peer news server, one section each.  pull: its new articles in our
+; newsgroups are fetched (GROUP, OVER, ARTICLE); push: our new articles are
+; offered (IHAVE, or POST if it refuses IHAVE).  accept_from: the addresses
+; it may send us articles from by IHAVE (nothing else may)
+;[peer upstream]
+;address = news.example.net:119
+;tls = starttls
+;ca_file = /etc/bbs/peer-ca.pem
+;username = bbs
+;password = secret
+;groups = bbs.*,!bbs.test
+;pull = yes
+;push = yes
+;interval = 600
+;max_per_run = 1000
+; on first contact, how many of each group's latest articles to fetch
+;initial = 100
+;accept_from = news.example.net

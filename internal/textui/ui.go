@@ -392,7 +392,11 @@ func (s *session) area(a *store.Area) error {
 		a = a2
 		nw, _ := s.b.Store.NewCount(s.user.ID, a.ID)
 		t.Println("")
-		t.Printf("%s: %d messages, %d new\n", t.C(Cyan, a.Name), a.Messages, nw)
+		group := ""
+		if a.Newsgroup != "" {
+			group = t.C(Dim, " ("+a.Newsgroup+")")
+		}
+		t.Printf("%s%s: %d messages, %d new\n", t.C(Cyan, a.Name), group, a.Messages, nw)
 		menu := "[R]ead new, [L]ist, [#] read a number, "
 		if bbs.CanPost(s.user, a) {
 			menu += "[P]ost, "
