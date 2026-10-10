@@ -1,0 +1,540 @@
+// Package store keeps the BBS in an SQLite database: users, message
+// areas and their messages, private mail, and what each user has read.
+package store
+
+import (
+	"database/sql"
+	"errors"
+	"fmt"
+	"os"
+	"strings"
+	"time"
+
+	"golang.org/x/crypto/bcrypt"
+	_ "modernc.org/sqlite"
+)
+
+// ErrNotFound: no such user, area, message or mail.
+var ErrNotFound = errors.New("not found")
+
+// ErrExists: the name is taken.
+var ErrExists = errors.New("already exists")
+
+// NoPassword is the stored password of an account that cannot log in by
+// password: one an upstream menu (modemmenu) logs in.
+const NoPassword = "!"
+
+// BcryptCost is the cost of new password hashes.
+var BcryptCost = 12
+
+// User is an account.
+type User struct {
+	ID        int64
+	Name      string
+	Location  string
+	Sysop     bool
+	Locked    bool
+	External  bool // logged in by an upstream menu, no password here
+	Created   time.Time
+	LastLogin time.Time
+	Logins    int
+	Posts     int
+}
+
+// Area is a message area.
+type Area struct {
+	ID          int64
+	Name        string
+	Description string
+	SysopOnly   bool // only sysops post
+	Messages    int
+	LastID      int64
+}
+
+// Message is a public message in an area, or a private mail.
+type Message struct {
+	ID      int64
+	AreaID  int64 // 0 for mail
+	FromID  int64
+	From    string
+	ToID    int64 // mail only
+	To      string
+	Subject string
+	Body    string
+	ReplyTo int64
+	Created time.Time
+	Read    bool // mail only
+}
+
+// Store is the database.
+type Store struct {
+	db *sql.DB
+	// a hash to check against for unknown users, so that they take as
+	// long as known ones
+	dummy []byte
+}
+
+const schema = `
+CREATE TABLE IF NOT EXISTS users (
+	id         INTEGER PRIMARY KEY,
+	name       TEXT NOT NULL UNIQUE COLLATE NOCASE,
+	password   TEXT NOT NULL,
+	location   TEXT NOT NULL DEFAULT '',
+	sysop      INTEGER NOT NULL DEFAULT 0,
+	locked     INTEGER NOT NULL DEFAULT 0,
+	created    INTEGER NOT NULL,
+	last_login INTEGER NOT NULL DEFAULT 0,
+	logins     INTEGER NOT NULL DEFAULT 0,
+	posts      INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS areas (
+	id          INTEGER PRIMARY KEY,
+	name        TEXT NOT NULL UNIQUE COLLATE NOCASE,
+	description TEXT NOT NULL DEFAULT '',
+	sysop_only  INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS messages (
+	id        INTEGER PRIMARY KEY,
+	area_id   INTEGER NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
+	from_id   INTEGER NOT NULL,
+	from_name TEXT NOT NULL,
+	to_name   TEXT NOT NULL DEFAULT 'All',
+	subject   TEXT NOT NULL,
+	body      TEXT NOT NULL,
+	reply_to  INTEGER NOT NULL DEFAULT 0,
+	created   INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS messages_area ON messages(area_id, id);
+CREATE TABLE IF NOT EXISTS lastread (
+	user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	area_id    INTEGER NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
+	message_id INTEGER NOT NULL,
+	PRIMARY KEY (user_id, area_id)
+);
+CREATE TABLE IF NOT EXISTS mail (
+	id        INTEGER PRIMARY KEY,
+	from_id   INTEGER NOT NULL,
+	from_name TEXT NOT NULL,
+	to_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	to_name   TEXT NOT NULL,
+	subject   TEXT NOT NULL,
+	body      TEXT NOT NULL,
+	reply_to  INTEGER NOT NULL DEFAULT 0,
+	created   INTEGER NOT NULL,
+	read      INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS mail_to ON mail(to_id, id);
+`
+
+// Open opens (and creates, if need be) the database at path.
+func Open(path string) (*Store, error) {
+	// passwords and private mail: for the BBS's user alone (SQLite gives
+	// the -wal and -shm files the database's permissions)
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
+	if err != nil {
+		return nil, err
+	}
+	f.Close()
+	dsn := "file:" + path + "?_pragma=busy_timeout(5000)" +
+		"&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)" +
+		"&_pragma=synchronous(NORMAL)"
+	db, err := sql.Open("sqlite", dsn)
+	if err != nil {
+		return nil, err
+	}
+	// one connection: SQLite takes one writer at a time anyway, and a BBS
+	// is not busy enough to want more
+	db.SetMaxOpenConns(1)
+	if _, err := db.Exec(schema); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	dummy, err := bcrypt.GenerateFromPassword([]byte("not a password"), BcryptCost)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+	return &Store{db: db, dummy: dummy}, nil
+}
+
+// Close closes the database.
+func (s *Store) Close() error { return s.db.Close() }
+
+func now() int64 { return time.Now().Unix() }
+
+func unix(t int64) time.Time {
+	if t == 0 {
+		return time.Time{}
+	}
+	return time.Unix(t, 0)
+}
+
+// HashPassword returns the bcrypt hash of pw.
+func HashPassword(pw string) (string, error) {
+	h, err := bcrypt.GenerateFromPassword([]byte(pw), BcryptCost)
+	return string(h), err
+}
+
+const userCols = `id, name, password, location, sysop, locked, created, last_login, logins, posts`
+
+func scanUser(row interface{ Scan(...any) error }) (*User, string, error) {
+	var u User
+	var pw string
+	var created, last int64
+	err := row.Scan(&u.ID, &u.Name, &pw, &u.Location, &u.Sysop, &u.Locked,
+		&created, &last, &u.Logins, &u.Posts)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, "", ErrNotFound
+	}
+	if err != nil {
+		return nil, "", err
+	}
+	u.Created, u.LastLogin = unix(created), unix(last)
+	u.External = pw == NoPassword
+	return &u, pw, nil
+}
+
+// CreateUser adds an account.  password "" makes an external account (no
+// password: only an upstream menu logs it in).
+func (s *Store) CreateUser(name, password, location string, sysop bool) (*User, error) {
+	hash := NoPassword
+	if password != "" {
+		h, err := HashPassword(password)
+		if err != nil {
+			return nil, err
+		}
+		hash = h
+	}
+	res, err := s.db.Exec(`INSERT INTO users (name, password, location, sysop, created)
+		VALUES (?, ?, ?, ?, ?)`, name, hash, location, sysop, now())
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return nil, ErrExists
+		}
+		return nil, err
+	}
+	id, _ := res.LastInsertId()
+	return s.UserByID(id)
+}
+
+// UserByName finds an account by name, in any case.
+func (s *Store) UserByName(name string) (*User, error) {
+	u, _, err := scanUser(s.db.QueryRow(`SELECT `+userCols+` FROM users WHERE name = ?`, name))
+	return u, err
+}
+
+// UserByID finds an account by id.
+func (s *Store) UserByID(id int64) (*User, error) {
+	u, _, err := scanUser(s.db.QueryRow(`SELECT `+userCols+` FROM users WHERE id = ?`, id))
+	return u, err
+}
+
+// CheckPassword returns the user if name exists and pw is its password,
+// ErrNotFound otherwise.  It takes as long for unknown users and external
+// accounts as for a wrong password.
+func (s *Store) CheckPassword(name, pw string) (*User, error) {
+	u, hash, err := scanUser(s.db.QueryRow(`SELECT `+userCols+` FROM users WHERE name = ?`, name))
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return nil, err
+	}
+	if u == nil || hash == NoPassword {
+		bcrypt.CompareHashAndPassword(s.dummy, []byte(pw))
+		return nil, ErrNotFound
+	}
+	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(pw)) != nil {
+		return nil, ErrNotFound
+	}
+	return u, nil
+}
+
+// SetPassword changes a user's password.
+func (s *Store) SetPassword(id int64, pw string) error {
+	h, err := HashPassword(pw)
+	if err != nil {
+		return err
+	}
+	return s.exec1(`UPDATE users SET password = ? WHERE id = ?`, h, id)
+}
+
+// SetLocation changes a user's location.
+func (s *Store) SetLocation(id int64, loc string) error {
+	return s.exec1(`UPDATE users SET location = ? WHERE id = ?`, loc, id)
+}
+
+// SetSysop gives or takes a user's sysop rights.
+func (s *Store) SetSysop(id int64, sysop bool) error {
+	return s.exec1(`UPDATE users SET sysop = ? WHERE id = ?`, sysop, id)
+}
+
+// SetLocked locks a user out, or lets them in again.
+func (s *Store) SetLocked(id int64, locked bool) error {
+	return s.exec1(`UPDATE users SET locked = ? WHERE id = ?`, locked, id)
+}
+
+// DeleteUser removes an account and its mail; its messages stay.
+func (s *Store) DeleteUser(id int64) error {
+	return s.exec1(`DELETE FROM users WHERE id = ?`, id)
+}
+
+// LoggedIn counts a login.
+func (s *Store) LoggedIn(id int64) error {
+	return s.exec1(`UPDATE users SET logins = logins + 1, last_login = ? WHERE id = ?`, now(), id)
+}
+
+// Users lists the accounts by name.
+func (s *Store) Users() ([]*User, error) {
+	rows, err := s.db.Query(`SELECT ` + userCols + ` FROM users ORDER BY name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*User
+	for rows.Next() {
+		u, _, err := scanUser(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, u)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) exec1(q string, args ...any) error {
+	res, err := s.db.Exec(q, args...)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// CreateArea adds a message area.
+func (s *Store) CreateArea(name, desc string, sysopOnly bool) (*Area, error) {
+	res, err := s.db.Exec(`INSERT INTO areas (name, description, sysop_only) VALUES (?, ?, ?)`,
+		name, desc, sysopOnly)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return nil, ErrExists
+		}
+		return nil, err
+	}
+	id, _ := res.LastInsertId()
+	return s.Area(id)
+}
+
+// DeleteArea removes an area and its messages.
+func (s *Store) DeleteArea(id int64) error {
+	return s.exec1(`DELETE FROM areas WHERE id = ?`, id)
+}
+
+const areaQuery = `SELECT a.id, a.name, a.description, a.sysop_only,
+	(SELECT COUNT(*) FROM messages m WHERE m.area_id = a.id),
+	(SELECT COALESCE(MAX(m.id), 0) FROM messages m WHERE m.area_id = a.id)
+	FROM areas a`
+
+func scanArea(row interface{ Scan(...any) error }) (*Area, error) {
+	var a Area
+	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopOnly, &a.Messages, &a.LastID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return &a, err
+}
+
+// Areas lists the message areas.
+func (s *Store) Areas() ([]*Area, error) {
+	rows, err := s.db.Query(areaQuery + ` ORDER BY a.id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*Area
+	for rows.Next() {
+		a, err := scanArea(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+// Area finds an area by id.
+func (s *Store) Area(id int64) (*Area, error) {
+	return scanArea(s.db.QueryRow(areaQuery+` WHERE a.id = ?`, id))
+}
+
+// AreaByName finds an area by name.
+func (s *Store) AreaByName(name string) (*Area, error) {
+	return scanArea(s.db.QueryRow(areaQuery+` WHERE a.name = ?`, name))
+}
+
+const msgCols = `id, area_id, from_id, from_name, to_name, subject, body, reply_to, created`
+
+func scanMessage(row interface{ Scan(...any) error }) (*Message, error) {
+	var m Message
+	var created int64
+	err := row.Scan(&m.ID, &m.AreaID, &m.FromID, &m.From, &m.To, &m.Subject,
+		&m.Body, &m.ReplyTo, &created)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	m.Created = unix(created)
+	return &m, err
+}
+
+// Post adds a message to an area.
+func (s *Store) Post(m *Message) (int64, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	res, err := tx.Exec(`INSERT INTO messages (area_id, from_id, from_name, to_name, subject, body, reply_to, created)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, m.AreaID, m.FromID, m.From, m.To, m.Subject, m.Body, m.ReplyTo, now())
+	if err != nil {
+		return 0, err
+	}
+	if _, err := tx.Exec(`UPDATE users SET posts = posts + 1 WHERE id = ?`, m.FromID); err != nil {
+		return 0, err
+	}
+	id, _ := res.LastInsertId()
+	return id, tx.Commit()
+}
+
+// Message finds a message by id.
+func (s *Store) Message(id int64) (*Message, error) {
+	return scanMessage(s.db.QueryRow(`SELECT `+msgCols+` FROM messages WHERE id = ?`, id))
+}
+
+// Messages lists up to limit messages of an area, from id after on
+// (exclusive), oldest first.
+func (s *Store) Messages(area, after int64, limit int) ([]*Message, error) {
+	rows, err := s.db.Query(`SELECT `+msgCols+` FROM messages WHERE area_id = ? AND id > ?
+		ORDER BY id LIMIT ?`, area, after, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*Message
+	for rows.Next() {
+		m, err := scanMessage(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
+// Neighbour finds the message of the same area just after id (next) or
+// just before it.
+func (s *Store) Neighbour(area, id int64, next bool) (*Message, error) {
+	q := `SELECT ` + msgCols + ` FROM messages WHERE area_id = ? AND id < ? ORDER BY id DESC LIMIT 1`
+	if next {
+		q = `SELECT ` + msgCols + ` FROM messages WHERE area_id = ? AND id > ? ORDER BY id LIMIT 1`
+	}
+	return scanMessage(s.db.QueryRow(q, area, id))
+}
+
+// DeleteMessage removes a message.
+func (s *Store) DeleteMessage(id int64) error {
+	return s.exec1(`DELETE FROM messages WHERE id = ?`, id)
+}
+
+// LastRead is the last message of an area the user has read.
+func (s *Store) LastRead(user, area int64) (int64, error) {
+	var id int64
+	err := s.db.QueryRow(`SELECT message_id FROM lastread WHERE user_id = ? AND area_id = ?`,
+		user, area).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, nil
+	}
+	return id, err
+}
+
+// SetLastRead moves the user's last read message of an area forward to id.
+func (s *Store) SetLastRead(user, area, id int64) error {
+	_, err := s.db.Exec(`INSERT INTO lastread (user_id, area_id, message_id) VALUES (?, ?, ?)
+		ON CONFLICT (user_id, area_id) DO UPDATE SET message_id = MAX(message_id, excluded.message_id)`,
+		user, area, id)
+	return err
+}
+
+// NewCount counts the messages of an area the user has not read.
+func (s *Store) NewCount(user, area int64) (int, error) {
+	last, err := s.LastRead(user, area)
+	if err != nil {
+		return 0, err
+	}
+	var n int
+	err = s.db.QueryRow(`SELECT COUNT(*) FROM messages WHERE area_id = ? AND id > ?`,
+		area, last).Scan(&n)
+	return n, err
+}
+
+const mailCols = `id, from_id, from_name, to_id, to_name, subject, body, reply_to, created, read`
+
+func scanMail(row interface{ Scan(...any) error }) (*Message, error) {
+	var m Message
+	var created int64
+	err := row.Scan(&m.ID, &m.FromID, &m.From, &m.ToID, &m.To, &m.Subject,
+		&m.Body, &m.ReplyTo, &created, &m.Read)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	m.Created = unix(created)
+	return &m, err
+}
+
+// SendMail delivers a private message.
+func (s *Store) SendMail(m *Message) (int64, error) {
+	res, err := s.db.Exec(`INSERT INTO mail (from_id, from_name, to_id, to_name, subject, body, reply_to, created)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, m.FromID, m.From, m.ToID, m.To, m.Subject, m.Body, m.ReplyTo, now())
+	if err != nil {
+		return 0, err
+	}
+	return res.LastInsertId()
+}
+
+// Inbox lists a user's mail, oldest first.
+func (s *Store) Inbox(user int64) ([]*Message, error) {
+	rows, err := s.db.Query(`SELECT `+mailCols+` FROM mail WHERE to_id = ? ORDER BY id`, user)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*Message
+	for rows.Next() {
+		m, err := scanMail(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
+// Mail finds a mail of user's by id: no one reads another's mail.
+func (s *Store) Mail(user, id int64) (*Message, error) {
+	return scanMail(s.db.QueryRow(`SELECT `+mailCols+` FROM mail WHERE id = ? AND to_id = ?`, id, user))
+}
+
+// MarkMailRead marks a mail of user's read.
+func (s *Store) MarkMailRead(user, id int64) error {
+	return s.exec1(`UPDATE mail SET read = 1 WHERE id = ? AND to_id = ?`, id, user)
+}
+
+// DeleteMail deletes a mail of user's.
+func (s *Store) DeleteMail(user, id int64) error {
+	return s.exec1(`DELETE FROM mail WHERE id = ? AND to_id = ?`, id, user)
+}
+
+// UnreadMail counts a user's unread mail.
+func (s *Store) UnreadMail(user int64) (int, error) {
+	var n int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM mail WHERE to_id = ? AND read = 0`, user).Scan(&n)
+	return n, err
+}

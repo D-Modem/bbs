@@ -1,0 +1,101 @@
+;
+; bbs.conf - a BBS for telnet, TN3270 and modem callers
+;
+; bbs -config /etc/bbs/bbs.conf check    checks this file
+;
+; Comments (; or #) go on lines of their own.  Values may be "quoted" to
+; keep spaces at their ends; in quoted values \r \n \t \e and \xHH are those
+; bytes.
+
+[general]
+name = D-Modem BBS
+sysop = Sysop
+;location = Somewhere, Earth
+; the database: users, messages, mail (made 0600)
+database = /var/lib/bbs/bbs.db
+; syslog (daemon facility), stderr, none, or a file
+log = syslog
+; shown before the login (text, or a file)
+;banner = "Call us at 555-1000, 300 to 33600 bit/s."
+;banner_file = /etc/bbs/banner.txt
+; the message of the day, after the login: motd, then the file (read at
+; each login)
+;motd = "The line is down for maintenance on Sunday."
+;motd_file = /etc/bbs/motd.txt
+goodbye = Thanks for calling.
+; callers may make their own accounts (NEW at the login, PF5 on a 3270)
+new_users = yes
+; callers at once, on all listeners together
+max_nodes = 32
+; logins before hanging up, seconds after a wrong one
+attempts = 3
+fail_delay = 3
+; seconds to log in, and for a key once logged in
+login_timeout = 120
+idle_timeout = 600
+; this many failed logins (or new accounts) from one IP address or caller
+; ID within throttle_time seconds turn it away until they age out
+; (0: never).  Callers with neither (a modem server's, no caller ID) are
+; not throttled: one would lock out all
+throttle_failures = 10
+throttle_time = 600
+
+; A listener:
+;   type = telnet        a telnet server; with tn3270 = yes (the default),
+;                        a client that says it is a 3270 (IBM-3278-2-E,
+;                        IBM-DYNAMIC) gets the 3270 screens
+;          raw           the caller's bytes as they come, no protocol:
+;                        app_dmodem's mode = tcp, modemmenu tcp/unix items
+;          rlogin        RFC 1282, as modemmenu's rlogin items speak it
+;   address = host:port  or a unix socket's path (/run/bbs/bbs.sock)
+;   via = ...            how its callers came, in who's online
+;                        (telnet, modem, rlogin by type)
+;   ansi = auto          the terminal's ANSI color: auto asks the terminal
+;                        (or believes its terminal type), yes, no
+;   utf8 = auto          UTF-8 both ways: auto by the terminal type (xterm
+;                        and friends yes; "ansi" BBS terminals no), yes, no
+;   max_per_ip = 4       connections at once from one address (loopback
+;                        and unix sockets: no limit, they are modem servers)
+;   header = no          yes: a session header comes first, NAME=value lines
+;                        and an empty line: app_dmodem's DMODEM_* or a
+;                        modemmenu item's MODEM_* (rate, caller ID, number)
+;   header_timeout = 10  seconds for the header
+;   trust_user = no      yes: the header's MODEM_USER (an rlogin's server
+;                        user) is logged in without a password.  Only where
+;                        nothing but trusted menus can connect
+;   create_users = no    yes, with trust_user: a user unknown here gets an
+;                        account (with no password of its own)
+;   socket_mode = 0660   a unix socket's permissions
+;   socket_group = ...   and its group
+
+; telnet and TN3270, for everyone (port 23 needs root or
+; CAP_NET_BIND_SERVICE)
+[listen telnet]
+type = telnet
+address = :2300
+tn3270 = yes
+max_per_ip = 4
+
+; app_dmodem's [bbs] profile (mode = tcp, host = 127.0.0.1, port = 2323):
+; modem callers, raw.  Keep it to 127.0.0.1
+[listen modem]
+type = raw
+address = 127.0.0.1:2323
+
+; modemmenu's rlogin item: the caller's modemmenu login and password are
+; checked here (the same accounts on both, or the caller logs in again)
+[listen rlogin]
+type = rlogin
+address = 127.0.0.1:2513
+
+; modemmenu's unix item with header = yes: modemmenu has logged the caller
+; in, and the BBS believes it.  Only modemmenu may connect: the socket's
+; group is Asterisk's (which modemmenu runs as)
+;[listen menu]
+;type = raw
+;address = /run/bbs/menu.sock
+;header = yes
+;trust_user = yes
+;create_users = yes
+;socket_mode = 0660
+;socket_group = asterisk
