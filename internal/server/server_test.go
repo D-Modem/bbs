@@ -15,8 +15,10 @@ import (
 	"github.com/racingmars/go3270"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
+	"github.com/Neo-Desktop/bbs-sec/internal/xfer"
 )
 
 func init() { store.BcryptCost = 4 } // fast hashes for tests
@@ -64,6 +66,12 @@ func startGraphics(t *testing.T, g ui3270.Graphics, tweak func(*bbs.Settings), l
 	}
 	var logbuf bytes.Buffer
 	b := bbs.New(s, st, log.New(&logbuf, "", 0))
+	if _, err := st.CreateFileArea("Uploads", "", false); err != nil {
+		t.Fatal(err)
+	}
+	if b.Files, err = files.Open(st, filepath.Join(dir, "files"), 1<<20, 0); err != nil {
+		t.Fatal(err)
+	}
 	for _, l := range ls {
 		l.Address = filepath.Join(dir, l.Address)
 		l.SocketMode = 0600
@@ -614,5 +622,117 @@ func TestNoSixel(t *testing.T) {
 	tc.expect(t, "Name")
 	if bytes.Contains(tc.got, []byte("\x1bP")) {
 		t.Error("sixel sent to a terminal without it")
+	}
+}
+
+// memIn is a file received by the test's terminal program.
+type memIn struct {
+	name string
+	buf  bytes.Buffer
+	ok   bool
+}
+
+func (m *memIn) Write(p []byte) (int, error) { return m.buf.Write(p) }
+func (m *memIn) Commit() error               { m.ok = true; return nil }
+func (m *memIn) Abort()                      {}
+
+func TestFileTransfers(t *testing.T) {
+	e := start(t, nil, &Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no"})
+	d := e.dial("modem.sock")
+	d.expect("Name (or NEW): ")
+	d.send("alice\ralicepass1\r")
+	d.expect("Command: ")
+	d.send("F")
+	d.expect("[Q]uit: ")
+	d.send("1\r")
+	d.expect("[U]pload, [Q]uit: ")
+
+	// upload by ZMODEM
+	zdata := bytes.Repeat([]byte("ZMODEM \x18\x11\x13\r\x00\xff "), 3000)
+	d.send("U\r")
+	d.expect("Protocol, [Q]uit: ")
+	d.send("Z")
+	d.expect("ZMODEM upload now")
+	if err := xfer.SendZMODEM(d.c, []xfer.Outgoing{{Name: "C:\\DOS\\z file.bin", Size: int64(len(zdata)),
+		ModTime: time.Now(), Data: bytes.NewReader(zdata)}}); err != nil {
+		t.Fatal(err)
+	}
+	d.got = nil
+	d.expect("Received z file.bin")
+	d.expect("Describe it: ")
+	d.send("By ZMODEM\r")
+
+	// upload by Kermit
+	kdata := bytes.Repeat([]byte{1, 2, 3, '#', 0x80, 0xff}, 5000)
+	d.expect("[U]pload, [Q]uit: ")
+	d.send("U\r")
+	d.expect("Protocol, [Q]uit: ")
+	d.send("K")
+	d.expect("Kermit upload now")
+	if err := xfer.SendKermit(d.c, []xfer.Outgoing{{Name: "k.bin", Size: int64(len(kdata)),
+		ModTime: time.Now(), Data: bytes.NewReader(kdata)}}); err != nil {
+		t.Fatal(err)
+	}
+	d.got = nil
+	d.expect("Received k.bin")
+	d.expect("Describe it: ")
+	d.send("\r")
+
+	a, _ := e.b.Store.FileAreaByName("Uploads")
+	for name, want := range map[string][]byte{"z file.bin": zdata, "k.bin": kdata} {
+		f, err := e.b.Store.FileByName(a.ID, name)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		r, _ := e.b.Files.OpenFile(f)
+		got, _ := io.ReadAll(r)
+		r.Close()
+		if !bytes.Equal(got, want) {
+			t.Errorf("%s: %d bytes stored", name, len(got))
+		}
+	}
+
+	// download the ZMODEM one by YMODEM (files are listed by name: k.bin
+	// is 1, "z file.bin" 2)
+	d.expect("[U]pload, [Q]uit: ")
+	d.send("2\r")
+	d.expect("[Q]uit: ")
+	d.send("D")
+	d.expect("Protocol, [Q]uit: ")
+	d.send("Y")
+	d.expect("YMODEM (batch) download now")
+	var got []*memIn
+	err := xfer.ReceiveYMODEM(d.c, func(name string, size int64) (xfer.Incoming, error) {
+		m := &memIn{name: name}
+		got = append(got, m)
+		return m, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].name != "z file.bin" || !bytes.Equal(got[0].buf.Bytes(), zdata) {
+		t.Fatalf("YMODEM got %d files", len(got))
+	}
+	d.got = nil
+	d.expect("Sent z file.bin")
+
+	// and by XMODEM-1K
+	d.expect("[Q]uit: ")
+	d.send("D")
+	d.expect("Protocol, [Q]uit: ")
+	d.send("1")
+	d.expect("XMODEM-1K download now")
+	var x memIn
+	if err := xfer.ReceiveXMODEM(d.c, func(string, int64) (xfer.Incoming, error) { return &x, nil }); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(x.buf.Bytes(), zdata) {
+		t.Errorf("XMODEM got %d bytes", x.buf.Len())
+	}
+	d.got = nil
+	d.expect("Sent z file.bin")
+	f, _ := e.b.Store.FileByName(a.ID, "z file.bin")
+	if f.Downloads != 2 || f.Description != "By ZMODEM" {
+		t.Errorf("record %+v", f)
 	}
 }

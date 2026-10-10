@@ -77,12 +77,22 @@ func (s *session) fileArea(a *store.FileArea) error {
 		if s.b.FTPAddress != "" && files.CanUpload(s.user, a) {
 			t.Println(t.C(Dim, "Upload by FTP into /"+a.Name+"/."))
 		}
-		cmd, err := t.Input("\nNumber for its details, [Q]uit: ", 6)
+		prompt := "\nNumber for its details (and download), "
+		if files.CanUpload(s.user, a) {
+			prompt += "[U]pload, "
+		}
+		cmd, err := t.Input(prompt+"[Q]uit: ", 6)
 		if err != nil {
 			return err
 		}
 		if cmd == "" || strings.EqualFold(cmd, "Q") {
 			return nil
+		}
+		if strings.EqualFold(cmd, "U") {
+			if err := s.upload(a); err != nil {
+				return err
+			}
+			continue
 		}
 		i, err := strconv.Atoi(cmd)
 		if err != nil || i < 1 || i > len(list) {
@@ -110,16 +120,27 @@ func (s *session) fileDetail(a *store.FileArea, f *store.File) error {
 		if s.b.FTPAddress != "" {
 			t.Println(t.C(Cyan, "By FTP:      ") + s.b.FTPAddress + "  /" + a.Name + "/" + f.Name)
 		}
-		if !files.CanDelete(s.user, f) {
-			return t.Pause()
+		menu := "\n[D]ownload, "
+		if files.CanDelete(s.user, f) {
+			menu += "[E]dit the description, [R]emove, "
 		}
-		t.Print("\n[E]dit the description, [D]elete, [Q]uit: ")
+		t.Print(menu + "[Q]uit: ")
 		k, err := t.Key()
 		if err != nil {
 			return err
 		}
 		t.Println("")
+		if (k == 'E' || k == 'R') && !files.CanDelete(s.user, f) {
+			continue
+		}
 		switch k {
+		case 'D':
+			if err := s.download(a, f); err != nil {
+				return err
+			}
+			if fresh, err := s.b.Store.FileByID(f.ID); err == nil {
+				f = fresh
+			}
 		case 'E':
 			desc, err := t.Input("Description: ", 60)
 			if err != nil {
@@ -129,7 +150,7 @@ func (s *session) fileDetail(a *store.FileArea, f *store.File) error {
 				return err
 			}
 			f.Description = bbs.Clean(desc, 60)
-		case 'D':
+		case 'R':
 			ok, err := t.YesNo("Delete "+f.Name+"?", false)
 			if err != nil {
 				return err

@@ -154,3 +154,17 @@ func TestHandoff3270(t *testing.T) {
 	}
 	raw.Close()
 }
+
+func TestBinaryKeepsNUL(t *testing.T) {
+	srv, cli := net.Pipe()
+	c := New(srv)
+	c.him[OptBinary] = true
+	go func() {
+		cli.Write([]byte{'\r', 0, 'x'})
+		cli.Close()
+	}()
+	got, _ := io.ReadAll(c)
+	if !bytes.Equal(got, []byte{'\r', 0, 'x'}) {
+		t.Errorf("binary: %q", got)
+	}
+}

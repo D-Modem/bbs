@@ -35,6 +35,9 @@ type Term struct {
 	ANSI  bool // color and cursor movement
 	UTF8  bool // UTF-8 both ways; otherwise 7-bit ASCII
 	Sixel bool // sixel graphics
+	// Clean8 is an 8-bit clean line (a modem, rlogin, telnet in binary
+	// mode): what X/Y/ZMODEM need
+	Clean8 bool
 	// a character cell in pixels, if the terminal said (for sixel)
 	CellW, CellH int
 	Cols         int
@@ -472,4 +475,37 @@ func (t *Term) Picture(data []byte) {
 	}
 	t.w.Write(data)
 	t.w.WriteString("\r\n")
+}
+
+// port is the terminal as a line for file transfers: the same buffered
+// reader (what was typed ahead is not lost), writes straight through.
+type port struct{ t *Term }
+
+func (p port) Read(b []byte) (int, error)        { return p.t.r.Read(b) }
+func (p port) Write(b []byte) (int, error)       { return p.t.c.Write(b) }
+func (p port) SetReadDeadline(d time.Time) error { return p.t.c.SetReadDeadline(d) }
+
+// Port is the line for a file transfer; what was printed goes first.
+func (t *Term) Port() (port, error) {
+	if err := t.Flush(); err != nil {
+		return port{}, err
+	}
+	return port{t}, nil
+}
+
+// Settle waits for the line to be quiet for d (the end of a transfer, a
+// terminal program's leftovers) and drops what came.
+func (t *Term) Settle(d time.Duration) {
+	for i := 0; i < 1000; i++ {
+		t.c.SetReadDeadline(time.Now().Add(d))
+		_, err := t.r.ReadByte()
+		if err != nil {
+			break
+		}
+		for t.r.Buffered() > 0 {
+			t.r.ReadByte()
+		}
+	}
+	t.c.SetReadDeadline(time.Time{})
+	t.lastCR = false
 }

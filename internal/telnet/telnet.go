@@ -197,7 +197,9 @@ func (c *Conn) input(b byte) (byte, bool) {
 			return 0, false
 		}
 		// CR NUL is a bare CR; CR LF is passed as it is
-		if b == 0 && c.lastCR {
+		// CR NUL is a bare CR in text; in binary mode (a file transfer's)
+		// a NUL is a NUL
+		if b == 0 && c.lastCR && !c.him[OptBinary] {
 			c.lastCR = false
 			return 0, false
 		}

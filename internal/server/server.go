@@ -404,10 +404,13 @@ func (s *Server) text(rw io.ReadWriter, c net.Conn, l *Listener, node *bbs.Node,
 		deadliner
 	}{rw, c}
 	t := textui.NewTerm(conn)
+	t.Clean8 = true
 	if tc, ok := rw.(*telnet.Conn); ok {
 		if cols, rows := tc.Size(); cols > 0 {
 			t.Cols, t.Rows = cols, rows
 		}
+		// a telnet client that spoke telnet but refused binary mode
+		t.Clean8 = tc.Binary() || !tc.Spoke()
 	}
 	ansi, known := ansiTerm(tt)
 	switch l.ANSI {
