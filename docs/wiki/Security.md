@@ -1,0 +1,47 @@
+- Passwords are bcrypt (cost 12); unknown users take as long to refuse as
+  wrong passwords; failures wait `fail_delay`; `attempts` failures hang
+  up; `throttle_failures` turns away an address or caller ID that keeps
+  failing (or signing up).
+- Everything users write is cleaned before it is stored and again before
+  it is shown: no escape sequences, control characters, C1 controls,
+  bidirectional overrides or invalid UTF-8 reach another caller's
+  terminal.  On a 3270 these would become 3270 orders once in EBCDIC; go3270
+  does not filter them itself.
+- Limits everywhere: name, subject and line lengths, message size, telnet
+  subnegotiations, session headers, rlogin fields, 64 KB for a 3270
+  screen's answer; timeouts for every step (telnet and TN3270 negotiation,
+  headers, the login, idle callers, writes to callers who stopped
+  reading); `max_nodes` callers at once and `max_per_ip` from one address.
+- The database is created 0600; unix sockets are made private and then
+  opened to `socket_mode`, never wider in between.
+- Private mail is read only by its recipient (every query asks for the
+  user's own); a locked account is said to be locked only to someone who
+  knows its password.
+- Telnet and rlogin carry passwords in the clear, as they always have:
+  keep rlogin to 127.0.0.1 or a socket, and put telnet behind a VPN or an
+  SSH tunnel where that matters.  A modem line is as private as the phone
+  network.
+- News: a reader's article is posted as its user whatever its From says,
+  with the BBS's own Message-ID, Date and Path; only the headers a reader
+  may choose (Subject, References, the body) are kept.  `IHAVE` is taken
+  only from a peer's `accept_from` addresses, and peers' articles are
+  checked (the headers RFC 5536 requires, sizes of the article, its
+  headers and lines) and cleaned before a caller sees them.  `tls =
+  required` refuses `AUTHINFO` before `STARTTLS`; `no` and `optional` make
+  `bbs check` warn.  Commands, lines and articles are limited, and so are
+  clients at once and from one address.
+- FidoNet: a link is known by its address and its password (CRAM-MD5;
+  in the clear only if allowed); a wrong password waits and is refused,
+  an address that is not a link is turned away, and a system calling with
+  a link's address but not its password gets nothing.  Packets are tossed
+  only from a link's own inbound, only if from its address to ours, with
+  its packet password if it has one.  Received file names are reduced to a
+  safe base name; files, sessions, packets, bundles and messages have size
+  limits.  Netmail's sender is what the message says, as anywhere in
+  FidoNet: it is not proof of who wrote it.
+- Doors: a DOS door runs in a container with no network, as the BBS's
+  user, seeing only the doors' directory and its node's; the caller's
+  line is joined to it only through COM1.  Hanging up, the time limit and
+  the idle time stop it.  The drop files carry no password.
+- The log has logins, failures, posts and mail sent (never passwords or
+  message text).

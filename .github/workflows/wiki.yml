@@ -1,0 +1,28 @@
+# Publish docs/wiki to the GitHub wiki when it changes on the default branch.
+# The wiki must exist (one page made in the web editor first).  It pushes
+# with the workflow's token; if that is refused, add a WIKI_TOKEN secret (a
+# token that can push to this repository) and it is used instead.
+name: Wiki
+
+on:
+  push:
+    paths:
+      - 'docs/wiki/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish docs/wiki
+        env:
+          WIKI_URL: https://x-access-token:${{ secrets.WIKI_TOKEN || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          docs/wiki/publish.sh
