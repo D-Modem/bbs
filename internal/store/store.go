@@ -124,6 +124,26 @@ CREATE TABLE IF NOT EXISTS mail (
 	read      INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS mail_to ON mail(to_id, id);
+CREATE TABLE IF NOT EXISTS file_areas (
+	id           INTEGER PRIMARY KEY,
+	name         TEXT NOT NULL UNIQUE COLLATE NOCASE,
+	description  TEXT NOT NULL DEFAULT '',
+	sysop_upload INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS files (
+	id          INTEGER PRIMARY KEY,
+	area_id     INTEGER NOT NULL REFERENCES file_areas(id),
+	name        TEXT NOT NULL COLLATE NOCASE,
+	description TEXT NOT NULL DEFAULT '',
+	size        INTEGER NOT NULL,
+	sha256      TEXT NOT NULL,
+	uploader_id INTEGER NOT NULL,
+	uploader    TEXT NOT NULL,
+	created     INTEGER NOT NULL,
+	downloads   INTEGER NOT NULL DEFAULT 0,
+	UNIQUE (area_id, name)
+);
+CREATE INDEX IF NOT EXISTS files_uploader ON files(uploader_id, created);
 `
 
 // Open opens (and creates, if need be) the database at path.
@@ -536,5 +556,178 @@ func (s *Store) DeleteMail(user, id int64) error {
 func (s *Store) UnreadMail(user int64) (int, error) {
 	var n int
 	err := s.db.QueryRow(`SELECT COUNT(*) FROM mail WHERE to_id = ? AND read = 0`, user).Scan(&n)
+	return n, err
+}
+
+// FileArea is an area of files.
+type FileArea struct {
+	ID          int64
+	Name        string
+	Description string
+	SysopUpload bool // only sysops upload
+	Files       int
+	Bytes       int64
+}
+
+// File is a file in a file area; its contents are kept outside the
+// database, by ID (see the filestore).
+type File struct {
+	ID          int64
+	AreaID      int64
+	Name        string
+	Description string
+	Size        int64
+	SHA256      string
+	UploaderID  int64
+	Uploader    string
+	Created     time.Time
+	Downloads   int
+}
+
+// CreateFileArea adds a file area.
+func (s *Store) CreateFileArea(name, desc string, sysopUpload bool) (*FileArea, error) {
+	res, err := s.db.Exec(`INSERT INTO file_areas (name, description, sysop_upload) VALUES (?, ?, ?)`,
+		name, desc, sysopUpload)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return nil, ErrExists
+		}
+		return nil, err
+	}
+	id, _ := res.LastInsertId()
+	return s.FileArea(id)
+}
+
+// DeleteFileArea removes an empty file area.
+func (s *Store) DeleteFileArea(id int64) error {
+	var n int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM files WHERE area_id = ?`, id).Scan(&n); err != nil {
+		return err
+	}
+	if n > 0 {
+		return fmt.Errorf("the area has %d files", n)
+	}
+	return s.exec1(`DELETE FROM file_areas WHERE id = ?`, id)
+}
+
+const fileAreaQuery = `SELECT a.id, a.name, a.description, a.sysop_upload,
+	(SELECT COUNT(*) FROM files f WHERE f.area_id = a.id),
+	(SELECT COALESCE(SUM(f.size), 0) FROM files f WHERE f.area_id = a.id)
+	FROM file_areas a`
+
+func scanFileArea(row interface{ Scan(...any) error }) (*FileArea, error) {
+	var a FileArea
+	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopUpload, &a.Files, &a.Bytes)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return &a, err
+}
+
+// FileAreas lists the file areas.
+func (s *Store) FileAreas() ([]*FileArea, error) {
+	rows, err := s.db.Query(fileAreaQuery + ` ORDER BY a.id`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*FileArea
+	for rows.Next() {
+		a, err := scanFileArea(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+// FileArea finds a file area by id.
+func (s *Store) FileArea(id int64) (*FileArea, error) {
+	return scanFileArea(s.db.QueryRow(fileAreaQuery+` WHERE a.id = ?`, id))
+}
+
+// FileAreaByName finds a file area by name, in any case.
+func (s *Store) FileAreaByName(name string) (*FileArea, error) {
+	return scanFileArea(s.db.QueryRow(fileAreaQuery+` WHERE a.name = ?`, name))
+}
+
+const fileCols = `id, area_id, name, description, size, sha256, uploader_id, uploader, created, downloads`
+
+func scanFile(row interface{ Scan(...any) error }) (*File, error) {
+	var f File
+	var created int64
+	err := row.Scan(&f.ID, &f.AreaID, &f.Name, &f.Description, &f.Size, &f.SHA256,
+		&f.UploaderID, &f.Uploader, &created, &f.Downloads)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	f.Created = unix(created)
+	return &f, err
+}
+
+// AddFile records a file; ErrExists if the area has one of that name.
+func (s *Store) AddFile(f *File) (int64, error) {
+	res, err := s.db.Exec(`INSERT INTO files (area_id, name, description, size, sha256, uploader_id, uploader, created)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, f.AreaID, f.Name, f.Description, f.Size, f.SHA256,
+		f.UploaderID, f.Uploader, now())
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return 0, ErrExists
+		}
+		return 0, err
+	}
+	return res.LastInsertId()
+}
+
+// Files lists an area's files by name.
+func (s *Store) Files(area int64) ([]*File, error) {
+	rows, err := s.db.Query(`SELECT `+fileCols+` FROM files WHERE area_id = ? ORDER BY name`, area)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*File
+	for rows.Next() {
+		f, err := scanFile(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, f)
+	}
+	return out, rows.Err()
+}
+
+// FileByName finds a file of an area by name, in any case.
+func (s *Store) FileByName(area int64, name string) (*File, error) {
+	return scanFile(s.db.QueryRow(`SELECT `+fileCols+` FROM files WHERE area_id = ? AND name = ?`, area, name))
+}
+
+// FileByID finds a file by id.
+func (s *Store) FileByID(id int64) (*File, error) {
+	return scanFile(s.db.QueryRow(`SELECT `+fileCols+` FROM files WHERE id = ?`, id))
+}
+
+// DeleteFile removes a file's record.
+func (s *Store) DeleteFile(id int64) error {
+	return s.exec1(`DELETE FROM files WHERE id = ?`, id)
+}
+
+// SetFileDescription changes a file's description.
+func (s *Store) SetFileDescription(id int64, desc string) error {
+	return s.exec1(`UPDATE files SET description = ? WHERE id = ?`, desc, id)
+}
+
+// CountDownload counts a download of a file.
+func (s *Store) CountDownload(id int64) error {
+	_, err := s.db.Exec(`UPDATE files SET downloads = downloads + 1 WHERE id = ?`, id)
+	return err
+}
+
+// UploadedSince is how many bytes a user has uploaded since t.
+func (s *Store) UploadedSince(user int64, t time.Time) (int64, error) {
+	var n int64
+	err := s.db.QueryRow(`SELECT COALESCE(SUM(size), 0) FROM files WHERE uploader_id = ? AND created >= ?`,
+		user, t.Unix()).Scan(&n)
 	return n, err
 }

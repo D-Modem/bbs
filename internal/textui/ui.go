@@ -239,7 +239,11 @@ func (s *session) mainMenu() error {
 		t.Println("  " + item("M", "Message areas") + item("E", mail))
 		t.Println("  " + item("W", "Who's online") + item("U", "User list"))
 		t.Println("  " + item("P", "Your profile") + item("I", "System info"))
-		t.Println("  " + item("G", "Goodbye"))
+		if s.b.Files != nil {
+			t.Println("  " + item("F", "File areas") + item("G", "Goodbye"))
+		} else {
+			t.Println("  " + item("G", "Goodbye"))
+		}
 		t.Print("\nCommand: ")
 		k, err := t.Key()
 		if err != nil {
@@ -257,6 +261,10 @@ func (s *session) mainMenu() error {
 			err = s.mail()
 		case 'W':
 			err = s.who()
+		case 'F':
+			if s.b.Files != nil {
+				err = s.fileAreas()
+			}
 		case 'U':
 			err = s.users()
 		case 'P':

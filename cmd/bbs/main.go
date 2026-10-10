@@ -10,6 +10,11 @@
 //	bbs [-config FILE] area add NAME [DESCRIPTION] [-sysop-only]
 //	bbs [-config FILE] area del NAME
 //	bbs [-config FILE] area list
+//	bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
+//	bbs [-config FILE] filearea del|list [NAME]
+//	bbs [-config FILE] file add AREA PATH [DESCRIPTION] [-as NAME]
+//	bbs [-config FILE] file list AREA
+//	bbs [-config FILE] file del AREA NAME
 package main
 
 import (
@@ -23,12 +28,15 @@ import (
 	"log/syslog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
 	"golang.org/x/term"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/files"
+	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
 	"github.com/Neo-Desktop/bbs-sec/internal/server"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
@@ -44,6 +52,12 @@ func usage() {
   bbs [-config FILE] area add NAME [DESCRIPTION] [-sysop-only]
   bbs [-config FILE] area del NAME
   bbs [-config FILE] area list
+  bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
+  bbs [-config FILE] filearea del NAME
+  bbs [-config FILE] filearea list
+  bbs [-config FILE] file add AREA PATH [DESCRIPTION]   (as the first sysop)
+  bbs [-config FILE] file list AREA
+  bbs [-config FILE] file del AREA NAME
 `)
 	os.Exit(2)
 }
@@ -83,6 +97,10 @@ func main() {
 			fmt.Printf("[listen %s] %s %s%s\n", l.Name, l.Kind, l.Address, extra)
 		}
 		fmt.Println("database:", cfg.Database)
+		fmt.Println("files:", cfg.FilesDir)
+		if cfg.FTP != nil {
+			fmt.Printf("ftp: %s, tls %s\n", cfg.FTP.Address, cfg.FTP.TLS)
+		}
 		fmt.Println("configuration OK")
 	case "init":
 		st := open(cfg)
@@ -95,12 +113,21 @@ func main() {
 				fatal(err)
 			}
 		}
+		if fas, _ := st.FileAreas(); len(fas) == 0 {
+			if _, err := st.CreateFileArea("Uploads", "Files from callers", false); err != nil {
+				fatal(err)
+			}
+		}
 		fmt.Println("database ready:", cfg.Database)
 		fmt.Println("make the sysop's account with: bbs user add NAME -sysop")
 	case "user":
 		userCmd(cfg, args)
 	case "area":
 		areaCmd(cfg, args)
+	case "filearea":
+		fileAreaCmd(cfg, args)
+	case "file":
+		fileCmd(cfg, args)
 	default:
 		usage()
 	}
@@ -151,8 +178,28 @@ func serve(cfg *server.Config) int {
 	st := open(cfg)
 	defer st.Close()
 	b := bbs.New(cfg.Settings, st, lg)
+	if b.Files, err = files.Open(st, cfg.FilesDir, cfg.MaxFileSize, cfg.UploadQuota); err != nil {
+		lg.Printf("files: %v", err)
+		return 1
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
+	if cfg.FTP != nil {
+		fs, err := ftp.New(b, *cfg.FTP)
+		if err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+		b.FTPAddress = cfg.FTPAdvertise + map[string]string{
+			ftp.TLSRequired: " (FTPS, explicit TLS)", ftp.TLSImplicit: " (FTPS, implicit TLS)",
+			ftp.TLSOptional: " (TLS optional)", ftp.TLSNo: " (plain FTP)"}[cfg.FTP.TLS]
+		go func() {
+			if err := fs.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
 	srv := server.New(b, cfg.Listeners)
 	srv.Graphics = cfg.Graphics
 	srv.LogoFile = cfg.LogoFile
@@ -334,4 +381,129 @@ func areaCmd(cfg *server.Config, args []string) {
 	default:
 		usage()
 	}
+}
+
+func fileAreaCmd(cfg *server.Config, args []string) {
+	words, flags := split(args)
+	if len(words) == 0 {
+		usage()
+	}
+	st := open(cfg)
+	defer st.Close()
+	switch words[0] {
+	case "list":
+		as, err := st.FileAreas()
+		if err != nil {
+			fatal(err)
+		}
+		for _, a := range as {
+			only := ""
+			if a.SysopUpload {
+				only = " (sysop uploads only)"
+			}
+			fmt.Printf("%-20s %5d files %10s  %s%s\n", a.Name, a.Files, files.Size(a.Bytes), a.Description, only)
+		}
+	case "add":
+		if len(words) < 2 || len(words) > 3 {
+			usage()
+		}
+		// an area is a directory over FTP: a file name's rules
+		if msg := files.ValidName(words[1]); msg != "" {
+			fatal(errors.New(msg))
+		}
+		desc := ""
+		if len(words) == 3 {
+			desc = words[2]
+		}
+		a, err := st.CreateFileArea(words[1], bbs.Clean(desc, 60), flags["sysop-upload"])
+		if err != nil {
+			fatal(err)
+		}
+		fmt.Println("added", a.Name)
+	case "del":
+		if len(words) != 2 {
+			usage()
+		}
+		a, err := st.FileAreaByName(words[1])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", words[1], err))
+		}
+		if err := st.DeleteFileArea(a.ID); err != nil {
+			fatal(err)
+		}
+		fmt.Println("deleted", a.Name)
+	default:
+		usage()
+	}
+}
+
+func fileCmd(cfg *server.Config, args []string) {
+	words, _ := split(args)
+	if len(words) < 2 {
+		usage()
+	}
+	st := open(cfg)
+	defer st.Close()
+	fst, err := files.Open(st, cfg.FilesDir, cfg.MaxFileSize, 0)
+	if err != nil {
+		fatal(err)
+	}
+	a, err := st.FileAreaByName(words[1])
+	if err != nil {
+		fatal(fmt.Errorf("%s: %w", words[1], err))
+	}
+	switch words[0] {
+	case "list":
+		fs, err := st.Files(a.ID)
+		if err != nil {
+			fatal(err)
+		}
+		for _, f := range fs {
+			fmt.Printf("%-32s %10s %s %-16s %4d  %s\n", f.Name, files.Size(f.Size),
+				f.Created.Format("2006-01-02"), f.Uploader, f.Downloads, f.Description)
+		}
+	case "add":
+		if len(words) < 3 || len(words) > 4 {
+			usage()
+		}
+		desc := ""
+		if len(words) == 4 {
+			desc = words[3]
+		}
+		sysop := firstSysop(st)
+		f, err := fst.Import(sysop, a, words[2], filepath.Base(words[2]), bbs.Clean(desc, 60))
+		if err != nil {
+			fatal(err)
+		}
+		fmt.Printf("added %s (%s, sha256 %s)\n", f.Name, files.Size(f.Size), f.SHA256)
+	case "del":
+		if len(words) != 3 {
+			usage()
+		}
+		f, err := st.FileByName(a.ID, words[2])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", words[2], err))
+		}
+		if err := fst.Delete(firstSysop(st), f); err != nil {
+			fatal(err)
+		}
+		fmt.Println("deleted", f.Name)
+	default:
+		usage()
+	}
+}
+
+// firstSysop is who the command line acts as.
+func firstSysop(st *store.Store) *store.User {
+	us, err := st.Users()
+	if err != nil {
+		fatal(err)
+	}
+	for _, u := range us {
+		if u.Sysop {
+			return u
+		}
+	}
+	fatal(errors.New("there is no sysop: bbs user add NAME -sysop"))
+	return nil
 }

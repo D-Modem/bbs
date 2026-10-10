@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -94,7 +95,10 @@ func (c *Caller) Describe() string {
 type BBS struct {
 	Settings
 	Store *store.Store
+	Files *files.Store // nil: no file areas
 	Log   *log.Logger
+	// FTPAddress is where users are told to fetch files ("": no FTP)
+	FTPAddress string
 
 	mu       sync.Mutex
 	nodes    map[int]*Node
@@ -260,30 +264,40 @@ func (b *BBS) failed(source string) {
 // Login checks a name and password for the node.  A failure is delayed by
 // FailDelay; a source that fails too often is turned away for a while.
 func (n *Node) Login(name, pw string) (*store.User, error) {
-	b := n.b
-	c := n.Caller
-	if b.throttled(c.Source) {
-		b.Log.Printf("node %d: %s: login refused, throttled", n.Num, c.Source)
+	u, err := n.b.Authenticate(fmt.Sprintf("node %d", n.Num), n.Caller.Source, name, pw)
+	if err != nil {
+		return nil, err
+	}
+	return n.loggedIn(u, "password")
+}
+
+// Authenticate checks a name and password from source (an address or
+// caller ID; "" for none), for a node or another service (who, for the
+// log): a failure is delayed by FailDelay and counted against source, and
+// a source that fails too often is turned away for a while.
+func (b *BBS) Authenticate(who, source, name, pw string) (*store.User, error) {
+	if b.throttled(source) {
+		b.Log.Printf("%s: %s: login refused, throttled", who, source)
 		time.Sleep(b.FailDelay)
 		return nil, ErrThrottled
 	}
 	u, err := b.Store.CheckPassword(name, pw)
 	if errors.Is(err, store.ErrNotFound) {
-		b.failed(c.Source)
-		b.Log.Printf("node %d: %s: failed login as %q", n.Num, c.Source, Clean(name, MaxNameLen))
+		b.failed(source)
+		b.Log.Printf("%s: %s: failed login as %q", who, source, Clean(name, MaxNameLen))
 		time.Sleep(b.FailDelay)
 		return nil, ErrBadLogin
 	}
 	if err != nil {
-		b.Log.Printf("node %d: login: %v", n.Num, err)
+		b.Log.Printf("%s: login: %v", who, err)
 		return nil, errors.New("the system is in trouble; try again later")
 	}
 	if u.Locked {
-		b.Log.Printf("node %d: %s: %s is locked", n.Num, c.Source, u.Name)
+		b.Log.Printf("%s: %s: %s is locked", who, source, u.Name)
 		time.Sleep(b.FailDelay)
 		return nil, ErrLocked
 	}
-	return n.loggedIn(u, "password")
+	return u, nil
 }
 
 // LoginTrusted logs in a user an upstream menu vouched for (Caller's

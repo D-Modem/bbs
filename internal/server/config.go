@@ -11,19 +11,26 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
+	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
 	"github.com/Neo-Desktop/bbs-sec/internal/logo"
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
 )
 
 // Config is the whole configuration.
 type Config struct {
-	Settings  bbs.Settings
-	Graphics  ui3270.Graphics
-	LogoFile  string // [general] logo: a PNG, for sixel terminals and 3270s
-	Database  string
-	Log       string // syslog, stderr, none, or a file
-	Listeners []*Listener
-	Warnings  []string
+	Settings bbs.Settings
+	Graphics ui3270.Graphics
+	LogoFile string // [general] logo: a PNG, for sixel terminals and 3270s
+
+	FilesDir     string // file areas' files
+	MaxFileSize  int64
+	UploadQuota  int64         // a user's uploads a day (0: no limit)
+	FTP          *ftp.Settings // nil: no FTP server
+	FTPAdvertise string        // the FTP server's address, as users are told it
+	Database     string
+	Log          string // syslog, stderr, none, or a file
+	Listeners    []*Listener
+	Warnings     []string
 }
 
 // DefaultListeners are used when the file has no [listen] section: telnet
@@ -47,9 +54,15 @@ func Load(path string) (*Config, error) {
 			return nil, err
 		}
 	}
-	c := &Config{Settings: bbs.Defaults(), Database: "bbs.db", Log: "stderr"}
+	c := &Config{Settings: bbs.Defaults(), Database: "bbs.db", Log: "stderr", FilesDir: "files"}
 	if err := c.general(cf.Get("general", "")); err != nil {
 		return nil, fmt.Errorf("[general] %w", err)
+	}
+	if err := c.files(cf.Get("general", "")); err != nil {
+		return nil, fmt.Errorf("[general] %w", err)
+	}
+	if err := c.ftpSection(cf.Get("ftp", "")); err != nil {
+		return nil, fmt.Errorf("[ftp] %w", err)
 	}
 	names := map[string]bool{}
 	for _, sec := range cf.All("listen") {
@@ -71,7 +84,7 @@ func Load(path string) (*Config, error) {
 		c.Listeners = DefaultListeners()
 	}
 	for _, s := range cf.Sections {
-		if s.Kind != "general" && s.Kind != "listen" {
+		if s.Kind != "general" && s.Kind != "listen" && s.Kind != "ftp" {
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}
 	}

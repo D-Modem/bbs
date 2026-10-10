@@ -356,6 +356,9 @@ func (u *ui) mainMenu() error {
 				u.user.LastLogin.Format("2006-01-02 15:04")+".", go3270.Blue, false))
 		}
 		items := []string{"Message areas", mail, "Who's online", "User list", "Your profile", "System info", "Your terminal"}
+		if u.b.Files != nil {
+			items = append(items, "File areas")
+		}
 		scr = append(scr, u.boxed(4, 2, 5+len(items)+1, 40, go3270.Blue)...)
 		for i, it := range items {
 			scr = append(scr, u.text(5+i, 4, strconv.Itoa(i+1), go3270.Yellow, true),
@@ -401,12 +404,16 @@ func (u *ui) mainMenu() error {
 			err = u.info()
 		case "7":
 			err = u.terminal()
+		case "8":
+			if u.b.Files != nil {
+				err = u.fileAreas()
+			}
 		case "X":
 			u.b.Log.Printf("node %d: %s logged off", u.n.Num, u.user.Name)
 			u.goodbye(u.b.Goodbye)
 			return errLogoff
 		default:
-			msg = "Choose 1 to 7, or X."
+			msg = fmt.Sprintf("Choose 1 to %d, or X.", len(items))
 		}
 		if err != nil {
 			return err

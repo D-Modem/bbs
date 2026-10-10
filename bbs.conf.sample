@@ -36,6 +36,11 @@ goodbye = Thanks for calling.
 tn3270_symbols = yes
 tn3270_vector = no
 ;tn3270_logo = /etc/bbs/logo.png
+; file areas: where the files are kept (by number, never by their names),
+; the largest file, and what a user may upload a day (sysops: no limit)
+files_dir = /var/lib/bbs/files
+max_file_size = 64M
+upload_quota = 256M
 ; callers may make their own accounts (NEW at the login, PF5 on a 3270)
 new_users = yes
 ; callers at once, on all listeners together
@@ -115,3 +120,25 @@ address = 127.0.0.1:2513
 ;create_users = yes
 ;socket_mode = 0660
 ;socket_group = asterisk
+
+; The FTP server for the file areas: users log in with their BBS name and
+; password; each file area is a directory.  bbs filearea add NAME makes
+; one.  Without this section there is no FTP server
+;[ftp]
+;address = :2121
+; passive data connections: open these in the firewall too
+;passive_ports = 50000-50100
+; behind NAT: the public IP address passive replies give
+;public_host = 203.0.113.7
+; required: explicit FTPS (AUTH TLS before USER); implicit: TLS from the
+; first byte; optional or no: passwords may cross in the clear
+;tls = required
+;cert_file = /etc/bbs/cert.pem
+;key_file = /etc/bbs/key.pem
+; anonymous and ftp may log in to download
+;anonymous = no
+;max_clients = 32
+;max_per_ip = 4
+;idle_timeout = 300
+; the address users are told, in the file areas
+;advertise = bbs.example.org:2121

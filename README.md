@@ -50,12 +50,15 @@ What there is:
 - who's online (and how each caller came: telnet, tn3270, rlogin, modem
   with its rate), the user list, system info
 - your profile: where you call from, your password, ANSI and UTF-8
+- file areas: files listed with their size, uploader, downloads and
+  SHA-256, uploaded and downloaded by FTP (FTPS), deleted by their
+  uploader or the sysop
 - new users sign themselves up (or not: `new_users = no`)
 - SQLite storage, one file
 
 ## Building
 
-Go 1.22 or later:
+Go 1.24 or later:
 
 ```
 make            # or: go build ./cmd/bbs
@@ -242,6 +245,64 @@ x3270 -model 3279-4 localhost:2300
 `tn3270 = no` on a listener sends 3270s the text BBS (which they cannot
 show).
 
+## Files and FTP
+
+File areas hold files; callers browse them from the BBS (*F* in the text
+menu, *8* on a 3270) and move them with an FTP client, logging in with
+their BBS name and password: each area is a directory.
+
+```
+; bbs.conf
+[general]
+files_dir = /var/lib/bbs/files
+max_file_size = 64M
+upload_quota = 256M        ; a user's uploads a day; sysops have none
+
+[ftp]
+address = :2121
+passive_ports = 50000-50100
+public_host = 203.0.113.7  ; behind NAT: the address passive replies give
+tls = required             ; explicit FTPS: AUTH TLS before the login
+cert_file = /etc/bbs/cert.pem
+key_file = /etc/bbs/key.pem
+advertise = bbs.example.org:2121
+```
+
+```
+bbs filearea add Games "DOS games"
+bbs filearea add Official "From the sysop" -sysop-upload
+bbs file add Games ./doom.zip "Shareware Doom"
+bbs file list Games
+```
+
+The FTP side is [ftpserverlib](https://github.com/fclairamb/ftpserverlib)
+with a file system of the BBS's own: `/` lists the areas, an area its
+files, and nothing of the server's disk is reachable.  Files are stored
+under their record's number (`files_dir/1`, `files_dir/2`, ...), so no name
+a user gives becomes a path.  Users may:
+
+- download anything (resuming too);
+- upload a new file into an area (not a sysop-only one), whose name is
+  letters, digits and a few marks (no dots in front, no slashes, nothing a
+  shell or Windows minds), up to `max_file_size` and what is left of
+  `upload_quota`; an upload is written to a temporary file, hashed, and
+  only then recorded and put in place;
+- delete their own files (sysops any).
+
+Everything else (overwriting, appending, resuming uploads, renaming,
+directories, SITE, MFMT, CHMOD) is refused.  Active mode is off (FTP
+bounce), data connections must come from the control connection's
+address, and the login is the BBS's, with its failure delay and its
+throttling by address.  `tls = required` (the default) refuses `USER`
+before TLS, so no password crosses in the clear; `implicit` is TLS from
+the first byte; `optional` and `no` are there for old clients, and `bbs
+check` warns of them.  `anonymous = yes` lets `anonymous` and `ftp` in to
+download only.
+
+Open the FTP port and the passive range in the firewall.  An FTP session
+is not a node: it does not show in who's online or count against
+`max_nodes`; `[ftp] max_clients` and `max_per_ip` limit it.
+
 ### Sixel graphics
 
 Telnet callers whose terminal has sixel graphics (xterm `-ti vt340`,
@@ -317,6 +378,8 @@ and Greg Price's [3270 Graphics](https://www.prycroft6.com.au/misc/3270grfx.html
 | `internal/textui` | the text BBS: line editing, ANSI detection, paging, the menus |
 | `internal/ui3270` | the 3270 BBS: screens and PF keys on go3270, and its graphics |
 | `internal/sixel` | the sixel encoder |
+| `internal/files` | file areas' storage: names, uploads, limits |
+| `internal/ftp` | the FTP server: the file areas as a file system |
 | `internal/logo` | the logo: a PNG, or the name in a pixel font |
 | `internal/bbs` | the BBS itself: nodes, logins, new users, posting, cleaning text |
 | `internal/store` | the SQLite database |
@@ -331,7 +394,11 @@ modemmenu header, one whose header is not trusted, a login and a post, a
 new user, rlogin with a right and a wrong password and trusted, throttling
 by caller ID, all lines busy, a telnet ANSI client, a TN3270 client
 taken through go3270's negotiation to the logon screen and out with PF3,
-telnet terminals with and without sixel, the sixel encoder checked by
+the file store (names, limits, the daily allowance, sysop-only areas),
+the FTP server with a real FTP client (uploads, downloads and their
+count, every refused operation, path traversal, wrong logins, anonymous
+access, TLS required and explicit TLS, the size limit, the per-address
+limit), telnet terminals with and without sixel, the sixel encoder checked by
 decoding its output with ImageMagick (when installed), and TN3270
 clients that report programmed symbols (the logo is loaded and
 shown), vector graphics (the logo is drawn) or neither (nothing is sent).
