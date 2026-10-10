@@ -29,14 +29,17 @@ type Conn interface {
 
 // Term is the caller's terminal.
 type Term struct {
-	c    Conn
-	r    *bufio.Reader
-	w    *bufio.Writer
-	ANSI bool // color and cursor movement
-	UTF8 bool // UTF-8 both ways; otherwise 7-bit ASCII
-	Cols int
-	Rows int
-	Idle time.Duration // for each key
+	c     Conn
+	r     *bufio.Reader
+	w     *bufio.Writer
+	ANSI  bool // color and cursor movement
+	UTF8  bool // UTF-8 both ways; otherwise 7-bit ASCII
+	Sixel bool // sixel graphics
+	// a character cell in pixels, if the terminal said (for sixel)
+	CellW, CellH int
+	Cols         int
+	Rows         int
+	Idle         time.Duration // for each key
 
 	deadline time.Time // a hard limit for keys (the login's)
 	lastCR   bool
@@ -413,4 +416,60 @@ func (t *Term) DetectANSI(timeout time.Duration) (bool, error) {
 	// a plain terminal shows the request as text: wipe it
 	t.w.WriteString("\r" + strings.Repeat(" ", 20) + "\r")
 	return false, nil
+}
+
+var (
+	daPattern   = regexp.MustCompile(`\x1b\[\?([0-9;]*)c`)
+	cellPattern = regexp.MustCompile(`\x1b\[6;(\d+);(\d+)t`)
+)
+
+// DetectSixel asks the terminal for its device attributes (DA1), and its
+// character cell's size in pixels (xterm's CSI 16 t, which not every
+// terminal answers): a terminal whose attributes include 4 has sixel
+// graphics.  Only for ANSI terminals; one that does not answer within
+// timeout has none.
+func (t *Term) DetectSixel(timeout time.Duration) (bool, error) {
+	t.w.WriteString("\x1b[16t\x1b[c")
+	if err := t.Flush(); err != nil {
+		return false, err
+	}
+	var got []byte
+	end := time.Now().Add(timeout)
+	for time.Now().Before(end) && len(got) < 256 {
+		t.c.SetReadDeadline(end)
+		b, err := t.r.ReadByte()
+		t.c.SetReadDeadline(time.Time{})
+		if err != nil {
+			if errors.Is(err, os.ErrDeadlineExceeded) {
+				break
+			}
+			return false, err
+		}
+		got = append(got, b)
+		if m := daPattern.FindSubmatch(got); m != nil {
+			if c := cellPattern.FindSubmatch(got); c != nil {
+				h, _ := strconv.Atoi(string(c[1]))
+				w, _ := strconv.Atoi(string(c[2]))
+				if w >= 4 && w <= 64 && h >= 4 && h <= 128 {
+					t.CellW, t.CellH = w, h
+				}
+			}
+			for _, a := range strings.Split(string(m[1]), ";") {
+				if a == "4" {
+					return true, nil
+				}
+			}
+			return false, nil
+		}
+	}
+	return false, nil
+}
+
+// Picture shows a sixel picture (sixel.Encode's) on its own lines.
+func (t *Term) Picture(data []byte) {
+	if !t.Sixel || len(data) == 0 {
+		return
+	}
+	t.w.Write(data)
+	t.w.WriteString("\r\n")
 }

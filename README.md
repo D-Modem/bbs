@@ -242,6 +242,20 @@ x3270 -model 3279-4 localhost:2300
 `tn3270 = no` on a listener sends 3270s the text BBS (which they cannot
 show).
 
+### Sixel graphics
+
+Telnet callers whose terminal has sixel graphics (xterm `-ti vt340`,
+mlterm, foot, WezTerm, Windows Terminal, iTerm2, SyncTERM, ...) see the
+logo as a picture above the system's name: `logo = /etc/bbs/logo.png`, or
+without one the name drawn in a pixel font.  The BBS asks every ANSI
+terminal for its device attributes (`CSI c`; sixel is attribute 4) and its
+character cell in pixels (`CSI 16 t`, to fit the logo to the window), so
+nothing changes for terminals without sixel.  A caller turns it off (or on,
+if their terminal has it) in their profile.
+
+`sixel = auto` is the default for telnet listeners and `no` for raw and
+rlogin ones: a picture is slow over a modem.
+
 ### 3270 graphics
 
 The BBS reads everything the terminal says of itself when it connects (its
@@ -302,6 +316,8 @@ and Greg Price's [3270 Graphics](https://www.prycroft6.com.au/misc/3270grfx.html
 | `internal/telnet` | the server side of telnet: options, terminal type, window size, the handoff to go3270 |
 | `internal/textui` | the text BBS: line editing, ANSI detection, paging, the menus |
 | `internal/ui3270` | the 3270 BBS: screens and PF keys on go3270, and its graphics |
+| `internal/sixel` | the sixel encoder |
+| `internal/logo` | the logo: a PNG, or the name in a pixel font |
 | `internal/bbs` | the BBS itself: nodes, logins, new users, posting, cleaning text |
 | `internal/store` | the SQLite database |
 | `internal/config` | the configuration file |
@@ -315,5 +331,7 @@ modemmenu header, one whose header is not trusted, a login and a post, a
 new user, rlogin with a right and a wrong password and trusted, throttling
 by caller ID, all lines busy, a telnet ANSI client, a TN3270 client
 taken through go3270's negotiation to the logon screen and out with PF3,
-and TN3270 clients that report programmed symbols (the logo is loaded and
+telnet terminals with and without sixel, the sixel encoder checked by
+decoding its output with ImageMagick (when installed), and TN3270
+clients that report programmed symbols (the logo is loaded and
 shown), vector graphics (the logo is drawn) or neither (nothing is sent).

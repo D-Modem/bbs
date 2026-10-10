@@ -301,9 +301,13 @@ func TestTelnetANSI(t *testing.T) {
 type tnClient struct {
 	c     net.Conn
 	ttype string
-	got   []byte
-	recs  [][]byte // 3270 records, split at IAC EOR
-	cur   []byte
+	// answers to the BBS's terminal queries: device attributes (CSI c)
+	// and the cell size (CSI 16 t), "" for none
+	da, cell string
+	asked    int
+	got      []byte
+	recs     [][]byte // 3270 records, split at IAC EOR
+	cur      []byte
 }
 
 const (
@@ -381,10 +385,23 @@ func (tc *tnClient) read(t *testing.T) {
 	}
 }
 
+// answer answers the terminal queries that have come.
+func (tc *tnClient) answer() {
+	for n := bytes.Count(tc.got, []byte("\x1b[c")); tc.asked < n; tc.asked++ {
+		if tc.cell != "" {
+			tc.c.Write([]byte(tc.cell))
+		}
+		if tc.da != "" {
+			tc.c.Write([]byte(tc.da))
+		}
+	}
+}
+
 func (tc *tnClient) expect(t *testing.T, want string) {
 	t.Helper()
 	for !bytes.Contains(tc.got, []byte(want)) {
 		tc.read(t)
+		tc.answer()
 	}
 }
 
@@ -562,5 +579,40 @@ func TestVectorLogo(t *testing.T) {
 	// after the screen: WSF, Object Picture with a segment
 	if len(after) < 12 || after[0] != 0xf3 || after[3] != 0x0f || after[4] != 0x10 || after[8] != 0x70 {
 		t.Fatalf("no Object Picture after the logon screen: % x", after[:min(len(after), 16)])
+	}
+}
+
+func TestSixelLogo(t *testing.T) {
+	e := start(t, nil, &Listener{Name: "telnet", Kind: "telnet", Address: "telnet.sock",
+		TN3270: true, ANSI: "auto", UTF8: "auto", Sixel: "auto"})
+	c, err := net.Dial("unix", filepath.Join(e.dir, "telnet.sock"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	tc := &tnClient{c: c, ttype: "xterm-256color", da: "\x1b[?63;1;4;22c", cell: "\x1b[6;20;10t"}
+	tc.expect(t, "\x1bP0;1;0q")
+	tc.expect(t, "\x1b\\")
+	tc.expect(t, "Test BBS")
+	// the name, two rows of 20 pels high: 13 pels of font scaled by 3
+	if !bytes.Contains(tc.got, []byte("\"1;1;")) {
+		t.Error("no raster attributes")
+	}
+	tc.expect(t, "Name")
+}
+
+func TestNoSixel(t *testing.T) {
+	e := start(t, nil, &Listener{Name: "telnet", Kind: "telnet", Address: "telnet.sock",
+		TN3270: true, ANSI: "auto", UTF8: "auto", Sixel: "auto"})
+	c, err := net.Dial("unix", filepath.Join(e.dir, "telnet.sock"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	// a VT220-like terminal: attributes without 4
+	tc := &tnClient{c: c, ttype: "xterm", da: "\x1b[?62;1;6;22c"}
+	tc.expect(t, "Name")
+	if bytes.Contains(tc.got, []byte("\x1bP")) {
+		t.Error("sixel sent to a terminal without it")
 	}
 }

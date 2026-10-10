@@ -155,6 +155,7 @@ func serve(cfg *server.Config) int {
 	defer stop()
 	srv := server.New(b, cfg.Listeners)
 	srv.Graphics = cfg.Graphics
+	srv.LogoFile = cfg.LogoFile
 	if err := srv.Run(ctx); err != nil {
 		lg.Printf("%v", err)
 		return 1

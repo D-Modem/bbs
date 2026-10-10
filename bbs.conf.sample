@@ -23,9 +23,13 @@ log = syslog
 ;motd = "The line is down for maintenance on Sunday."
 ;motd_file = /etc/bbs/motd.txt
 goodbye = Thanks for calling.
+; the logo: a PNG (at most 1000x400), shown as sixel graphics on telnet
+; terminals that have them, and on 3270s (below).  Without one, the
+; system's name is drawn in a pixel font
+;logo = /etc/bbs/logo.png
 ; 3270 graphics.  Box drawing (graphic escape) is used wherever the
 ; terminal has it.  tn3270_symbols: the logo (the system's name, or
-; tn3270_logo, a PNG: dark or opaque pixels are drawn) loaded as programmed
+; tn3270_logo, a PNG, or logo: one color, dark or opaque pixels drawn) loaded as programmed
 ; symbols on terminals that take them (IBM PCOMM, HostExplorer; not the
 ; x3270 family).  tn3270_vector: the logo drawn with vector graphics instead
 ; on terminals that have them (PCOMM with host graphics on); experimental
@@ -63,6 +67,9 @@ throttle_time = 600
 ;                        (or believes its terminal type), yes, no
 ;   utf8 = auto          UTF-8 both ways: auto by the terminal type (xterm
 ;                        and friends yes; "ansi" BBS terminals no), yes, no
+;   sixel = auto         the logo as sixel graphics on terminals that say
+;                        they have them (device attributes); no.  auto for
+;                        telnet, no for raw and rlogin (slow modem lines)
 ;   max_per_ip = 4       connections at once from one address (loopback
 ;                        and unix sockets: no limit, they are modem servers)
 ;   header = no          yes: a session header comes first, NAME=value lines

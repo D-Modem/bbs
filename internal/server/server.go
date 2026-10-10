@@ -50,6 +50,7 @@ type Listener struct {
 	TN3270        bool   // telnet: take 3270 clients
 	ANSI          string // auto, yes, no: the terminal's ANSI, if not told
 	UTF8          string // auto, yes, no
+	Sixel         string // auto or yes (ask the terminal), no
 	Header        bool   // read a session header first
 	HeaderTimeout time.Duration
 	TrustUser     bool // the header's MODEM_USER (rlogin's server user) is logged in
@@ -71,6 +72,7 @@ type Server struct {
 	B         *bbs.BBS
 	Listeners []*Listener
 	Graphics  ui3270.Graphics // for 3270s
+	LogoFile  string          // the logo for sixel terminals ("": the name)
 
 	mu    sync.Mutex
 	perIP map[string]int
@@ -432,7 +434,15 @@ func (s *Server) text(rw io.ReadWriter, c net.Conn, l *Listener, node *bbs.Node,
 	default:
 		t.UTF8 = utf8Term(tt)
 	}
-	return textui.Run(s.B, node, t, textui.Options{CreateTrusted: l.CreateUsers})
+	if t.ANSI && (l.Sixel == "auto" || l.Sixel == "yes") {
+		on, err := t.DetectSixel(1500 * time.Millisecond)
+		if err != nil {
+			return err
+		}
+		t.Sixel = on
+	}
+	return textui.Run(s.B, node, t, textui.Options{CreateTrusted: l.CreateUsers,
+		LogoFile: s.LogoFile})
 }
 
 type deadliner interface{ SetReadDeadline(time.Time) error }

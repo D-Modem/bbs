@@ -11,6 +11,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
+	"github.com/Neo-Desktop/bbs-sec/internal/logo"
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
 )
 
@@ -18,6 +19,7 @@ import (
 type Config struct {
 	Settings  bbs.Settings
 	Graphics  ui3270.Graphics
+	LogoFile  string // [general] logo: a PNG, for sixel terminals and 3270s
 	Database  string
 	Log       string // syslog, stderr, none, or a file
 	Listeners []*Listener
@@ -30,9 +32,9 @@ type Config struct {
 func DefaultListeners() []*Listener {
 	return []*Listener{
 		{Name: "telnet", Kind: "telnet", Address: ":2300", Via: "telnet", TN3270: true,
-			ANSI: "auto", UTF8: "auto", MaxPerIP: 4},
+			ANSI: "auto", UTF8: "auto", Sixel: "auto", MaxPerIP: 4},
 		{Name: "modem", Kind: "raw", Address: "127.0.0.1:2323", Via: "modem",
-			ANSI: "auto", UTF8: "no", HeaderTimeout: 10 * time.Second},
+			ANSI: "auto", UTF8: "no", Sixel: "no", HeaderTimeout: 10 * time.Second},
 	}
 }
 
@@ -107,7 +109,16 @@ func (c *Config) general(g *config.Section) error {
 	if c.Graphics.Vector, err = g.Bool("tn3270_vector", false); err != nil {
 		return err
 	}
-	c.Graphics.LogoFile = g.String("tn3270_logo", "")
+	c.LogoFile = g.String("logo", "")
+	// 3270s may have a logo of their own (one-color, cut into cells)
+	c.Graphics.LogoFile = g.String("tn3270_logo", c.LogoFile)
+	for _, f := range []string{c.LogoFile, c.Graphics.LogoFile} {
+		if f != "" {
+			if _, err := logo.Load(f); err != nil {
+				return fmt.Errorf("logo %s: %w", f, err)
+			}
+		}
+	}
 	ints := []struct {
 		key      string
 		p        *int
@@ -172,7 +183,8 @@ func listener(sec *config.Section) (*Listener, error) {
 		key string
 		p   *string
 		def string
-	}{{"ansi", &l.ANSI, "auto"}, {"utf8", &l.UTF8, map[bool]string{true: "auto", false: "no"}[l.Kind == "telnet"]}} {
+	}{{"ansi", &l.ANSI, "auto"}, {"utf8", &l.UTF8, map[bool]string{true: "auto", false: "no"}[l.Kind == "telnet"]},
+		{"sixel", &l.Sixel, map[bool]string{true: "auto", false: "no"}[l.Kind == "telnet"]}} {
 		*o.p = strings.ToLower(sec.String(o.key, o.def))
 		switch *o.p {
 		case "auto", "yes", "no":

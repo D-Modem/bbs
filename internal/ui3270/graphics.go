@@ -15,14 +15,11 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
-	"os"
 	"strings"
 
 	"github.com/racingmars/go3270"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/basicfont"
-	"golang.org/x/image/math/fixed"
+
+	logopkg "github.com/Neo-Desktop/bbs-sec/internal/logo"
 )
 
 // Graphics are the 3270 graphics settings ([general] tn3270_*).
@@ -133,45 +130,13 @@ func symbolCell(dev interface {
 // tall enough to fill rows character rows of cellH pels.
 func logoImage(g Graphics, name string, rows, cellH int) (*image.Gray, error) {
 	if g.LogoFile != "" {
-		f, err := os.Open(g.LogoFile)
+		src, err := logopkg.Load(g.LogoFile)
 		if err != nil {
 			return nil, err
 		}
-		defer f.Close()
-		src, err := png.Decode(f)
-		if err != nil {
-			return nil, err
-		}
-		b := src.Bounds()
-		if b.Dx() > 1000 || b.Dy() > 400 {
-			return nil, errors.New("logo: larger than 1000x400")
-		}
-		img := image.NewGray(image.Rect(0, 0, b.Dx(), b.Dy()))
-		for y := 0; y < b.Dy(); y++ {
-			for x := 0; x < b.Dx(); x++ {
-				// on: opaque and not near white (dark on white, or
-				// anything on transparent)
-				c := color.NRGBAModel.Convert(src.At(b.Min.X+x, b.Min.Y+y)).(color.NRGBA)
-				lum := (299*int(c.R) + 587*int(c.G) + 114*int(c.B)) / 1000
-				if c.A >= 128 && lum < 200 {
-					img.SetGray(x, y, color.Gray{255})
-				}
-			}
-		}
-		return img, nil
+		return logopkg.Mono(src), nil
 	}
-	face := basicfont.Face7x13
-	small := image.NewGray(image.Rect(0, 0, 7*len([]rune(name)), 13))
-	d := font.Drawer{Dst: small, Src: image.White, Face: face, Dot: fixed.P(0, 11)}
-	d.DrawString(name)
-	scale := max(1, rows*cellH/13)
-	img := image.NewGray(image.Rect(0, 0, small.Bounds().Dx()*scale, 13*scale))
-	for y := 0; y < img.Bounds().Dy(); y++ {
-		for x := 0; x < img.Bounds().Dx(); x++ {
-			img.SetGray(x, y, small.GrayAt(x/scale, y/scale))
-		}
-	}
-	return img, nil
+	return logopkg.Name(name, rows*cellH), nil
 }
 
 // cut cuts img into cells: the distinct cells' symbols (an empty cell is the

@@ -15,6 +15,8 @@ import (
 type Options struct {
 	// a trusted user unknown here gets an account of its own
 	CreateTrusted bool
+	// the logo (a PNG; "": the system's name), on sixel terminals
+	LogoFile string
 }
 
 type session struct {
@@ -48,6 +50,9 @@ func Run(b *bbs.BBS, n *bbs.Node, t *Term, o Options) error {
 func (s *session) run() error {
 	t := s.t
 	t.Clear()
+	if t.Sixel {
+		t.Picture(sixelLogo(t, s.b.Name, s.o.LogoFile))
+	}
 	t.Println(t.C(Cyan, s.b.Name))
 	if s.b.Banner != "" {
 		t.Println(s.b.Banner)
@@ -854,8 +859,9 @@ func (s *session) profile() error {
 		t.Printf("  From:      %s\n", u.Location)
 		t.Printf("  Member:    since %s, %d calls, %d posts\n", u.Created.Format("2006-01-02"), u.Logins, u.Posts)
 		onOff := map[bool]string{true: "on", false: "off"}
-		t.Printf("  Terminal:  %dx%d, ANSI %s, UTF-8 %s\n", t.Cols, t.Rows, onOff[t.ANSI], onOff[t.UTF8])
-		menu := "\n[L]ocation, [A]NSI on/off, [8]-bit UTF-8 on/off, "
+		t.Printf("  Terminal:  %dx%d, ANSI %s, UTF-8 %s, sixel %s\n", t.Cols, t.Rows,
+			onOff[t.ANSI], onOff[t.UTF8], onOff[t.Sixel])
+		menu := "\n[L]ocation, [A]NSI on/off, [8]-bit UTF-8 on/off, [S]ixel on/off, "
 		if !u.External {
 			menu += "[P]assword, "
 		}
@@ -878,6 +884,20 @@ func (s *session) profile() error {
 			t.ANSI = !t.ANSI
 		case '8':
 			t.UTF8 = !t.UTF8
+		case 'S':
+			// on only where the terminal can: sixel bytes are noise elsewhere
+			if t.Sixel {
+				t.Sixel = false
+			} else if t.ANSI {
+				on, err := t.DetectSixel(2 * time.Second)
+				if err != nil {
+					return err
+				}
+				t.Sixel = on
+				if !on {
+					t.Println(t.C(Red, "Your terminal does not say it has sixel graphics."))
+				}
+			}
 		case 'P':
 			if u.External {
 				continue
