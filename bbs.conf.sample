@@ -227,3 +227,34 @@ address = 127.0.0.1:2513
 ;poll = 3600
 ; which of our addresses it knows us by (default: ours in its zone)
 ;aka = 21:1/999
+
+; Doors: programs callers on the text BBS play (D on the main menu).  The
+; BBS writes drop files (DOOR.SYS, DORINFO1.DEF, DOOR32.SYS, CHAIN.TXT) into
+; the node's own directory and joins the caller's line to the door until it
+; ends, the caller hangs up, or the time is up.  One section each
+;
+; A DOS door, in dosemu2 in Docker (doors/dosemu2: docker build -t
+; bbs-dosemu2 doors/dosemu2).  D: is /srv/doors, E: the node's drop files,
+; and the caller is on COM1 behind a FOSSIL
+;[door lord]
+;description = Legend of the Red Dragon
+;command = docker run --rm -i --name bbs-door{node} -v /srv/doors:/doors -v {dir}:/node bbs-dosemu2 'D:\LORD' 'START.BAT {node}'
+; the node's directory ({node} its number): mounted as /node above
+;dir = /var/lib/bbs/doors/node{node}
+;drop_files = door.sys dorinfo1.def door32.sys chain.txt
+; cp437: shown as UTF-8 to UTF-8 terminals; utf-8; raw: as it comes
+;charset = cp437
+; minutes a visit
+;time_limit = 60
+;sysop_only = no
+; yes: one caller at a time (a door that is not multi-node)
+;single = no
+; after the door: make sure its container is gone
+;cleanup = docker rm -f bbs-door{node}
+;
+; A program for Linux: on a pseudo-terminal, in UTF-8
+;[door adventure]
+;command = /usr/games/adventure
+;charset = utf-8
+;pty = yes
+;door32_comm = local

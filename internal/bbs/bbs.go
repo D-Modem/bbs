@@ -6,6 +6,7 @@ package bbs
 import (
 	"errors"
 	"fmt"
+	"github.com/Neo-Desktop/bbs-sec/internal/door"
 	"log"
 	"os"
 	"sort"
@@ -103,6 +104,8 @@ type BBS struct {
 	News NewsSettings
 	// Netmail sends FidoNet netmail (nil: the BBS is not on FidoNet)
 	Netmail NetmailFunc
+	// Doors are the door programs (for text callers)
+	Doors []*door.Door
 
 	mu       sync.Mutex
 	nodes    map[int]*Node

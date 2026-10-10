@@ -1,0 +1,7 @@
+# dosemu2 for doors: no sound, no mouse, no network, a dumb console (which
+# the caller does not see: the door talks to COM1)
+$_cpu_vm = "auto"
+$_cpu_vm_dpmi = "auto"
+$_sound = (off)
+$_mouse_internal = (off)
+$_hogthreshold = (1)

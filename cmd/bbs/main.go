@@ -134,6 +134,10 @@ func main() {
 				fmt.Printf("[link %s] %s, host %q, echoes %s, route %v\n", l.Name, l.Addr, l.Host, l.Echoes, l.Route)
 			}
 		}
+		for _, d := range cfg.Doors {
+			fmt.Printf("[door %s] %q, drop files %s in %s, %v\n", d.Name, d.Command,
+				strings.Join(d.DropFiles, " "), d.Dir, d.TimeLimit)
+		}
 		fmt.Println("configuration OK")
 	case "init":
 		st := open(cfg)
@@ -216,6 +220,7 @@ func serve(cfg *server.Config) int {
 	defer st.Close()
 	b := bbs.New(cfg.Settings, st, lg)
 	b.News = cfg.News
+	b.Doors = cfg.Doors
 	if b.Files, err = files.Open(st, cfg.FilesDir, cfg.MaxFileSize, cfg.UploadQuota); err != nil {
 		lg.Printf("files: %v", err)
 		return 1

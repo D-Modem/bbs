@@ -1,0 +1,41 @@
+#!/bin/sh
+# rundoor DOSDIR COMMAND...: run a DOS door in dosemu2 with the caller's
+# line (this program's standard input and output) on COM1, behind
+# dosemu2's FOSSIL.
+#
+#   D: is /doors, the doors (mount them there: -v /srv/doors:/doors)
+#   E: is /node, this node's drop files (-v /var/lib/bbs/doors/node1:/node)
+#
+#   rundoor 'D:\LORD' 'LORD.EXE /PE:\'
+#
+# The door's screen (dosemu's console) goes to /node/dosemu.out, not to the
+# caller: the caller sees only what the door sends to COM1.
+set -eu
+
+if [ $# -lt 2 ]; then
+	echo "usage: rundoor DOSDIR COMMAND..." >&2
+	exit 2
+fi
+dir=$1
+shift
+cmd=$*
+sock=/tmp/com1.sock
+rm -f "$sock"
+
+# the batch file the door runs from: the FOSSIL, the door's directory, the door
+printf '@ECHO OFF\r\nFOSSIL\r\n%s\r\nCD %s\r\n%s\r\n' "${dir%%:*}:" "$dir" "$cmd" > /node/DOOR.BAT
+
+# COM1's other end: socat, which dosemu2 runs on the port's pty, joins it
+# to this socket; the socat here joins the socket to the caller
+socat -b 4096 UNIX-LISTEN:"$sock",unlink-early STDIO &
+bridge=$!
+trap 'kill $bridge 2>/dev/null; kill $dos 2>/dev/null' TERM INT HUP
+
+dosemu -n -f /home/door/.dosemurc \
+	-I "serial { com 1 exec 'socat -b 4096 STDIO,raw,echo=0 UNIX-CONNECT:$sock' }" \
+	-d /doors -d /node -q -E 'E:\DOOR.BAT' </dev/null >/node/dosemu.out 2>&1 &
+dos=$!
+status=0
+wait $dos || status=$?
+kill $bridge 2>/dev/null || true
+exit $status

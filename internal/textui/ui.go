@@ -236,13 +236,18 @@ func (s *session) mainMenu() error {
 		item := func(k, label string) string {
 			return t.C(Yellow, "["+k+"]") + " " + bbs.Fit(label, 22)
 		}
-		t.Println("  " + item("M", "Message areas") + item("E", mail))
-		t.Println("  " + item("W", "Who's online") + item("U", "User list"))
-		t.Println("  " + item("P", "Your profile") + item("I", "System info"))
+		items := []string{item("M", "Message areas"), item("E", mail),
+			item("W", "Who's online"), item("U", "User list"),
+			item("P", "Your profile"), item("I", "System info")}
 		if s.b.Files != nil {
-			t.Println("  " + item("F", "File areas") + item("G", "Goodbye"))
-		} else {
-			t.Println("  " + item("G", "Goodbye"))
+			items = append(items, item("F", "File areas"))
+		}
+		if len(s.doorsFor()) > 0 {
+			items = append(items, item("D", "Doors"))
+		}
+		items = append(items, item("G", "Goodbye"))
+		for i := 0; i < len(items); i += 2 {
+			t.Println("  " + strings.Join(items[i:min(i+2, len(items))], ""))
 		}
 		t.Print("\nCommand: ")
 		k, err := t.Key()
@@ -264,6 +269,10 @@ func (s *session) mainMenu() error {
 		case 'F':
 			if s.b.Files != nil {
 				err = s.fileAreas()
+			}
+		case 'D':
+			if len(s.doorsFor()) > 0 {
+				err = s.doors()
 			}
 		case 'U':
 			err = s.users()
