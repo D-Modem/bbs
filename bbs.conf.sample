@@ -187,3 +187,43 @@ address = 127.0.0.1:2513
 ; on first contact, how many of each group's latest articles to fetch
 ;initial = 100
 ;accept_from = news.example.net
+
+; FidoNet (or another FTN network).  bbs area echo General FSX_GEN makes an
+; area an echo; mail to Name@zone:net/node is netmail.  Without this section
+; the BBS is not on FidoNet
+;[fido]
+; our address, then any AKAs
+;address = 21:1/999
+;origin = D-Modem BBS, by phone and telnet
+; inbound, outbound and bad packets go under it
+;dir = /var/lib/bbs/fido
+; what messages are written in: cp437 (what FidoNet reads) or utf-8
+;charset = cp437
+;max_message = 64K
+
+; binkp: answer the links' calls.  Without it, links are only called
+;[binkp]
+;address = :24554
+;max_clients = 16
+;max_per_ip = 4
+
+; A system we exchange mail with, one section each
+;[link hub]
+;address = 21:1/100
+; to call it (port 24554 if none); without a host it calls us
+;host = hub.example.net:24554
+; the session password (CRAM-MD5); and the packets', up to 8 characters
+;password = secret
+;packet_password =
+; it may be sent in the clear to a mailer without CRAM-MD5
+;plain_password = no
+; the echoes exchanged with it: a wildmat of tags
+;echoes = FSX_*
+; netmail for systems that are not links goes by it (one link at most)
+;route = yes
+; zip: ARCmail bundles; none: bare packets
+;packer = zip
+; call it every this many seconds, mail or not (0: only with mail)
+;poll = 3600
+; which of our addresses it knows us by (default: ours in its zone)
+;aka = 21:1/999

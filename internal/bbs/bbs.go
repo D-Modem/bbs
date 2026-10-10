@@ -101,6 +101,8 @@ type BBS struct {
 	FTPAddress string
 	// News is how articles made here are signed (newsgroup areas)
 	News NewsSettings
+	// Netmail sends FidoNet netmail (nil: the BBS is not on FidoNet)
+	Netmail NetmailFunc
 
 	mu       sync.Mutex
 	nodes    map[int]*Node
@@ -421,6 +423,9 @@ func (n *Node) SendMail(to, subject string, body []string, replyTo int64) error 
 	u := n.User()
 	if u == nil {
 		return errors.New("not logged in")
+	}
+	if name, addr, ok := SplitNetmail(to); ok {
+		return n.sendNetmail(u, name, addr, subject, body, replyTo)
 	}
 	rcpt, err := n.b.Store.UserByName(strings.TrimSpace(to))
 	if errors.Is(err, store.ErrNotFound) {

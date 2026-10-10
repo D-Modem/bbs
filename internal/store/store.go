@@ -48,6 +48,7 @@ type Area struct {
 	Description string
 	SysopOnly   bool   // only sysops post
 	Newsgroup   string // its newsgroup ("": not one)
+	EchoTag     string // its FidoNet echo ("": not one)
 	Messages    int
 	FirstID     int64
 	LastID      int64
@@ -72,6 +73,11 @@ type Message struct {
 	MessageID string
 	Origin    string
 	Raw       []byte
+
+	// FidoNet: its MSGID, and the packed message as it came from a link
+	// (to pass on to the others)
+	FTNMsgID string
+	FTN      []byte
 }
 
 // Store is the database.
@@ -361,7 +367,7 @@ func (s *Store) DeleteArea(id int64) error {
 	return s.exec1(`DELETE FROM areas WHERE id = ?`, id)
 }
 
-const areaQuery = `SELECT a.id, a.name, a.description, a.sysop_only, COALESCE(a.newsgroup, ''),
+const areaQuery = `SELECT a.id, a.name, a.description, a.sysop_only, COALESCE(a.newsgroup, ''), COALESCE(a.echotag, ''),
 	(SELECT COUNT(*) FROM messages m WHERE m.area_id = a.id),
 	(SELECT COALESCE(MIN(m.id), 0) FROM messages m WHERE m.area_id = a.id),
 	(SELECT COALESCE(MAX(m.id), 0) FROM messages m WHERE m.area_id = a.id)
@@ -369,7 +375,7 @@ const areaQuery = `SELECT a.id, a.name, a.description, a.sysop_only, COALESCE(a.
 
 func scanArea(row interface{ Scan(...any) error }) (*Area, error) {
 	var a Area
-	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopOnly, &a.Newsgroup, &a.Messages,
+	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopOnly, &a.Newsgroup, &a.EchoTag, &a.Messages,
 		&a.FirstID, &a.LastID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -406,13 +412,13 @@ func (s *Store) AreaByName(name string) (*Area, error) {
 }
 
 const msgCols = `id, area_id, from_id, from_name, to_name, subject, body, reply_to, created,
-	COALESCE(message_id, ''), origin`
+	COALESCE(message_id, ''), origin, COALESCE(ftn_msgid, '')`
 
 func scanMessage(row interface{ Scan(...any) error }) (*Message, error) {
 	var m Message
 	var created int64
 	err := row.Scan(&m.ID, &m.AreaID, &m.FromID, &m.From, &m.To, &m.Subject,
-		&m.Body, &m.ReplyTo, &created, &m.MessageID, &m.Origin)
+		&m.Body, &m.ReplyTo, &created, &m.MessageID, &m.Origin, &m.FTNMsgID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -432,9 +438,9 @@ func (s *Store) Post(m *Message) (int64, error) {
 		msgid = m.MessageID
 	}
 	res, err := tx.Exec(`INSERT INTO messages (area_id, from_id, from_name, to_name, subject, body, reply_to, created,
-		message_id, origin, raw)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, m.AreaID, m.FromID, m.From, m.To, m.Subject, m.Body, m.ReplyTo, now(),
-		msgid, m.Origin, m.Raw)
+		message_id, origin, raw, ftn_msgid, ftn)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, m.AreaID, m.FromID, m.From, m.To, m.Subject, m.Body, m.ReplyTo, now(),
+		msgid, m.Origin, m.Raw, nullString(m.FTNMsgID), m.FTN)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
 			return 0, ErrExists
@@ -527,13 +533,14 @@ func (s *Store) NewCount(user, area int64) (int, error) {
 	return n, err
 }
 
-const mailCols = `id, from_id, from_name, to_id, to_name, subject, body, reply_to, created, read`
+const mailCols = `id, from_id, from_name, to_id, to_name, subject, body, reply_to, created, read,
+	COALESCE(ftn_msgid, '')`
 
 func scanMail(row interface{ Scan(...any) error }) (*Message, error) {
 	var m Message
 	var created int64
 	err := row.Scan(&m.ID, &m.FromID, &m.From, &m.ToID, &m.To, &m.Subject,
-		&m.Body, &m.ReplyTo, &created, &m.Read)
+		&m.Body, &m.ReplyTo, &created, &m.Read, &m.FTNMsgID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -543,8 +550,10 @@ func scanMail(row interface{ Scan(...any) error }) (*Message, error) {
 
 // SendMail delivers a private message.
 func (s *Store) SendMail(m *Message) (int64, error) {
-	res, err := s.db.Exec(`INSERT INTO mail (from_id, from_name, to_id, to_name, subject, body, reply_to, created)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, m.FromID, m.From, m.ToID, m.To, m.Subject, m.Body, m.ReplyTo, now())
+	res, err := s.db.Exec(`INSERT INTO mail (from_id, from_name, to_id, to_name, subject, body, reply_to, created,
+		ftn_msgid)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, m.FromID, m.From, m.ToID, m.To, m.Subject, m.Body, m.ReplyTo, now(),
+		nullString(m.FTNMsgID))
 	if err != nil {
 		return 0, err
 	}

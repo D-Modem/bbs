@@ -15,6 +15,10 @@ func migrate(db *sql.DB) error {
 		{"messages", "message_id", "TEXT"},
 		{"messages", "origin", "TEXT NOT NULL DEFAULT ''"},
 		{"messages", "raw", "BLOB"},
+		{"areas", "echotag", "TEXT"},
+		{"messages", "ftn_msgid", "TEXT"},
+		{"messages", "ftn", "BLOB"},
+		{"mail", "ftn_msgid", "TEXT"},
 	}
 	for _, a := range add {
 		var n int
@@ -46,6 +50,21 @@ CREATE TABLE IF NOT EXISTS peer_push (
 	last_id INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS messages_created ON messages(created);
+CREATE UNIQUE INDEX IF NOT EXISTS areas_echotag ON areas(echotag) WHERE echotag IS NOT NULL;
+CREATE INDEX IF NOT EXISTS messages_ftn_msgid ON messages(ftn_msgid) WHERE ftn_msgid IS NOT NULL;
+CREATE TABLE IF NOT EXISTS netmail_out (
+	id        INTEGER PRIMARY KEY,
+	from_id   INTEGER NOT NULL,
+	from_name TEXT NOT NULL,
+	to_name   TEXT NOT NULL,
+	to_addr   TEXT NOT NULL,
+	subject   TEXT NOT NULL,
+	body      TEXT NOT NULL,
+	msgid     TEXT NOT NULL,
+	reply     TEXT NOT NULL DEFAULT '',
+	created   INTEGER NOT NULL,
+	packed    INTEGER NOT NULL DEFAULT 0
+);
 `)
 	return err
 }

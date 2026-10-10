@@ -12,6 +12,8 @@
 //	bbs [-config FILE] area list
 //	bbs [-config FILE] area newsgroup AREA GROUP|-
 //	bbs [-config FILE] news sync [PEER]
+//	bbs [-config FILE] area echo AREA TAG|-
+//	bbs [-config FILE] fido poll|scan|toss [LINK]
 //	bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
 //	bbs [-config FILE] filearea del|list [NAME]
 //	bbs [-config FILE] file add AREA PATH [DESCRIPTION] [-as NAME]
@@ -37,6 +39,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/fido"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
@@ -58,6 +61,9 @@ func usage() {
   bbs [-config FILE] area list
   bbs [-config FILE] area newsgroup AREA GROUP|-    (- : not a newsgroup)
   bbs [-config FILE] news sync [PEER]               exchange articles with peers now
+  bbs [-config FILE] area echo AREA TAG|-           make an area a FidoNet echo (- : not one)
+  bbs [-config FILE] fido poll [LINK]               call links (with a host) now
+  bbs [-config FILE] fido scan|toss [LINK]          pack new mail, or take in what came
   bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
   bbs [-config FILE] filearea del NAME
   bbs [-config FILE] filearea list
@@ -115,6 +121,19 @@ func main() {
 			fmt.Printf("[peer %s] %s, groups %s, pull %v, push %v, every %v\n", p.Name, p.Address,
 				p.Groups, p.Pull, p.Push, p.Interval)
 		}
+		if f := cfg.Fido; f != nil {
+			var as []string
+			for _, a := range f.Addrs {
+				as = append(as, a.String())
+			}
+			fmt.Printf("fido: %s, %s\n", strings.Join(as, " "), f.Dir)
+			if cfg.Binkp != nil {
+				fmt.Printf("binkp: %s\n", cfg.Binkp.Address)
+			}
+			for _, l := range f.Links {
+				fmt.Printf("[link %s] %s, host %q, echoes %s, route %v\n", l.Name, l.Addr, l.Host, l.Echoes, l.Route)
+			}
+		}
 		fmt.Println("configuration OK")
 	case "init":
 		st := open(cfg)
@@ -140,6 +159,8 @@ func main() {
 		areaCmd(cfg, args)
 	case "news":
 		newsCmd(cfg, args)
+	case "fido":
+		fidoCmd(cfg, args)
 	case "filearea":
 		fileAreaCmd(cfg, args)
 	case "file":
@@ -216,6 +237,25 @@ func serve(cfg *server.Config) int {
 		}()
 	}
 	svc.RunPeers(ctx, cfg.Peers)
+	if cfg.Fido != nil {
+		fd, err := fido.New(b, *cfg.Fido)
+		if err != nil {
+			lg.Printf("fido: %v", err)
+			return 1
+		}
+		b.Netmail = fd.Netmail
+		if cfg.Binkp != nil {
+			bs := &fido.Server{F: fd, Address: cfg.Binkp.Address, MaxClients: cfg.Binkp.MaxClients,
+				MaxPerIP: cfg.Binkp.MaxPerIP}
+			go func() {
+				if err := bs.Run(ctx); err != nil {
+					lg.Printf("%v", err)
+					stop()
+				}
+			}()
+		}
+		go fd.Run(ctx)
+	}
 	if cfg.FTP != nil {
 		fs, err := ftp.New(b, *cfg.FTP)
 		if err != nil {
@@ -386,6 +426,9 @@ func areaCmd(cfg *server.Config, args []string) {
 			if a.Newsgroup != "" {
 				only += " [" + a.Newsgroup + "]"
 			}
+			if a.EchoTag != "" {
+				only += " [echo " + a.EchoTag + "]"
+			}
 			fmt.Printf("%-20s %5d messages  %s%s\n", a.Name, a.Messages, a.Description, only)
 		}
 	case "add":
@@ -422,6 +465,28 @@ func areaCmd(cfg *server.Config, args []string) {
 			fmt.Println(a.Name, "is no longer a newsgroup")
 		} else {
 			fmt.Println(a.Name, "is", group)
+		}
+	case "echo":
+		if len(words) != 3 {
+			usage()
+		}
+		a, err := st.AreaByName(words[1])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", words[1], err))
+		}
+		tag := strings.ToUpper(words[2])
+		if tag == "-" {
+			tag = ""
+		} else if !validEchoTag(tag) {
+			fatal(errors.New("an echo tag is letters, digits and . _ - (FSX_GEN), up to 60"))
+		}
+		if err := st.SetEchoTag(a.ID, tag); err != nil {
+			fatal(err)
+		}
+		if tag == "" {
+			fmt.Println(a.Name, "is no longer an echo")
+		} else {
+			fmt.Println(a.Name, "is the echo", tag)
 		}
 	case "del":
 		if len(words) != 2 {
@@ -591,5 +656,83 @@ func newsCmd(cfg *server.Config, args []string) {
 	}
 	if n == 0 {
 		fatal(errors.New("no such peer"))
+	}
+}
+
+func validEchoTag(tag string) bool {
+	if tag == "" || len(tag) > 60 {
+		return false
+	}
+	for _, c := range tag {
+		if !(c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || strings.ContainsRune("._-!$&+", c)) {
+			return false
+		}
+	}
+	return true
+}
+
+func fidoCmd(cfg *server.Config, args []string) {
+	words, _ := split(args)
+	if len(words) == 0 || len(words) > 2 {
+		usage()
+	}
+	if cfg.Fido == nil {
+		fatal(errors.New("no [fido] section"))
+	}
+	st := open(cfg)
+	defer st.Close()
+	lg := log.New(os.Stderr, "bbs: ", log.LstdFlags)
+	b := bbs.New(cfg.Settings, st, lg)
+	b.News = cfg.News
+	fd, err := fido.New(b, *cfg.Fido)
+	if err != nil {
+		fatal(err)
+	}
+	var links []*fido.Link
+	for _, l := range cfg.Fido.Links {
+		if len(words) == 2 && !strings.EqualFold(l.Name, words[1]) {
+			continue
+		}
+		links = append(links, l)
+	}
+	if len(links) == 0 {
+		fatal(errors.New("no such link"))
+	}
+	failed := false
+	for _, l := range links {
+		switch words[0] {
+		case "scan":
+			n, err := fd.Scan(l)
+			fmt.Printf("%s: %d messages packed\n", l.Name, n)
+			failed = failed || err != nil
+			if err != nil {
+				fmt.Println(" ", err)
+			}
+		case "toss":
+			st, err := fd.Toss(l)
+			fmt.Printf("%s: %s\n", l.Name, st)
+			if err != nil {
+				failed = true
+				fmt.Println(" ", err)
+			}
+		case "poll":
+			if l.Host == "" {
+				if len(words) == 2 {
+					fatal(fmt.Errorf("%s has no host to call", l.Name))
+				}
+				continue
+			}
+			if err := fd.Call(context.Background(), l); err != nil {
+				failed = true
+				fmt.Printf("%s: %v\n", l.Name, err)
+			} else {
+				fmt.Printf("%s: done\n", l.Name)
+			}
+		default:
+			usage()
+		}
+	}
+	if failed {
+		os.Exit(1)
 	}
 }

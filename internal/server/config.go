@@ -11,6 +11,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
+	"github.com/Neo-Desktop/bbs-sec/internal/fido"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
 	"github.com/Neo-Desktop/bbs-sec/internal/logo"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
@@ -33,6 +34,8 @@ type Config struct {
 	MaxArticle int64
 	NNTP       *nntp.ServerSettings // nil: no NNTP server
 	Peers      []*nntp.Peer
+	Fido       *fido.Settings // nil: not on FidoNet
+	Binkp      *BinkpSettings // nil: no binkp answering
 	Database   string
 	Log        string // syslog, stderr, none, or a file
 	Listeners  []*Listener
@@ -70,6 +73,9 @@ func Load(path string) (*Config, error) {
 	if err := c.newsSections(cf); err != nil {
 		return nil, err
 	}
+	if err := c.fidoSections(cf); err != nil {
+		return nil, err
+	}
 	if err := c.ftpSection(cf.Get("ftp", "")); err != nil {
 		return nil, fmt.Errorf("[ftp] %w", err)
 	}
@@ -94,7 +100,7 @@ func Load(path string) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "listen", "ftp", "news", "nntp", "peer":
+		case "general", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}

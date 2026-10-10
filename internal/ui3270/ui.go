@@ -707,7 +707,7 @@ func (u *ui) editor(title, to, subject string, body []string,
 			u.text(1, 0, "To      ===>", go3270.Turquoise, false),
 			u.text(2, 0, "Subject ===>", go3270.Turquoise, false),
 			u.text(3, 0, u.rule(u.cols-2), go3270.Blue, false))
-		scr = append(scr, u.input(1, 13, bbs.MaxNameLen, "to", false)...)
+		scr = append(scr, u.input(1, 13, bbs.MaxMailToLen, "to", false)...)
 		scr = append(scr, u.input(2, 13, bbs.MaxSubjectLen, "subject", false)...)
 		for i := 0; i < room; i++ {
 			scr = append(scr, go3270.Field{Row: 4 + i, Col: 0, Write: true,

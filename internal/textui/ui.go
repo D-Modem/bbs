@@ -396,6 +396,9 @@ func (s *session) area(a *store.Area) error {
 		if a.Newsgroup != "" {
 			group = t.C(Dim, " ("+a.Newsgroup+")")
 		}
+		if a.EchoTag != "" {
+			group += t.C(Dim, " (echo "+a.EchoTag+")")
+		}
 		t.Printf("%s%s: %d messages, %d new\n", t.C(Cyan, a.Name), group, a.Messages, nw)
 		menu := "[R]ead new, [L]ist, [#] read a number, "
 		if bbs.CanPost(s.user, a) {
@@ -691,10 +694,13 @@ func (s *session) compose(to, subject string, quote []string, replyTo int64) err
 	t.Println("")
 	for {
 		prompt := "To (user name, Enter to give up): "
+		if s.b.Netmail != nil {
+			prompt = "To (user name, or Name@zone:net/node for FidoNet): "
+		}
 		if to != "" {
 			prompt = "To [" + to + "]: "
 		}
-		who, err := t.Input(prompt, bbs.MaxNameLen)
+		who, err := t.Input(prompt, bbs.MaxMailToLen)
 		if err != nil {
 			return err
 		}
@@ -703,6 +709,9 @@ func (s *session) compose(to, subject string, quote []string, replyTo int64) err
 		}
 		if to == "" {
 			return nil
+		}
+		if _, _, ok := bbs.SplitNetmail(to); ok && s.b.Netmail != nil {
+			break
 		}
 		if _, err := s.b.Store.UserByName(to); err != nil {
 			t.Println(t.C(Red, "There is no such user."))
