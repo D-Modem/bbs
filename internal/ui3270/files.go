@@ -2,6 +2,7 @@ package ui3270
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/racingmars/go3270"
 
@@ -45,36 +46,76 @@ func (u *ui) fileAreas() error {
 	}
 }
 
+// fileArea is an area's files, and the command line an emulator's file
+// transfer types IND$FILE into.
 func (u *ui) fileArea(a *store.FileArea) error {
 	top := 0
+	msg := ""
+	if u.b.FTPAddress != "" && files.CanUpload(u.user, a) {
+		msg = "Upload by FTP into /" + a.Name + "/, or with your emulator's file transfer"
+	}
 	for {
 		u.n.Doing("Files in " + a.Name)
 		list, err := u.b.Store.Files(a.ID)
 		if err != nil {
 			return err
 		}
-		tb := &table{title: a.Name, top: top,
-			heading: fmt.Sprintf("%-28s %9s %-10s %s", "Name", "Size", "Date", "Description"),
-			keys:    "Type S by a file, Enter  PF3=Back  PF7=Up  PF8=Down"}
-		for _, f := range list {
-			tb.lines = append(tb.lines, fmt.Sprintf("%s %9s %s %s", bbs.Fit(f.Name, 28),
-				files.Size(f.Size), f.Created.Format("2006-01-02"), f.Description))
+		per := u.rows - 8
+		scr := u.frame(a.Name, "S+Enter=Details  PF3=Back  PF7=Up  PF8=Down", msg)
+		msg = ""
+		// the command line first: the cursor goes to it, where an
+		// emulator types IND$FILE
+		scr = append(scr, u.text(u.rows-3, 0, "Command ===>", go3270.Turquoise, false))
+		scr = append(scr, u.input(u.rows-3, 13, u.cols-15, "cmd", false)...)
+		scr = append(scr, u.text(u.rows-4, 0,
+			"File transfer (IND$FILE): GET name downloads, PUT name uploads here.", go3270.Blue, false))
+		scr = append(scr, u.text(2, 0, fmt.Sprintf("   %-28s %9s %-10s %s", "Name", "Size", "Date", "Description"),
+			go3270.Turquoise, false))
+		for i := 0; i < per && top+i < len(list); i++ {
+			f := list[top+i]
+			scr = append(scr, go3270.Field{Row: 3 + i, Col: 0, Write: true, Name: fmt.Sprintf("s%d", i),
+				Color: go3270.Green, Highlighting: go3270.Underscore})
+			scr = append(scr, u.text(3+i, 2, fmt.Sprintf("%s %9s %s %s", bbs.Fit(f.Name, 28),
+				files.Size(f.Size), f.Created.Format("2006-01-02"), f.Description), go3270.Green, false))
 		}
-		msg := ""
-		if u.b.FTPAddress != "" && files.CanUpload(u.user, a) {
-			msg = "Upload by FTP into /" + a.Name + "/"
+		if len(list) == 0 {
+			scr = append(scr, u.text(4, 2, "No files here yet.", go3270.White, false))
 		}
-		i, aid, err := u.pickFrom(tb, msg)
-		top = tb.top
+		resp, v, err := u.show(scr, nil)
 		if err != nil {
 			return err
 		}
-		if aid == go3270.AIDPF3 {
+		switch resp.AID {
+		case go3270.AIDPF3:
 			return nil
+		case go3270.AIDPF7:
+			top = max(0, top-per)
+			continue
+		case go3270.AIDPF8:
+			if top+per < len(list) {
+				top += per
+			}
+			continue
+		case go3270.AIDEnter:
+		default:
+			continue
 		}
-		if i >= 0 {
-			if err := u.fileDetail(a, list[i]); err != nil {
-				return err
+		if cmd := strings.TrimSpace(v["cmd"]); cmd != "" {
+			if ind, ok := go3270.ParseIndFile(cmd); ok {
+				if msg, err = u.indFile(a, ind); err != nil {
+					return err
+				}
+			} else {
+				msg = "Commands here are IND$FILE GET and PUT, from your emulator's file transfer."
+			}
+			continue
+		}
+		for i := 0; i < per && top+i < len(list); i++ {
+			if v[fmt.Sprintf("s%d", i)] != "" {
+				if err := u.fileDetail(a, list[top+i]); err != nil {
+					return err
+				}
+				break
 			}
 		}
 	}

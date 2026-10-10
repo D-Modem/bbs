@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -73,7 +74,9 @@ func startGraphics(t *testing.T, g ui3270.Graphics, tweak func(*bbs.Settings), l
 		t.Fatal(err)
 	}
 	for _, l := range ls {
-		l.Address = filepath.Join(dir, l.Address)
+		if !strings.Contains(l.Address, ":") { // host:port stays TCP
+			l.Address = filepath.Join(dir, l.Address)
+		}
 		l.SocketMode = 0600
 		if l.HeaderTimeout == 0 {
 			l.HeaderTimeout = 2 * time.Second
@@ -100,6 +103,10 @@ func startGraphics(t *testing.T, g ui3270.Graphics, tweak func(*bbs.Settings), l
 	for _, l := range ls {
 		for i := 0; ; i++ {
 			if _, err := os.Stat(l.Address); err == nil {
+				break
+			}
+			if c, err := net.Dial("tcp", l.Address); err == nil {
+				c.Close()
 				break
 			}
 			if i > 200 {
@@ -734,5 +741,55 @@ func TestFileTransfers(t *testing.T) {
 	f, _ := e.b.Store.FileByName(a.ID, "z file.bin")
 	if f.Downloads != 2 || f.Description != "By ZMODEM" {
 		t.Errorf("record %+v", f)
+	}
+}
+
+// IND$FILE with a real 3270 emulator: s3270 uploads a binary file into
+// the file area, downloads it again, and asks for one that is not there
+func TestIndFile(t *testing.T) {
+	if _, err := exec.LookPath("s3270"); err != nil {
+		t.Skip("no s3270")
+	}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr := ln.Addr().String()
+	ln.Close()
+	e := start(t, nil, &Listener{Name: "telnet", Kind: "telnet", Address: addr, TN3270: true})
+	dir := t.TempDir()
+	up, down := filepath.Join(dir, "up.bin"), filepath.Join(dir, "down.bin")
+	want := make([]byte, 40000)
+	for i := range want {
+		want[i] = byte(i * 7)
+	}
+	os.WriteFile(up, want, 0600)
+	script := strings.Join([]string{
+		"Connect(" + addr + ")", "Wait(10,InputField)",
+		`String("alice")`, "Tab()", `String("alicepass1")`, "Enter()", "Wait(5,InputField)",
+		`String("8")`, "Enter()", "Wait(5,InputField)",
+		`String("s")`, "Enter()", "Wait(5,InputField)",
+		// s3270 4.1's Transfer returns before the transfer ends: wait
+		"Transfer(Direction=send,Host=tso,LocalFile=" + up + ",HostFile=up.bin,Mode=binary)", "Wait(3,Seconds)",
+		"Transfer(Direction=receive,Host=tso,LocalFile=" + down + ",HostFile=up.bin,Mode=binary,Exist=replace)", "Wait(3,Seconds)",
+		"Transfer(Direction=receive,Host=tso,LocalFile=" + filepath.Join(dir, "x") + ",HostFile=nosuch,Mode=binary,Exist=replace)", "Wait(3,Seconds)",
+		"Ascii()", "Quit()", ""}, "\n")
+	cmd := exec.Command("s3270", "-model", "3279-2")
+	cmd.Stdin = strings.NewReader(script)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("s3270: %v\n%s", err, out)
+	}
+	a, _ := e.b.Store.FileAreaByName("Uploads")
+	f, err := e.b.Store.FileByName(a.ID, "up.bin")
+	if err != nil || f.Size != int64(len(want)) || f.Downloads != 1 {
+		t.Fatalf("stored: %+v, %v\n%s", f, err, out)
+	}
+	got, _ := os.ReadFile(down)
+	if !bytes.Equal(got, want) {
+		t.Errorf("downloaded %d bytes", len(got))
+	}
+	if !strings.Contains(string(out), "File not found") {
+		t.Errorf("no not-found message:\n%s", out)
 	}
 }
