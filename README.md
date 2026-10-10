@@ -58,6 +58,8 @@ What there is:
   newsreaders and exchanged with other news servers (INN and the like)
 - FidoNet (or any FTN network): message areas that are echoes, netmail
   as private mail, and a binkp mailer to exchange packets with links
+- doors: DOS door games in dosemu2 (in Docker), with a FOSSIL on COM1
+  and the usual drop files, or any Linux program, for text callers
 - new users sign themselves up (or not: `new_users = no`)
 - SQLite storage, one file
 
@@ -378,6 +380,70 @@ graphics (see PCOMM's *3270 Emulator User's Reference*, "Host Graphics").  The f
 [3270 Data Stream Programmer's Reference, GA23-0059-07](https://bitsavers.org/pdf/ibm/3174/GA23-0059-07_3270_Data_Stream_Programmers_Reference_199206.pdf)
 and Greg Price's [3270 Graphics](https://www.prycroft6.com.au/misc/3270grfx.html).
 
+## Doors
+
+Text callers (telnet, modem, rlogin) open doors with *D* on the main menu.
+A door is a program the BBS hands the caller's line to: it writes the drop
+files doors read (DOOR.SYS, DORINFO1.DEF, DOOR32.SYS and CHAIN.TXT, in the
+node's own directory), runs the door, and joins the two until the door
+ends, the caller hangs up (the door is stopped), the door's time limit
+runs out, or the caller types nothing for the idle time.  A door's output
+in CP437 is shown as UTF-8 to UTF-8 terminals, and what they type goes
+back as CP437; a CP437 terminal (SyncTERM, NetRunner, a modem caller) gets
+the bytes as they are.  3270 callers do not see doors: doors are ANSI.
+
+**DOS doors** run in dosemu2, in Docker.  `doors/dosemu2` builds the image:
+dosemu2 with its fdpp kernel and comcom64 shell, built from source on
+Ubuntu (no PPA needed):
+
+```
+make doors-image                 ; docker build -t bbs-dosemu2 doors/dosemu2
+```
+
+In the container the door's drive is F: (`/doors`, mount your doors there)
+and the node's drop files are on G: (`/node`); the caller is on COM1 behind
+dosemu2's own FOSSIL driver, which is what DOS doors talk to.  The image's
+`rundoor DOSDIR COMMAND` loads the FOSSIL, goes to the door's directory and
+runs it; what the door shows on its own screen (not COM1) and dosemu2's
+messages go to `dosemu.out` in the node's directory, and the command's
+own errors (Docker's) to `door.log` there.
+
+```
+[door lord]
+description = Legend of the Red Dragon
+command = docker run --rm -i --network none --name bbs-door{node} --user {uid}:{gid} -v /srv/doors:/doors -v {dir}:/node bbs-dosemu2 'F:\LORD' 'START.BAT {node}'
+dir = /var/lib/bbs/doors/node{node}
+time_limit = 60
+cleanup = docker rm -f bbs-door{node}
+```
+
+`{node}`, `{dir}` (the node's directory), `{uid}` and `{gid}` (the BBS's
+own: the door writes the node's files as the BBS), `{userid}`,
+`{minutes}`, `{rows}`, `{cols}` and `{baud}` are filled in.  Most doors are
+told where the drop file is on their command line or in their own
+configuration: here that is `G:\DOOR.SYS` (or `G:\DORINFO1.DEF`, ...).
+Each node has its own directory, so multi-node doors work; `single = yes`
+lets one caller at a time into a door that is not.  dosemu2 runs the door
+under its CPU emulator unless the host offers `/dev/kvm` to the container
+(`--device /dev/kvm`, untried here); a door starts in about a second
+under the emulator.
+
+**Linux doors**: any program that talks to a terminal on its standard
+input and output, with `pty = yes` for one that wants a terminal (most
+do), and `charset = utf-8` for one that writes UTF-8.  DOOR32.SYS says
+`door32_comm = local` to them.
+
+The BBS runs `docker` itself, so its user must be allowed to: the
+`docker` group (which is as good as root: think twice), or rootless Docker
+or Podman (`command = podman run ...`).  The door's container has no
+network (`--network none`), runs as the BBS's user, not root, and is
+removed when the door ends or the caller hangs up.
+
+It was tried with a FOSSIL door of its own (`doors/dosemu2/testdoor`,
+which reads DOOR.SYS, writes CP437 and ANSI and echoes keys) through the
+whole BBS: the caller types, the door answers, the caller hangs up in it
+and the container goes.
+
 ## Newsgroups and NNTP
 
 A message area becomes a newsgroup when it is given a newsgroup name.  Its
@@ -580,6 +646,10 @@ modem.
   safe base name; files, sessions, packets, bundles and messages have size
   limits.  Netmail's sender is what the message says, as anywhere in
   FidoNet: it is not proof of who wrote it.
+- Doors: a DOS door runs in a container with no network, as the BBS's
+  user, seeing only the doors' directory and its node's; the caller's
+  line is joined to it only through COM1.  Hanging up, the time limit and
+  the idle time stop it.  The drop files carry no password.
 - The log has logins, failures, posts and mail sent (never passwords or
   message text).
 
@@ -599,6 +669,8 @@ modem.
 | `internal/nntp` | the NNTP server and the peers' client |
 | `internal/ftn` | FidoNet's formats: addresses, Type 2+ packets, messages, kludges, character sets |
 | `internal/fido` | the BBS on FidoNet: tosser, scanner, netmail, the binkp mailer |
+| `internal/door` | doors: drop files, running a door on the caller's line |
+| `doors/dosemu2` | the Docker image DOS doors run in: dosemu2, its FOSSIL on COM1 |
 | `internal/xfer` | XMODEM, YMODEM, ZMODEM and Kermit, both ways |
 | `internal/logo` | the logo: a PNG, or the name in a pixel font |
 | `internal/bbs` | the BBS itself: nodes, logins, new users, posting, cleaning text |
@@ -636,4 +708,8 @@ nodes exchanging echomail by binkp (SEEN-BY, PATH, threads, forwarding),
 netmail and replies, wrong passwords, unknown addresses and impostors,
 dupes, loops, bad and foreign packets, the echo-newsgroup gateway, and,
 when binkd and CrashMail are installed, a hub run by them: echomail and
-netmail both ways, calling it and called by it.
+netmail both ways, calling it and called by it.  Doors: the drop files,
+the runner (CP437 and UTF-8, time limit, hanging up, idle, single-caller
+doors, a pseudo-terminal), a caller opening a door from the menu, and,
+when the bbs-dosemu2 image is built, a real DOS door talking by FOSSIL in
+it.

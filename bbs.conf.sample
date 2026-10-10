@@ -233,12 +233,14 @@ address = 127.0.0.1:2513
 ; the node's own directory and joins the caller's line to the door until it
 ; ends, the caller hangs up, or the time is up.  One section each
 ;
-; A DOS door, in dosemu2 in Docker (doors/dosemu2: docker build -t
-; bbs-dosemu2 doors/dosemu2).  D: is /srv/doors, E: the node's drop files,
-; and the caller is on COM1 behind a FOSSIL
+;
+; A DOS door, in dosemu2 in Docker (make doors-image).  F: is /srv/doors,
+; G: the node's drop files; the caller is on COM1 behind a FOSSIL.  The BBS
+; must run as a user in the docker group, not root: --user {uid}:{gid}
+; runs the door as that user, so that it can write the node's directory
 ;[door lord]
 ;description = Legend of the Red Dragon
-;command = docker run --rm -i --name bbs-door{node} -v /srv/doors:/doors -v {dir}:/node bbs-dosemu2 'D:\LORD' 'START.BAT {node}'
+;command = docker run --rm -i --network none --name bbs-door{node} --user {uid}:{gid} -v /srv/doors:/doors -v {dir}:/node bbs-dosemu2 'F:\LORD' 'START.BAT {node}'
 ; the node's directory ({node} its number): mounted as /node above
 ;dir = /var/lib/bbs/doors/node{node}
 ;drop_files = door.sys dorinfo1.def door32.sys chain.txt

@@ -1,14 +1,17 @@
 # DOS doors for the BBS: dosemu2 (with the fdpp kernel and the comcom64
-# shell), built from source as dosemu2's own Dockerfile.debian does (on Ubuntu, which has every
-# build dependency), so
-# that no PPA is needed.  The BBS runs a door as
+# shell), built from source as dosemu2's own Dockerfile.debian does (on
+# Ubuntu, which has every build dependency), so that no PPA is needed.
 #
-#   docker run --rm -i -v DOORS:/doors -v NODEDIR:/node bbs-dosemu2 \
-#       rundoor 'CD \LORD' 'LORD.EXE /N{node}'
+#   docker build -t bbs-dosemu2 doors/dosemu2       (or: make doors-image)
 #
-# and the caller's line is the door's COM1 (a FOSSIL is loaded).
+# The BBS runs a door as
 #
-#   docker build -t bbs-dosemu2 doors/dosemu2
+#   docker run --rm -i --network none --user UID:GID \
+#       -v /srv/doors:/doors -v NODEDIR:/node bbs-dosemu2 'F:\LORD' 'LORD.EXE'
+#
+# with the caller's line on the door's COM1, behind dosemu2's FOSSIL: see
+# rundoor.  The pieces are built at their newest; pin them with the *_REF
+# build arguments (a tag or a commit each).
 
 ARG BASE=ubuntu:26.04
 
@@ -50,12 +53,16 @@ ARG DEBIAN_FRONTEND=noninteractive
 COPY --from=builder /debs /debs
 RUN apt-get update && \
     apt-get install -y --no-install-recommends socat \
-        $(ls /debs/*.deb | grep -v -e '-dev_' -e '/thunk-gen' -e '/dj64_' -e '/dj32_' -e '/djstub_') && \
+        /debs/dosemu2_*.deb /debs/comcom64_*.deb /debs/comcom32_*.deb /debs/dj64_*.deb \
+        /debs/libdjdev64-0_*.deb /debs/libdjstub64-0_*.deb /debs/libfdldr*.deb /debs/libfdpp*.deb && \
     rm -rf /debs /var/lib/apt/lists/*
-RUN useradd -m -u 1000 door && mkdir -p /doors /node && chown door /node
+# any user but root (dosemu2 will not run a port's program as root): the
+# BBS's own, with --user, so that the drop files are its; dosemu2's own
+# files go in a home under /tmp
+RUN useradd -m door && mkdir -p /doors /node
 COPY rundoor /usr/local/bin/rundoor
-COPY dosemurc /home/door/.dosemurc
-RUN chmod 755 /usr/local/bin/rundoor && chown door /home/door/.dosemurc
+COPY dosemurc /etc/dosemu-door.conf
+RUN chmod 755 /usr/local/bin/rundoor && chmod 644 /etc/dosemu-door.conf
 USER door
-WORKDIR /home/door
+WORKDIR /tmp
 ENTRYPOINT ["/usr/local/bin/rundoor"]

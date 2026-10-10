@@ -3,23 +3,35 @@
 # line (this program's standard input and output) on COM1, behind
 # dosemu2's FOSSIL.
 #
-#   D: is /doors, the doors (mount them there: -v /srv/doors:/doors)
-#   E: is /node, this node's drop files (-v /var/lib/bbs/doors/node1:/node)
+#   F: is /doors, the doors (mount them there: -v /srv/doors:/doors)
+#   G: is /node, this node's drop files (-v /var/lib/bbs/doors/node1:/node)
 #
-#   rundoor 'D:\LORD' 'LORD.EXE /PE:\'
+#   rundoor 'F:\LORD' 'LORD.EXE /PG:\'
 #
 # The door's screen (dosemu's console) goes to /node/dosemu.out, not to the
 # caller: the caller sees only what the door sends to COM1.
 set -eu
 
+case ${1:-} in
+[A-Za-z]:*) ;;
+*)	echo "usage: rundoor DOSDIR COMMAND... (DOSDIR with its drive: F:\\LORD)" >&2
+	exit 2 ;;
+esac
 if [ $# -lt 2 ]; then
 	echo "usage: rundoor DOSDIR COMMAND..." >&2
+	exit 2
+fi
+if [ "$(id -u)" = 0 ]; then
+	# dosemu2 will not attach a COM port's program as root
+	echo "rundoor: run me as a user (docker run --user), not root" >&2
 	exit 2
 fi
 dir=$1
 shift
 cmd=$*
 sock=/tmp/com1.sock
+export HOME=/tmp/dosemu-home
+mkdir -p "$HOME"
 rm -f "$sock"
 
 # the batch file the door runs from: the FOSSIL, the door's directory, the door
@@ -27,14 +39,19 @@ printf '@ECHO OFF\r\nFOSSIL\r\n%s\r\nCD %s\r\n%s\r\n' "${dir%%:*}:" "$dir" "$cmd
 
 # COM1's other end: socat, which dosemu2 runs on the port's pty, joins it
 # to this socket; the socat here joins the socket to the caller
-socat -b 4096 UNIX-LISTEN:"$sock",unlink-early STDIO &
+# (the caller's input kept on fd 3: a background job's input is /dev/null)
+exec 3<&0
+socat -b 4096 UNIX-LISTEN:"$sock",unlink-early STDIO <&3 3<&- 2>/dev/null &
 bridge=$!
+dos=
 trap 'kill $bridge 2>/dev/null; kill $dos 2>/dev/null' TERM INT HUP
 
-dosemu -n -f /home/door/.dosemurc \
-	-I "serial { com 1 exec 'socat -b 4096 STDIO,raw,echo=0 UNIX-CONNECT:$sock' }" \
-	-d /doors -d /node -q -E 'E:\DOOR.BAT' </dev/null >/node/dosemu.out 2>&1 &
+dosemu -f /etc/dosemu-door.conf \
+	-I "serial { com 1 exec \"socat -b 4096 STDIO,raw,echo=0 UNIX-CONNECT:$sock\" }" \
+	-d /doors -d /node -dumb -q -E 'G:\DOOR.BAT' </dev/null 3<&- >/node/dosemu.out 2>&1 &
 dos=$!
+# the caller gone (the line closed): the door goes too
+(while kill -0 $bridge 2>/dev/null; do sleep 1; done; kill $dos 2>/dev/null) &
 status=0
 wait $dos || status=$?
 kill $bridge 2>/dev/null || true

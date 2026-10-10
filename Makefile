@@ -19,7 +19,11 @@ install: bbs
 		install -D -m 0640 bbs.conf.sample $(DESTDIR)/etc/bbs/bbs.conf; \
 	fi
 
+# the dosemu2 image DOS doors run in (Docker; it builds dosemu2 from source)
+doors-image:
+	docker build -t bbs-dosemu2 doors/dosemu2
+
 clean:
 	rm -f bbs
 
-.PHONY: all bbs test install clean
+.PHONY: all bbs test install clean doors-image

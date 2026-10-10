@@ -102,7 +102,8 @@ func Split(s string) ([]string, error) {
 
 // Expand fills in a word: {node} the node number, {dir} the drop files'
 // directory, {userid} the user's number, {minutes} the minutes left,
-// {rows} and {cols} the screen, {baud} the line's rate.
+// {rows} and {cols} the screen, {baud} the line's rate, {uid} and {gid}
+// the BBS's own (for docker run --user, so the door writes as the BBS).
 func Expand(w string, in *Info, dir string) string {
 	return strings.NewReplacer(
 		"{node}", fmt.Sprint(in.Node),
@@ -112,6 +113,8 @@ func Expand(w string, in *Info, dir string) string {
 		"{rows}", fmt.Sprint(in.Rows),
 		"{cols}", fmt.Sprint(in.Cols),
 		"{baud}", fmt.Sprint(in.Baud),
+		"{uid}", fmt.Sprint(os.Getuid()),
+		"{gid}", fmt.Sprint(os.Getgid()),
 	).Replace(w)
 }
 

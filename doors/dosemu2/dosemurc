@@ -5,3 +5,4 @@ $_cpu_vm_dpmi = "auto"
 $_sound = (off)
 $_mouse_internal = (off)
 $_hogthreshold = (1)
+$_layout = "us"

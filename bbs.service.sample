@@ -8,6 +8,9 @@ User=bbs
 Group=bbs
 # for [listen menu]'s socket_group = asterisk
 SupplementaryGroups=asterisk
+# for DOS doors in Docker (README, "Doors"): the docker group is as good as
+# root, so think twice; rootless Docker or Podman is the safer way
+#SupplementaryGroups=asterisk docker
 RuntimeDirectory=bbs
 RuntimeDirectoryMode=0750
 StateDirectory=bbs
