@@ -16,6 +16,9 @@
 | `internal/fido` | the BBS on FidoNet: tosser, scanner, netmail, the binkp mailer |
 | `internal/door` | doors: drop files, running a door on the caller's line |
 | `doors/dosemu2` | the Docker image DOS doors run in: dosemu2, its FOSSIL on COM1 |
+| `internal/finger` | the finger server |
+| `internal/gopher` | the gopher server |
+| `internal/tcpserv` | what finger and gopher share: limits, timeouts |
 | `internal/xfer` | XMODEM, YMODEM, ZMODEM and Kermit, both ways |
 | `internal/logo` | the logo: a PNG, or the name in a pixel font |
 | `internal/bbs` | the BBS itself: nodes, logins, new users, posting, cleaning text |
@@ -57,6 +60,11 @@ netmail both ways, calling it and called by it.  Doors: the drop files,
 the runner (CP437 and UTF-8, time limit, hanging up, idle, single-caller
 doors, a pseudo-terminal), a caller opening a door from the menu, and,
 when the bbs-dosemu2 image is built, a real DOS door talking by FOSSIL in
-it.
+it.  Chat: rooms, history, private rooms, flooding, node messages, paging
+and answering, the page command (and that it runs no shell); two callers
+chatting and paging on the text BBS; a 3270 (s3270) chatting with a text
+caller and getting a node message on its message line.  Finger and
+gopher: their answers and refusals, with the finger program and curl as
+clients.
 
 **See also:** [Building](Building)

@@ -26,6 +26,8 @@ type session struct {
 	c    *bbs.Caller
 	o    Options
 	user *store.User
+
+	chatting bool // in a chat room: its lines shown as such
 }
 
 // errHangup: the caller logged off.
@@ -222,6 +224,8 @@ func (s *session) welcome() {
 
 func (s *session) mainMenu() error {
 	t := s.t
+	t.Notify = s.notify
+	defer func() { t.Notify = nil }()
 	for {
 		u := s.n.Refresh()
 		s.user = u
@@ -245,6 +249,13 @@ func (s *session) mainMenu() error {
 		if len(s.doorsFor()) > 0 {
 			items = append(items, item("D", "Doors"))
 		}
+		chat := "Chat"
+		if u.Sysop {
+			if ps := s.b.Pages(); len(ps) > 0 {
+				chat += fmt.Sprintf(" (%d paging)", len(ps))
+			}
+		}
+		items = append(items, item("C", chat), item("S", "Page the sysop"))
 		items = append(items, item("G", "Goodbye"))
 		for i := 0; i < len(items); i += 2 {
 			t.Println("  " + strings.Join(items[i:min(i+2, len(items))], ""))
@@ -270,6 +281,10 @@ func (s *session) mainMenu() error {
 			if s.b.Files != nil {
 				err = s.fileAreas()
 			}
+		case 'C':
+			err = s.chat("")
+		case 'S':
+			err = s.page()
 		case 'D':
 			if len(s.doorsFor()) > 0 {
 				err = s.doors()
@@ -849,7 +864,7 @@ func (s *session) who() error {
 		t.Printf("%4d  %s %s %-6s %s\n", n.Num, bbs.Fit(name, 20), bbs.Fit(n.Via, 16),
 			fmt.Sprintf("%dm", mins), bbs.Trunc(n.Activity, t.Cols-52))
 	}
-	return t.Pause()
+	return s.messageNode()
 }
 
 func (s *session) users() error {

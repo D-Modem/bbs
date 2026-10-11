@@ -35,6 +35,7 @@ type Settings struct {
 	IdleTimeout   time.Duration // for a key once logged in
 	ThrottleFails int           // failures from one source ...
 	ThrottleTime  time.Duration // ... within this lock it out for this
+	PageCommand   []string      // run when a page finds no sysop on
 }
 
 // Defaults are the settings without a configuration.
@@ -110,6 +111,8 @@ type BBS struct {
 	mu       sync.Mutex
 	nodes    map[int]*Node
 	failures map[string][]time.Time
+	hubOnce  sync.Once
+	chat     *hub
 }
 
 // New makes the BBS of the settings and store.
@@ -131,6 +134,8 @@ type Node struct {
 	user     *store.User
 	activity string
 	kick     func()
+	chatOnce sync.Once
+	cs       *chatState
 }
 
 // ErrBusy: every node is taken.
@@ -156,6 +161,7 @@ func (b *BBS) Enter(c *Caller, kick func()) (*Node, error) {
 
 // Leave gives the node back.
 func (n *Node) Leave() {
+	n.leaveChat()
 	n.b.mu.Lock()
 	delete(n.b.nodes, n.Num)
 	n.b.mu.Unlock()
@@ -172,6 +178,14 @@ func (n *Node) User() *store.User {
 func (n *Node) SetUser(u *store.User) {
 	n.b.mu.Lock()
 	n.user = u
+	n.b.mu.Unlock()
+}
+
+// SetTerminal records how the caller came after all (a telnet caller that
+// is a 3270), as who's online shows it.
+func (n *Node) SetTerminal(via, terminal string) {
+	n.b.mu.Lock()
+	n.Caller.Via, n.Caller.Terminal = via, terminal
 	n.b.mu.Unlock()
 }
 

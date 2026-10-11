@@ -20,6 +20,7 @@ Main menu
   [M] Message areas         [E] E-mail (1 new)
   [W] Who's online          [U] User list
   [P] Your profile          [I] System info
+  [C] Chat                  [S] Page the sysop
   [G] Goodbye
 ```
 
@@ -34,6 +35,9 @@ The same caller on a 3270:
      4  User list
      5  Your profile
      6  System info
+     7  Your terminal
+     8  Chat
+     9  Page the sysop
      X  Log off
    Option ===>
  Enter=Select  PF3=Log off
@@ -58,6 +62,8 @@ What there is:
   as private mail, and a binkp mailer to exchange packets with links
 - [doors](Doors): DOS door games in dosemu2 (in Docker), with a FOSSIL on COM1
   and the usual drop files, or any Linux program, for text callers
+- [chat](Chat-and-Paging): rooms, messages to a node, paging the sysop
+- [finger and gopher](Finger-and-Gopher): who is on, and chosen areas in gopherspace
 - new users sign themselves up (or not: `new_users = no`)
 - SQLite storage, one file
 
@@ -77,6 +83,8 @@ What there is:
 | [Doors](Doors) | DOS doors in dosemu2 (Docker), Linux doors |
 | [Newsgroups and NNTP](Newsgroups-and-NNTP) | the NNTP server, news peers |
 | [FidoNet](FidoNet) | echomail, netmail, binkp |
+| [Chat and paging](Chat-and-Paging) | chat rooms, node messages, paging the sysop |
+| [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
 | [Security](Security) | what is guarded, and how |
 | [Development](Development) | the source's layout, the tests |
 

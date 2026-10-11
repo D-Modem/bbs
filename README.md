@@ -22,6 +22,7 @@ Main menu
   [M] Message areas         [E] E-mail (1 new)
   [W] Who's online          [U] User list
   [P] Your profile          [I] System info
+  [C] Chat                  [S] Page the sysop
   [G] Goodbye
 ```
 
@@ -36,6 +37,9 @@ The same caller on a 3270:
      4  User list
      5  Your profile
      6  System info
+     7  Your terminal
+     8  Chat
+     9  Page the sysop
      X  Log off
    Option ===>
  Enter=Select  PF3=Log off
@@ -60,6 +64,8 @@ What there is:
   as private mail, and a binkp mailer to exchange packets with links
 - [doors](https://github.com/Neo-Desktop/bbs-sec/wiki/Doors): DOS door games in dosemu2 (in Docker), with a FOSSIL on COM1
   and the usual drop files, or any Linux program, for text callers
+- [chat](https://github.com/Neo-Desktop/bbs-sec/wiki/Chat-and-Paging): rooms, messages to a node, paging the sysop
+- [finger and gopher](https://github.com/Neo-Desktop/bbs-sec/wiki/Finger-and-Gopher): who is on, and chosen areas in gopherspace
 - new users sign themselves up (or not: `new_users = no`)
 - SQLite storage, one file
 
@@ -98,6 +104,8 @@ The documentation is in the [wiki](https://github.com/Neo-Desktop/bbs-sec/wiki/)
 | [Doors](https://github.com/Neo-Desktop/bbs-sec/wiki/Doors) | DOS doors in dosemu2 (Docker), Linux doors |
 | [Newsgroups and NNTP](https://github.com/Neo-Desktop/bbs-sec/wiki/Newsgroups-and-NNTP) | the NNTP server, news peers |
 | [FidoNet](https://github.com/Neo-Desktop/bbs-sec/wiki/FidoNet) | echomail, netmail, binkp |
+| [Chat and paging](https://github.com/Neo-Desktop/bbs-sec/wiki/Chat-and-Paging) | chat rooms, node messages, paging the sysop |
+| [Finger and gopher](https://github.com/Neo-Desktop/bbs-sec/wiki/Finger-and-Gopher) | who is on, and the BBS in gopherspace |
 | [Security](https://github.com/Neo-Desktop/bbs-sec/wiki/Security) | what is guarded, and how |
 | [Development](https://github.com/Neo-Desktop/bbs-sec/wiki/Development) | the source's layout, the tests |
 

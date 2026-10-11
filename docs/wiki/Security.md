@@ -43,5 +43,15 @@
   user, seeing only the doors' directory and its node's; the caller's
   line is joined to it only through COM1.  Hanging up, the time limit and
   the idle time stop it.  The drop files carry no password.
+- Chat: what callers say is cleaned like anything else they write, and
+  limited (200 characters a line, 8 lines in 10 seconds); a caller pages
+  at most once a minute; a page's private room is the caller's and the
+  sysops' only.  `page_command` runs without a shell, the caller's words
+  as whole arguments.
+- Finger tells no addresses or caller IDs and forwards nothing; gopher
+  shows no message or file area unless the sysop names it (and `bbs
+  check` warns when they do), and its selectors are database records, not
+  paths.  Both limit connections at once and from one address, and time
+  out.
 - The log has logins, failures, posts and mail sent (never passwords or
   message text).

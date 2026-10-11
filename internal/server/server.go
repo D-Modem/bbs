@@ -357,8 +357,7 @@ func (s *Server) tn3270(tc *telnet.Conn, l *Listener, node *bbs.Node) error {
 	if err != nil {
 		return fmt.Errorf("tn3270: %w", err)
 	}
-	node.Caller.Via = "tn3270"
-	node.Caller.Terminal = dev.TerminalType()
+	node.SetTerminal("tn3270", dev.TerminalType())
 	s.B.Log.Printf("node %d: tn3270 %s", node.Num, ui3270.Capabilities(dev))
 	return ui3270.Run(s.B, node, raw, dev, ui3270.Options{CreateTrusted: l.CreateUsers,
 		Graphics: s.Graphics})

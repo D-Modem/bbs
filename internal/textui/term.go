@@ -46,6 +46,12 @@ type Term struct {
 
 	deadline time.Time // a hard limit for keys (the login's)
 	lastCR   bool
+
+	// Notify, if set, gives lines to show the caller while a key is
+	// awaited (chat, messages from other nodes): they are printed above
+	// the line being typed, which is then drawn again
+	Notify func() []string
+	cur    []rune // what has been printed of the line the cursor is on
 }
 
 // NewTerm makes a terminal on c, 80x24 plain ASCII until told otherwise.
@@ -86,6 +92,16 @@ func (t *Term) Print(s string) {
 	for i := 0; i < len(s); {
 		r, size := utf8.DecodeRuneInString(s[i:])
 		i += size
+		switch r {
+		case '\n':
+			t.cur = t.cur[:0]
+		case '\b':
+			if len(t.cur) > 0 {
+				t.cur = t.cur[:len(t.cur)-1]
+			}
+		default:
+			t.cur = append(t.cur, r)
+		}
 		switch {
 		case r == '\n':
 			t.w.WriteString("\r\n")
@@ -110,6 +126,7 @@ func (t *Term) Flush() error { return t.w.Flush() }
 
 // Clear clears the screen (a blank line on a plain terminal).
 func (t *Term) Clear() {
+	t.cur = t.cur[:0]
 	if t.ANSI {
 		t.w.WriteString("\x1b[2J\x1b[H")
 	} else {
@@ -118,17 +135,22 @@ func (t *Term) Clear() {
 }
 
 // readRune reads one key: a rune, with arrow keys and other escape
-// sequences dropped and CR LF taken as one CR.
+// sequences dropped and CR LF taken as one CR.  While it waits it shows
+// what Notify has.
 func (t *Term) readRune() (rune, error) {
 	if err := t.Flush(); err != nil {
 		return 0, err
 	}
+	start := time.Now()
 	for {
-		d := time.Now().Add(t.Idle)
-		if !t.deadline.IsZero() && t.deadline.Before(d) {
-			d = t.deadline
+		limit := start.Add(t.Idle)
+		if !t.deadline.IsZero() && t.deadline.Before(limit) {
+			limit = t.deadline
 		}
-		t.c.SetReadDeadline(d)
+		if err := t.await(limit); err != nil {
+			return 0, err
+		}
+		t.c.SetReadDeadline(limit)
 		r, err := t.next()
 		t.c.SetReadDeadline(time.Time{})
 		if err != nil {
@@ -150,6 +172,58 @@ func (t *Term) readRune() (rune, error) {
 		}
 		return r, nil
 	}
+}
+
+// await waits until a key is there (or limit), showing Notify's lines as
+// they come.
+func (t *Term) await(limit time.Time) error {
+	for t.r.Buffered() == 0 {
+		t.notices()
+		if err := t.Flush(); err != nil {
+			return err
+		}
+		now := time.Now()
+		if !now.Before(limit) {
+			return ErrIdle
+		}
+		slice := limit
+		if t.Notify != nil && now.Add(500*time.Millisecond).Before(limit) {
+			slice = now.Add(500 * time.Millisecond)
+		}
+		t.c.SetReadDeadline(slice)
+		_, err := t.r.Peek(1)
+		t.c.SetReadDeadline(time.Time{})
+		if err == nil {
+			return nil
+		}
+		if !errors.Is(err, os.ErrDeadlineExceeded) {
+			return err
+		}
+	}
+	return nil
+}
+
+// notices prints Notify's lines above the line being typed, and draws
+// that again.
+func (t *Term) notices() {
+	if t.Notify == nil {
+		return
+	}
+	ls := t.Notify()
+	if len(ls) == 0 {
+		return
+	}
+	cur := string(t.cur)
+	if t.ANSI {
+		t.w.WriteString("\r\x1b[K")
+	} else if cur != "" {
+		t.w.WriteString("\r\n")
+	}
+	t.cur = t.cur[:0]
+	for _, l := range ls {
+		t.Println(l)
+	}
+	t.Print(cur)
 }
 
 func (t *Term) next() (rune, error) {
@@ -245,7 +319,7 @@ func (t *Term) ReadLine(o LineOpts) (Line, error) {
 	}
 	erase := func(n int) {
 		for i := 0; i < n; i++ {
-			t.w.WriteString("\b \b")
+			t.Print("\b \b")
 		}
 	}
 	for {

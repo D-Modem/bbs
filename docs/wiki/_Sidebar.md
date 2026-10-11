@@ -17,6 +17,8 @@
 - [Doors](Doors)
 - [Newsgroups and NNTP](Newsgroups-and-NNTP)
 - [FidoNet](FidoNet)
+- [Chat and paging](Chat-and-Paging)
+- [Finger and gopher](Finger-and-Gopher)
 
 **More**
 - [Security](Security)

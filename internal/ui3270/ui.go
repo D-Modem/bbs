@@ -68,6 +68,8 @@ type ui struct {
 	logo     *logo     // nil: no graphics logo
 	logoAt   [2]int    // where the vector logo goes on this screen
 	drawn    bool      // vector graphics are on the screen
+	chatting bool      // in a chat room (its lines are its screen's)
+	backlog  []string  // other nodes' lines not shown yet
 }
 
 // Run is a caller's session on a 3270, from the logon screen to the
@@ -187,10 +189,16 @@ func (u *ui) frame(title, keys, msg string) go3270.Screen {
 	name := bbs.Trunc(u.b.Name, 30)
 	mid := u.cols - 1 - 30 - len(node)
 	head := bbs.Fit(name, 30) + bbs.Fit(centre(title, mid), mid) + node
+	color := go3270.Red
+	if msg == "" {
+		if msg = u.notice(); msg != "" {
+			color = go3270.Yellow
+		}
+	}
 	return go3270.Screen{
 		u.text(0, 0, head, go3270.Turquoise, true),
 		{Row: u.rows - 2, Col: 0, Name: "msg", Content: bbs.Trunc(msg, u.cols-2),
-			Color: go3270.Red, Intense: true},
+			Color: color, Intense: true},
 		u.text(u.rows-1, 0, keys, go3270.Blue, false),
 	}
 }
@@ -359,6 +367,13 @@ func (u *ui) mainMenu() error {
 		if u.b.Files != nil {
 			items = append(items, "File areas")
 		}
+		chat := "Chat"
+		if u.user.Sysop {
+			if ps := u.b.Pages(); len(ps) > 0 {
+				chat += fmt.Sprintf("   (%d paging)", len(ps))
+			}
+		}
+		items = append(items, chat, "Page the sysop")
 		scr = append(scr, u.boxed(4, 2, 5+len(items)+1, 40, go3270.Blue)...)
 		for i, it := range items {
 			scr = append(scr, u.text(5+i, 4, strconv.Itoa(i+1), go3270.Yellow, true),
@@ -388,8 +403,20 @@ func (u *ui) mainMenu() error {
 		} else if resp.AID != go3270.AIDEnter {
 			continue
 		}
+		label := ""
+		if k, e := strconv.Atoi(v["opt"]); e == nil && k >= 1 && k <= len(items) {
+			label = items[k-1]
+		}
+		switch {
+		case strings.HasPrefix(label, "Chat"):
+			err = u.chat("", "")
+			v["opt"] = "-"
+		case label == "Page the sysop":
+			err = u.page()
+			v["opt"] = "-"
+		}
 		switch strings.ToUpper(v["opt"]) {
-		case "":
+		case "", "-":
 		case "1":
 			err = u.areas()
 		case "2":
@@ -405,7 +432,7 @@ func (u *ui) mainMenu() error {
 		case "7":
 			err = u.terminal()
 		case "8":
-			if u.b.Files != nil {
+			if u.b.Files != nil && label == "File areas" {
 				err = u.fileAreas()
 			}
 		case "X":

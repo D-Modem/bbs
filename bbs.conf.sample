@@ -22,6 +22,9 @@ log = syslog
 ; each login)
 ;motd = "The line is down for maintenance on Sunday."
 ;motd_file = /etc/bbs/motd.txt
+; a caller pages the sysop and no sysop is on: tell them this way ({user},
+; {node} and {reason} filled in; no shell).  E.g. a push by ntfy.sh:
+;page_command = curl -s -d "{user} on node {node}: {reason}" https://ntfy.sh/my-bbs-pages
 goodbye = Thanks for calling.
 ; the logo: a PNG (at most 1000x400), shown as sixel graphics on telnet
 ; terminals that have them, and on 3270s (below).  Without one, the
@@ -260,3 +263,22 @@ address = 127.0.0.1:2513
 ;charset = utf-8
 ;pty = yes
 ;door32_comm = local
+
+; finger: who is on ("finger @host"), and who a user is ("finger name@host").
+; Port 79 needs CAP_NET_BIND_SERVICE (bbs.service.sample)
+;[finger]
+;address = :79
+;online = yes
+;users = yes
+
+; gopher: about the system, who is on, and what areas the sysop opens: no
+; login, so anyone sees them.  Port 70 needs CAP_NET_BIND_SERVICE
+;[gopher]
+;address = :70
+; the name and port menus send clients back to
+;hostname = bbs.example.org
+;port = 70
+; message areas shown (a wildmat of area names; "": none)
+;areas = general,announcements
+; file areas listed and downloadable
+;files = no

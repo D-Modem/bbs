@@ -13,7 +13,9 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
 	"github.com/Neo-Desktop/bbs-sec/internal/fido"
+	"github.com/Neo-Desktop/bbs-sec/internal/finger"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
+	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
 	"github.com/Neo-Desktop/bbs-sec/internal/logo"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
@@ -38,6 +40,8 @@ type Config struct {
 	Fido       *fido.Settings // nil: not on FidoNet
 	Binkp      *BinkpSettings // nil: no binkp answering
 	Doors      []*door.Door
+	Finger     *finger.Settings // nil: no finger server
+	Gopher     *gopher.Settings // nil: no gopher server
 	Database   string
 	Log        string // syslog, stderr, none, or a file
 	Listeners  []*Listener
@@ -78,6 +82,9 @@ func Load(path string) (*Config, error) {
 	if err := c.fidoSections(cf); err != nil {
 		return nil, err
 	}
+	if err := c.infoSections(cf); err != nil {
+		return nil, err
+	}
 	if err := c.doorSections(cf); err != nil {
 		return nil, err
 	}
@@ -105,7 +112,7 @@ func Load(path string) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door":
+		case "general", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door", "finger", "gopher":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}
@@ -135,6 +142,9 @@ func (c *Config) general(g *config.Section) error {
 	s.MOTD = g.String("motd", s.MOTD)
 	s.MOTDFile = g.String("motd_file", s.MOTDFile)
 	s.Goodbye = g.String("goodbye", s.Goodbye)
+	if s.PageCommand, err = door.Split(g.String("page_command", "")); err != nil {
+		return fmt.Errorf("page_command: %w", err)
+	}
 	if s.NewUsers, err = g.Bool("new_users", s.NewUsers); err != nil {
 		return err
 	}

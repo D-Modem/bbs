@@ -23,6 +23,8 @@ yes`), and with `trust_user = yes` take the caller as logged in already: see
 | `[news]`, `[nntp]`, `[peer NAME]` | newsgroups, the NNTP server, news peers | [Newsgroups and NNTP](Newsgroups-and-NNTP) |
 | `[fido]`, `[binkp]`, `[link NAME]` | FidoNet: our address, the binkp mailer, links | [FidoNet](FidoNet) |
 | `[door NAME]` | a door program | [Doors](Doors) |
+| `[finger]`, `[gopher]` | the finger and gopher servers | [Finger and gopher](Finger-and-Gopher) |
+| `page_command` (in `[general]`) | telling the sysop of a page when they are not on | [Chat and paging](Chat-and-Paging) |
 
 `bbs check` reads the file and says what it found, with a warning for
 anything risky (a password that may cross in the clear, a socket that

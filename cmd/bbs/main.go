@@ -41,7 +41,9 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/fido"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
+	"github.com/Neo-Desktop/bbs-sec/internal/finger"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
+	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
 	"github.com/Neo-Desktop/bbs-sec/internal/server"
@@ -133,6 +135,12 @@ func main() {
 			for _, l := range f.Links {
 				fmt.Printf("[link %s] %s, host %q, echoes %s, route %v\n", l.Name, l.Addr, l.Host, l.Echoes, l.Route)
 			}
+		}
+		if cfg.Finger != nil {
+			fmt.Printf("finger: %s (online %v, users %v)\n", cfg.Finger.Address, cfg.Finger.Online, cfg.Finger.Users)
+		}
+		if g := cfg.Gopher; g != nil {
+			fmt.Printf("gopher: %s as %s:%d, areas %q, files %v\n", g.Address, g.Host, g.Port, g.Areas, g.Files)
 		}
 		for _, d := range cfg.Doors {
 			fmt.Printf("[door %s] %q, drop files %s in %s, %v\n", d.Name, d.Command,
@@ -242,6 +250,24 @@ func serve(cfg *server.Config) int {
 		}()
 	}
 	svc.RunPeers(ctx, cfg.Peers)
+	if cfg.Finger != nil {
+		fs := &finger.Server{B: b, S: *cfg.Finger}
+		go func() {
+			if err := fs.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
+	if cfg.Gopher != nil {
+		gs := &gopher.Server{B: b, S: *cfg.Gopher}
+		go func() {
+			if err := gs.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
 	if cfg.Fido != nil {
 		fd, err := fido.New(b, *cfg.Fido)
 		if err != nil {
