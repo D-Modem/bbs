@@ -19,6 +19,7 @@
 | `internal/finger` | the finger server |
 | `internal/gopher` | the gopher server |
 | `internal/tcpserv` | what finger and gopher share: limits, timeouts |
+| `internal/screens` | the sysop's display files: finding them, @-codes, 3270 color tags |
 | `internal/xfer` | XMODEM, YMODEM, ZMODEM and Kermit, both ways |
 | `internal/logo` | the logo: a PNG, or the name in a pixel font |
 | `internal/bbs` | the BBS itself: nodes, logins, new users, posting, cleaning text |
@@ -65,6 +66,11 @@ and answering, the page command (and that it runs no shell); two callers
 chatting and paging on the text BBS; a 3270 (s3270) chatting with a text
 caller and getting a node message on its message line.  Finger and
 gopher: their answers and refusals, with the finger program and curl as
-clients.
+clients.  Customization: finding display files by terminal, SAUCE,
+@-codes and widths, color tags; menus and strings in the configuration
+and what it refuses; a text caller through an ANSI logon (CP437 as it
+is), the strings, a welcome screen, the sysop's menus and submenus, a
+screen with a pause and a goodbye screen; and a 3270 (s3270) through a
+colored logon screen, welcome, the sysop's main menu and a screen.
 
 **See also:** [Building](Building)

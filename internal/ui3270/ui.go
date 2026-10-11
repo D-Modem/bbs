@@ -95,6 +95,12 @@ func (u *ui) run() error {
 	if err := u.logon(); err != nil {
 		return err
 	}
+	if _, err := u.screen("welcome"); err != nil {
+		return err
+	}
+	if m := u.b.Menus["main"]; m != nil {
+		return u.runMenu(m, 0)
+	}
 	return u.mainMenu()
 }
 
@@ -158,6 +164,11 @@ func (u *ui) show(scr go3270.Screen, vals map[string]string) (go3270.Response, m
 func (u *ui) goodbye(msg string) {
 	scr := u.frame("Goodbye", "", "")
 	scr = append(scr, u.text(u.rows/2, 2, msg, go3270.White, true))
+	u.sendLast(scr)
+}
+
+// sendLast sends a screen that is answered by nothing: the last.
+func (u *ui) sendLast(scr go3270.Screen) {
 	u.g.SetWriteDeadline(time.Now().Add(10 * time.Second))
 	go3270.ShowScreenOpts(scr, nil, u.g, go3270.ScreenOpts{AltScreen: u.dev,
 		Codepage: u.dev.Codepage(), NoResponse: true})
@@ -236,13 +247,20 @@ func (u *ui) logon() error {
 			scr = append(scr, lf...)
 			row += n + 1
 		}
-		for _, l := range strings.Split(strings.TrimRight(u.b.Banner, "\n"), "\n") {
-			if row > u.rows-10 {
-				break
-			}
-			if l = bbs.Clean(l, u.cols-4); l != "" || row > 2 {
-				scr = append(scr, u.text(row, 2, l, go3270.White, false))
+		if pages, sc, ok := u.screenPages("logon", u.rows-11); ok && len(pages) > 0 {
+			for _, l := range pages[0] {
+				scr = append(scr, u.lineFields(sc, row, l)...)
 				row++
+			}
+		} else {
+			for _, l := range strings.Split(strings.TrimRight(u.b.Banner, "\n"), "\n") {
+				if row > u.rows-10 {
+					break
+				}
+				if l = bbs.Clean(l, u.cols-4); l != "" || row > 2 {
+					scr = append(scr, u.text(row, 2, l, go3270.White, false))
+					row++
+				}
 			}
 		}
 		via := "Connected by " + c.Via
@@ -266,7 +284,7 @@ func (u *ui) logon() error {
 		vals = map[string]string{"name": v["name"]}
 		switch resp.AID {
 		case go3270.AIDPF3:
-			u.goodbye(u.b.Goodbye)
+			u.bye()
 			return errLogoff
 		case go3270.AIDPF5:
 			if !u.b.NewUsers {
@@ -358,7 +376,8 @@ func (u *ui) mainMenu() error {
 		}
 		scr := u.frame("Main menu", "Enter=Select  PF3=Log off", msg)
 		msg = ""
-		scr = append(scr, u.text(2, 2, "Welcome, "+u.user.Name+".", go3270.White, true))
+		welcome, _ := u.n.Str("welcome")
+		scr = append(scr, u.text(2, 2, welcome, go3270.White, true))
 		if first && !u.user.LastLogin.IsZero() {
 			scr = append(scr, u.text(3, 2, "Your last call was "+
 				u.user.LastLogin.Format("2006-01-02 15:04")+".", go3270.Blue, false))
@@ -437,7 +456,7 @@ func (u *ui) mainMenu() error {
 			}
 		case "X":
 			u.b.Log.Printf("node %d: %s logged off", u.n.Num, u.user.Name)
-			u.goodbye(u.b.Goodbye)
+			u.bye()
 			return errLogoff
 		default:
 			msg = fmt.Sprintf("Choose 1 to %d, or X.", len(items))

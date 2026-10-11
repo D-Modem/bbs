@@ -52,19 +52,24 @@ func Run(b *bbs.BBS, n *bbs.Node, t *Term, o Options) error {
 func (s *session) run() error {
 	t := s.t
 	t.Clear()
-	if t.Sixel {
-		t.Picture(sixelLogo(t, s.b.Name, s.o.LogoFile))
+	t.PausePrompt = s.str("pause")
+	if shown, err := s.screen("logon"); err != nil {
+		return err
+	} else if !shown {
+		if t.Sixel {
+			t.Picture(sixelLogo(t, s.b.Name, s.o.LogoFile))
+		}
+		t.Println(t.C(Cyan, s.b.Name))
+		if s.b.Banner != "" {
+			t.Println(s.b.Banner)
+		}
+		via := "Node " + strconv.Itoa(s.n.Num) + ", " + s.c.Via
+		if baud := s.c.Baud(); baud != "" {
+			via += " at " + baud + " bit/s"
+		}
+		t.Println(t.C(Dim, via))
+		t.Println("")
 	}
-	t.Println(t.C(Cyan, s.b.Name))
-	if s.b.Banner != "" {
-		t.Println(s.b.Banner)
-	}
-	via := "Node " + strconv.Itoa(s.n.Num) + ", " + s.c.Via
-	if baud := s.c.Baud(); baud != "" {
-		via += " at " + baud + " bit/s"
-	}
-	t.Println(t.C(Dim, via))
-	t.Println("")
 
 	if err := s.login(); err != nil {
 		return err
@@ -95,12 +100,18 @@ func (s *session) login() error {
 
 	t.SetDeadline(time.Now().Add(s.b.LoginTimeout))
 	defer t.SetDeadline(time.Time{})
-	newHint := ""
+	namePrompt := "Name: "
+	if v, set := s.n.Str("name_prompt"); set {
+		namePrompt = v
+	}
 	if s.b.NewUsers {
-		newHint = t.C(Dim, " (or NEW)")
+		namePrompt = "Name" + t.C(Dim, " (or NEW)") + ": "
+		if v, set := s.n.Str("new_name_prompt"); set {
+			namePrompt = v
+		}
 	}
 	for try := 0; try < s.b.Attempts; try++ {
-		t.Print("Name" + newHint + ": ")
+		t.Print(namePrompt)
 		l, err := t.ReadLine(LineOpts{Max: bbs.MaxNameLen, Initial: s.c.LoginUser})
 		s.c.LoginUser = ""
 		if err != nil {
@@ -122,7 +133,7 @@ func (s *session) login() error {
 			}
 			continue
 		}
-		pw, err := t.Password("Password: ")
+		pw, err := t.Password(s.str("password_prompt"))
 		if err != nil {
 			return err
 		}
@@ -147,6 +158,9 @@ func (s *session) login() error {
 func (s *session) register() (bool, error) {
 	t := s.t
 	t.Println("")
+	if _, err := s.screen("newuser"); err != nil {
+		return false, err
+	}
 	t.Println(t.C(Cyan, "New user"))
 	t.Println("Pick a name: letters, digits, spaces, dots and dashes, 2 to 24 long.")
 	var name string
@@ -207,9 +221,15 @@ func (s *session) welcome() {
 	t := s.t
 	u := s.user
 	t.Println("")
-	t.Println("Welcome, " + t.C(Yellow, u.Name) + ".")
-	if !u.LastLogin.IsZero() {
-		t.Println(t.C(Dim, "Your last call was "+u.LastLogin.Format("2006-01-02 15:04")+"."))
+	if shown, _ := s.screen("welcome"); !shown {
+		if v, set := s.n.Str("welcome"); set {
+			t.Println(v)
+		} else {
+			t.Println("Welcome, " + t.C(Yellow, u.Name) + ".")
+		}
+		if !u.LastLogin.IsZero() {
+			t.Println(t.C(Dim, "Your last call was "+u.LastLogin.Format("2006-01-02 15:04")+"."))
+		}
 	}
 	if motd := s.b.MOTDText(); motd != "" {
 		t.Println("")
@@ -226,6 +246,9 @@ func (s *session) mainMenu() error {
 	t := s.t
 	t.Notify = s.notify
 	defer func() { t.Notify = nil }()
+	if m := s.b.Menus["main"]; m != nil {
+		return s.runMenu(m, 0)
+	}
 	for {
 		u := s.n.Refresh()
 		s.user = u
@@ -260,7 +283,7 @@ func (s *session) mainMenu() error {
 		for i := 0; i < len(items); i += 2 {
 			t.Println("  " + strings.Join(items[i:min(i+2, len(items))], ""))
 		}
-		t.Print("\nCommand: ")
+		t.Print("\n" + s.str("command_prompt"))
 		k, err := t.Key()
 		if err != nil {
 			return err
@@ -296,15 +319,8 @@ func (s *session) mainMenu() error {
 		case 'I':
 			err = s.info()
 		case 'G', 'Q':
-			ok, err := t.YesNo("Log off?", true)
-			if err != nil {
+			if err := s.logoff(); err != nil {
 				return err
-			}
-			if ok {
-				t.Println("")
-				t.Println(s.b.Goodbye)
-				s.b.Log.Printf("node %d: %s logged off", s.n.Num, u.Name)
-				return errHangup
 			}
 		}
 		if err != nil {

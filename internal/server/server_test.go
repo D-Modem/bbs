@@ -40,6 +40,13 @@ func start(t *testing.T, tweak func(*bbs.Settings), ls ...*Listener) *env {
 // startGraphics is start with 3270 graphics settings.
 func startGraphics(t *testing.T, g ui3270.Graphics, tweak func(*bbs.Settings), ls ...*Listener) *env {
 	t.Helper()
+	return startFull(t, g, tweak, nil, ls...)
+}
+
+// startFull is start with graphics settings, and prep to set the BBS up
+// before it answers (dir: the test's directory).
+func startFull(t *testing.T, g ui3270.Graphics, tweak func(*bbs.Settings), prep func(b *bbs.BBS, dir string), ls ...*Listener) *env {
+	t.Helper()
 	dir, err := os.MkdirTemp("", "bbs")
 	if err != nil {
 		t.Fatal(err)
@@ -84,6 +91,9 @@ func startGraphics(t *testing.T, g ui3270.Graphics, tweak func(*bbs.Settings), l
 		if l.Via == "" {
 			l.Via = l.Kind
 		}
+	}
+	if prep != nil {
+		prep(b, dir)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})

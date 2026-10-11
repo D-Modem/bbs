@@ -53,5 +53,9 @@
   check` warns when they do), and its selectors are database records, not
   paths.  Both limit connections at once and from one address, and time
   out.
+- Screens: display files are read only from `screens_dir`, by names of
+  letters, digits, `_` and `-` (no paths), at most 256 KB.  The values of
+  @-codes are cleaned, so no escape sequence gets into a screen through
+  a user's name or location.
 - The log has logins, failures, posts and mail sent (never passwords or
   message text).

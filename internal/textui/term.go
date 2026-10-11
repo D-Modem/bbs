@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/Neo-Desktop/bbs-sec/internal/screens"
 	"io"
 	"os"
 	"regexp"
@@ -52,6 +53,9 @@ type Term struct {
 	// the line being typed, which is then drawn again
 	Notify func() []string
 	cur    []rune // what has been printed of the line the cursor is on
+
+	// PausePrompt is Pause's ("": "[Press a key]")
+	PausePrompt string
 }
 
 // NewTerm makes a terminal on c, 80x24 plain ASCII until told otherwise.
@@ -426,10 +430,28 @@ func (t *Term) YesNo(prompt string, def bool) (bool, error) {
 
 // Pause waits for a key.
 func (t *Term) Pause() error {
-	t.Print(t.C(Dim, "[Press a key]"))
+	p := t.PausePrompt
+	if p == "" {
+		p = "[Press a key]"
+	}
+	t.Print(t.C(Dim, p))
 	_, err := t.Key()
-	t.Print("\r" + strings.Repeat(" ", 13) + "\r")
+	t.Print("\r" + strings.Repeat(" ", min(utf8.RuneCountInString(p), 79)) + "\r")
 	return err
+}
+
+// Art writes ANSI art as it is (its escape sequences too): UTF-8 to a
+// UTF-8 terminal, CP437 to any other; \n as CR LF.
+func (t *Term) Art(s string) {
+	s = strings.ReplaceAll(s, "\n", "\r\n")
+	if t.UTF8 {
+		t.w.WriteString(s)
+	} else {
+		t.w.Write(screens.EncodeCP437(s))
+	}
+	if i := strings.LastIndex(s, "\n"); i >= 0 {
+		t.cur = t.cur[:0]
+	}
 }
 
 // Page shows lines a screen at a time; false if the caller quit.

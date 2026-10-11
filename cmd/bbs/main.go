@@ -136,6 +136,16 @@ func main() {
 				fmt.Printf("[link %s] %s, host %q, echoes %s, route %v\n", l.Name, l.Addr, l.Host, l.Echoes, l.Route)
 			}
 		}
+		if cfg.Screens != nil {
+			fmt.Println("screens:", cfg.Screens.Dir)
+		}
+		for _, m := range cfg.Menus {
+			keys := ""
+			for _, it := range m.Items {
+				keys += it.Key
+			}
+			fmt.Printf("[menu %s] %q, keys %s\n", m.Name, m.Title, keys)
+		}
 		if cfg.Finger != nil {
 			fmt.Printf("finger: %s (online %v, users %v)\n", cfg.Finger.Address, cfg.Finger.Online, cfg.Finger.Users)
 		}
@@ -229,6 +239,7 @@ func serve(cfg *server.Config) int {
 	b := bbs.New(cfg.Settings, st, lg)
 	b.News = cfg.News
 	b.Doors = cfg.Doors
+	b.Screens, b.Menus, b.Text = cfg.Screens, cfg.Menus, cfg.Text
 	if b.Files, err = files.Open(st, cfg.FilesDir, cfg.MaxFileSize, cfg.UploadQuota); err != nil {
 		lg.Printf("files: %v", err)
 		return 1

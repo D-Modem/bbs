@@ -66,6 +66,7 @@ What there is:
   and the usual drop files, or any Linux program, for text callers
 - [chat](https://github.com/Neo-Desktop/bbs-sec/wiki/Chat-and-Paging): rooms, messages to a node, paging the sysop
 - [finger and gopher](https://github.com/Neo-Desktop/bbs-sec/wiki/Finger-and-Gopher): who is on, and chosen areas in gopherspace
+- [customization](https://github.com/Neo-Desktop/bbs-sec/wiki/Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
 - new users sign themselves up (or not: `new_users = no`)
 - SQLite storage, one file
 
@@ -96,6 +97,7 @@ The documentation is in the [wiki](https://github.com/Neo-Desktop/bbs-sec/wiki/)
 | [Running](https://github.com/Neo-Desktop/bbs-sec/wiki/Running) | first start, systemd, the defaults |
 | [Administration](https://github.com/Neo-Desktop/bbs-sec/wiki/Administration) | the bbs command: users, areas, files, mail exchange |
 | [Configuration](https://github.com/Neo-Desktop/bbs-sec/wiki/Configuration) | bbs.conf: its sections, listeners |
+| [Customization](https://github.com/Neo-Desktop/bbs-sec/wiki/Customization) | screens (ANSI art, 3270), menus, prompts |
 | [Modem callers](https://github.com/Neo-Desktop/bbs-sec/wiki/Modem-Callers) | app_dmodem and modemmenu |
 | [TN3270](https://github.com/Neo-Desktop/bbs-sec/wiki/TN3270) | 3270 terminals, PF keys, 3270 graphics |
 | [Sixel graphics](https://github.com/Neo-Desktop/bbs-sec/wiki/Sixel-Graphics) | the logo on sixel terminals |

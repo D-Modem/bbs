@@ -18,6 +18,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
 	"github.com/Neo-Desktop/bbs-sec/internal/logo"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
+	"github.com/Neo-Desktop/bbs-sec/internal/screens"
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
 )
 
@@ -41,7 +42,10 @@ type Config struct {
 	Binkp      *BinkpSettings // nil: no binkp answering
 	Doors      []*door.Door
 	Finger     *finger.Settings // nil: no finger server
-	Gopher     *gopher.Settings // nil: no gopher server
+	Screens    *screens.Set     // nil: no screens of the sysop's
+	Menus      map[string]*bbs.Menu
+	Text       map[string]string // [strings]
+	Gopher     *gopher.Settings  // nil: no gopher server
 	Database   string
 	Log        string // syslog, stderr, none, or a file
 	Listeners  []*Listener
@@ -88,6 +92,9 @@ func Load(path string) (*Config, error) {
 	if err := c.doorSections(cf); err != nil {
 		return nil, err
 	}
+	if err := c.customSections(cf); err != nil {
+		return nil, err
+	}
 	if err := c.ftpSection(cf.Get("ftp", "")); err != nil {
 		return nil, fmt.Errorf("[ftp] %w", err)
 	}
@@ -112,7 +119,7 @@ func Load(path string) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door", "finger", "gopher":
+		case "general", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door", "finger", "gopher", "menu", "strings":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}

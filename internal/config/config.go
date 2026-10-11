@@ -241,3 +241,11 @@ func (s *Section) Seconds(key string, def, min, max int) (time.Duration, error) 
 	n, err := s.Int(key, def, min, max)
 	return time.Duration(n) * time.Second, err
 }
+
+// Keys lists the section's keys in the order they came.
+func (s *Section) Keys() []string {
+	if s == nil {
+		return nil
+	}
+	return append([]string(nil), s.ord...)
+}

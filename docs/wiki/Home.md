@@ -64,6 +64,7 @@ What there is:
   and the usual drop files, or any Linux program, for text callers
 - [chat](Chat-and-Paging): rooms, messages to a node, paging the sysop
 - [finger and gopher](Finger-and-Gopher): who is on, and chosen areas in gopherspace
+- [customization](Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
 - new users sign themselves up (or not: `new_users = no`)
 - SQLite storage, one file
 
@@ -75,6 +76,7 @@ What there is:
 | [Running](Running) | first start, systemd, the defaults |
 | [Administration](Administration) | the `bbs` command: users, areas, files, mail exchange |
 | [Configuration](Configuration) | `bbs.conf`: its sections, listeners |
+| [Customization](Customization) | screens (ANSI art, 3270), menus, prompts |
 | [Modem callers](Modem-Callers) | app_dmodem and modemmenu |
 | [TN3270](TN3270) | 3270 terminals, PF keys, 3270 graphics |
 | [Sixel graphics](Sixel-Graphics) | the logo on sixel terminals |

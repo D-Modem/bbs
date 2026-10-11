@@ -22,6 +22,10 @@ log = syslog
 ; each login)
 ;motd = "The line is down for maintenance on Sunday."
 ;motd_file = /etc/bbs/motd.txt
+; the sysop's screens (display files): logon, newuser, welcome, goodbye and
+; those menus name; NAME.ans (ANSI, CP437), NAME.asc (text), NAME.3270.
+; screens.sample has some to start from
+;screens_dir = /etc/bbs/screens
 ; a caller pages the sysop and no sysop is on: tell them this way ({user},
 ; {node} and {reason} filled in; no shell).  E.g. a push by ntfy.sh:
 ;page_command = curl -s -d "{user} on node {node}: {reason}" https://ntfy.sh/my-bbs-pages
@@ -282,3 +286,43 @@ address = 127.0.0.1:2513
 ;areas = general,announcements
 ; file areas listed and downloadable
 ;files = no
+
+; Menus of the sysop's.  [menu main] takes the place of the built-in main
+; menu (on 3270s too); others are reached from it.  Each item is
+; KEY = ACTION Label: one character (not ; or #), then what it does:
+;   areas mail who users profile info files doors chat page terminal
+;   logoff back, or door:NAME menu:NAME screen:NAME area:NAME
+; Labels, titles and prompts take @-codes (@USER@, @NEWMAIL@, @BBS@ ...).
+; screen = NAME shows that display file instead of the list of items
+;[menu main]
+;title = @BBS@
+;screen = mainmenu
+;m = areas Message areas
+;e = mail E-mail (@NEWMAIL@ new)
+;f = files File areas
+;d = doors Doors
+;c = chat Chat
+;s = page Page the sysop
+;w = who Who's online
+;b = screen:bulletins Bulletins
+;x = menu:extras Extras
+;g = logoff Goodbye
+;
+;[menu extras]
+;title = Extras
+;prompt = "Extras> "
+;u = users User list
+;p = profile Your profile
+;i = info System info
+;t = terminal Your terminal (3270)
+;q = back Back
+
+; The prompts and messages, with @-codes:
+;[strings]
+;name_prompt = "Name: "
+;new_name_prompt = "Name (or NEW): "
+;password_prompt = "Password: "
+;command_prompt = "Command: "
+;pause = "[Press a key]"
+;logoff_confirm = "Log off?"
+;welcome = "Welcome, @USER@."

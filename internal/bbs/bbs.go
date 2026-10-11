@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
+	"github.com/Neo-Desktop/bbs-sec/internal/screens"
 	"log"
 	"os"
 	"sort"
@@ -107,6 +108,10 @@ type BBS struct {
 	Netmail NetmailFunc
 	// Doors are the door programs (for text callers)
 	Doors []*door.Door
+	// the sysop's screens, menus and strings
+	Screens *screens.Set
+	Menus   map[string]*Menu
+	Text    map[string]string
 
 	mu       sync.Mutex
 	nodes    map[int]*Node
