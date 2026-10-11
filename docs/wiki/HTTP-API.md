@@ -64,6 +64,8 @@ Errors are `{"error": "...", "code": "..."}`.
 | `GET /who` | who is online | anonymous |
 | `GET`, `PATCH /me` | your account; change your location or password | read |
 | `GET /me/tokens`, `DELETE /me/tokens/{id}` | your tokens; revoke one | any |
+| `GET /me/keys` | your SSH keys | read |
+| `POST /me/keys`, `DELETE /me/keys/{id}` | add an SSH key (`{"key": "ssh-ed25519 ..."}`, from a login's session only); delete one | any |
 | `GET /users`, `/users/{name}` | users | read |
 | `GET /areas`, `/areas/{id}` | message areas, with your unread | read |
 | `GET /areas/{id}/messages?after=&limit=&body=no` | messages after an id (200 at most) | read |

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | `cmd/bbs` | the command: serve, check, init, user and area administration |
-| `internal/server` | listeners, session headers, rlogin, telling 3270s from the rest |
+| `internal/server` | listeners, session headers, rlogin, SSH, telling 3270s from the rest |
 | `internal/telnet` | the server side of telnet: options, terminal type, window size, the handoff to go3270 |
 | `internal/textui` | the text BBS: line editing, ANSI detection, paging, the menus |
 | `internal/ui3270` | the 3270 BBS: screens and PF keys on go3270, and its graphics |
@@ -81,6 +81,12 @@ message, chat between them, paging and answering, mail events, bad
 frames, refused origins and tokens) and the metrics.  And a terminal caller and
 a web caller (the JSON WebSocket) together: chatting in one room both
 ways, `/who`, node messages each way, and the web caller paging the
-sysop, who answers at the terminal.
+sysop, who answers at the terminal.  SSH: logging in by password,
+keyboard-interactive and key (and not by a wrong one, someone else's, or
+into a locked account), `new` to the BBS's prompt, the pty's terminal
+type and size, refused commands, SFTP and forwarding, a user adding and
+deleting a key in their profile, host keys made and kept (ed25519, RSA,
+ECDSA) and refused when readable, the configuration, legacy ciphers only
+when asked for, and the OpenSSH client logging in by key with a pty.
 
 **See also:** [Building](Building)

@@ -6,6 +6,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/api"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -113,6 +114,9 @@ func Load(path string) (*Config, error) {
 			return nil, fmt.Errorf("[listen %s] given twice", l.Name)
 		}
 		names[l.Name] = true
+		if l.Kind == "ssh" && len(l.HostKeys) == 0 {
+			l.HostKeys = DefaultHostKeys(filepath.Dir(c.Database))
+		}
 		c.Listeners = append(c.Listeners, l)
 		c.warn(l)
 	}
@@ -214,9 +218,9 @@ func listener(sec *config.Section) (*Listener, error) {
 	}
 	l := &Listener{Name: sec.Name, Kind: strings.ToLower(sec.String("type", "telnet"))}
 	switch l.Kind {
-	case "telnet", "raw", "rlogin":
+	case "telnet", "raw", "rlogin", "ssh":
 	default:
-		return nil, fmt.Errorf("type: %q is not telnet, raw or rlogin", l.Kind)
+		return nil, fmt.Errorf("type: %q is not telnet, raw, rlogin or ssh", l.Kind)
 	}
 	l.Address = sec.String("address", "")
 	if l.Address == "" {
@@ -227,10 +231,13 @@ func listener(sec *config.Section) (*Listener, error) {
 			return nil, fmt.Errorf("address: %v", err)
 		}
 	}
-	via := map[string]string{"telnet": "telnet", "raw": "modem", "rlogin": "rlogin"}[l.Kind]
+	if l.Kind == "ssh" && l.Unix() {
+		return nil, errors.New("address: ssh is for a TCP port")
+	}
+	via := map[string]string{"telnet": "telnet", "raw": "modem", "rlogin": "rlogin", "ssh": "ssh"}[l.Kind]
 	l.Via = sec.String("via", via)
 	var err error
-	if l.TN3270, err = sec.Bool("tn3270", true); err != nil {
+	if l.TN3270, err = sec.Bool("tn3270", l.Kind == "telnet"); err != nil {
 		return nil, err
 	}
 	if sec.Has("tn3270") && l.Kind != "telnet" {
@@ -240,8 +247,8 @@ func listener(sec *config.Section) (*Listener, error) {
 		key string
 		p   *string
 		def string
-	}{{"ansi", &l.ANSI, "auto"}, {"utf8", &l.UTF8, map[bool]string{true: "auto", false: "no"}[l.Kind == "telnet"]},
-		{"sixel", &l.Sixel, map[bool]string{true: "auto", false: "no"}[l.Kind == "telnet"]}} {
+	}{{"ansi", &l.ANSI, "auto"}, {"utf8", &l.UTF8, map[bool]string{true: "auto", false: "no"}[l.Kind == "telnet" || l.Kind == "ssh"]},
+		{"sixel", &l.Sixel, map[bool]string{true: "auto", false: "no"}[l.Kind == "telnet" || l.Kind == "ssh"]}} {
 		*o.p = strings.ToLower(sec.String(o.key, o.def))
 		switch *o.p {
 		case "auto", "yes", "no":
@@ -263,6 +270,18 @@ func listener(sec *config.Section) (*Listener, error) {
 	}
 	if l.CreateUsers, err = sec.Bool("create_users", false); err != nil {
 		return nil, err
+	}
+	if l.Kind == "ssh" && (l.Header || l.TrustUser) {
+		return nil, errors.New("header, trust_user: not for ssh (SSH logs its users in itself)")
+	}
+	if l.HostKeys = strings.Fields(sec.String("host_keys", "")); len(l.HostKeys) > 0 && l.Kind != "ssh" {
+		return nil, errors.New("host_keys: only for type = ssh")
+	}
+	if l.Legacy, err = sec.Bool("legacy", false); err != nil {
+		return nil, err
+	}
+	if sec.Has("legacy") && l.Kind != "ssh" {
+		return nil, errors.New("legacy: only for type = ssh")
 	}
 	if l.CreateUsers && !l.TrustUser {
 		return nil, errors.New("create_users: only with trust_user = yes")
@@ -295,6 +314,9 @@ func (c *Config) warn(l *Listener) {
 		case !l.Unix():
 			w("trust_user on a TCP port: every local user can log in as anyone; a unix socket's permissions are safer")
 		}
+	}
+	if l.Kind == "ssh" && l.Legacy {
+		w("legacy offers ciphers and a key exchange that are weak (CBC, 1024-bit DH): only for clients that need them")
 	}
 	if l.Kind == "rlogin" && !l.TrustUser && !l.Unix() && !loopback(l.Address) {
 		w("rlogin sends the password in the clear")

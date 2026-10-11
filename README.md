@@ -51,9 +51,10 @@ What there is:
   reply by mail; areas only the sysop posts in; authors and the sysop
   delete messages
 - private mail: inbox, read, reply, delete
-- who's online (and how each caller came: telnet, tn3270, rlogin, modem
+- [SSH](https://github.com/Neo-Desktop/bbs-sec/wiki/SSH): logging in by password or key, the text BBS encrypted
+- who's online (and how each caller came: ssh, telnet, tn3270, rlogin, modem
   with its rate), the user list, system info
-- your profile: where you call from, your password, ANSI and UTF-8
+- your profile: where you call from, your password, SSH keys, ANSI and UTF-8
 - [file areas](https://github.com/Neo-Desktop/bbs-sec/wiki/Files-and-FTP): files listed with their size, uploader, downloads and
   SHA-256, moved by XMODEM, YMODEM, ZMODEM or Kermit on the text BBS, by
   IND$FILE on a 3270, or by FTP (FTPS); deleted by their uploader or the
@@ -99,6 +100,7 @@ The documentation is in the [wiki](https://github.com/Neo-Desktop/bbs-sec/wiki/)
 | [Administration](https://github.com/Neo-Desktop/bbs-sec/wiki/Administration) | the bbs command: users, areas, files, mail exchange |
 | [Configuration](https://github.com/Neo-Desktop/bbs-sec/wiki/Configuration) | bbs.conf: its sections, listeners |
 | [Customization](https://github.com/Neo-Desktop/bbs-sec/wiki/Customization) | screens (ANSI art, 3270), menus, prompts |
+| [SSH](https://github.com/Neo-Desktop/bbs-sec/wiki/SSH) | the SSH listener, keys, host keys |
 | [Modem callers](https://github.com/Neo-Desktop/bbs-sec/wiki/Modem-Callers) | app_dmodem and modemmenu |
 | [TN3270](https://github.com/Neo-Desktop/bbs-sec/wiki/TN3270) | 3270 terminals, PF keys, 3270 graphics |
 | [Sixel graphics](https://github.com/Neo-Desktop/bbs-sec/wiki/Sixel-Graphics) | the logo on sixel terminals |

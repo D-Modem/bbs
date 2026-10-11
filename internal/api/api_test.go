@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -573,5 +574,43 @@ func TestMetrics(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Errorf("no %q in\n%s", want, body)
 		}
+	}
+}
+
+// TestSSHKeys: a user's SSH keys: added only from a login's session.
+func TestSSHKeys(t *testing.T) {
+	s := setup(t, Settings{})
+	sess := s.login("alice", "alicepass1")
+	apiKey := s.key("alice", "read post mail chat files")
+	const line = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl alice@home"
+	if code, m, _ := s.do("POST", "/api/v1/me/keys", apiKey, map[string]any{"key": line}); code != 403 {
+		t.Fatalf("by API key: %d %v", code, m)
+	}
+	code, m, _ := s.do("POST", "/api/v1/me/keys", sess, map[string]any{"key": line})
+	if code != 201 || m["type"] != "ssh-ed25519" || m["comment"] != "alice@home" ||
+		!strings.HasPrefix(m["fingerprint"].(string), "SHA256:") {
+		t.Fatalf("add: %d %v", code, m)
+	}
+	id := int(m["id"].(float64))
+	bob := s.login("bob", "bobpass123")
+	if code, _, _ := s.do("POST", "/api/v1/me/keys", bob, map[string]any{"key": line}); code != 409 {
+		t.Fatalf("someone else's key: %d", code)
+	}
+	for _, bad := range []string{"nope", `command="sh" ` + line, "ssh-dss AAAAB3NzaC1kc3MAAACBAP"} {
+		if code, m, _ := s.do("POST", "/api/v1/me/keys", sess, map[string]any{"key": bad}); code != 400 {
+			t.Fatalf("%q: %d %v", bad, code, m)
+		}
+	}
+	if _, _, ks := s.do("GET", "/api/v1/me/keys", apiKey, nil); len(ks) != 1 {
+		t.Fatalf("list: %v", ks)
+	}
+	if code, _, _ := s.do("DELETE", fmt.Sprintf("/api/v1/me/keys/%d", id), bob, nil); code != 404 {
+		t.Fatalf("bob deleted alice's key: %d", code)
+	}
+	if code, _, _ := s.do("DELETE", fmt.Sprintf("/api/v1/me/keys/%d", id), sess, nil); code != 204 {
+		t.Fatalf("delete: %d", code)
+	}
+	if _, _, ks := s.do("GET", "/api/v1/me/keys", sess, nil); len(ks) != 0 {
+		t.Fatalf("after delete: %v", ks)
 	}
 }

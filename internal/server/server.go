@@ -9,6 +9,8 @@
 //   - raw: no protocol, the caller's bytes as they come: app_dmodem's
 //     mode = tcp, a modemmenu tcp or unix item, a terminal on a serial line
 //     server.
+//   - ssh: SSH, with the BBS's passwords or users' keys (or "new", for the
+//     BBS's own login prompt); the text BBS.
 //   - rlogin: RFC 1282, as modemmenu's rlogin items speak it: the server
 //     user is the name, the client user the password (Synchronet's
 //     convention), or with trust_user the name alone logs in.
@@ -34,6 +36,7 @@ import (
 	"time"
 
 	"github.com/racingmars/go3270"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/telnet"
@@ -58,6 +61,10 @@ type Listener struct {
 	MaxPerIP      int  // connections at once from one address (not loopback)
 	SocketMode    os.FileMode
 	SocketGroup   string
+	HostKeys      []string // ssh: the host keys' files
+	Legacy        bool     // ssh: offer old algorithms too (CBC ciphers, DH group 1)
+
+	ssh *ssh.ServerConfig
 }
 
 // Unix reports whether the listener is on a unix socket.
@@ -94,6 +101,12 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}
 	for _, l := range s.Listeners {
+		if l.Kind == "ssh" {
+			if err := s.sshSetup(l); err != nil {
+				closeAll()
+				return fmt.Errorf("[listen %s] %w", l.Name, err)
+			}
+		}
 		ln, err := s.listen(l)
 		if err != nil {
 			closeAll()
@@ -261,6 +274,10 @@ func (s *Server) handle(nc net.Conn, l *Listener) {
 	if h := host(c); h != "" {
 		caller.Source = "ip:" + h
 	}
+	if l.Kind == "ssh" {
+		s.sshCall(c, l, caller, remote)
+		return
+	}
 	if l.Header {
 		h, err := ReadHeader(c, l.HeaderTimeout)
 		if err != nil {
@@ -397,17 +414,19 @@ func utf8Term(tt string) bool {
 }
 
 // text: the text BBS on rw (c for deadlines), tt the terminal type if told
-func (s *Server) text(rw io.ReadWriter, c net.Conn, l *Listener, node *bbs.Node, tt string) error {
+func (s *Server) text(rw io.ReadWriter, c deadliner, l *Listener, node *bbs.Node, tt string) error {
 	conn := struct {
 		io.ReadWriter
 		deadliner
 	}{rw, c}
 	t := textui.NewTerm(conn)
 	t.Clean8 = true
-	if tc, ok := rw.(*telnet.Conn); ok {
-		if cols, rows := tc.Size(); cols > 0 {
+	if sz, ok := rw.(interface{ Size() (int, int) }); ok {
+		if cols, rows := sz.Size(); cols > 0 {
 			t.Cols, t.Rows = cols, rows
 		}
+	}
+	if tc, ok := rw.(*telnet.Conn); ok {
 		// a telnet client that spoke telnet but refused binary mode
 		t.Clean8 = tc.Binary() || !tc.Spoke()
 	}

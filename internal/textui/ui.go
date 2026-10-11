@@ -924,7 +924,7 @@ func (s *session) profile() error {
 			onOff[t.ANSI], onOff[t.UTF8], onOff[t.Sixel])
 		menu := "\n[L]ocation, [A]NSI on/off, [8]-bit UTF-8 on/off, [S]ixel on/off, "
 		if !u.External {
-			menu += "[P]assword, "
+			menu += "[P]assword, SSH [K]eys, "
 		}
 		t.Print(menu + "[Q]uit: ")
 		k, err := t.Key()
@@ -984,6 +984,83 @@ func (s *session) profile() error {
 				continue
 			}
 			t.Println(t.C(Green, "Changed."))
+		case 'K':
+			if u.External {
+				continue
+			}
+			if err := s.sshKeys(); err != nil {
+				return err
+			}
+		case 'Q', '\r':
+			return nil
+		}
+	}
+}
+
+// sshKeys: the keys the user logs in by SSH with.
+func (s *session) sshKeys() error {
+	t := s.t
+	for {
+		ks, err := s.b.Store.SSHKeys(s.user.ID)
+		if err != nil {
+			return err
+		}
+		t.Println("")
+		t.Println(t.C(Cyan, "Your SSH keys"))
+		if len(ks) == 0 {
+			t.Println("  none: you log in by SSH with your password")
+		}
+		for i, k := range ks {
+			t.Printf("  %d. %s %s %s\n", i+1, k.Type, k.Fingerprint, k.Comment)
+		}
+		t.Print("\n[A]dd, [D]elete, [Q]uit: ")
+		k, err := t.Key()
+		if err != nil {
+			return err
+		}
+		t.Println("")
+		switch k {
+		case 'A':
+			// a key opens the account: whoever adds one knows its password
+			pw, err := t.Password("Your password: ")
+			if err != nil {
+				return err
+			}
+			if _, err := s.b.Authenticate(fmt.Sprintf("node %d", s.n.Num), s.c.Source, s.user.Name, pw); err != nil {
+				t.Println(t.C(Red, err.Error()+"."))
+				continue
+			}
+			t.Println("Paste the public key (one line, as in ~/.ssh/id_ed25519.pub):")
+			line, err := t.Input("", 2048)
+			if err != nil {
+				return err
+			}
+			if line == "" {
+				continue
+			}
+			key, err := s.b.AddSSHKey(s.user, line)
+			if err != nil {
+				t.Println(t.C(Red, err.Error()+"."))
+				continue
+			}
+			t.Println(t.C(Green, "Added "+key.Fingerprint+"."))
+		case 'D':
+			if len(ks) == 0 {
+				continue
+			}
+			n, err := t.Input("Which (its number)? ", 3)
+			if err != nil {
+				return err
+			}
+			i, err := strconv.Atoi(n)
+			if err != nil || i < 1 || i > len(ks) {
+				continue
+			}
+			if err := s.b.Store.RemoveSSHKey(ks[i-1].ID, s.user.ID); err != nil {
+				return err
+			}
+			s.b.Log.Printf("%s: SSH key deleted: %s", s.user.Name, ks[i-1].Fingerprint)
+			t.Println(t.C(Green, "Deleted."))
 		case 'Q', '\r':
 			return nil
 		}

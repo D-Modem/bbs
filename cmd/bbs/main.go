@@ -77,6 +77,9 @@ func usage() {
                      [-expires DAYS] [-name NAME]   an API key (printed once)
   bbs [-config FILE] token list [USER]
   bbs [-config FILE] token revoke ID
+  bbs [-config FILE] sshkey add USER FILE|-          SSH keys (authorized_keys lines) to log in with
+  bbs [-config FILE] sshkey list [USER]
+  bbs [-config FILE] sshkey del ID
   bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
   bbs [-config FILE] filearea del NAME
   bbs [-config FILE] filearea list
@@ -120,6 +123,9 @@ func main() {
 				extra += ", trust_user"
 			}
 			fmt.Printf("[listen %s] %s %s%s\n", l.Name, l.Kind, l.Address, extra)
+			for _, k := range l.HostKeys {
+				fmt.Printf("  host key %s: %s\n", k, server.HostKeyInfo(k))
+			}
 		}
 		fmt.Println("database:", cfg.Database)
 		fmt.Println("files:", cfg.FilesDir)
@@ -203,6 +209,8 @@ func main() {
 		fidoCmd(cfg, args)
 	case "token":
 		tokenCmd(cfg, args)
+	case "sshkey":
+		sshKeyCmd(cfg, args)
 	case "filearea":
 		fileAreaCmd(cfg, args)
 	case "file":
@@ -907,6 +915,89 @@ func tokenCmd(cfg *server.Config, args []string) {
 			fatal(fmt.Errorf("token %d: %w", id, err))
 		}
 		fmt.Println("revoked", id)
+	default:
+		usage()
+	}
+}
+
+func sshKeyCmd(cfg *server.Config, args []string) {
+	if len(args) == 0 {
+		usage()
+	}
+	st := open(cfg)
+	defer st.Close()
+	switch args[0] {
+	case "add":
+		if len(args) != 3 {
+			usage()
+		}
+		u, err := st.UserByName(args[1])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", args[1], err))
+		}
+		var b []byte
+		if args[2] == "-" {
+			b, err = io.ReadAll(io.LimitReader(os.Stdin, 1<<20))
+		} else {
+			b, err = os.ReadFile(args[2])
+		}
+		if err != nil {
+			fatal(err)
+		}
+		n := 0
+		for i, line := range strings.Split(string(b), "\n") {
+			if line = strings.TrimSpace(line); line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			k, err := bbs.ParseSSHKey(line)
+			if err != nil {
+				fatal(fmt.Errorf("line %d: %w", i+1, err))
+			}
+			k.UserID = u.ID
+			id, err := st.AddSSHKey(k)
+			if err != nil {
+				fatal(fmt.Errorf("line %d: %w", i+1, err))
+			}
+			fmt.Printf("key %d for %s: %s %s %s\n", id, u.Name, k.Type, k.Fingerprint, k.Comment)
+			n++
+		}
+		if n == 0 {
+			fatal(errors.New("no keys there"))
+		}
+	case "list":
+		var uid int64
+		if len(args) == 2 {
+			u, err := st.UserByName(args[1])
+			if err != nil {
+				fatal(fmt.Errorf("%s: %w", args[1], err))
+			}
+			uid = u.ID
+		} else if len(args) != 1 {
+			usage()
+		}
+		ks, err := st.SSHKeys(uid)
+		if err != nil {
+			fatal(err)
+		}
+		for _, k := range ks {
+			last := "never"
+			if !k.LastUsed.IsZero() {
+				last = k.LastUsed.Format("2006-01-02 15:04")
+			}
+			fmt.Printf("%4d  %-16s %-20s %s  used %s  %s\n", k.ID, k.User, k.Type, k.Fingerprint, last, k.Comment)
+		}
+	case "del":
+		if len(args) != 2 {
+			usage()
+		}
+		id, err := strconv.ParseInt(args[1], 10, 64)
+		if err != nil {
+			usage()
+		}
+		if err := st.RemoveSSHKey(id, 0); err != nil {
+			fatal(fmt.Errorf("key %d: %w", id, err))
+		}
+		fmt.Println("deleted", id)
 	default:
 		usage()
 	}

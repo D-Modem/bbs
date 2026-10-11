@@ -8,6 +8,7 @@
 - [Customization](Customization)
 
 **Callers**
+- [SSH](SSH)
 - [Modem callers](Modem-Callers)
 - [TN3270](TN3270)
 - [Sixel graphics](Sixel-Graphics)

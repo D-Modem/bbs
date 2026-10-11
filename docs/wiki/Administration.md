@@ -13,6 +13,16 @@ bbs user sysop NAME                 # and unsysop
 bbs user del NAME                   # their mail goes; their messages stay
 ```
 
+## SSH keys
+
+```
+bbs sshkey add USER FILE            # each authorized_keys line in FILE (- : stdin)
+bbs sshkey list [USER]
+bbs sshkey del ID
+```
+
+Users add their own from their profile, or by the API: [SSH](SSH).
+
 ## Message areas
 
 ```

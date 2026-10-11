@@ -110,6 +110,17 @@ max_per_ip = 4
 type = raw
 address = 127.0.0.1:2323
 
+; SSH: the text BBS, encrypted.  Users log in with their BBS password or
+; a key (bbs sshkey add, or their profile); "new" gets the BBS's prompt
+; to sign up.  Host keys are made beside the database the first time
+;[listen ssh]
+;type = ssh
+;address = :2222
+;max_per_ip = 4
+;host_keys = /etc/bbs/ssh_host_ed25519_key /etc/bbs/ssh_host_rsa_key
+; old clients only: CBC ciphers and 1024-bit DH too
+;legacy = no
+
 ; modemmenu's rlogin item: the caller's modemmenu login and password are
 ; checked here (the same accounts on both, or the caller logs in again)
 [listen rlogin]

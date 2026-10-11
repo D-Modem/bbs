@@ -7,11 +7,12 @@ each `[listen NAME]` is a port or unix socket:
 | `telnet` | a telnet client; with `tn3270 = yes` (the default) 3270s get 3270 screens |
 | `raw` | bytes as they come: app_dmodem's `mode = tcp`, a modemmenu `tcp` or `unix` item |
 | `rlogin` | RFC 1282, as modemmenu's `rlogin` items speak it |
+| `ssh` | SSH: the text BBS, logged in by password or key ([SSH](SSH)) |
 
 `address` is `host:port`, or a path for a unix socket (`socket_mode`,
 `socket_group`).  Any listener may read a session header first (`header =
 yes`), and with `trust_user = yes` take the caller as logged in already: see
-[Modem callers](Modem-Callers).
+[Modem callers](Modem-Callers) (not `ssh`, which logs its callers in itself).
 
 ## The sections
 

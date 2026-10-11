@@ -73,6 +73,9 @@ type Caller struct {
 	// an upstream menu has logged the caller in already (a trusted
 	// header's MODEM_USER, a trusted rlogin's server user)
 	TrustedUser string
+	// how TrustedUser was vouched for, for the log ("upstream" if not
+	// said): "ssh password", "ssh key SHA256:..."
+	TrustedHow string
 	// credentials to try before asking: rlogin's server user, and its
 	// client user as the password (the BBS convention)
 	LoginUser     string
@@ -349,7 +352,11 @@ func (n *Node) LoginTrusted(name string, create bool) (*store.User, error) {
 	if u.Locked {
 		return nil, ErrLocked
 	}
-	return n.loggedIn(u, "upstream")
+	how := "upstream"
+	if n.Caller.TrustedHow != "" {
+		how = n.Caller.TrustedHow
+	}
+	return n.loggedIn(u, how)
 }
 
 func (n *Node) loggedIn(u *store.User, how string) (*store.User, error) {

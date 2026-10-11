@@ -18,8 +18,16 @@
   user's own); a locked account is said to be locked only to someone who
   knows its password.
 - Telnet and rlogin carry passwords in the clear, as they always have:
-  keep rlogin to 127.0.0.1 or a socket, and put telnet behind a VPN or an
-  SSH tunnel where that matters.  A modem line is as private as the phone
+  keep rlogin to 127.0.0.1 or a socket, and offer [SSH](SSH) beside
+  telnet (or put telnet behind a VPN) where that matters.
+- SSH: host keys made 0600 and refused when others may read them; modern
+  algorithms only unless `legacy = yes` (which `bbs check` warns about);
+  passwords checked, throttled and delayed as a terminal's; a key logs in
+  only its own user, only if not locked, and is decided by the key the
+  client proved (never one it merely offered); keys are added only with
+  the password (on the BBS) or a login's session (the API), not by an
+  API key.  Commands, SFTP, forwarding of any kind and second sessions
+  are refused, and a client has 30 seconds to get to its shell.  A modem line is as private as the phone
   network.
 - News: a reader's article is posted as its user whatever its From says,
   with the BBS's own Message-ID, Date and Path; only the headers a reader

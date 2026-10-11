@@ -27,6 +27,9 @@ func (s *Server) routes() map[string]route {
 		"PATCH /api/v1/me":              {scope: "read", h: s.patchMe},
 		"GET /api/v1/me/tokens":         {scope: "any", h: s.myTokens},
 		"DELETE /api/v1/me/tokens/{id}": {scope: "any", h: s.revokeMine},
+		"GET /api/v1/me/keys":           {scope: "read", h: s.myKeys},
+		"POST /api/v1/me/keys":          {scope: "any", h: s.addKey},
+		"DELETE /api/v1/me/keys/{id}":   {scope: "any", h: s.delKey},
 		"GET /api/v1/users":             {scope: "read", h: s.users},
 		"GET /api/v1/users/{name}":      {scope: "read", h: s.user},
 
@@ -328,6 +331,62 @@ func (s *Server) revokeMine(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r, "id")
 	if !ok || s.B.Store.RevokeToken(id, whoOf(r).user.ID) != nil {
 		fail(w, http.StatusNotFound, "no such token of yours")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func sshKeyJSON(k *store.SSHKey) map[string]any {
+	m := map[string]any{"id": k.ID, "type": k.Type, "fingerprint": k.Fingerprint, "comment": k.Comment,
+		"key": k.Key, "created": k.Created}
+	if !k.LastUsed.IsZero() {
+		m["last_used"] = k.LastUsed
+	}
+	return m
+}
+
+func (s *Server) myKeys(w http.ResponseWriter, r *http.Request) {
+	ks, err := s.B.Store.SSHKeys(whoOf(r).user.ID)
+	if err != nil {
+		fail(w, http.StatusInternalServerError, "the system is in trouble")
+		return
+	}
+	out := []map[string]any{}
+	for _, k := range ks {
+		out = append(out, sshKeyJSON(k))
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// addKey: a key to log in by SSH with.  It opens the account to whoever
+// holds the key, so only a login's session may add one, not an API key.
+func (s *Server) addKey(w http.ResponseWriter, r *http.Request) {
+	wh := whoOf(r)
+	if !wh.token.Session {
+		fail(w, http.StatusForbidden, "SSH keys are added from a login's session, not with an API key")
+		return
+	}
+	var req struct {
+		Key string `json:"key"`
+	}
+	if !s.decode(w, r, &req) {
+		return
+	}
+	k, err := s.B.AddSSHKey(wh.user, req.Key)
+	switch {
+	case errors.Is(err, store.ErrKeyTaken):
+		fail(w, http.StatusConflict, err.Error())
+	case err != nil:
+		fail(w, http.StatusBadRequest, err.Error())
+	default:
+		writeJSON(w, http.StatusCreated, sshKeyJSON(k))
+	}
+}
+
+func (s *Server) delKey(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r, "id")
+	if !ok || s.B.Store.RemoveSSHKey(id, whoOf(r).user.ID) != nil {
+		fail(w, http.StatusNotFound, "no such key of yours")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
