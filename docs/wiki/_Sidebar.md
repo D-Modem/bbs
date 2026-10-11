@@ -20,6 +20,7 @@
 - [FidoNet](FidoNet)
 - [Chat and paging](Chat-and-Paging)
 - [Finger and gopher](Finger-and-Gopher)
+- [HTTP API](HTTP-API)
 
 **More**
 - [Security](Security)

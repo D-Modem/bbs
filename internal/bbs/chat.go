@@ -23,6 +23,7 @@ const (
 	Private                  // a message to this node alone
 	Paged                    // a caller pages the sysop (to sysops)
 	Notice                   // from the system
+	Mail                     // a new mail for the caller
 )
 
 // Event is something for a node to show its caller.
@@ -48,6 +49,8 @@ func (e Event) String() string {
 		return "<- " + e.From + " left"
 	case Private:
 		return fmt.Sprintf("Message from %s (node %d): %s", e.From, e.Node, e.Text)
+	case Mail:
+		return "New mail from " + e.From + ": " + e.Text
 	case Paged:
 		s := fmt.Sprintf("%s (node %d) is paging you", e.From, e.Node)
 		if e.Text != "" {
@@ -272,6 +275,7 @@ func (n *Node) Say(text string, emote bool) error {
 	if emote {
 		e.Kind = Emoted
 	}
+	n.b.Stats.ChatLines.Add(1)
 	h := n.b.hub()
 	h.mu.Lock()
 	r := h.rooms[name]
@@ -393,6 +397,7 @@ func (n *Node) PageSysop(reason string) (string, int, error) {
 			told++
 		}
 	}
+	n.b.Stats.Pages.Add(1)
 	n.b.Log.Printf("node %d: %s paged the sysop (%d told): %s", n.Num, u.Name, told, reason)
 	if told == 0 && len(n.b.PageCommand) > 0 {
 		n.b.runPageCommand(u.Name, n.Num, reason)

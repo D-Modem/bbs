@@ -53,6 +53,12 @@
   check` warns when they do), and its selectors are database records, not
   paths.  Both limit connections at once and from one address, and time
   out.
+- The HTTP API: TLS by default (`bbs check` warns when it is off on an
+  address others reach); tokens of 32 random bytes kept only as hashes,
+  never in URLs, limited by scope (`sysop` only for sysops), expiring
+  and revocable; rate limits per token and per address; JSON bodies
+  limited and strict; one CORS origin at most, and WebSockets only from
+  it and the API's own host.  Metrics are on an address of their own.
 - Screens: display files are read only from `screens_dir`, by names of
   letters, digits, `_` and `-` (no paths), at most 256 KB.  The values of
   @-codes are cleaned, so no escape sequence gets into a screen through

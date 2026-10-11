@@ -1,0 +1,166 @@
+// The BBS's WebSocket protocol, bbs.v1.  The same messages go both ways
+// on two endpoints:
+//
+//   /api/v1/ws        JSON text frames: protobuf's JSON mapping (lowerCamelCase
+//                     fields, enums by name, timestamps in RFC 3339)
+//   /api/v1/ws/proto  binary frames: protobuf
+//
+// The client sends ClientMessages; the server answers each with a
+// ServerMessage of the same id (Ok, Error, or what was asked for), and sends
+// Events (id 0) as they come.  Unless the upgrade request had an
+// Authorization header, the first message must be an Auth.
+syntax = "proto3";
+
+package bbs.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/Neo-Desktop/bbs-sec/internal/api/pb";
+
+message ClientMessage {
+  uint32 id = 1; // chosen by the client, echoed in the answer
+  oneof request {
+    Auth auth = 2;
+    JoinRoom join = 3;
+    LeaveRoom leave = 4;
+    Say say = 5;
+    NodeMessage node_message = 6;
+    Page page = 7;
+    AnswerPage answer = 8;
+    ChatCommand command = 9;
+    Ping ping = 10;
+    Who who = 11;
+    ListRooms rooms = 12;
+  }
+}
+
+// Auth: an API token (an API key, or a login's session token).
+message Auth {
+  string token = 1;
+}
+
+// JoinRoom: into a chat room (out of the one before); answered by Lines
+// (the room's last lines), then Ok with the room.
+message JoinRoom {
+  string room = 1;
+}
+
+message LeaveRoom {}
+
+// Say: a line in the room (emote: as /me).
+message Say {
+  string text = 1;
+  bool emote = 2;
+}
+
+// NodeMessage: a line to the caller on one node.
+message NodeMessage {
+  int32 node = 1;
+  string text = 2;
+}
+
+// Page: page the sysop; Ok's room is the private room to wait in (the
+// client is taken into it).
+message Page {
+  string reason = 1;
+}
+
+// AnswerPage: a sysop answers a page (node 0: the one waiting longest).
+message AnswerPage {
+  int32 node = 1;
+}
+
+// ChatCommand: a line as typed in chat on a terminal (/who, /rooms,
+// /msg ...); answered by Lines.
+message ChatCommand {
+  string line = 1;
+}
+
+message Ping {}
+
+// Who: the nodes online; answered by NodeList.
+message Who {}
+
+// ListRooms: the chat rooms in use; answered by RoomList.
+message ListRooms {}
+
+message ServerMessage {
+  uint32 id = 1; // the request's; 0 for events and the welcome
+  oneof body {
+    Welcome welcome = 2;
+    Ok ok = 3;
+    Error error = 4;
+    Event event = 5;
+    NodeList nodes = 6;
+    Pong pong = 7;
+    Lines lines = 8;
+    RoomList rooms = 9;
+  }
+}
+
+// Welcome: sent once the client is logged in.
+message Welcome {
+  string bbs = 1;
+  string user = 2;
+  int32 node = 3;
+  repeated string scopes = 4;
+}
+
+message Ok {
+  string room = 1; // the room the client is in now, if that changed
+}
+
+message Error {
+  string code = 1; // unauthorized, forbidden, bad_request, not_found, too_many, conflict
+  string message = 2;
+}
+
+// Event: something for the client: a line in its room, a message to its
+// node, a page (to sysops), a new mail, a notice.
+message Event {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    SAID = 1;
+    EMOTED = 2;
+    JOINED = 3;
+    LEFT = 4;
+    PRIVATE = 5;
+    PAGED = 6;
+    NOTICE = 7;
+    MAIL = 8;
+  }
+  Kind kind = 1;
+  string room = 2;
+  string from = 3;
+  int32 node = 4;
+  string text = 5;
+  google.protobuf.Timestamp time = 6;
+  string line = 7; // the event as a terminal shows it
+}
+
+message NodeInfo {
+  int32 node = 1;
+  string user = 2;
+  string via = 3;
+  google.protobuf.Timestamp since = 4;
+  string doing = 5;
+}
+
+message NodeList {
+  repeated NodeInfo nodes = 1;
+}
+
+message Pong {}
+
+message Lines {
+  repeated string lines = 1;
+}
+
+message Room {
+  string name = 1;
+  repeated string users = 2;
+}
+
+message RoomList {
+  repeated Room rooms = 1;
+}

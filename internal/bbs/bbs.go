@@ -112,6 +112,8 @@ type BBS struct {
 	Screens *screens.Set
 	Menus   map[string]*Menu
 	Text    map[string]string
+	// Stats count logins, posts and the like
+	Stats Stats
 
 	mu       sync.Mutex
 	nodes    map[int]*Node
@@ -310,6 +312,7 @@ func (b *BBS) Authenticate(who, source, name, pw string) (*store.User, error) {
 	u, err := b.Store.CheckPassword(name, pw)
 	if errors.Is(err, store.ErrNotFound) {
 		b.failed(source)
+		b.Stats.LoginFailures.Add(1)
 		b.Log.Printf("%s: %s: failed login as %q", who, source, Clean(name, MaxNameLen))
 		time.Sleep(b.FailDelay)
 		return nil, ErrBadLogin
@@ -354,6 +357,7 @@ func (n *Node) loggedIn(u *store.User, how string) (*store.User, error) {
 		return nil, err
 	}
 	n.SetUser(u)
+	n.b.Stats.Logins.Add(1)
 	n.Doing("Main menu")
 	n.b.Log.Printf("node %d: %s logged in (%s, %s from %s)", n.Num, u.Name, how,
 		n.Caller.Describe(), n.Caller.Remote)
@@ -435,6 +439,7 @@ func (n *Node) Post(a *store.Area, to, subject string, body []string, replyTo in
 	n.b.MakeArticle(u, a, m)
 	id, err := n.b.Store.Post(m)
 	if err == nil {
+		n.b.Stats.Posts.Add(1)
 		n.b.Log.Printf("node %d: %s posted #%d in %s", n.Num, u.Name, id, a.Name)
 	}
 	return id, err
@@ -467,6 +472,8 @@ func (n *Node) SendMail(to, subject string, body []string, replyTo int64) error 
 	if _, err := n.b.Store.SendMail(m); err != nil {
 		return err
 	}
+	n.b.Stats.Mail.Add(1)
+	n.b.tellMail(rcpt.ID, u.Name, m.Subject)
 	n.b.Log.Printf("node %d: %s sent mail to %s", n.Num, u.Name, rcpt.Name)
 	return nil
 }

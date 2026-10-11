@@ -32,6 +32,9 @@ func migrate(db *sql.DB) error {
 			}
 		}
 	}
+	if _, err := db.Exec(tokenSchema); err != nil {
+		return err
+	}
 	_, err := db.Exec(`
 CREATE UNIQUE INDEX IF NOT EXISTS areas_newsgroup ON areas(newsgroup) WHERE newsgroup IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS messages_message_id ON messages(message_id) WHERE message_id IS NOT NULL;

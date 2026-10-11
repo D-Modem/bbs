@@ -64,6 +64,7 @@ What there is:
   and the usual drop files, or any Linux program, for text callers
 - [chat](Chat-and-Paging): rooms, messages to a node, paging the sysop
 - [finger and gopher](Finger-and-Gopher): who is on, and chosen areas in gopherspace
+- [an HTTP API](HTTP-API): REST, server-sent events, and WebSockets (JSON or protobuf) where web clients chat with terminal callers; Prometheus metrics
 - [customization](Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
 - new users sign themselves up (or not: `new_users = no`)
 - SQLite storage, one file
@@ -87,6 +88,7 @@ What there is:
 | [FidoNet](FidoNet) | echomail, netmail, binkp |
 | [Chat and paging](Chat-and-Paging) | chat rooms, node messages, paging the sysop |
 | [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
+| [HTTP API](HTTP-API) | REST, events, WebSockets in JSON and protobuf, tokens, metrics |
 | [Security](Security) | what is guarded, and how |
 | [Development](Development) | the source's layout, the tests |
 

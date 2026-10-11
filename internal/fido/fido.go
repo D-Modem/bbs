@@ -288,3 +288,15 @@ func (f *Fido) waiting(l *Link) bool {
 	}
 	return false
 }
+
+// Outbound counts the files waiting for a link.
+func (f *Fido) Outbound(l *Link) int {
+	n := 0
+	ents, _ := os.ReadDir(f.outbound(l))
+	for _, e := range ents {
+		if e.Type().IsRegular() && !strings.HasPrefix(e.Name(), ".") {
+			n++
+		}
+	}
+	return n
+}

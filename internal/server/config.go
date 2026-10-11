@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"github.com/Neo-Desktop/bbs-sec/internal/api"
 	"net"
 	"os"
 	"strconv"
@@ -45,6 +46,7 @@ type Config struct {
 	Screens    *screens.Set     // nil: no screens of the sysop's
 	Menus      map[string]*bbs.Menu
 	Text       map[string]string // [strings]
+	HTTP       *api.Settings     // nil: no HTTP API
 	Gopher     *gopher.Settings  // nil: no gopher server
 	Database   string
 	Log        string // syslog, stderr, none, or a file
@@ -92,6 +94,9 @@ func Load(path string) (*Config, error) {
 	if err := c.doorSections(cf); err != nil {
 		return nil, err
 	}
+	if err := c.httpSection(cf.Get("http", "")); err != nil {
+		return nil, fmt.Errorf("[http] %w", err)
+	}
 	if err := c.customSections(cf); err != nil {
 		return nil, err
 	}
@@ -119,7 +124,7 @@ func Load(path string) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door", "finger", "gopher", "menu", "strings":
+		case "general", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door", "finger", "gopher", "menu", "strings", "http":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}

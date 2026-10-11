@@ -151,3 +151,17 @@ func FormatNet2D(prefix string, addrs []Net2D, width int) []string {
 	}
 	return lines
 }
+
+// ValidTag checks an echo tag: letters, digits and ._-!$&+, upper case, up
+// to 60.
+func ValidTag(tag string) bool {
+	if tag == "" || len(tag) > 60 {
+		return false
+	}
+	for _, c := range tag {
+		if !(c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || strings.ContainsRune("._-!$&+", c)) {
+			return false
+		}
+	}
+	return true
+}

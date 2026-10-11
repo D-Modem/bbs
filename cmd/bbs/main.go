@@ -14,6 +14,9 @@
 //	bbs [-config FILE] news sync [PEER]
 //	bbs [-config FILE] area echo AREA TAG|-
 //	bbs [-config FILE] fido poll|scan|toss [LINK]
+//	bbs [-config FILE] token add USER [-scope read,post,...] [-expires DAYS] [-name NAME]
+//	bbs [-config FILE] token list [USER]
+//	bbs [-config FILE] token revoke ID
 //	bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
 //	bbs [-config FILE] filearea del|list [NAME]
 //	bbs [-config FILE] file add AREA PATH [DESCRIPTION] [-as NAME]
@@ -33,15 +36,19 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"golang.org/x/term"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/api"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/fido"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/finger"
+	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
 	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
@@ -66,6 +73,10 @@ func usage() {
   bbs [-config FILE] area echo AREA TAG|-           make an area a FidoNet echo (- : not one)
   bbs [-config FILE] fido poll [LINK]               call links (with a host) now
   bbs [-config FILE] fido scan|toss [LINK]          pack new mail, or take in what came
+  bbs [-config FILE] token add USER [-scope read,post,mail,chat,files,sysop]
+                     [-expires DAYS] [-name NAME]   an API key (printed once)
+  bbs [-config FILE] token list [USER]
+  bbs [-config FILE] token revoke ID
   bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
   bbs [-config FILE] filearea del NAME
   bbs [-config FILE] filearea list
@@ -146,6 +157,13 @@ func main() {
 			}
 			fmt.Printf("[menu %s] %q, keys %s\n", m.Name, m.Title, keys)
 		}
+		if h := cfg.HTTP; h != nil {
+			fmt.Printf("http: %s, tls %v, anonymous %v", h.Address, h.TLS, h.Anonymous)
+			if h.Metrics != "" {
+				fmt.Printf(", metrics on %s", h.Metrics)
+			}
+			fmt.Println()
+		}
 		if cfg.Finger != nil {
 			fmt.Printf("finger: %s (online %v, users %v)\n", cfg.Finger.Address, cfg.Finger.Online, cfg.Finger.Users)
 		}
@@ -183,6 +201,8 @@ func main() {
 		newsCmd(cfg, args)
 	case "fido":
 		fidoCmd(cfg, args)
+	case "token":
+		tokenCmd(cfg, args)
 	case "filearea":
 		fileAreaCmd(cfg, args)
 	case "file":
@@ -279,8 +299,9 @@ func serve(cfg *server.Config) int {
 			}
 		}()
 	}
+	var fd *fido.Fido
 	if cfg.Fido != nil {
-		fd, err := fido.New(b, *cfg.Fido)
+		fd, err = fido.New(b, *cfg.Fido)
 		if err != nil {
 			lg.Printf("fido: %v", err)
 			return 1
@@ -297,6 +318,18 @@ func serve(cfg *server.Config) int {
 			}()
 		}
 		go fd.Run(ctx)
+	}
+	if cfg.HTTP != nil {
+		as := &api.Server{B: b, S: *cfg.HTTP, Fido: fd, Peers: cfg.Peers}
+		if len(cfg.Peers) > 0 || cfg.NNTP != nil {
+			as.News = svc
+		}
+		go func() {
+			if err := as.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
 	}
 	if cfg.FTP != nil {
 		fs, err := ftp.New(b, *cfg.FTP)
@@ -519,7 +552,7 @@ func areaCmd(cfg *server.Config, args []string) {
 		tag := strings.ToUpper(words[2])
 		if tag == "-" {
 			tag = ""
-		} else if !validEchoTag(tag) {
+		} else if !ftn.ValidTag(tag) {
 			fatal(errors.New("an echo tag is letters, digits and . _ - (FSX_GEN), up to 60"))
 		}
 		if err := st.SetEchoTag(a.ID, tag); err != nil {
@@ -701,18 +734,6 @@ func newsCmd(cfg *server.Config, args []string) {
 	}
 }
 
-func validEchoTag(tag string) bool {
-	if tag == "" || len(tag) > 60 {
-		return false
-	}
-	for _, c := range tag {
-		if !(c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || strings.ContainsRune("._-!$&+", c)) {
-			return false
-		}
-	}
-	return true
-}
-
 func fidoCmd(cfg *server.Config, args []string) {
 	words, _ := split(args)
 	if len(words) == 0 || len(words) > 2 {
@@ -776,5 +797,117 @@ func fidoCmd(cfg *server.Config, args []string) {
 	}
 	if failed {
 		os.Exit(1)
+	}
+}
+
+func tokenCmd(cfg *server.Config, args []string) {
+	if len(args) == 0 {
+		usage()
+	}
+	st := open(cfg)
+	defer st.Close()
+	switch args[0] {
+	case "add":
+		var user, name string
+		scopes, days := "read,post,mail,chat,files", 0
+		for i := 1; i < len(args); i++ {
+			a := args[i]
+			val := func() string {
+				if i+1 >= len(args) {
+					usage()
+				}
+				i++
+				return args[i]
+			}
+			switch a {
+			case "-scope", "-scopes":
+				scopes = val()
+			case "-expires":
+				n, err := strconv.Atoi(val())
+				if err != nil || n < 0 {
+					fatal(errors.New("-expires: a number of days"))
+				}
+				days = n
+			case "-name":
+				name = val()
+			default:
+				if user != "" || strings.HasPrefix(a, "-") {
+					usage()
+				}
+				user = a
+			}
+		}
+		if user == "" {
+			usage()
+		}
+		u, err := st.UserByName(user)
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", user, err))
+		}
+		sc, err := api.ParseScopes(scopes)
+		if err != nil {
+			fatal(err)
+		}
+		if strings.Contains(" "+sc+" ", " sysop ") && !u.Sysop {
+			fatal(errors.New("the sysop scope is for sysops"))
+		}
+		if name == "" {
+			name = "key"
+		}
+		secret, hash := api.NewToken()
+		t := &store.Token{UserID: u.ID, Name: bbs.Clean(name, 60), Hash: hash, Scopes: sc}
+		if days > 0 {
+			t.Expires = time.Now().Add(time.Duration(days) * 24 * time.Hour)
+		}
+		id, err := st.AddToken(t)
+		if err != nil {
+			fatal(err)
+		}
+		fmt.Printf("token %d for %s (%s)", id, u.Name, sc)
+		if days > 0 {
+			fmt.Printf(", until %s", t.Expires.Format("2006-01-02"))
+		}
+		fmt.Printf(":\n%s\n(it is shown this once)\n", secret)
+	case "list":
+		var uid int64
+		if len(args) == 2 {
+			u, err := st.UserByName(args[1])
+			if err != nil {
+				fatal(fmt.Errorf("%s: %w", args[1], err))
+			}
+			uid = u.ID
+		}
+		ts, err := st.Tokens(uid)
+		if err != nil {
+			fatal(err)
+		}
+		for _, t := range ts {
+			kind := "key"
+			if t.Session {
+				kind = "session"
+			}
+			exp, last := "never", "never"
+			if !t.Expires.IsZero() {
+				exp = t.Expires.Format("2006-01-02 15:04")
+			}
+			if !t.LastUsed.IsZero() {
+				last = t.LastUsed.Format("2006-01-02 15:04")
+			}
+			fmt.Printf("%4d  %-16s %-8s %-30s expires %s, used %s  %s\n", t.ID, t.User, kind, t.Scopes, exp, last, t.Name)
+		}
+	case "revoke":
+		if len(args) != 2 {
+			usage()
+		}
+		id, err := strconv.ParseInt(args[1], 10, 64)
+		if err != nil {
+			usage()
+		}
+		if err := st.RevokeToken(id, 0); err != nil {
+			fatal(fmt.Errorf("token %d: %w", id, err))
+		}
+		fmt.Println("revoked", id)
+	default:
+		usage()
 	}
 }

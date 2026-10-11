@@ -18,6 +18,8 @@
 | `doors/dosemu2` | the Docker image DOS doors run in: dosemu2, its FOSSIL on COM1 |
 | `internal/finger` | the finger server |
 | `internal/gopher` | the gopher server |
+| `internal/api` | the HTTP API: REST, server-sent events, WebSockets, metrics, OpenAPI |
+| `proto` | the WebSocket protocol, `bbs.v1` (`make proto` regenerates `internal/api/pb`) |
 | `internal/tcpserv` | what finger and gopher share: limits, timeouts |
 | `internal/screens` | the sysop's display files: finding them, @-codes, 3270 color tags |
 | `internal/xfer` | XMODEM, YMODEM, ZMODEM and Kermit, both ways |
@@ -72,5 +74,10 @@ and what it refuses; a text caller through an ANSI logon (CP437 as it
 is), the strings, a welcome screen, the sysop's menus and submenus, a
 screen with a pause and a goodbye screen; and a 3270 (s3270) through a
 colored logon screen, welcome, the sysop's main menu and a screen.
+The HTTP API: logins, tokens and scopes, every REST endpoint and its
+refusals, rate limits, the OpenAPI document against the routes, server-sent
+events and node messages, both WebSockets (auth by header and by first
+message, chat between them, paging and answering, mail events, bad
+frames, refused origins and tokens) and the metrics.
 
 **See also:** [Building](Building)

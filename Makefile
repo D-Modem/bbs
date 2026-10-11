@@ -23,7 +23,12 @@ install: bbs
 doors-image:
 	docker build -t bbs-dosemu2 doors/dosemu2
 
+# regenerates internal/api/pb from proto/bbs.proto (needs protoc and
+# protoc-gen-go; the generated code is committed)
+proto:
+	protoc --go_out=. --go_opt=module=github.com/Neo-Desktop/bbs-sec proto/bbs.proto
+
 clean:
 	rm -f bbs
 
-.PHONY: all bbs test install clean doors-image
+.PHONY: all bbs test install clean doors-image proto

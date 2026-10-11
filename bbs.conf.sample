@@ -128,6 +128,27 @@ address = 127.0.0.1:2513
 ;socket_mode = 0660
 ;socket_group = asterisk
 
+; The HTTP API (REST, server-sent events, and WebSockets in JSON and
+; protobuf): see docs/wiki/HTTP-API.md.  Tokens: POST /api/v1/login, or
+; bbs token add USER -scope read,post.  Without this section there is none
+;[http]
+;address = :8443
+; TLS is the default; tls = no only on 127.0.0.1 behind a proxy that has it
+;cert_file = /etc/bbs/tls/cert.pem
+;key_file = /etc/bbs/tls/key.pem
+; anonymous callers may see /system and /who
+;anonymous = yes
+; one browser origin allowed to call it (no *)
+;cors = https://www.example.org
+; Prometheus metrics, on an address of their own (keep it private)
+;metrics = 127.0.0.1:9100
+;max_per_ip = 20
+; requests a second per token (or per IP without one), and the burst
+;rate = 10
+;burst = 20
+; how long a /login session lasts
+;session_hours = 24
+
 ; The FTP server for the file areas: users log in with their BBS name and
 ; password; each file area is a directory.  bbs filearea add NAME makes
 ; one.  Without this section there is no FTP server
