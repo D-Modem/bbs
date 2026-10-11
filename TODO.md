@@ -42,3 +42,36 @@ layer between a door and a 3270 could show them:
   be tried by hand.
 - **Shape.**  An option on a `[door]` (`tn3270 = yes`) that shows the door
   on the 3270 Doors menu and puts this layer between them.
+
+## Email: POP3, IMAP and SMTP
+
+*Status: pinned; scope not chosen.*
+
+Private mail already lives in SQLite, one inbox per user with a read flag;
+NNTP and FTP already share the BBS's login, throttling and TLS modes, and
+`internal/news` already makes and safely decodes RFC 5322/MIME messages.
+
+- **POP3** (RFC 1939, STLS): small.  The inbox is the mailbox, a mail's id
+  its UIDL, DELE deletes.
+- **IMAP** (RFC 3501/9051): moderate, with emersion's go-imap server (v2
+  is beta: pin it).  INBOX is the inbox, \Seen the read flag; new: a Sent
+  folder (mail is kept only in the recipient's inbox today), stored flags,
+  UIDVALIDITY.
+- **SMTP**, three jobs:
+  - *submission* (587, AUTH required, so never an open relay) to BBS users
+    and FidoNet netmail: small, with emersion's go-smtp;
+  - *inbound from the internet*: easy code, hard operations (MX, port 25
+    often blocked, spam, SPF/DKIM/DMARC checks);
+  - *outbound to the internet*: queue, retries, bounces, DKIM, SPF/DMARC,
+    rDNS, IP reputation: most of the long-term trouble.
+- **Suggested shape**: phase 1, POP3 + IMAP + submission for BBS users;
+  phase 2, internet mail through Postfix: inbound delivered to the BBS by
+  LMTP (go-smtp does LMTP), outbound by a smarthost.  The BBS as its own
+  internet MTA is possible but not advised.
+- **To decide**: addresses for names with spaces (`alice.smith@domain`, as
+  news posters' already are) and collisions; attachments (kept whole for
+  POP/IMAP, text part plus a list of attachments on terminals, a size
+  limit); `user@domain` as a third recipient form beside user names and
+  FidoNet addresses (those have `:` and `/`); app passwords (optional).
+- **Testing**: Python's imaplib, poplib and smtplib; Postfix (Ubuntu) for
+  LMTP and the smarthost.
