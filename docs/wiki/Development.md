@@ -78,6 +78,9 @@ The HTTP API: logins, tokens and scopes, every REST endpoint and its
 refusals, rate limits, the OpenAPI document against the routes, server-sent
 events and node messages, both WebSockets (auth by header and by first
 message, chat between them, paging and answering, mail events, bad
-frames, refused origins and tokens) and the metrics.
+frames, refused origins and tokens) and the metrics.  And a terminal caller and
+a web caller (the JSON WebSocket) together: chatting in one room both
+ways, `/who`, node messages each way, and the web caller paging the
+sysop, who answers at the terminal.
 
 **See also:** [Building](Building)
