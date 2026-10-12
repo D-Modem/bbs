@@ -52,6 +52,9 @@ type User struct {
 	About              string // a line about themselves
 	Alias              string // a name they may post under where an area allows ("": none)
 	Signature          string // lines put under what they write
+	// QWKNode: the account is another BBS's, exchanging QWK packets: what
+	// its REPs bring keeps its writers' names
+	QWKNode bool
 }
 
 // Area is a message area.
@@ -196,7 +199,7 @@ func HashPassword(pw string) (string, error) {
 }
 
 const userCols = `id, name, password, location, sysop, locked, created, last_login, logins, posts,
-	level, flags, time_day, time_used, dl_day, dl_count, prefs, downloads, about, alias, signature,
+	level, flags, time_day, time_used, dl_day, dl_count, prefs, downloads, about, alias, signature, qwk_node,
 	(SELECT COUNT(*) FROM files WHERE files.uploader_id = users.id)`
 
 func scanUser(row interface{ Scan(...any) error }) (*User, string, error) {
@@ -205,7 +208,7 @@ func scanUser(row interface{ Scan(...any) error }) (*User, string, error) {
 	var created, last int64
 	err := row.Scan(&u.ID, &u.Name, &pw, &u.Location, &u.Sysop, &u.Locked,
 		&created, &last, &u.Logins, &u.Posts, &u.Level, &u.Flags, &u.TimeDay, &u.TimeUsed, &u.DLDay, &u.DLCount, &u.Prefs,
-		&u.Downloads, &u.About, &u.Alias, &u.Signature, &u.Uploads)
+		&u.Downloads, &u.About, &u.Alias, &u.Signature, &u.QWKNode, &u.Uploads)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, "", ErrNotFound
 	}

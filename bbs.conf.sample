@@ -332,6 +332,29 @@ address = 127.0.0.1:2513
 ; which of our addresses it knows us by (default: ours in its zone)
 ;aka = 21:1/999
 
+; QWK networks this BBS is a node of (DOVE-Net and the like), one section
+; each.  The BBS calls the hub by FTP, puts a REP of what was written here
+; in the network's areas, and takes the hub's packet.  A hub run by this
+; BBS gives each node an account: bbs user qwknode NAME.
+; See docs/wiki/Offline-Mail.md
+;[qwknet dovenet]
+; the hub's FTP server
+;address = hub.example.org:21
+; FTPS: explicit (AUTH TLS), implicit, or no
+;tls = explicit
+; the account the hub gave this node
+;user = MYBBS
+;password = secret
+; where the hub keeps its packet ("/" for one in the root)
+;dir = /qwk
+; the hub's BBSID (by default: the packet found there)
+;hub_id = VERT
+; call it every this many minutes (0: only with bbs qwknet call)
+;every = 60
+; CONFERENCE = AREA: the hub's conferences carried here, and their areas
+;2001 = DOVE General
+;2002 = DOVE Chat
+
 ; Doors: programs callers on the text BBS play (D on the main menu).  The
 ; BBS writes drop files (DOOR.SYS, DORINFO1.DEF, DOOR32.SYS, CHAIN.TXT) into
 ; the node's own directory and joins the caller's line to the door until it

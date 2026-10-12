@@ -84,6 +84,8 @@ func (s *Server) routes() map[string]route {
 		"PUT /api/v1/admin/available":            {scope: "sysop", h: s.setAvailable},
 		"GET /api/v1/admin/fido":                 {scope: "sysop", h: s.fido},
 		"POST /api/v1/admin/fido/poll":           {scope: "sysop", h: s.fidoPoll},
+		"GET /api/v1/admin/qwknet":               {scope: "sysop", h: s.qwkNets},
+		"POST /api/v1/admin/qwknet/call":         {scope: "sysop", h: s.qwkNetCall},
 		"GET /api/v1/admin/news":                 {scope: "sysop", h: s.news},
 		"POST /api/v1/admin/news/sync":           {scope: "sysop", h: s.newsSync},
 
@@ -105,6 +107,7 @@ type userJSON struct {
 	Locked    bool       `json:"locked,omitempty"`
 	Level     *int       `json:"level,omitempty"` // to sysops and the user
 	Flags     string     `json:"flags,omitempty"`
+	QWKNode   bool       `json:"qwk_node,omitempty"` // to sysops
 	About     string     `json:"about,omitempty"`
 }
 
@@ -115,6 +118,7 @@ func (s *Server) userView(r *http.Request, u *store.User) userJSON {
 	if me := whoOf(r).user; me != nil && (me.Sysop || me.ID == u.ID) {
 		level := u.Level
 		j.Level, j.Flags = &level, u.Flags
+		j.QWKNode = u.QWKNode
 	}
 	return j
 }
@@ -1231,6 +1235,7 @@ func (s *Server) patchUser(w http.ResponseWriter, r *http.Request) {
 		Location *string `json:"location"`
 		Level    *int    `json:"level"`
 		Flags    *string `json:"flags"` // "AB", or an edit: "+A -B"
+		QWKNode  *bool   `json:"qwk_node"`
 	}
 	if !s.decode(w, r, &req) {
 		return
@@ -1247,6 +1252,9 @@ func (s *Server) patchUser(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Sysop != nil {
 		s.B.Store.SetSysop(u.ID, *req.Sysop)
+	}
+	if req.QWKNode != nil {
+		s.B.Store.SetQWKNode(u.ID, *req.QWKNode)
 	}
 	if req.Location != nil {
 		s.B.Store.SetLocation(u.ID, bbs.Clean(*req.Location, bbs.MaxLocationLen))
@@ -1510,6 +1518,36 @@ func (s *Server) fidoPoll(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusAccepted, map[string]any{"calling": called})
+}
+
+func (s *Server) qwkNets(w http.ResponseWriter, r *http.Request) {
+	out := []map[string]any{}
+	if s.QWKNet != nil {
+		for _, n := range s.QWKNet.Nets {
+			confs := map[string]string{}
+			for c, a := range n.Confs {
+				confs[strconv.Itoa(c)] = a
+			}
+			out = append(out, map[string]any{"name": n.Name, "address": n.Address, "user": n.User,
+				"every_minutes": int(n.Every / time.Minute), "conferences": confs})
+		}
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// qwkNetCall calls the hubs (?net=: one) now, in the background.
+func (s *Server) qwkNetCall(w http.ResponseWriter, r *http.Request) {
+	if s.QWKNet == nil {
+		fail(w, http.StatusNotFound, "the BBS is in no QWK network")
+		return
+	}
+	name := r.URL.Query().Get("net")
+	go func() {
+		if err := s.QWKNet.CallNow(name); err != nil {
+			s.B.Log.Printf("qwknet: %v", err)
+		}
+	}()
+	writeJSON(w, http.StatusAccepted, map[string]any{"calling": name})
 }
 
 func (s *Server) news(w http.ResponseWriter, r *http.Request) {

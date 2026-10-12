@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS users (
 	downloads  {int} NOT NULL DEFAULT 0,
 	about      {str} NOT NULL DEFAULT '',
 	alias      {str} NOT NULL DEFAULT '',
-	signature  {str} NOT NULL DEFAULT ''
+	signature  {str} NOT NULL DEFAULT '',
+	qwk_node   {bool} NOT NULL DEFAULT FALSE
 )`, `
 CREATE TABLE IF NOT EXISTS areas (
 	id          {id},
@@ -98,6 +99,12 @@ CREATE TABLE IF NOT EXISTS poll_votes (
 	user_id    {int} NOT NULL,
 	idx        {int} NOT NULL,
 	PRIMARY KEY (message_id, user_id)
+)`, `
+CREATE TABLE IF NOT EXISTS qwk_msgs (
+	net        {key} NOT NULL,
+	number     {int} NOT NULL,
+	message_id {int} NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+	PRIMARY KEY (net, number)
 )`, `
 CREATE TABLE IF NOT EXISTS qwk_seen (
 	user_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -218,6 +225,7 @@ var indexes = []struct {
 	{"messages_ftn_msgid", "messages", "ftn_msgid", false},
 	{"api_tokens_user", "api_tokens", "user_id", false},
 	{"ssh_keys_user", "ssh_keys", "user_id", false},
+	{"qwk_msgs_message", "qwk_msgs", "message_id", false},
 }
 
 // added are the columns added since the first schema: an older database
@@ -251,6 +259,7 @@ var added = []struct{ table, column, decl string }{
 	{"areas", "aliases", "{bool} NOT NULL DEFAULT FALSE"},
 	{"areas", "max_msgs", "{int} NOT NULL DEFAULT 0"},
 	{"areas", "max_days", "{int} NOT NULL DEFAULT 0"},
+	{"users", "qwk_node", "{bool} NOT NULL DEFAULT FALSE"},
 }
 
 // migrate makes the schema, or brings an older database up to it.

@@ -98,9 +98,12 @@ func (n *Node) QWKPacket() (*QWKOut, error) {
 			return nil, err
 		}
 		for _, m := range ms {
+			last[a.ID] = m.ID
+			if u.QWKNode && m.FromID == u.ID {
+				continue // a node's own come back to it no more
+			}
 			p.Messages = append(p.Messages, qwk.Message{Conf: int(a.ID), Number: int(m.ID),
 				To: m.To, From: m.From, Subject: m.Subject, Date: m.Created, Ref: int(m.ReplyTo), Body: m.Body})
-			last[a.ID] = m.ID
 		}
 	}
 	out.Messages = len(p.Messages)
@@ -161,7 +164,7 @@ func (n *Node) ImportREP(data []byte) (*REPResult, error) {
 		res.Errors = append(res.Errors, err.Error())
 	}
 	for i, m := range ms {
-		sum := sha256.Sum256([]byte(strconv.Itoa(m.Conf) + "\x00" + m.To + "\x00" + m.Subject + "\x00" + m.Body))
+		sum := sha256.Sum256([]byte(strconv.Itoa(m.Conf) + "\x00" + m.From + "\x00" + m.To + "\x00" + m.Subject + "\x00" + m.Body))
 		hash := hex.EncodeToString(sum[:16])
 		seen, err := b.Store.REPSeen(u.ID, hash)
 		if err != nil {
@@ -190,6 +193,10 @@ func (n *Node) ImportREP(data []byte) (*REPResult, error) {
 			if err == nil {
 				if !b.CanRead(u, a) {
 					err = fmt.Errorf("there is no conference %d", m.Conf)
+				} else if u.QWKNode {
+					// a node's REP: its writers' messages, by their names
+					_, err = b.PostNet(u, a, m.From, m.To, m.Subject, m.Body, n.replyIn(a.ID, int64(m.Ref)),
+						"qwk:"+strings.ToLower(u.Name))
 				} else {
 					_, err = n.Post(a, m.To, m.Subject, body, n.replyIn(a.ID, int64(m.Ref)))
 				}
@@ -208,6 +215,36 @@ func (n *Node) ImportREP(data []byte) (*REPResult, error) {
 	}
 	b.Log.Printf("node %d: %s sent a REP packet: %s", n.Num, u.Name, res)
 	return res, nil
+}
+
+// PostNet posts a message that came by a QWK network: by its writer's
+// name, from a node's account (by, who must be allowed to post there;
+// nil: it came from the network's hub), its origin the network.
+func (b *BBS) PostNet(by *store.User, a *store.Area, from, to, subject, body string, replyTo int64, origin string) (int64, error) {
+	var fromID int64
+	if by != nil {
+		if !b.CanPost(by, a) {
+			return 0, errors.New("your access does not allow posting here")
+		}
+		fromID = by.ID
+	}
+	m := &store.Message{AreaID: a.ID, FromID: fromID, From: Clean(from, MaxNameLen), To: Clean(to, MaxNameLen),
+		Subject: Clean(subject, MaxSubjectLen), Body: CleanBody(strings.Split(body, "\n")), ReplyTo: replyTo,
+		Origin: origin}
+	if m.From == "" {
+		m.From = "Unknown"
+	}
+	if m.To == "" {
+		m.To = "All"
+	}
+	if m.Subject == "" {
+		m.Subject = "(no subject)"
+	}
+	if m.Body == "" {
+		return 0, errors.New("the message is empty")
+	}
+	b.MakeArticle(by, a, m)
+	return b.Store.Post(m)
 }
 
 // replyIn is ref if it is a message of the area (0 if not).

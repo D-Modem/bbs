@@ -884,3 +884,20 @@ func TestQWK(t *testing.T) {
 		t.Errorf("no post scope: %d", code)
 	}
 }
+
+func TestQWKNodeAdmin(t *testing.T) {
+	s := setup(t, Settings{})
+	sysop := s.login("sysop", "sysoppass1")
+	if code, m, _ := s.do("PATCH", "/api/v1/admin/users/bob", sysop, map[string]any{"qwk_node": true}); code != 200 || m["qwk_node"] != true {
+		t.Errorf("qwk_node: %d %v", code, m)
+	}
+	if u, _ := s.b.Store.UserByName("bob"); !u.QWKNode {
+		t.Error("bob is no node")
+	}
+	if code, _, a := s.do("GET", "/api/v1/admin/qwknet", sysop, nil); code != 200 || len(a) != 0 {
+		t.Errorf("qwknet: %d %v", code, a)
+	}
+	if code, _, _ := s.do("POST", "/api/v1/admin/qwknet/call", sysop, nil); code != 404 {
+		t.Errorf("call without nets: %d", code)
+	}
+}

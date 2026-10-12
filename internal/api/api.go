@@ -22,6 +22,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/fido"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
+	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -49,10 +50,12 @@ type Settings struct {
 type Server struct {
 	B     *bbs.BBS
 	S     Settings
-	Fido  *fido.Fido      // nil: no FidoNet
-	News  *nntp.Service   // nil: no news
-	Peers []*nntp.Peer    // the news peers
-	Ctx   context.Context // the server's, for work started by a request
+	Fido  *fido.Fido    // nil: no FidoNet
+	News  *nntp.Service // nil: no news
+	Peers []*nntp.Peer  // the news peers
+	// QWKNet calls the QWK networks' hubs (nil: no [qwknet])
+	QWKNet *qwknet.Runner
+	Ctx    context.Context // the server's, for work started by a request
 	// Terminal runs the text BBS on a web terminal's line (c a WebSocket
 	// as a stream; host the caller's address, "" for a proxy's), cols x
 	// rows: the listeners' server's WebTerminal

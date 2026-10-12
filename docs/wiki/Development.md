@@ -20,6 +20,7 @@
 | `internal/ftp` | the FTP server: the file areas as a file system |
 | `internal/news` | articles: parsing, checking, making, decoding; wildmats |
 | `internal/nntp` | the NNTP server and the peers' client |
+| `internal/qwknet` | a QWK network's node: calling the hub by FTP, REPs up, packets down |
 | `internal/qwk` | QWK packets and REPs: MESSAGES.DAT's blocks, CONTROL.DAT, indexes (MBF floats), QWKE kludges, CP437 |
 | `internal/ftn` | FidoNet's formats: addresses, Type 2+ packets, messages, kludges, character sets |
 | `internal/fido` | the BBS on FidoNet: tosser, scanner, netmail, the binkp mailer |
@@ -161,7 +162,10 @@ as a reader would, long subjects as QWKE kludges, CP437, another BBS's REP
 refused, the indexes' MBF floats; a packet's messages read only once it
 has gone, the REP's replies posted and mailed as the caller, a REP twice
 posting once; by ZMODEM on a text line, by IND$FILE from s3270, by FTP
-and the API); the new scan's areas, messages to
+and the API); QWK networks (a hub serving FTP and two nodes: what was
+there before joining kept back, posts going up under their writers'
+names, a node's own not coming back, a reply threaded at the hub, nothing
+twice; the configuration's checks); the new scan's areas, messages to
 you and finding (the scan kept, LIKE's wildcards taken as text, areas
 not read left out), through internal/app and in the store on every
 engine; settings kept from call to call

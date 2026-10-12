@@ -86,6 +86,8 @@ bbs news sync [PEER]                # exchange articles with news peers now
 bbs fido poll [LINK]                # call FidoNet links now
 bbs fido scan [LINK]                # pack new mail into the outbound
 bbs fido toss [LINK]                # take in what has come
+bbs qwknet call [NET]               # call QWK networks' hubs now
+bbs user qwknode|unqwknode NAME     # an account a QWK node calls this hub as
 ```
 
 The server does all of these on its own schedule; these are for now.

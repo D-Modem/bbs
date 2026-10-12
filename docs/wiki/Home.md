@@ -58,7 +58,7 @@ What there is:
   delete messages
 - private mail: inbox, read, reply, delete
 - [offline mail](Offline-Mail): QWK packets of new messages and mail, REP packets of replies
-  brought back (by a transfer protocol, IND$FILE, FTP or the API)
+  brought back (by a transfer protocol, IND$FILE, FTP or the API); QWK networks as a hub or a node
 - [SSH](SSH): logging in by password or key, the text BBS encrypted
 - [Commodore 64s and RIPscrip terminals](PETSCII-and-RIP): PETSCII at 40 columns; menus as RIP buttons
 - [VT terminals identified](Terminal-Identification) (answerback, DA1, DA2, XTVERSION, VT52): DEC line drawing and Latin-1, bold on monochrome VTs, VT52 escapes
@@ -107,7 +107,7 @@ What there is:
 | [Terminal identification](Terminal-Identification) | VT terminals asked what they are: DEC graphics, monochrome, VT52 |
 | [Files and FTP](Files-and-FTP) | file areas, the FTP (FTPS) server |
 | [File transfers](File-Transfers) | X/Y/ZMODEM, Kermit, IND$FILE |
-| [Offline mail](Offline-Mail) | QWK packets and REP replies |
+| [Offline mail](Offline-Mail) | QWK packets, REP replies, QWK networks |
 | [Doors](Doors) | DOS doors in dosemu2 (Docker), Linux doors |
 | [Newsgroups and NNTP](Newsgroups-and-NNTP) | the NNTP server, news peers |
 | [FidoNet](FidoNet) | echomail, netmail, binkp |

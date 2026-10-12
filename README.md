@@ -72,6 +72,8 @@ What there is:
   sysop
 - [newsgroups](https://github.com/Neo-Desktop/bbs-sec/wiki/Newsgroups-and-NNTP): message areas given a newsgroup name are served by NNTP to
   newsreaders and exchanged with other news servers (INN and the like)
+- [offline mail](https://github.com/Neo-Desktop/bbs-sec/wiki/Offline-Mail): QWK packets of new messages and mail, REP
+  replies brought back (by a transfer protocol, IND$FILE, FTP or the API); QWK networks as a hub or a node
 - [FidoNet](https://github.com/Neo-Desktop/bbs-sec/wiki/FidoNet) (or any FTN network): message areas that are echoes, netmail
   as private mail, and a binkp mailer to exchange packets with links
 - [doors](https://github.com/Neo-Desktop/bbs-sec/wiki/Doors): DOS door games in dosemu2 (in Docker), with a FOSSIL on COM1
@@ -126,6 +128,7 @@ The documentation is in the [wiki](https://github.com/Neo-Desktop/bbs-sec/wiki/)
 | [Doors](https://github.com/Neo-Desktop/bbs-sec/wiki/Doors) | DOS doors in dosemu2 (Docker), Linux doors |
 | [Newsgroups and NNTP](https://github.com/Neo-Desktop/bbs-sec/wiki/Newsgroups-and-NNTP) | the NNTP server, news peers |
 | [FidoNet](https://github.com/Neo-Desktop/bbs-sec/wiki/FidoNet) | echomail, netmail, binkp |
+| [Offline mail](https://github.com/Neo-Desktop/bbs-sec/wiki/Offline-Mail) | QWK packets, REP replies, QWK networks |
 | [Chat and paging](https://github.com/Neo-Desktop/bbs-sec/wiki/Chat-and-Paging) | chat rooms, node messages, paging the sysop |
 | [Finger and gopher](https://github.com/Neo-Desktop/bbs-sec/wiki/Finger-and-Gopher) | who is on, and the BBS in gopherspace |
 | [HTTP API](https://github.com/Neo-Desktop/bbs-sec/wiki/HTTP-API) | REST, events, WebSockets in JSON and protobuf, tokens, metrics |

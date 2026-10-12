@@ -44,9 +44,9 @@ files = yes
 		t.Errorf("defaults %+v %v", c.Gopher, err)
 	}
 	for body, want := range map[string]string{
-		"[finger]\naddress = 79\n":       "[finger] address",
-		"[gopher]\nport = 0\n":           "[gopher]",
-		"[general]\npage_command = 'x\n": "page_command",
+		"[finger]\naddress = 79\n":          "[finger] address",
+		"[gopher]\nport = 0\n":              "[gopher]",
+		"[general]\npage_command = 'x\n":    "page_command",
 		"[general]\nqwk_id = too-long-id\n": "qwk_id",
 	} {
 		if _, err := load(body); err == nil || !strings.Contains(err.Error(), want) {

@@ -73,3 +73,60 @@ there is made as it is asked for (and again after a minute). It counts
 as taken once all of it has been read.
 
 A sysop's own menus offer it with `qwk` ([customization](Customization)).
+
+## QWK networks
+
+QWK networks (DOVE-Net, FSXNet's QWK side and others) join BBSes through
+a **hub**. Each **node** calls the hub as a user, puts a REP of what its
+callers wrote in the network's conferences, and takes a packet of what
+was written everywhere else. This BBS can be either.
+
+### As a node
+
+Give each network a `[qwknet NAME]` section: the hub's FTP server, the
+account it gave you, and which of its conferences go in which area here.
+
+```ini
+[qwknet dovenet]
+address = hub.example.org:21
+tls = explicit            ; FTPS (AUTH TLS); implicit, or no
+user = MYBBS
+password = secret
+dir = /qwk                ; where the hub keeps its packet ("/": the root)
+every = 60                ; minutes between calls (0: only when asked)
+2001 = DOVE General       ; CONFERENCE = AREA
+2002 = DOVE Chat
+```
+
+The areas must exist (`bbs area add "DOVE General"`). On each call the
+BBS:
+
+1. puts `HUBID.REP` in the hub's directory, holding the messages written
+   here in those areas since the last call (at most 1000 a call);
+2. takes `HUBID.QWK` and posts what is in it, under each writer's name,
+   in the areas of its conferences. Conferences not listed are passed
+   over, and so is mail to the node's account.
+
+`HUBID` is the packet found in the hub's directory, or `hub_id`. The
+first call sends nothing already here. Only messages written on this BBS
+go up: those that came by a network, a news peer or FidoNet stay put.
+Each message from the hub is known by its conference and number, so a
+packet taken twice posts nothing twice. Answers keep their threads both
+ways where the message answered came by the network.
+
+`bbs qwknet call [NET]` (or `POST /api/v1/admin/qwknet/call`) calls now.
+
+### As a hub
+
+Make an account for each node and flag it:
+
+```
+bbs user add MYNODE
+bbs user qwknode MYNODE
+```
+
+A node's account takes its packet and puts its REP like any caller, best
+by [FTP](Files-and-FTP) (`/qwk`). What its REP brings is posted under the
+names of the node's writers, not the account's. Its access is still
+checked on each area. Its packet leaves out what came from the node
+itself. The areas a node gets are those of its account's new scan.

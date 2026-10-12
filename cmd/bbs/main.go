@@ -18,6 +18,8 @@
 //	bbs [-config FILE] area keep AREA MESSAGES DAYS
 //	bbs [-config FILE] area purge
 //	bbs [-config FILE] fido poll|scan|toss [LINK]
+//	bbs [-config FILE] user qwknode|unqwknode NAME
+//	bbs [-config FILE] qwknet call [NET]
 //	bbs [-config FILE] token add USER [-scope read,post,...] [-expires DAYS] [-name NAME]
 //	bbs [-config FILE] token list [USER]
 //	bbs [-config FILE] token revoke ID
@@ -58,6 +60,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
+	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
 	"github.com/Neo-Desktop/bbs-sec/internal/script"
 	"github.com/Neo-Desktop/bbs-sec/internal/server"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
@@ -88,6 +91,8 @@ func usage() {
   bbs [-config FILE] area purge                     take away what areas keep no more, now
   bbs [-config FILE] fido poll [LINK]               call links (with a host) now
   bbs [-config FILE] fido scan|toss [LINK]          pack new mail, or take in what came
+  bbs [-config FILE] user qwknode|unqwknode NAME     an account for another BBS, a QWK network node
+  bbs [-config FILE] qwknet call [NET]               call QWK networks' hubs now
   bbs [-config FILE] token add USER [-scope read,post,mail,chat,files,sysop]
                      [-expires DAYS] [-name NAME]   an API key (printed once)
   bbs [-config FILE] token list [USER]
@@ -228,6 +233,8 @@ func main() {
 		newsCmd(cfg, args)
 	case "fido":
 		fidoCmd(cfg, args)
+	case "qwknet":
+		qwkNetCmd(cfg, args)
 	case "token":
 		tokenCmd(cfg, args)
 	case "sshkey":
@@ -373,11 +380,16 @@ func serve(cfg *server.Config) int {
 	if b.Events != nil {
 		go b.Events.Run(ctx)
 	}
+	var qn *qwknet.Runner
+	if len(cfg.QWKNets) > 0 {
+		qn = &qwknet.Runner{B: b, Nets: cfg.QWKNets}
+		go qn.Run(ctx)
+	}
 	srv := server.New(b, cfg.Listeners)
 	srv.Graphics = cfg.Graphics
 	srv.LogoFile = cfg.LogoFile
 	if cfg.HTTP != nil {
-		as := &api.Server{B: b, S: *cfg.HTTP, Fido: fd, Peers: cfg.Peers, Terminal: srv.WebTerminal}
+		as := &api.Server{B: b, S: *cfg.HTTP, Fido: fd, Peers: cfg.Peers, QWKNet: qn, Terminal: srv.WebTerminal}
 		if len(cfg.Peers) > 0 || cfg.NNTP != nil {
 			as.News = svc
 		}
@@ -569,6 +581,10 @@ func userCmd(cfg *server.Config, args []string) {
 		err = st.SetSysop(u.ID, true)
 	case "unsysop":
 		err = st.SetSysop(u.ID, false)
+	case "qwknode":
+		err = st.SetQWKNode(u.ID, true)
+	case "unqwknode":
+		err = st.SetQWKNode(u.ID, false)
 	case "del":
 		err = st.DeleteUser(u.ID)
 	case "validate":
@@ -931,6 +947,28 @@ func newsCmd(cfg *server.Config, args []string) {
 	}
 	if n == 0 {
 		fatal(errors.New("no such peer"))
+	}
+}
+
+func qwkNetCmd(cfg *server.Config, args []string) {
+	words, _ := split(args)
+	if len(words) == 0 || words[0] != "call" || len(words) > 2 {
+		usage()
+	}
+	if len(cfg.QWKNets) == 0 {
+		fatal(errors.New("no [qwknet NAME] section"))
+	}
+	st := open(cfg)
+	defer st.Close()
+	b := bbs.New(cfg.Settings, st, log.New(os.Stderr, "bbs: ", log.LstdFlags))
+	b.News = cfg.News
+	name := ""
+	if len(words) == 2 {
+		name = words[1]
+	}
+	r := &qwknet.Runner{B: b, Nets: cfg.QWKNets}
+	if err := r.CallNow(name); err != nil {
+		fatal(err)
 	}
 }
 

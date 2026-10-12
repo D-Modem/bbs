@@ -25,6 +25,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/logo"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
 	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
+	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
@@ -47,6 +48,7 @@ type Config struct {
 	NNTP       *nntp.ServerSettings // nil: no NNTP server
 	Peers      []*nntp.Peer
 	Fido       *fido.Settings // nil: not on FidoNet
+	QWKNets    []*qwknet.Net  // [qwknet NAME]: QWK networks this is a node of
 	Binkp      *BinkpSettings // nil: no binkp answering
 	Doors      []*door.Door
 	Finger     *finger.Settings // nil: no finger server
@@ -96,6 +98,9 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 	if err := c.fidoSections(cf); err != nil {
+		return nil, err
+	}
+	if err := c.qwkNets(cf); err != nil {
 		return nil, err
 	}
 	if err := c.infoSections(cf); err != nil {
@@ -155,7 +160,7 @@ func Load(path string) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "event", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door", "finger", "gopher", "menu", "strings", "http", "level":
+		case "general", "security", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "menu", "strings", "http", "level":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}

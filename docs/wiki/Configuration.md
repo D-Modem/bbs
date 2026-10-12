@@ -25,6 +25,7 @@ whether terminals are asked what they are: [Terminal identification](Terminal-Id
 | `[ftp]` | the FTP server for the file areas | [Files and FTP](Files-and-FTP) |
 | `[news]`, `[nntp]`, `[peer NAME]` | newsgroups, the NNTP server, news peers | [Newsgroups and NNTP](Newsgroups-and-NNTP) |
 | `[fido]`, `[binkp]`, `[link NAME]` | FidoNet: our address, the binkp mailer, links | [FidoNet](FidoNet) |
+| `qwk_id` (in `[general]`), `[qwknet NAME]` | QWK packets' name; QWK networks this is a node of | [Offline mail](Offline-Mail) |
 | `[door NAME]` | a door program | [Doors](Doors) |
 | `screens_dir` (in `[general]`), `[menu NAME]`, `[strings]` | the sysop's screens, menus and prompts | [Customization](Customization) |
 | `scripts_dir` (in `[general]`) | the sysop's JavaScript | [Scripting](Scripting) |

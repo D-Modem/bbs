@@ -94,11 +94,12 @@ Errors are `{"error": "...", "code": "..."}`.
 | `GET /events` | server-sent events | chat or read |
 | `GET /ws`, `GET /ws/proto` | WebSockets | chat |
 | `GET /admin/pages`, `POST /admin/pages/{node}/answer` | pages waiting; answer one (node 0: the longest waiting) | sysop |
-| `POST /admin/users`, `PATCH /admin/users/{name}` | add a user; lock, unlock, make sysop, set password, `level`, `flags` | sysop |
+| `POST /admin/users`, `PATCH /admin/users/{name}` | add a user; lock, unlock, make sysop, set password, `level`, `flags`, `qwk_node` | sysop |
 | `POST /admin/areas`, `PATCH /admin/areas/{id}` | add an area; set its newsgroup, echo tag, `read_require`, `post_require` | sysop |
 | `POST /admin/nodes/{n}/kick` | throw a caller off | sysop |
 | `GET /admin/fido`, `POST /admin/fido/poll` | FidoNet links and outbound; call them now | sysop |
 | `GET /admin/news`, `POST /admin/news/sync` | news peers; sync now | sysop |
+| `GET /admin/qwknet`, `POST /admin/qwknet/call?net=` | [QWK networks](Offline-Mail#qwk-networks); call their hubs now | sysop |
 
 ```sh
 TOKEN=$(curl -s https://bbs.example.org:8443/api/v1/login \
