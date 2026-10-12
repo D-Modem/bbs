@@ -1,0 +1,19 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="tbl"><table class="itable">
+  <tr class="title"><td colspan="2">Profile for <b>{{$u.Name}}</b></td></tr>
+  <tr><td class="f1 formleft">Avatar</td><td class="f2">{{template "avatar" (av $u.Name "huge")}}</td></tr>
+  <tr><td class="f1 formleft">Member title</td><td class="f2">{{if $u.Sysop}}<span class="poster admin">Administrator</span>{{else if $u.Locked}}BANNED{{else}}Member{{end}}</td></tr>
+  <tr><td class="f1 formleft">Joined</td><td class="f2">{{shortdate $u.Created}}</td></tr>
+  <tr><td class="f1 formleft">Last visit</td><td class="f2">{{shortdate $u.LastLogin}} {{clock $u.LastLogin}}</td></tr>
+  <tr><td class="f1 formleft">Total posts</td><td class="f2">{{num $u.Posts}}</td></tr>
+  <tr><td class="f1 formleft">Calls</td><td class="f2">{{num $u.Logins}}</td></tr>
+  <tr><td class="f1 formleft">Location</td><td class="f2">{{if $u.Location}}{{$u.Location}}{{else}}&nbsp;{{end}}</td></tr>
+  <tr><td class="f1 formleft">Interests</td><td class="f2">{{if $u.About}}{{$u.About}}{{else}}&nbsp;{{end}}</td></tr>
+  <tr><td class="f1 formleft">Status</td><td class="f2">{{range .Body.On}}<span class="hl">On node {{.Num}} by {{.Via}}: {{.Activity}}</span><br>{{else}}Offline{{end}}</td></tr>
+  <tr class="title"><td colspan="2">Recent posts</td></tr>
+  {{range .Body.Recent}}
+  <tr><td class="f1 formleft small">{{shortdate .Created}}<br>{{clock .Created}}</td><td class="f2"><b><a href="/forum/post/{{.ID}}">{{.Subject}}</a></b><br><span class="small">{{snippet .Body 160}}</span></td></tr>
+  {{else}}<tr><td class="f2" colspan="2">No posts to show.</td></tr>{{end}}
+</table></div>
+{{template "foot" .}}{{end}}

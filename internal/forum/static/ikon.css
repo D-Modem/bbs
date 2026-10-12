@@ -1,0 +1,283 @@
+/*
+ * The forum's grey theme: laid out in the manner of the Perl boards of
+ * 2001 (Ikonboard 2's default look and its kind): a narrow centered page,
+ * grey tables with one-pixel lines between their cells, a title box and
+ * a menu row, a folder tree for where you are, dark red links, a brushed
+ * metal logo, grey bevelled buttons, round folder badges and gem icons.
+ * Written for this BBS; it takes no code or images from any board.
+ */
+
+:root {
+	--titleback: #eeeeee;
+	--titlefont: #555555;
+	--titleborder: #333333;
+	--menuback: #dddddd;
+	--menufont: #333333;
+	--link: #990000;
+	--link-hover: #660000;
+	--highlight: #990000;
+	--poster: #000066;
+	--admin: #990000;
+	--misc: #333333;
+	--back1: #ffffff;
+	--back2: #eeeeee;
+	--catback: #dddddd;
+	--border: #999999;
+	--titlecolor: #999999;
+	--titletext: #333333;
+	--forum1: #eeeeee;
+	--forum2: #ffffff;
+	--post1: #eeeeee;
+	--post2: #ffffff;
+}
+
+body {
+	margin: 0;
+	padding: 5px 0 20px;
+	background: #fff;
+	color: var(--misc);
+	font: 12px Verdana, Arial, sans-serif;
+}
+a:link, a:visited, a:active { color: var(--link); text-decoration: none; }
+a:hover { color: var(--link-hover); }
+p { margin: 0; }
+form { margin: 0; }
+hr { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
+b.hl, .hl { color: var(--highlight); }
+.small { font-size: 10px; }
+
+#wrap { width: 740px; max-width: calc(100% - 16px); margin: 0 auto; }
+
+.inline-form { display: inline; }
+.linkish { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: var(--link); cursor: pointer; }
+.linkish:hover { color: var(--link-hover); }
+.desc { font-size: 10px; color: #666; }
+
+/* --- the title box, its menu row, the welcome box */
+
+.titlebox { border: 1px solid var(--titleborder); background: var(--titleback); }
+.titlerow { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 4px; padding: 4px; color: var(--titlefont); }
+.bname { font-size: 18px; font-weight: bold; }
+.bdesc { font-size: 12px; }
+.back { font-size: 10px; }
+.menurow { padding: 4px; background: var(--menuback); color: var(--menufont); }
+.welcomebox { margin: 12px 0 0; padding: 4px; border: 1px solid var(--titleborder); background: var(--menuback); color: var(--menufont); font-size: 10px; }
+.welcomebox.notice { color: var(--highlight); font-weight: bold; }
+
+/* --- the logo and the folder tree beside it */
+
+.header { display: flex; align-items: center; gap: 16px; margin: 14px 0; }
+.logo {
+	display: flex; flex-direction: column; align-items: center; justify-content: center; flex: none;
+	width: 198px; height: 70px;
+	border: 1px solid #777;
+	background:
+		repeating-linear-gradient(to bottom, rgba(255,255,255,0.18) 0 1px, rgba(0,0,0,0.05) 1px 2px, transparent 2px 3px),
+		linear-gradient(135deg, #e3e3e3, #a9a9a9 40%, #d6d6d6 60%, #9a9a9a);
+	box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #666;
+	text-decoration: none !important;
+}
+.logo-name {
+	max-width: 186px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+	color: #b30000; font: bold 20px/1.1 "Arial Black", Verdana, sans-serif; letter-spacing: 0;
+	text-shadow: 1px 1px 0 rgba(255,255,255,0.7), -1px -1px 0 rgba(0,0,0,0.35);
+}
+.logo-sub { margin-top: 4px; color: #222; font-size: 8px; letter-spacing: 2px; text-transform: uppercase; }
+
+.tree { font-size: 12px; line-height: 18px; }
+.tree > div { display: flex; align-items: center; gap: 4px; }
+.tree .lvl0 { padding-left: 10px; }
+.tree .lvl1 { padding-left: 30px; }
+.tree .lvl2 { padding-left: 50px; }
+.treebar { width: 10px; height: 10px; margin-top: -8px; border-left: 1px dotted #555; border-bottom: 1px dotted #555; }
+.fold { display: inline-block; width: 16px; height: 12px; position: relative; border: 1px solid #555; border-radius: 1px 2px 2px 2px; background: linear-gradient(#f5f5f5, #c8c8c8); }
+.fold::before { content: ""; position: absolute; left: -1px; top: -4px; width: 7px; height: 3px; border: 1px solid #555; border-bottom: 0; border-radius: 2px 2px 0 0; background: #e8e8e8; }
+.fold.open { background: linear-gradient(#fff2a8, #e8c23a); border-color: #7a6512; }
+.fold.open::before { background: #fff2a8; border-color: #7a6512; }
+
+.boardinfo { margin: -64px 0 14px 214px; min-height: 50px; text-align: right; font-size: 12px; }
+
+/* --- the grey tables */
+
+.tbl { margin: 0 0 14px; border: 1px solid var(--border); background: var(--border); }
+.itable { width: 100%; border-collapse: separate; border-spacing: 1px; }
+.itable td { padding: 4px; vertical-align: middle; }
+tr.title td { background: var(--titlecolor); color: var(--titletext); font-weight: bold; font-size: 10px; }
+tr.title td a.ibtn { font-size: 11px; }
+td.cat { background: var(--catback); color: #333; font-size: 14px; font-weight: bold; }
+td.f1 { background: var(--forum1); }
+td.f2 { background: var(--forum2); }
+td.icon { width: 5%; text-align: center; }
+td.num { width: 6%; text-align: center; white-space: nowrap; }
+.lastcol { width: 25%; }
+td.lastcol { font-size: 10px; color: #000; }
+td.info { width: 25%; }
+.fname { font-size: 14px; }
+td.topic { width: 45%; }
+
+/* menu bars above and below lists */
+.menubar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; padding: 6px; background: var(--menuback); font-size: 10px; color: var(--menufont); }
+.pagelinks .cur { color: var(--menufont); }
+.pagelinks a b { color: var(--highlight); }
+
+/* a forum's badge: a dark disc with a folder, the folder yellow when new */
+.ifold {
+	display: inline-block; position: relative; width: 26px; height: 22px; border-radius: 50%;
+	background: radial-gradient(circle at 40% 35%, #777, #222 70%);
+	border: 1px solid #000; box-shadow: inset 0 0 0 2px #bbb;
+	vertical-align: middle;
+}
+.ifold::after { content: ""; position: absolute; left: 7px; top: 8px; width: 11px; height: 7px; background: #f4f4f4; border-radius: 1px; box-shadow: -1px -2px 0 -1px #f4f4f4; }
+.ifold.new::after { background: #f2d22e; box-shadow: -1px -2px 0 -1px #f2d22e; }
+
+/* a topic's icon: a gem, green when new, red when hot */
+.gem {
+	display: inline-block; width: 13px; height: 13px; border-radius: 50%; vertical-align: middle;
+	background: radial-gradient(circle at 35% 30%, #fff 0 15%, #c9c9c9 45%, #7d7d7d 100%);
+	border: 1px solid #555;
+}
+.gem.new { background: radial-gradient(circle at 35% 30%, #fff 0 15%, #8ee08e 45%, #2c8a2c 100%); border-color: #1d5c1d; }
+.gem.hot { background: radial-gradient(circle at 35% 30%, #fff 0 15%, #e3b2b2 45%, #9b6b6b 100%); border-color: #6d4444; }
+.gem.new.hot { background: radial-gradient(circle at 35% 30%, #fff 0 15%, #f07a7a 45%, #b01010 100%); border-color: #6d0000; }
+.onlineicon { display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: radial-gradient(circle at 50% 38%, #f3d2a8 0 5px, transparent 5.5px), radial-gradient(circle at 50% 110%, #333 0 9px, transparent 9.5px), linear-gradient(#ddd, #aaa); border: 1px solid #555; }
+
+/* grey bevelled buttons with a squared-off face */
+.ibtn:link, .ibtn:visited {
+	display: inline-block; padding: 3px 12px;
+	border: 1px solid #555;
+	background: linear-gradient(to bottom, #f0f0f0, #bcbcbc 50%, #a8a8a8 51%, #cfcfcf);
+	box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #777;
+	color: #333; font: bold 12px/1.2 "Trebuchet MS", Verdana, sans-serif; letter-spacing: 1px; text-transform: uppercase; text-decoration: none;
+	text-shadow: 1px 1px 0 #eee;
+}
+.ibtn:hover { color: #000; background: linear-gradient(to bottom, #fafafa, #c8c8c8 50%, #b4b4b4 51%, #dadada); }
+
+.legendbox { display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 0 0 14px; font-size: 10px; }
+.legendbox div { display: flex; align-items: center; gap: 6px; }
+
+/* --- a topic's posts */
+
+td.postcell { padding: 0 !important; }
+td.p1 { background: var(--post1); }
+td.p2 { background: var(--post2); }
+.post { display: flex; }
+.who { flex: 0 0 20%; padding: 4px; font-size: 12px; }
+.who .avatar { margin-top: 4px; }
+.poster { color: var(--poster) !important; font-weight: bold; }
+.poster.admin { color: var(--admin) !important; }
+.teamicon { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; background: radial-gradient(circle at 35% 30%, #fff 0 15%, #ffd34a 50%, #b07a00); border: 1px solid #6b4b00; }
+.pips { color: #900; letter-spacing: 1px; font-size: 11px; }
+.said { flex: 1; padding: 4px; min-width: 0; }
+.picons { display: flex; flex-wrap: wrap; gap: 2px 10px; }
+.picon:link, .picon:visited, button.picon {
+	display: inline-flex; align-items: center; gap: 3px;
+	background: none; border: 0; padding: 0; cursor: pointer;
+	color: #224 !important; font: bold 9px Verdana, sans-serif; text-transform: uppercase; letter-spacing: 1px;
+}
+.picon:hover { color: var(--link) !important; }
+.pi { display: inline-block; width: 14px; height: 14px; border: 1px solid #335; border-radius: 2px; background: linear-gradient(#e8eef8, #9fb0cc); }
+.pi.quote { background: linear-gradient(#e8eef8, #6d8ac0); }
+.pi.profile { border-radius: 50% 50% 2px 2px; background: radial-gradient(circle at 50% 35%, #f3d2a8 0 3px, transparent 3.5px), linear-gradient(#8fb0de, #3d5f9a); }
+.pi.like { border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 15%, #f07a7a 45%, #b01010); border-color: #6d0000; }
+.pi.delete { background: linear-gradient(45deg, transparent 42%, #b00 42% 58%, transparent 58%), linear-gradient(-45deg, transparent 42%, #b00 42% 58%, transparent 58%), #f4f4f4; }
+.postbody { font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; min-height: 40px; }
+.likes { margin-top: 8px; font-size: 10px; color: var(--highlight); }
+.bottomline { padding: 0 4px 4px 20.5%; font-size: 10px; }
+
+/* quotes: a blockquote between two rules, in small type */
+.citation { margin: 6px 0 0 40px; font: 10px Arial, sans-serif; }
+blockquote.quote { margin: 2px 40px 8px; padding: 0; font: 11px Arial, sans-serif; }
+blockquote.quote::before, blockquote.quote::after { content: ""; display: block; border-top: 1px solid #999; margin: 4px 0; }
+.bbc_url:link, .bbc_url:visited { color: var(--link); text-decoration: underline; }
+
+/* polls */
+td.poll { padding: 8px !important; }
+.pollresults { border-collapse: collapse; margin: 0 0 6px; }
+.pollresults td { padding: 2px 8px 2px 0; }
+.pollresults td.bar { width: 220px; }
+meter { width: 100%; height: 10px; }
+meter::-webkit-meter-bar { background: #fff; border: 1px solid #777; border-radius: 0; }
+meter::-webkit-meter-optimum-value { background: linear-gradient(#c33, #800); }
+meter::-moz-meter-bar { background: linear-gradient(#c33, #800); }
+.poll-form { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+
+/* --- forms */
+
+input[type=text], input[type=password], input[type=search], textarea, select {
+	font: 12px Verdana, Arial, sans-serif; color: #000; background: #eee; border: 1px solid #777; padding: 2px;
+}
+textarea { width: 100%; box-sizing: border-box; }
+.button, button.button, a.button:link, a.button:visited {
+	display: inline-block; padding: 2px 8px;
+	font: 12px Verdana, Arial, sans-serif; color: #000; text-decoration: none; cursor: pointer;
+	background: #ddd; border: 2px outset #eee;
+}
+.button:active { border-style: inset; }
+.button.important { font-weight: bold; }
+.button.danger { color: var(--admin); }
+td.formleft { width: 30%; vertical-align: top !important; }
+.formbuttons { margin-top: 6px; text-align: center; }
+
+/* the default theme's pages that this one shows as they are */
+.box { margin: 0 0 14px; border: 1px solid var(--border); background: var(--forum2); }
+.box > h2.maintitle { margin: 0; padding: 4px; background: var(--titlecolor); color: var(--titletext); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+.box .count { margin-left: auto; font-weight: normal; font-size: 10px; }
+.box-body { padding: 8px; background: var(--forum1); }
+.box.narrow { max-width: 480px; margin-left: auto; margin-right: auto; }
+.field { display: grid; grid-template-columns: 35% 1fr; align-items: center; gap: 6px; padding: 4px 0; font-weight: bold; }
+.field input, .field textarea { font-weight: normal; }
+.editor .field { grid-template-columns: 1fr; }
+.editor-foot { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.signin .desc { margin-bottom: 6px; }
+.poll-maker { margin: 8px 0; }
+.poll-maker summary { cursor: pointer; color: var(--link); }
+.searchform { display: flex; gap: 6px; }
+.searchform input { flex: 1; }
+.message { margin: 0 0 14px; padding: 4px; border: 1px solid var(--titleborder); background: var(--menuback); }
+.message.error { color: var(--admin); font-weight: bold; }
+.box-body .message { margin: 0 0 8px; }
+table.board { width: 100%; border-collapse: separate; border-spacing: 1px; background: var(--border); }
+table.board th { padding: 4px; background: var(--catback); font-size: 10px; text-align: left; }
+table.board td { padding: 4px; background: var(--forum2); vertical-align: top; }
+table.board tr:nth-child(even) td { background: var(--forum1); }
+table.board h3 { margin: 0; font-size: 12px; }
+.snippet { color: #555; font-size: 11px; }
+td.none { text-align: center; }
+
+/* letter pictures for those without one */
+.avatar {
+	display: inline-flex; align-items: center; justify-content: center;
+	color: #fff; font: bold 16px Verdana, sans-serif;
+	border: 1px solid #333;
+	vertical-align: middle;
+}
+.avatar.tiny { width: 16px; height: 16px; font-size: 10px; }
+.avatar.mini { width: 24px; height: 24px; font-size: 12px; }
+.avatar.large { width: 60px; height: 60px; font-size: 30px; }
+.avatar.huge { width: 90px; height: 90px; font-size: 46px; }
+.av0 { background: #4f7bb0; } .av1 { background: #b0574f; } .av2 { background: #4f9a6b; }
+.av3 { background: #8a5fb0; } .av4 { background: #c0862d; } .av5 { background: #3e8f9e; }
+.av6 { background: #a24f86; } .av7 { background: #6b7a3c; } .av8 { background: #c06a3e; }
+.av9 { background: #546478; } .av10 { background: #2f7f5f; } .av11 { background: #9b4545; }
+
+/* --- the foot */
+
+.footbox { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; padding: 4px; border: 1px solid var(--titleborder); background: var(--menuback); font-size: 10px; }
+.themepicker, .quicksearch { display: flex; align-items: center; gap: 4px; }
+.themepicker select, .quicksearch input { font-size: 10px; }
+.copyright { margin: 14px 0 0; text-align: center; font-size: 10px; }
+
+/* --- narrow screens */
+
+@media (max-width: 760px) {
+	.header { flex-direction: column; align-items: flex-start; }
+	.boardinfo { margin: -6px 0 14px; text-align: left; min-height: 0; }
+	.lastcol, td.num { display: none; }
+	.post { flex-direction: column; }
+	.who { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+	.who br { display: none; }
+	.who .avatar.large { width: 32px; height: 32px; font-size: 16px; margin: 0; }
+	.bottomline { padding-left: 4px; }
+	td.formleft { display: none; }
+	.field { grid-template-columns: 1fr; }
+}

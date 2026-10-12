@@ -1,0 +1,27 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="tbl menubar"><div class="mleft">{{template "pages" $b.Pages}}</div>
+  <div class="mright">{{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark all forum posts as read</button></form>{{else}}{{plural $b.Count "topic" "topics"}}{{end}}</div></div>
+<div class="tbl"><table class="itable">
+  <tr class="title"><td colspan="2">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="ibtn">New Topic</a>{{else if not .User}}<a href="/forum/login?back={{urlq (printf "/forum/area/%d" $b.Area.ID)}}" class="ibtn">Log-in</a>{{else}}&nbsp;{{end}}</td><td class="info">Topic Info</td><td class="lastcol">Last Post</td></tr>
+  {{range $b.Topics}}
+  <tr>
+    <td class="f2 icon"><span class="gem{{if .Unread}} new{{end}}{{if ge .Replies 15}} hot{{end}}" title="{{if .Unread}}New replies{{else}}No new replies{{end}}"></span></td>
+    <td class="f2 topic"><b><a href="/forum/topic/{{.Root.ID}}">{{.Root.Subject}}</a></b>{{if gt .Pages 1}} &nbsp;[ Pages {{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}"> {{.}} </a>{{end}}]{{end}}
+      <br><span class="small">&nbsp;&nbsp;&raquo;{{snippet .Root.Body 60}}</span></td>
+    <td class="f2 small"><b>{{num .Replies}}</b> {{if eq .Replies 1}}reply{{else}}replies{{end}}<br>Started by: <b>{{.Root.From}}</b></td>
+    <td class="f1 lastcol">{{shortdate .Last.Created}} - {{clock .Last.Created}}<br>by: <a href="/forum/post/{{.Last.ID}}"><b>{{.Last.From}}</b></a></td>
+  </tr>
+  {{else}}
+  <tr><td class="f2" colspan="4">There are no topics in this forum yet.{{if $b.CanPost}} <a href="/forum/area/{{$b.Area.ID}}/new">Start the first one.</a>{{end}}</td></tr>
+  {{end}}
+  <tr class="title"><td colspan="4">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="ibtn">New Topic</a>{{else}}&nbsp;{{end}}</td></tr>
+</table></div>
+<div class="tbl menubar"><div class="mleft">{{template "pages" $b.Pages}}</div><div class="mright"><a href="/forum/">&raquo; back to the forums</a></div></div>
+<div class="legendbox">
+  <div><span class="gem new"></span> Open topic, new replies</div>
+  <div><span class="gem"></span> Open topic</div>
+  <div><span class="gem new hot"></span> Hot topic, new replies</div>
+  <div><span class="gem hot"></span> Hot topic</div>
+</div>
+{{template "foot" .}}{{end}}

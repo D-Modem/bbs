@@ -51,6 +51,7 @@ var Themes = []Theme{
 	{"ipb3", "Default (IPB 3 style)"},
 	{"ipb2", "Classic (IPB 2 style)"},
 	{"ipb1", "Retro (IPB 1 style)"},
+	{"ikon", "Grey (Ikonboard style)"},
 }
 
 // KnownTheme says whether there is a theme of the name.

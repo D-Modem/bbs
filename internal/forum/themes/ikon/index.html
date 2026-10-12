@@ -1,0 +1,31 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<div class="boardinfo">{{with $st.Newest}}{{$.BBS}} welcomes its newest member <a href="/forum/user/{{path .Name}}">{{.Name}}</a><br>{{end}}
+  {{.BBS}} has <b>{{num $st.Members}}</b> members with <b>{{num $st.Posts}}</b> posts in <b>{{num $st.Topics}}</b> topics</div>
+<div class="tbl"><table class="itable">
+  <tr class="title"><td class="icon">&nbsp;</td><td>Forum Info</td><td class="num">Replies</td><td class="num">Topics</td><td class="lastcol">Last Post</td></tr>
+  {{range .Body.Categories}}
+  <tr><td class="cat" colspan="5">&raquo; {{.Name}}</td></tr>
+  {{range $f := .Forums}}
+  <tr>
+    <td class="f2 icon">{{if $.User}}<span class="ifold{{if $f.Unread}} new{{end}}" title="{{if $f.Unread}}New posts since your last visit{{else}}No new posts since your last visit{{end}}"></span>{{else}}&nbsp;{{end}}</td>
+    <td class="f2"><b class="fname"><a href="/forum/area/{{$f.Area.ID}}">{{$f.Area.Name}}</a></b>{{if $f.Area.Description}}<br>{{$f.Area.Description}}{{end}}</td>
+    <td class="f2 num">{{if $f.Unread}}<b class="hl">{{num $f.Replies}}</b>{{else}}{{num $f.Replies}}{{end}}</td>
+    <td class="f2 num">{{num $f.Topics}}</td>
+    <td class="f1 lastcol">{{with $f.Last}}Date: <b>{{shortdate .Created}}</b><br>Time: {{clock .Created}}<br>by: {{.From}} &middot; <a href="/forum/post/{{.ID}}" title="{{$f.LastTopic.Subject}}">&raquo;</a>{{else}}N/A{{end}}</td>
+  </tr>
+  {{end}}
+  {{else}}
+  <tr><td class="f2" colspan="5">There are no forums open to you yet.{{if not .User}} <a href="/forum/login">Log in</a> to see more.{{end}}</td></tr>
+  {{end}}
+  <tr class="title"><td colspan="5">{{plural (len .Body.Online) "user is" "users are"}} on the BBS just now</td></tr>
+  <tr><td class="f2 icon"><span class="onlineicon" aria-hidden="true"></span></td>
+    <td class="f2 small" colspan="4">Total members: {{len .Body.Online}}<br>{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a> ({{$n.Via}}){{end}}</td></tr>
+</table></div>
+<div class="legendbox">
+  {{if .User}}
+  <div><span class="ifold new"></span> New posts since your last visit</div>
+  <div><span class="ifold"></span> No new posts since your last visit</div>
+  {{else}}<p>You must be logged in to view the post markers</p>{{end}}
+</div>
+{{template "foot" .}}{{end}}

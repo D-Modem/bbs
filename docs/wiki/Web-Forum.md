@@ -74,6 +74,7 @@ On a post:
 | theme | |
 |---|---|
 | `ipb3` | the default: a board of the early 2010s in the manner of Invision Power Board 3: a dark user bar, a navy header with tabs, rounded blue category bars, posts with their author's column on the left |
+| `ikon` | grey: a Perl board of 2001 in the manner of Ikonboard 2: a narrow centered page, grey tables with one-pixel lines between cells, a title box with a menu row and a *Welcome* box, a brushed-metal logo beside a folder tree of where you are, dark red links, grey bevelled buttons, folder badges and gem icons, posts with *Total Posts, Joined, Posted on* beneath |
 | `ipb1` | retro: a board of the early 2000s in the manner of Invision Power Board 1: tables outlined in slate blue with white lines between their cells, bright title bars, a flat menu box, round forum badges and envelope topic icons, rounded glossy buttons, *Posted on* and a post links bar |
 | `ipb2` | classic: a board of the mid-2000s in the manner of Invision Power Board 2: a white page, boxes outlined in navy, blue gradient title bars, pale blue rows, small Verdana; *Logged in as* and *Welcome Guest* bars, *Last Post Info*, *Fast Reply*, big blue buttons |
 

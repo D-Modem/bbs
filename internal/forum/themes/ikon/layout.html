@@ -1,0 +1,40 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if ne .Title .BBS}}{{.Title}} - {{end}}{{.BBS}}</title>
+<link rel="stylesheet" href="/forum/static/ikon.css">
+</head>
+<body id="top">
+<div id="wrap">
+<div class="titlebox">
+  <div class="titlerow">
+    <div><span class="bname">{{.BBS}}</span><br><span class="bdesc">The forums of a bulletin board system</span></div>
+    {{if .Terminal}}<div class="back"><a href="/terminal">&raquo; back to the terminal</a></div>{{end}}
+  </div>
+  <div class="menurow">{{if not .User}}{{if .Register}}<a href="/forum/register">Register</a> | {{end}}<a href="/forum/login">Log-in</a> | {{else}}<a href="/forum/user/{{path .User.Name}}">Profile</a> | {{end}}<a href="/forum/online">Active Users ({{.Online}})</a> | <a href="/forum/search">Search</a>{{if .Terminal}} | <a href="/terminal">Terminal</a>{{end}}</div>
+</div>
+<div class="welcomebox">&raquo; Welcome {{if .User}}{{.User.Name}}: <form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Log out</button></form> | <a href="/forum/user/{{path .User.Name}}">Your profile</a> | <a href="/forum/search">Search the posts</a>{{else}}Guest: <a href="/forum/login">log in</a>{{if .Register}} | <a href="/forum/register">Register</a>{{end}}{{end}}</div>
+{{if eq .Notice "welcome"}}<div class="welcomebox notice">&raquo; Thanks for registering! Your account is made, and you are logged in.</div>{{end}}
+<div class="header">
+  <a href="/forum/" class="logo"><span class="logo-name">{{.BBS}}</span><span class="logo-sub">bulletin board</span></a>
+  <div class="tree">
+    <div><span class="fold{{if not .Crumbs}} open{{end}}" aria-hidden="true"></span><a href="/forum/">{{.BBS}}</a></div>
+    {{$n := len .Crumbs}}{{range $i, $c := .Crumbs}}<div class="lvl{{$i}}"><span class="treebar" aria-hidden="true"></span><span class="fold{{if eq (add $i 1) $n}} open{{end}}" aria-hidden="true"></span>{{if $c.URL}}<a href="{{$c.URL}}">{{$c.Name}}</a>{{else}}{{$c.Name}}{{end}}</div>{{end}}
+  </div>
+</div>
+{{end}}
+
+{{define "foot"}}
+<div class="footbox">
+  {{template "themepicker" .}}
+  <form action="/forum/search" method="get" class="quicksearch"><input type="search" name="q" placeholder="Search" aria-label="Search"> <button class="button">Go</button></form>
+</div>
+<div class="copyright">{{.BBS}} | <a href="/forum/online">Active Users</a><br><br>Powered by bbs-sec<br>All times are server time: {{longdate .Now}}</div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}<span class="pagelinks"><b>Multiple pages</b> [ {{$cur := .Cur}}{{$p := .}}{{range .Shown}}{{if eq . 0}}&hellip; {{else if eq . $cur}}<span class="cur">{{.}}</span> {{else}}<a href="{{$p.URL .}}"><b>{{.}}</b></a> {{end}}{{end}}]</span>{{else}}<span class="pagelinks">Single page</span>{{end}}{{end}}
