@@ -20,6 +20,7 @@ var funcs = template.FuncMap{
 	"body":     renderBody,
 	"when":     when,
 	"date":     func(t time.Time) string { return t.Format("02 January 2006") },
+	"longdate": longDate,
 	"initial":  initial,
 	"avatar":   avatarClass,
 	"group":    groupTitle,
@@ -58,6 +59,23 @@ func when(t time.Time) string {
 		return t.Format("02 January - 03:04 PM")
 	}
 	return t.Format("02 January 2006 - 03:04 PM")
+}
+
+// longDate is a time in full, as "12th October 2026 - 11:21 PM".
+func longDate(t time.Time) string {
+	d := t.Day()
+	suffix := "th"
+	if d < 11 || d > 13 {
+		switch d % 10 {
+		case 1:
+			suffix = "st"
+		case 2:
+			suffix = "nd"
+		case 3:
+			suffix = "rd"
+		}
+	}
+	return strconv.Itoa(d) + suffix + t.Format(" January 2006 - 03:04 PM")
 }
 
 func plural(n int, one, many string) string {

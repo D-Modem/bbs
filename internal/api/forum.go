@@ -50,7 +50,7 @@ func (f forumSessions) Logout(secret string) {
 // caller's address as the API's are.
 func (s *Server) forum() (http.Handler, error) {
 	f := &forum.Server{B: s.B, Sessions: forumSessions{s}, Guests: s.S.Guests, Secure: s.S.TLS,
-		Terminal: s.terminalOn(), TTL: s.S.SessionTTL}
+		Terminal: s.terminalOn(), TTL: s.S.SessionTTL, Theme: s.S.Theme}
 	h, err := f.Handler()
 	if err != nil {
 		return nil, err

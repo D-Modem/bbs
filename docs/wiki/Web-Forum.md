@@ -2,10 +2,10 @@
 
 The HTTP API's server also serves the message areas as a web forum, at
 `/forum/` (and `/`, which goes there). It is laid out like the bulletin
-boards of the early 2010s (Invision Power Board 3 and its kind):
-categories of forums, topics, and posts with their authors beside them.
-The look is the BBS's own CSS, built into the `bbs` binary; nothing is
-loaded from elsewhere, and no script runs on the pages.
+boards of their day: categories of forums, topics, and posts with their
+authors beside them, in one of two [themes](#themes). The look is the
+BBS's own CSS, built into the `bbs` binary; nothing is loaded from
+elsewhere, and no script runs on the pages.
 
 It is the same BBS: the same accounts, areas and messages. A post on the
 forum is a message on the terminals, in QWK packets, on NNTP and FidoNet
@@ -16,12 +16,14 @@ forum is a message on the terminals, in QWK packets, on NNTP and FidoNet
 address = :8443
 ;forum = yes
 ;forum_guests = yes
+;forum_theme = ipb3
 ```
 
 | setting | default | |
 |---|---|---|
 | `forum` | `yes` | the forum at `/forum/` (with `no`, `/` goes to the web terminal again) |
 | `forum_guests` | `yes` | those not logged in may read the areas anyone may read (areas with a `read` requirement never) |
+| `forum_theme` | `ipb3` | the theme callers get until they choose one ([below](#themes)) |
 
 ## The pages
 
@@ -66,6 +68,20 @@ On a post:
 - **Delete** is for the post's writer and the sysop.
 - A poll is answered by those who may post in its area; answering again
   changes the answer.
+
+## Themes
+
+| theme | |
+|---|---|
+| `ipb3` | the default: a board of the early 2010s in the manner of Invision Power Board 3: a dark user bar, a navy header with tabs, rounded blue category bars, posts with their author's column on the left |
+| `ipb2` | classic: a board of the mid-2000s in the manner of Invision Power Board 2: a white page, boxes outlined in navy, blue gradient title bars, pale blue rows, small Verdana; *Logged in as* and *Welcome Guest* bars, *Last Post Info*, *Fast Reply*, big blue buttons |
+
+Both are this BBS's own CSS and templates, drawn to look like the boards
+they recall; no code or images are taken from them. `forum_theme` is the
+forum's; anyone (guests too) may choose another at the foot of every page,
+kept in a cookie (`bbs_forum_theme`) for a year. A theme lays out the
+board, topic lists, topics and profiles its own way, and shows the rest
+(posting, searching, signing in) in its colors.
 
 ## Logins
 

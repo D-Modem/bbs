@@ -65,6 +65,7 @@ type site struct {
 	b  *bbs.BBS
 	ts *httptest.Server
 	ar map[string]*store.Area
+	fs *Server
 }
 
 func setup(t *testing.T) *site {
@@ -101,7 +102,7 @@ func setup(t *testing.T) *site {
 	}
 	ts := httptest.NewServer(h)
 	t.Cleanup(ts.Close)
-	return &site{t: t, b: b, ts: ts, ar: ar}
+	return &site{t: t, b: b, ts: ts, ar: ar, fs: fs}
 }
 
 // browser is a client with its cookies.
@@ -368,4 +369,67 @@ func TestRenderBody(t *testing.T) {
 	if groupDigits(1234567) != "1,234,567" {
 		t.Error(groupDigits(1234567))
 	}
+}
+
+func TestThemes(t *testing.T) {
+	s := setup(t)
+	alice, guest := s.browser(), s.browser()
+	alice.login("alice")
+	gen := "/forum/area/" + itoa(s.ar["General"].ID)
+	_, topic, _ := alice.post(gen+"/new", gen+"/new", url.Values{"subject": {"Old skins"},
+		"body": {"Remember these?"}, "poll": {"Yes\nNo"}})
+	alice.post(topic, topic+"/reply", url.Values{"body": {"alice wrote:\n> Remember these?\n\nI do."}})
+	pages := []string{"/forum/", gen, gen + "/new", topic, "/forum/user/alice", "/forum/online",
+		"/forum/search?q=skins", "/forum/area/999"}
+
+	// the default theme, and the chooser offering both
+	_, _, body := guest.get("/forum/")
+	has(t, "default", body, "/forum/static/ipb3.css", `<option value="ipb2">`, `<option value="ipb3" selected>`)
+
+	for _, th := range Themes {
+		css := "/forum/static/" + th.Name + ".css"
+		if code, _, _ := guest.get(css); code != 200 {
+			t.Errorf("%s: %d", css, code)
+		}
+		// chosen by a guest (no token) and by a member (with one): back
+		// to the page it was chosen on
+		code, at, _ := guest.post("", "/forum/theme", url.Values{"theme": {th.Name}, "back": {gen}})
+		if code != 200 || at != gen {
+			t.Errorf("guest choosing %s: %d %s", th.Name, code, at)
+		}
+		if code, _, _ := alice.post("", "/forum/theme", url.Values{"theme": {th.Name}, "back": {gen}}); code != 403 {
+			t.Errorf("member choosing %s without a token: %d", th.Name, code)
+		}
+		alice.post(gen, "/forum/theme", url.Values{"theme": {th.Name}, "back": {gen}})
+		for _, who := range []*browser{guest, alice} {
+			for _, p := range pages {
+				code, _, body := who.get(p)
+				if code >= 500 || !strings.Contains(body, css) {
+					t.Errorf("%s %s: %d, no %s", th.Name, p, code, css)
+				}
+				has(t, th.Name+" "+p, body, `<option value="`+th.Name+`" selected>`)
+			}
+		}
+		_, _, body := alice.get(topic)
+		has(t, th.Name+" topic", body, "Remember these?", "I do.", `class="quote"`, `name="answer"`)
+	}
+	_, _, body = alice.get(topic)
+	has(t, "classic topic", body, "Logged in as:", "Fast Reply", "Member No.:", "Add Reply")
+	_, _, body = guest.get("/forum/")
+	has(t, "classic index", body, "Welcome Guest", "Last Post Info", "Board Statistics")
+
+	// no such theme; an outside page to go back to
+	if code, _, _ := guest.post("", "/forum/theme", url.Values{"theme": {"nope"}}); code != 400 {
+		t.Errorf("unknown theme: %d", code)
+	}
+	if _, at, _ := guest.post("", "/forum/theme", url.Values{"theme": {"ipb3"}, "back": {"//evil.example/"}}); at != "/forum/" {
+		t.Errorf("went back to %s", at)
+	}
+
+	// the forum's own choice, until a caller makes theirs
+	s.fs.Theme = "ipb2"
+	_, _, body = s.browser().get("/forum/")
+	has(t, "forum's theme", body, "/forum/static/ipb2.css")
+	_, _, body = guest.get("/forum/")
+	has(t, "guest's own", body, "/forum/static/ipb3.css")
 }

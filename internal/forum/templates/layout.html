@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{if ne .Title .BBS}}{{.Title}} - {{end}}{{.BBS}}</title>
-<link rel="stylesheet" href="/forum/static/forum.css">
+<link rel="stylesheet" href="/forum/static/ipb3.css">
 </head>
 <body>
 <div id="userbar"><div class="wrap">
@@ -49,11 +49,18 @@
 </div>
 <div id="footer" class="wrap">
   <ul class="inline"><li><a href="/forum/">Forums</a></li><li><a href="/forum/online">Online Users</a></li>{{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}</ul>
+  {{template "themepicker" .}}
   <p class="copyright">{{.BBS}} &middot; the forums of a BBS, powered by bbs-sec &middot; {{when .Now}}</p>
 </div>
 </body>
 </html>
 {{end}}
+
+{{define "themepicker"}}<form method="post" action="/forum/theme" class="themepicker">
+  {{if .CSRF}}<input type="hidden" name="csrf" value="{{.CSRF}}">{{end}}<input type="hidden" name="back" value="{{.Path}}">
+  <label>Theme <select name="theme">{{range .Themes}}<option value="{{.Name}}"{{if eq .Name $.Theme}} selected{{end}}>{{.Title}}</option>{{end}}</select></label>
+  <button class="button small">Go</button>
+</form>{{end}}
 
 {{define "avatar"}}<span class="avatar {{avatar .Name}} {{.Size}}" aria-hidden="true">{{initial .Name}}</span>{{end}}
 

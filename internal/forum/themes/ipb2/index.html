@@ -1,0 +1,43 @@
+{{define "index.html"}}{{template "head" .}}
+{{range .Body.Categories}}
+<div class="borderwrap category">
+  <div class="maintitle"><span class="caticon" aria-hidden="true"></span>{{.Name}}</div>
+  <table class="ipbtable">
+    <thead><tr><th colspan="2">Forum</th><th class="num">Topics</th><th class="num">Replies</th><th class="lastcol">Last Post Info</th></tr></thead>
+    <tbody>
+    {{range $f := .Forums}}
+    <tr>
+      <td class="row2 icon"><span class="bf {{if $f.Unread}}new{{else}}nonew{{end}}" title="{{if $f.Unread}}New posts{{else}}No new posts{{end}}"></span></td>
+      <td class="row2 forumcol"><b><a href="/forum/area/{{.Area.ID}}">{{.Area.Name}}</a></b>
+        {{if .Area.Description}}<p class="forumdesc">{{.Area.Description}}</p>{{end}}</td>
+      <td class="row1 num">{{num .Topics}}</td>
+      <td class="row1 num">{{num .Replies}}</td>
+      <td class="row1 lastcol">{{with .Last}}<span class="lastdate">{{when .Created}}</span><br>
+        <b>In:</b> <a href="/forum/post/{{.ID}}">{{truncate $f.LastTopic.Subject 30}}</a><br>
+        <b>By:</b> {{.From}}{{else}}-----{{end}}</td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  <div class="catend"></div>
+</div>
+{{else}}
+<div class="borderwrap"><div class="maintitle"><span class="caticon" aria-hidden="true"></span>Forums</div>
+  <div class="tablepad">There are no forums open to you yet.{{if not .User}} <a href="/forum/login">Log in</a> to see more.{{end}}</div></div>
+{{end}}
+
+<div class="borderwrap stats">
+  <div class="maintitle"><span class="caticon" aria-hidden="true"></span>Board Statistics</div>
+  <table class="ipbtable">
+    <tr><th colspan="2">{{plural (len .Body.Online) "user" "users"}} online</th></tr>
+    <tr><td class="row1 icon"><span class="statsicon" aria-hidden="true"></span></td>
+      <td class="row2">{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a> <span class="desc">({{$n.Via}})</span>{{else}}<span class="desc">No one is on just now.</span>{{end}}</td></tr>
+    <tr><th colspan="2">Board Statistics</th></tr>
+    <tr><td class="row1 icon"><span class="statsicon" aria-hidden="true"></span></td>
+      <td class="row2">Our members have made a total of <b>{{num .Body.Stats.Posts}}</b> posts in <b>{{num .Body.Stats.Topics}}</b> topics<br>
+        We have <b>{{num .Body.Stats.Members}}</b> registered members<br>
+        {{with .Body.Stats.Newest}}The newest member is <b><a href="/forum/user/{{path .Name}}">{{.Name}}</a></b>{{end}}</td></tr>
+  </table>
+  <div class="catend"></div>
+</div>
+{{template "foot" .}}{{end}}

@@ -1,0 +1,53 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if ne .Title .BBS}}{{.Title}} - {{end}}{{.BBS}}</title>
+<link rel="stylesheet" href="/forum/static/ipb2.css">
+</head>
+<body id="top">
+<div id="ipbwrapper">
+<div class="borderwrap" id="header">
+  <div id="logostrip"><a href="/forum/" class="logo"><span class="logo-mark" aria-hidden="true"></span><span class="logo-text"><span class="logo-name">{{.BBS}}</span><span class="logo-sub">bulletin board</span></span></a></div>
+  <div id="submenu">
+    <p class="home"><a href="/forum/">Forums</a></p>
+    <p class="links">{{if .Terminal}}<a href="/terminal">Terminal</a>{{end}}<a href="/forum/online">Online ({{.Online}})</a><a href="/forum/search">Search</a></p>
+  </div>
+</div>
+{{if .User}}
+<div id="userlinks">
+  <div class="home"><b>Logged in as: <a href="/forum/user/{{path .User.Name}}">{{.User.Name}}</a></b>
+    ( <form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Log Out</button></form> )</div>
+  <div class="links"><a href="/forum/user/{{path .User.Name}}">My Profile</a> &middot; <a href="/forum/search">Search</a> &middot; <a href="/forum/online">Who's Online</a></div>
+</div>
+{{else}}
+<div id="userlinksguest">
+  <div class="pcen"><b>Welcome Guest</b> ( <a href="/forum/login">Log In</a>{{if .Register}} | <a href="/forum/register">Register</a>{{end}} )</div>
+</div>
+{{end}}
+<div id="navstrip"><span class="navhome" aria-hidden="true"></span><a href="/forum/">{{.BBS}}</a>{{range .Crumbs}} <span class="navsep">&gt;</span> {{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}{{end}}</div>
+{{if eq .Notice "welcome"}}<div class="okwrap"><h4>Welcome!</h4><p>Your account is made, and you are logged in.</p></div>{{end}}
+{{end}}
+
+{{define "foot"}}
+<div id="boardfoot">
+  {{template "themepicker" .}}
+  <form action="/forum/search" method="get" class="quicksearch"><input type="search" name="q" placeholder="Search..." aria-label="Search"> <button class="button">Go</button></form>
+</div>
+<div id="gfooter">
+  <p class="left"><a href="/forum/online">Online Users</a>{{if .Terminal}} &middot; <a href="/terminal">Web Terminal</a>{{end}}</p>
+  <p class="right">Time is now: {{longdate .Now}}</p>
+</div>
+<div class="copyright">{{.BBS}} &middot; the forums of a BBS, powered by bbs-sec</div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}<div class="pagelinks">
+  <span class="pagelink">Pages ({{.Total}})</span>
+  {{if gt .Cur 1}}<span class="pagelink"><a href="{{.URL .Prev}}" rel="prev">&lt;</a></span>{{end}}
+  {{$cur := .Cur}}{{$p := .}}{{range .Shown}}{{if eq . 0}}<span class="pagegap">&hellip;</span>{{else if eq . $cur}}<span class="pagecurrent">[{{.}}]</span>{{else}}<span class="pagelink"><a href="{{$p.URL .}}">{{.}}</a></span>{{end}}{{end}}
+  {{if .Next}}<span class="pagelinklast"><a href="{{.URL .Next}}" rel="next">&gt;</a></span>{{end}}
+</div>{{end}}{{end}}

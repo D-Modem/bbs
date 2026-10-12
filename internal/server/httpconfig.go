@@ -11,6 +11,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/api"
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
+	"github.com/Neo-Desktop/bbs-sec/internal/forum"
 )
 
 // httpSection reads [http].
@@ -72,6 +73,13 @@ func (c *Config) httpSection(s *config.Section) error {
 	}
 	if h.Guests, err = s.Bool("forum_guests", true); err != nil {
 		return err
+	}
+	if h.Theme = s.String("forum_theme", forum.Themes[0].Name); !forum.KnownTheme(h.Theme) {
+		var names []string
+		for _, t := range forum.Themes {
+			names = append(names, t.Name)
+		}
+		return fmt.Errorf("forum_theme: %q is not one of %s", h.Theme, strings.Join(names, ", "))
 	}
 	c.HTTP = h
 	return nil

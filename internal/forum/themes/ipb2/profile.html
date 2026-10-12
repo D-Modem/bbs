@@ -1,0 +1,39 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="borderwrap profile">
+  <div class="maintitle"><span class="caticon" aria-hidden="true"></span>Viewing Profile: {{$u.Name}}</div>
+  <table class="ipbtable">
+    <tr>
+      <td class="row1 profileside">
+        {{template "avatar" (av $u.Name "huge")}}
+        <p class="group{{if $u.Sysop}} admin{{end}}">{{group $u}}</p>
+        {{if .Body.On}}<p class="online-now">&#9679; Online now</p>{{else}}<p class="desc">Offline</p>{{end}}
+      </td>
+      <td class="row2">
+        <table class="ipbtable facts">
+          <tr><th colspan="2">Active Stats</th></tr>
+          <tr><td class="row1 key">Joined:</td><td class="row2">{{date $u.Created}}</td></tr>
+          <tr><td class="row1 key">Last visit:</td><td class="row2">{{when $u.LastLogin}}</td></tr>
+          <tr><td class="row1 key">Total posts:</td><td class="row2">{{num $u.Posts}}</td></tr>
+          <tr><td class="row1 key">Calls:</td><td class="row2">{{num $u.Logins}}</td></tr>
+          <tr><td class="row1 key">Member No.:</td><td class="row2">{{$u.ID}}</td></tr>
+          {{range .Body.On}}<tr><td class="row1 key">Now:</td><td class="row2">On node {{.Num}} by {{.Via}}: {{.Activity}}</td></tr>{{end}}
+          <tr><th colspan="2">Information</th></tr>
+          <tr><td class="row1 key">Location:</td><td class="row2">{{if $u.Location}}{{$u.Location}}{{else}}<i>No Information</i>{{end}}</td></tr>
+          <tr><td class="row1 key">About:</td><td class="row2">{{if $u.About}}{{$u.About}}{{else}}<i>No Information</i>{{end}}</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  <div class="catend"></div>
+</div>
+<div class="borderwrap">
+  <div class="maintitle"><span class="caticon" aria-hidden="true"></span>Recent Posts</div>
+  <table class="ipbtable">
+    {{range .Body.Recent}}
+    <tr><td class="row2"><b><a href="/forum/post/{{.ID}}">{{.Subject}}</a></b> <span class="desc">{{when .Created}}</span><p class="snippet">{{snippet .Body 160}}</p></td></tr>
+    {{else}}<tr><td class="row1 none">No posts to show.</td></tr>{{end}}
+  </table>
+  <div class="catend"></div>
+</div>
+{{template "foot" .}}{{end}}

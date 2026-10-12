@@ -30,7 +30,7 @@
 | `doors/dosemu2` | the Docker image DOS doors run in: dosemu2, its FOSSIL on COM1 |
 | `internal/finger` | the finger server |
 | `internal/gopher` | the gopher server |
-| `internal/forum` | the web forum: its pages (html/template), the skin's CSS (`static/`), sessions by the API's tokens |
+| `internal/forum` | the web forum: its pages (html/template; `themes/NAME/` a theme's own, over `templates/`), the themes' CSS (`static/`), sessions by the API's tokens |
 | `internal/api` | the HTTP API: REST, server-sent events, WebSockets, metrics, OpenAPI; the web terminal page (`web/`: xterm.js, the page) |
 | `proto` | the WebSocket protocol, `bbs.v1` (`make proto` regenerates `internal/api/pb`) |
 | `internal/tcpserv` | what finger and gopher share: limits, timeouts |
@@ -240,7 +240,10 @@ topics and areas, aliases hiding the writer, deleting (the writer's own,
 the sysop's any), news-only areas, search and who's online; in the store,
 topics threaded across areas, read marks, a topic mended when its first
 post or its replies' parent goes, and threads found for messages from
-before.  Updating xterm.js:
+before.  Every page in each theme, for a guest and a member; choosing a
+theme (a member's form needing its token, an unknown theme refused, no
+going back off the forum), and the forum's own theme until a caller
+chooses.  Updating xterm.js:
 `npm pack @xterm/xterm @xterm/addon-fit`, and copy `lib/xterm.js`,
 `css/xterm.css`, `lib/addon-fit.js` and the license into
 `internal/api/web` (without their source map lines).

@@ -24,7 +24,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
-//go:embed templates/*.html static/*
+//go:embed templates/*.html themes/*/*.html static/*
 var content embed.FS
 
 // Sessions are the logins: the HTTP API's session tokens.
@@ -38,6 +38,30 @@ type Sessions interface {
 	Logout(secret string)
 }
 
+// Theme is a look the forum can wear: its own stylesheet, and templates
+// of its own in themes/<Name>/ for the pages it lays out differently
+// (the rest are the default's).
+type Theme struct {
+	Name  string // as in bbs.conf's forum_theme
+	Title string // as the theme chooser shows it
+}
+
+// Themes are the forum's looks; the first is the default.
+var Themes = []Theme{
+	{"ipb3", "Default (IPB 3 style)"},
+	{"ipb2", "Classic (IPB 2 style)"},
+}
+
+// KnownTheme says whether there is a theme of the name.
+func KnownTheme(name string) bool {
+	for _, t := range Themes {
+		if t.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 // Server serves the forum.
 type Server struct {
 	B        *bbs.BBS
@@ -46,27 +70,41 @@ type Server struct {
 	Secure   bool          // the cookie only over TLS
 	Terminal bool          // the web terminal is there to link to
 	TTL      time.Duration // a login's
+	Theme    string        // the theme callers get until they choose ("": the first)
 
-	tmpl *template.Template
-	key  []byte // for forms' CSRF tokens
+	tmpl map[string]*template.Template // by theme
+	key  []byte                        // for forms' CSRF tokens
 }
 
 // Base is where the forum is.
 const Base = "/forum"
 
 const (
-	cookieName = "bbs_forum"
-	perPage    = 20
+	cookieName  = "bbs_forum"
+	themeCookie = "bbs_forum_theme"
+	perPage     = 20
 )
 
 // Handler is the forum's routes, under Base.
 func (s *Server) Handler() (http.Handler, error) {
 	if s.tmpl == nil {
-		t, err := template.New("").Funcs(funcs).ParseFS(content, "templates/*.html")
+		base, err := template.New("").Funcs(funcs).ParseFS(content, "templates/*.html")
 		if err != nil {
 			return nil, err
 		}
-		s.tmpl = t
+		s.tmpl = map[string]*template.Template{}
+		for _, th := range Themes {
+			t, err := base.Clone()
+			if err != nil {
+				return nil, err
+			}
+			if own, _ := fs.Glob(content, "themes/"+th.Name+"/*.html"); len(own) > 0 {
+				if t, err = t.ParseFS(content, own...); err != nil {
+					return nil, fmt.Errorf("theme %s: %w", th.Name, err)
+				}
+			}
+			s.tmpl[th.Name] = t
+		}
 		s.key = make([]byte, 32)
 		rand.Read(s.key)
 	}
@@ -93,6 +131,7 @@ func (s *Server) Handler() (http.Handler, error) {
 		"POST " + Base + "/logout":           s.logout,
 		"GET " + Base + "/register":          s.register,
 		"POST " + Base + "/register":         s.register,
+		"POST " + Base + "/theme":            s.chooseTheme,
 	} {
 		mux.HandleFunc(pattern, s.wrap(h))
 	}
@@ -220,7 +259,10 @@ type page struct {
 	Notice   string
 	Now      time.Time
 	Online   int
-	Body     any // the page's own
+	Theme    string  // the theme in use
+	Themes   []Theme // to choose from
+	Path     string  // this page's, to come back to
+	Body     any     // the page's own
 }
 
 type crumb struct {
@@ -230,7 +272,8 @@ type crumb struct {
 // render shows a page.
 func (q *req) render(status int, name, title string, crumbs []crumb, body any) {
 	p := page{Title: title, BBS: q.s.B.Name, User: q.user, CSRF: q.csrf(), Crumbs: crumbs, Terminal: q.s.Terminal,
-		Register: q.user == nil && q.s.B.NewUsers, Now: time.Now(), Body: body, Notice: q.r.URL.Query().Get("notice")}
+		Register: q.user == nil && q.s.B.NewUsers, Now: time.Now(), Body: body, Notice: q.r.URL.Query().Get("notice"),
+		Theme: q.theme(), Themes: Themes, Path: q.r.URL.RequestURI()}
 	switch {
 	case strings.HasPrefix(name, "online"):
 		p.Tab = "online"
@@ -245,7 +288,7 @@ func (q *req) render(status int, name, title string, crumbs []crumb, body any) {
 		}
 	}
 	var buf strings.Builder
-	if err := q.s.tmpl.ExecuteTemplate(&buf, name, p); err != nil {
+	if err := q.s.tmpl[p.Theme].ExecuteTemplate(&buf, name, p); err != nil {
 		q.s.B.Log.Printf("forum: %s: %v", name, err)
 		http.Error(q.w, "the page could not be made", http.StatusInternalServerError)
 		return
@@ -254,6 +297,30 @@ func (q *req) render(status int, name, title string, crumbs []crumb, body any) {
 	q.w.Header().Set("Cache-Control", "no-store")
 	q.w.WriteHeader(status)
 	fmt.Fprint(q.w, buf.String())
+}
+
+// theme is the theme the caller chose, or the forum's.
+func (q *req) theme() string {
+	if c, err := q.r.Cookie(themeCookie); err == nil && KnownTheme(c.Value) {
+		return c.Value
+	}
+	if KnownTheme(q.s.Theme) {
+		return q.s.Theme
+	}
+	return Themes[0].Name
+}
+
+// chooseTheme keeps the caller's choice of theme (in a cookie: guests
+// choose too) and goes back to the page they chose it on.
+func (s *Server) chooseTheme(q *req) {
+	name := q.r.PostForm.Get("theme")
+	if !KnownTheme(name) {
+		q.fail(http.StatusBadRequest, "There is no such theme.")
+		return
+	}
+	http.SetCookie(q.w, &http.Cookie{Name: themeCookie, Value: name, Path: Base, MaxAge: 365 * 24 * 3600,
+		HttpOnly: true, Secure: s.Secure, SameSite: http.SameSiteLaxMode})
+	q.redirect(safeBack(q.r.PostForm.Get("back")))
 }
 
 // fail shows an error page.

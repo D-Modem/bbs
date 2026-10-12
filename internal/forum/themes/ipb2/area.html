@@ -1,0 +1,44 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="topbar">
+  {{template "pages" $b.Pages}}
+  <div class="tbuttons">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="ibutton"><span class="ibicon newtopic" aria-hidden="true"></span>New Topic</a>
+  {{else if not .User}}<a href="/forum/login?back={{urlq (printf "/forum/area/%d" $b.Area.ID)}}" class="ibutton">Log In to Post</a>{{end}}</div>
+</div>
+<div class="borderwrap">
+  <div class="maintitle"><span class="caticon" aria-hidden="true"></span>{{$b.Area.Name}}{{if $b.Area.Description}}<span class="tdesc">{{$b.Area.Description}}</span>{{end}}</div>
+  <table class="ipbtable">
+    <thead><tr><th colspan="2">Topic Title</th><th class="num">Replies</th><th>Topic Starter</th><th class="lastcol">Last Action</th></tr></thead>
+    <tbody>
+    {{range $b.Topics}}
+    <tr>
+      <td class="row2 icon"><span class="folder {{if .Unread}}new{{else}}nonew{{end}}{{if ge .Replies 15}} hot{{end}}" title="{{if .Unread}}New replies{{else}}No new replies{{end}}"></span></td>
+      <td class="row2 topiccol">{{if .Unread}}<span class="newmark">NEW</span> {{end}}<a href="/forum/topic/{{.Root.ID}}" class="topictitle">{{.Root.Subject}}</a>
+        {{if gt .Pages 1}}<span class="minipages">( Go to page {{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}" class="minipagelink">{{.}}</a>{{end}} )</span>{{end}}
+        <p class="desc">{{snippet .Root.Body 70}}</p></td>
+      <td class="row2 num"><a href="/forum/topic/{{.Root.ID}}">{{num .Replies}}</a></td>
+      <td class="row2 starter">{{.Root.From}}</td>
+      <td class="row1 lastcol"><span class="lastdate">{{when .Last.Created}}</span><br><a href="/forum/post/{{.Last.ID}}">Last post by:</a> <b>{{.Last.From}}</b></td>
+    </tr>
+    {{else}}
+    <tr><td colspan="5" class="row1 none">No topics were found. {{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new">Start the first one.</a>{{end}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+  <div class="darkrow2">
+    <span class="showing">Showing {{plural $b.Count "topic" "topics"}}</span>
+    {{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark this forum as read</button></form>{{end}}
+  </div>
+  <div class="catend"></div>
+</div>
+<div class="topbar bottom">
+  {{template "pages" $b.Pages}}
+  <div class="tbuttons">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="ibutton"><span class="ibicon newtopic" aria-hidden="true"></span>New Topic</a>{{end}}</div>
+</div>
+<div class="legend">
+  <span><span class="folder new"></span> New replies</span>
+  <span><span class="folder nonew"></span> No new replies</span>
+  <span><span class="folder new hot"></span> Hot topic (new)</span>
+  <span><span class="folder nonew hot"></span> Hot topic (no new)</span>
+</div>
+{{template "foot" .}}{{end}}

@@ -46,6 +46,7 @@ type Settings struct {
 	Terminal   bool          // the web terminal page (if Server.Terminal is set)
 	Forum      bool          // the web forum, /forum/
 	Guests     bool          // the forum's guests read the areas anyone may
+	Theme      string        // the forum's theme until a caller chooses ("": the default)
 }
 
 // Server serves the API.
