@@ -1,0 +1,91 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<div class="topbar">
+  <div class="tleft">{{template "pages" $b.Pages}}</div>
+  <div class="tright">{{if $b.CanPost}}<a href="#reply" class="ibutton"><span class="ibicon reply" aria-hidden="true"></span>Add Reply</a>
+  <a href="/forum/area/{{$b.Area.ID}}/new" class="ibutton"><span class="ibicon newtopic" aria-hidden="true"></span>New Topic</a>{{end}}</div>
+</div>
+<div class="tableborder topic">
+  <div class="maintitle"><span class="caticon" aria-hidden="true"></span><b>{{$b.Root.Subject}}</b><span class="tdesc">, started by {{$b.Root.From}}</span></div>
+  {{with $b.Poll}}
+  <div class="poll">
+    <div class="pformstrip">Poll</div>
+    <div class="tablepad">
+    {{if or .Voted (not $me)}}
+      <table class="pollresults">
+      {{range .Answers}}<tr><td class="answer">{{.Text}}{{if .Mine}} <span class="mine">*</span>{{end}}</td><td class="bar"><meter min="0" max="100" value="{{.Pct}}"></meter></td><td>[ {{.Count}} ]</td><td>[{{.Pct}}%]</td></tr>{{end}}
+      </table>
+      <p class="desc">Total Votes: {{.Total}}{{if not $me}} &middot; <a href="/forum/login">Log in</a> to vote{{end}}</p>
+    {{end}}
+    {{if $me}}
+      <form method="post" action="/forum/post/{{.ID}}/answer" class="poll-form">
+        <input type="hidden" name="csrf" value="{{$csrf}}">
+        {{range .Answers}}<label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label>{{end}}
+        <div class="pollbutton"><button class="button">{{if .Voted}}Change Vote{{else}}Vote!{{end}}</button></div>
+      </form>
+    {{end}}
+    </div>
+  </div>
+  {{end}}
+  <div class="postlinksbar"><a href="/forum/area/{{$b.Area.ID}}">{{$b.Area.Name}}</a>{{if $b.CanPost}} | <a href="#reply">Reply</a> | <a href="/forum/area/{{$b.Area.ID}}/new">Start new topic</a>{{end}}</div>
+  {{range $b.Posts}}{{$css := "post1"}}{{if not (odd .Num)}}{{$css = "post2"}}{{end}}
+  <table class="tablebasic post" id="entry{{.M.ID}}">
+    <tr>
+      <td class="row4 pname">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="normalname{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{else}}<span class="normalname unreg">{{.M.From}}</span>{{end}}</td>
+      <td class="row4 phead">
+        <span class="postdetails"><span class="posticon" aria-hidden="true"></span><b><a href="/forum/post/{{.M.ID}}" title="Link to this post">Posted on</a></b> {{longdate .M.Created}}{{if and .M.To (ne .M.To "All")}}, to {{.M.To}}{{end}}</span>
+        <span class="pbuttons">
+        {{if .CanDelete}}<form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="pbutton">&#10006; Delete</button></form>{{end}}
+        {{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="pbutton">{{if .Liked}}Unlike{{else}}&#9829; Like{{end}}</button></form>{{end}}
+        {{if $b.CanPost}}<a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#reply" class="pbutton">&#8220; Quote</a>{{end}}
+        </span>
+      </td>
+    </tr>
+    <tr>
+      <td class="{{$css}} pdetails"><span class="postdetails">
+        {{template "avatar" (av .M.From "large")}}<br><br>
+        {{if .Author}}
+        <span class="ptitle{{if .Author.Sysop}} admin{{end}}">{{if .Author.Sysop}}Sysop{{else}}Member{{end}}</span><br>
+        <span class="pips" aria-hidden="true">{{if ge .Author.Posts 10}}&#9679;{{end}}{{if ge .Author.Posts 50}}&#9679;{{end}}{{if ge .Author.Posts 200}}&#9679;{{end}}&#9679;</span><br><br>
+        Group: {{group .Author}}<br>Posts: {{num .Author.Posts}}<br>Member No.: {{.Author.ID}}<br>Joined: {{date .Author.Created}}{{if .Author.Location}}<br>From: {{.Author.Location}}{{end}}
+        {{else}}
+        {{if .Where}}Group: Visitors<br>From: {{.Where}}{{else}}Group: Members{{end}}
+        {{end}}
+      </span></td>
+      <td class="{{$css}} pbody">
+        <div class="postcolor">{{body .M.Body}}</div>
+        {{if .Likes}}<div class="signature">-----<br>&#9829; {{plural .Likes "member likes" "members like"}} this post</div>{{end}}
+      </td>
+    </tr>
+    <tr>
+      <td class="darkrow3"></td>
+      <td class="darkrow3 ptop"><a href="#top" title="Top" class="upbutton" aria-label="Top">&#9650;</a></td>
+    </tr>
+  </table>
+  <div class="darkrow1 postsep"></div>
+  {{end}}
+  <div class="activeuserstrip">&laquo; <a href="/forum/area/{{$b.Area.ID}}">Back to {{$b.Area.Name}}</a> &raquo;</div>
+</div>
+<div class="topbar">
+  <div class="tleft">{{template "pages" $b.Pages}}</div>
+  <div class="tright">{{if $b.CanPost}}<a href="#reply" class="ibutton"><span class="ibicon reply" aria-hidden="true"></span>Add Reply</a>
+  <a href="/forum/area/{{$b.Area.ID}}/new" class="ibutton"><span class="ibicon newtopic" aria-hidden="true"></span>New Topic</a>{{end}}</div>
+</div>
+
+{{if $b.CanPost}}
+<div class="tableborder reply" id="reply">
+  <div class="maintitle"><span class="caticon" aria-hidden="true"></span>Fast Reply</div>
+  <form method="post" action="/forum/topic/{{$b.Root.ID}}/reply">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    {{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+    <table class="tablebasic">
+      <tr><td class="pformleft">Your reply</td><td class="pformright"><textarea name="body" rows="9" required aria-label="Your reply">{{$b.Quote}}</textarea></td></tr>
+      {{if $b.Aliases}}<tr><td class="pformleft">Options</td><td class="pformright"><label><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label></td></tr>{{end}}
+    </table>
+    <div class="pformstrip center"><button class="button important">Add Reply</button></div>
+  </form>
+</div>
+{{else if not .User}}
+<div class="tableborder"><div class="tablepad">You need to be a member to reply. <a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">Log in</a>{{if .Register}} or <a href="/forum/register">register</a>{{end}}.</div></div>
+{{end}}
+{{template "foot" .}}{{end}}

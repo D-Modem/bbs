@@ -1,0 +1,49 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if ne .Title .BBS}}{{.Title}} - {{end}}{{.BBS}}</title>
+<link rel="stylesheet" href="/forum/static/ipb1.css">
+</head>
+<body id="top">
+<div id="ipbwrapper">
+<div id="logostrip"><a href="/forum/" class="logo" title="Board Home"><span class="logo-mark" aria-hidden="true"></span><span class="logo-name">{{.BBS}}</span><span class="logo-sub">bulletin board</span></a></div>
+<div id="submenu">
+  <div class="home"><a href="/forum/">{{.BBS}}</a></div>
+  <div class="links">
+    <a href="/forum/search"><span class="tb search" aria-hidden="true"></span>Search</a>
+    <a href="/forum/online"><span class="tb members" aria-hidden="true"></span>Online ({{.Online}})</a>
+    {{if .Terminal}}<a href="/terminal"><span class="tb terminal" aria-hidden="true"></span>Terminal</a>{{end}}
+  </div>
+</div>
+<div id="userlinks">
+  {{if .User}}
+  <div><strong>Logged in as: <a href="/forum/user/{{path .User.Name}}">{{.User.Name}}</a></strong>
+    ( <form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Log Out</button></form> )</div>
+  <div class="right"><b><a href="/forum/user/{{path .User.Name}}">My Profile</a></b> &middot; <a href="/forum/search">Search</a> &middot; <a href="/forum/online">Who's Online</a></div>
+  {{else}}
+  <div>Welcome Guest ( <a href="/forum/login">Log In</a>{{if .Register}} | <a href="/forum/register">Register</a>{{end}} )</div>
+  <div class="right"><a href="/forum/search">Search</a></div>
+  {{end}}
+</div>
+<div id="navstrip"><span class="navicon" aria-hidden="true"></span><a href="/forum/">{{.BBS}}</a>{{range .Crumbs}} <span class="navsep">&rsaquo;</span> {{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}{{end}}</div>
+{{if eq .Notice "welcome"}}<div class="tableborder notice"><div class="maintitle">Welcome!</div><div class="tablepad">Your account is made, and you are logged in.</div></div>{{end}}
+{{end}}
+
+{{define "foot"}}
+<div id="boardfoot">
+  {{template "themepicker" .}}
+  <form action="/forum/search" method="get" class="quicksearch">Search the board&nbsp;<input type="search" name="q" aria-label="Search"><button class="button">Go</button></form>
+</div>
+<div class="copyright">{{.BBS}} &middot; the forums of a BBS, powered by bbs-sec<br>Time is now: {{longdate .Now}}</div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}<span class="pagelinks"><span class="pagecount">Pages: ({{.Total}})</span>
+  {{if gt .Cur 1}}<a href="{{.URL .Prev}}" rel="prev" title="Previous page">&laquo;</a>{{end}}
+  {{$cur := .Cur}}{{$p := .}}{{range .Shown}}{{if eq . 0}}&hellip;{{else if eq . $cur}}<b>[{{.}}]</b>{{else}}<a href="{{$p.URL .}}">{{.}}</a>{{end}} {{end}}
+  {{if .Next}}<a href="{{.URL .Next}}" rel="next" title="Next page">&raquo;</a>{{end}}
+</span>{{end}}{{end}}

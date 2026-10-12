@@ -3,7 +3,7 @@
 The HTTP API's server also serves the message areas as a web forum, at
 `/forum/` (and `/`, which goes there). It is laid out like the bulletin
 boards of their day: categories of forums, topics, and posts with their
-authors beside them, in one of two [themes](#themes). The look is the
+authors beside them, in one of several [themes](#themes). The look is the
 BBS's own CSS, built into the `bbs` binary; nothing is loaded from
 elsewhere, and no script runs on the pages.
 
@@ -74,6 +74,7 @@ On a post:
 | theme | |
 |---|---|
 | `ipb3` | the default: a board of the early 2010s in the manner of Invision Power Board 3: a dark user bar, a navy header with tabs, rounded blue category bars, posts with their author's column on the left |
+| `ipb1` | retro: a board of the early 2000s in the manner of Invision Power Board 1: tables outlined in slate blue with white lines between their cells, bright title bars, a flat menu box, round forum badges and envelope topic icons, rounded glossy buttons, *Posted on* and a post links bar |
 | `ipb2` | classic: a board of the mid-2000s in the manner of Invision Power Board 2: a white page, boxes outlined in navy, blue gradient title bars, pale blue rows, small Verdana; *Logged in as* and *Welcome Guest* bars, *Last Post Info*, *Fast Reply*, big blue buttons |
 
 Both are this BBS's own CSS and templates, drawn to look like the boards

@@ -21,6 +21,7 @@ var funcs = template.FuncMap{
 	"when":     when,
 	"date":     func(t time.Time) string { return t.Format("02 January 2006") },
 	"longdate": longDate,
+	"odd":      func(n int) bool { return n%2 == 1 },
 	"initial":  initial,
 	"avatar":   avatarClass,
 	"group":    groupTitle,

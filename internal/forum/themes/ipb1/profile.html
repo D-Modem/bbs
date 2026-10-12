@@ -1,0 +1,36 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="profilehead">
+  {{template "avatar" (av $u.Name "huge")}}
+  <div><div id="profilename">{{$u.Name}}</div>
+  <div class="desc">{{group $u}}{{if .Body.On}} &middot; <span class="online-now">Online now</span>{{else}} &middot; Offline{{end}}</div></div>
+</div>
+<div class="profilecols">
+  <div class="tableborder">
+    <div class="maintitle">Active Stats</div>
+    <table class="tablebasic">
+      <tr><td class="row3 key">Joined:</td><td class="row1">{{date $u.Created}}</td></tr>
+      <tr><td class="row3 key">Last visit:</td><td class="row1">{{when $u.LastLogin}}</td></tr>
+      <tr><td class="row3 key">Total posts:</td><td class="row1">{{num $u.Posts}}</td></tr>
+      <tr><td class="row3 key">Calls:</td><td class="row1">{{num $u.Logins}}</td></tr>
+      <tr><td class="row3 key">Member No.:</td><td class="row1">{{$u.ID}}</td></tr>
+      {{range .Body.On}}<tr><td class="row3 key">Now:</td><td class="row1">On node {{.Num}} by {{.Via}}: {{.Activity}}</td></tr>{{end}}
+    </table>
+  </div>
+  <div class="tableborder">
+    <div class="maintitle">Information</div>
+    <table class="tablebasic">
+      <tr><td class="row3 key">Location:</td><td class="row1">{{if $u.Location}}{{$u.Location}}{{else}}<i>No Information</i>{{end}}</td></tr>
+      <tr><td class="row3 key">About:</td><td class="row1">{{if $u.About}}{{$u.About}}{{else}}<i>No Information</i>{{end}}</td></tr>
+    </table>
+  </div>
+</div>
+<div class="tableborder">
+  <div class="maintitle"><span class="caticon" aria-hidden="true"></span>Recent Posts</div>
+  <table class="tablebasic">
+    {{range .Body.Recent}}
+    <tr><td class="row4"><b><a href="/forum/post/{{.ID}}">{{.Subject}}</a></b> <span class="desc">{{when .Created}}</span><br><span class="snippet">{{snippet .Body 160}}</span></td></tr>
+    {{else}}<tr><td class="row4 none">No posts to show.</td></tr>{{end}}
+  </table>
+</div>
+{{template "foot" .}}{{end}}

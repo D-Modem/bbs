@@ -212,7 +212,8 @@ address = 127.0.0.1:2513
 ;forum = yes
 ;forum_guests = yes
 ; the forum's theme until a caller chooses (at the foot of each page):
-; ipb3 (in the manner of Invision Power Board 3) or ipb2 (classic, as IPB 2)
+; ipb3 (in the manner of Invision Power Board 3), ipb2 (classic, as IPB 2)
+; or ipb1 (retro, as IPB 1)
 ;forum_theme = ipb3
 
 ; Access levels: a user's level (0-255) gets what the [level] at or

@@ -1,0 +1,38 @@
+{{define "index.html"}}{{template "head" .}}
+{{if .User}}<div class="pagetop">Welcome back, <b>{{.User.Name}}</b>. The board's newest posts are marked <span class="bf new mini" aria-hidden="true"></span> below.</div>{{end}}
+{{range .Body.Categories}}
+<div class="tableborder">
+  <div class="maintitle"><span class="caticon" aria-hidden="true"></span>{{.Name}}</div>
+  <table class="tablebasic">
+    <tr><th class="titlemedium icon"></th><th class="titlemedium">Forum</th><th class="titlemedium num">Topics</th><th class="titlemedium num">Replies</th><th class="titlemedium lastcol">Last Post Info</th></tr>
+    {{range $f := .Forums}}
+    <tr>
+      <td class="row4 icon"><span class="bf {{if $f.Unread}}new{{else}}nonew{{end}}" title="{{if $f.Unread}}New posts{{else}}No new posts{{end}}"></span></td>
+      <td class="row4"><b><a href="/forum/area/{{$f.Area.ID}}">{{$f.Area.Name}}</a></b>{{if $f.Area.Description}}<br><span class="desc">{{$f.Area.Description}}</span>{{end}}</td>
+      <td class="row2 num">{{num $f.Topics}}</td>
+      <td class="row2 num">{{num $f.Replies}}</td>
+      <td class="row2 lastcol">{{with $f.Last}}{{when .Created}}<br>In:&nbsp;<a href="/forum/post/{{.ID}}">{{truncate $f.LastTopic.Subject 30}}</a><br>By: {{.From}}{{else}}-----{{end}}</td>
+    </tr>
+    {{end}}
+    <tr><td class="darkrow2" colspan="5">&nbsp;</td></tr>
+  </table>
+</div>
+{{else}}
+<div class="tableborder"><div class="maintitle"><span class="caticon" aria-hidden="true"></span>Forums</div>
+  <div class="tablepad">There are no forums open to you yet.{{if not .User}} <a href="/forum/login">Log in</a> to see more.{{end}}</div></div>
+{{end}}
+
+<div class="statlinks"><a href="/forum/online">Who's Online</a> | <a href="/forum/search">Search the Board</a>{{if .Terminal}} | <a href="/terminal">Web Terminal</a>{{end}}</div>
+<div class="tableborder">
+  <div class="maintitle">Board Statistics</div>
+  <table class="tablebasic">
+    <tr><td class="pformstrip" colspan="2">{{plural (len .Body.Online) "user is" "users are"}} on just now</td></tr>
+    <tr><td class="row2 icon"><span class="statsicon users" aria-hidden="true"></span></td>
+      <td class="row4"><div class="thin">{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a> <span class="desc">({{$n.Via}})</span>{{else}}<span class="desc">No one is on just now.</span>{{end}}</div></td></tr>
+    <tr><td class="pformstrip" colspan="2">Board Statistics</td></tr>
+    <tr><td class="row2 icon"><span class="statsicon" aria-hidden="true"></span></td>
+      <td class="row4">Our members have made a total of <b>{{num .Body.Stats.Posts}}</b> posts in <b>{{num .Body.Stats.Topics}}</b> topics<br>
+        We have <b>{{num .Body.Stats.Members}}</b> registered members{{with .Body.Stats.Newest}}<br>The newest member is <b><a href="/forum/user/{{path .Name}}">{{.Name}}</a></b>{{end}}</td></tr>
+  </table>
+</div>
+{{template "foot" .}}{{end}}

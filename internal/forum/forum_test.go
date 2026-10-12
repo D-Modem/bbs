@@ -412,11 +412,16 @@ func TestThemes(t *testing.T) {
 		}
 		_, _, body := alice.get(topic)
 		has(t, th.Name+" topic", body, "Remember these?", "I do.", `class="quote"`, `name="answer"`)
+		// each laid out its own way
+		own := map[string][2][]string{
+			"ipb3": {{"Signed in as", "Reply to this topic"}, {"Board Statistics", "Create Account"}},
+			"ipb2": {{"Logged in as:", "Fast Reply", "Member No.:", `class="postsep"`}, {"Welcome Guest", "Last Post Info", `id="gfooter"`}},
+			"ipb1": {{"Logged in as:", "Posted on", `class="postlinksbar"`, `class="activeuserstrip"`}, {"Welcome Guest", "Last Post Info", `class="pformstrip"`}},
+		}[th.Name]
+		has(t, th.Name+" own topic", body, own[0]...)
+		_, _, body = guest.get("/forum/")
+		has(t, th.Name+" own index", body, own[1]...)
 	}
-	_, _, body = alice.get(topic)
-	has(t, "classic topic", body, "Logged in as:", "Fast Reply", "Member No.:", "Add Reply")
-	_, _, body = guest.get("/forum/")
-	has(t, "classic index", body, "Welcome Guest", "Last Post Info", "Board Statistics")
 
 	// no such theme; an outside page to go back to
 	if code, _, _ := guest.post("", "/forum/theme", url.Values{"theme": {"nope"}}); code != 400 {
