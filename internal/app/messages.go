@@ -286,7 +286,7 @@ func (s *Session) read(a *store.Area, m *store.Message) (bool, error) {
 func (s *Session) post(a *store.Area, to, subject string, quote []string, replyTo int64) error {
 	s.N.Doing("Writing in " + a.Name)
 	var id int64
-	sent, err := s.UI.Edit(&view.Draft{Title: "Post in " + a.Name, To: to, Subject: subject, Body: quote,
+	sent, err := s.UI.Edit(&view.Draft{Title: "Post in " + a.Name, To: to, Subject: subject, Quote: quote,
 		Send: func(to, subject string, body []string) error {
 			var err error
 			id, err = s.N.Post(a, to, subject, body, replyTo)
@@ -301,7 +301,7 @@ func (s *Session) post(a *store.Area, to, subject string, quote []string, replyT
 // compose: a private mail
 func (s *Session) compose(to, subject string, quote []string, replyTo int64) error {
 	s.N.Doing("Writing mail")
-	d := &view.Draft{Title: "New mail", To: to, ToHint: "user name", Subject: subject, Body: quote,
+	d := &view.Draft{Title: "New mail", To: to, ToHint: "user name", Subject: subject, Quote: quote,
 		CheckTo: func(to string) error {
 			if _, _, ok := bbs.SplitNetmail(to); ok && s.B.Netmail != nil {
 				return nil

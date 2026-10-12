@@ -51,7 +51,8 @@ The same caller on a 3270:
 
 What there is:
 
-- [message areas](Administration#message-areas): read new, list, read by number, post, reply (quoting),
+- [message areas](Administration#message-areas): read new, list, read by number, post, reply (quoting
+  from a window in the [full-screen editor](Writing-Messages)),
   reply by mail; areas only the sysop posts in; authors and the sysop
   delete messages
 - private mail: inbox, read, reply, delete

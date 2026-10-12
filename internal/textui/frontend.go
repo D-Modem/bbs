@@ -37,8 +37,12 @@ func (s *session) Terminal() string {
 	if t.DEC {
 		charset = ", DEC graphics"
 	}
-	return fmt.Sprintf("%s%dx%d, ANSI %s, UTF-8 %s%s, sixel %s, RIP %s", ident, t.Cols, t.Rows,
-		onOff[t.ANSI], onOff[t.UTF8], charset, onOff[t.Sixel], onOff[t.RIP])
+	editor := ""
+	if t.ANSI {
+		editor = ", editor " + map[bool]string{true: "full-screen", false: "line"}[s.fullScreen()]
+	}
+	return fmt.Sprintf("%s%dx%d, ANSI %s, UTF-8 %s%s, sixel %s, RIP %s%s", ident, t.Cols, t.Rows,
+		onOff[t.ANSI], onOff[t.UTF8], charset, onOff[t.Sixel], onOff[t.RIP], editor)
 }
 
 // TerminalActions are what the caller may switch on the profile.
@@ -50,10 +54,14 @@ func (s *session) TerminalActions() []view.Action {
 	case t.VT52:
 		return nil
 	}
-	return []view.Action{{ID: "ansi", Label: "ANSI on/off", Key: 'A'},
+	acts := []view.Action{{ID: "ansi", Label: "ANSI on/off", Key: 'A'},
 		{ID: "utf8", Label: "8-bit UTF-8 on/off", Key: '8'},
 		{ID: "sixel", Label: "Sixel on/off", Key: 'S'},
 		{ID: "rip", Label: "RIP on/off", Key: 'R'}}
+	if t.ANSI {
+		acts = append(acts, view.Action{ID: "editor", Label: "Editor full/line", Key: 'E'})
+	}
+	return acts
 }
 
 // applyPrefs treats the terminal as the user said to last time: ANSI and
@@ -104,6 +112,12 @@ func (s *session) savePrefs(id string) error {
 			return err
 		}
 		return s.n.SetPref("rip", "off")
+	case "editor":
+		v := "line"
+		if s.n.Prefs()["editor"] == "line" {
+			v = "full"
+		}
+		return s.n.SetPref("editor", v)
 	case "utf8", "sixel", "rip":
 		return s.n.SetPref(id, onOff[map[string]bool{"utf8": t.UTF8, "sixel": t.Sixel, "rip": t.RIP}[id]])
 	}

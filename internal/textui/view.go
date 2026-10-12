@@ -363,7 +363,16 @@ func (s *session) Edit(d *view.Draft) (bool, error) {
 		t.Println("No subject: given up.")
 		return false, nil
 	}
-	body, err := s.edit(d.Body)
+	var body []string
+	if s.fullScreen() {
+		body, err = s.fullEdit(to, subject, d.Body, d.Quote)
+	} else {
+		initial := d.Body
+		if len(initial) == 0 {
+			initial = d.Quote
+		}
+		body, err = s.edit(initial)
+	}
 	if err != nil || body == nil {
 		return false, err
 	}

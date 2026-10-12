@@ -47,7 +47,7 @@ for the caller and says what they chose:
 | `Message` | headers, the body paged; `[N]ext, [R]eply, ...` | headers, the body scrolled; PF10/PF11, PF4 ... |
 | `Form` | a question a field | one screen of fields |
 | `Panel` | lines, then `[L]ocation, [P]assword, ...` | lines, PF keys |
-| `Draft` | `To`, `Subject`, the line editor | the full-screen editor |
+| `Draft` | `To`, `Subject`, the full-screen editor (ANSI) or the line editor | the editor screen |
 | `Confirm`, `Say`, `Show` | `[Y/n]`, a line, lines and a pause | a Y/N field, the message line, a page |
 
 An action has a key for text terminals and a PF key for 3270s (and a
@@ -128,6 +128,12 @@ profile, a password that differs, validating with a bad level first);
 the column layout; the text prompts' keys; and a 3270 (s3270) through
 the areas, a post from the editor, reading it, the profile, with a text
 caller reading the 3270's post.
+The full-screen editor: its text (wrapping as typed and as given, a word
+too long for a line, joining lines by Backspace and Delete, moving over
+line ends, quoting, the line limit), and an SSH caller writing a post
+with the cursor keys, replying with lines from the quote window and
+`/S`, then choosing the line editor; settings kept from call to call
+(UTF-8 off over SSH, a Commodore's width) and through the API.
 The HTTP API: logins, tokens and scopes, every REST endpoint and its
 refusals, rate limits, the OpenAPI document against the routes, server-sent
 events and node messages, both WebSockets (auth by header and by first

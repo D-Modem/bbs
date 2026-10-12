@@ -169,7 +169,10 @@ type Draft struct {
 	CheckTo func(string) error // To checked at once on a text terminal (nil: by Send)
 	Subject string
 	Body    []string
-	Send    func(to, subject string, body []string) error
+	// Quote is what may be quoted (a reply's): a full-screen editor offers
+	// it in a window, another begins the body with it
+	Quote []string
+	Send  func(to, subject string, body []string) error
 }
 
 // UI is a front end's drawing of the screens.

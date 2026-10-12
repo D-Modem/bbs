@@ -18,6 +18,7 @@
 - [Terminal identification](Terminal-Identification)
 
 **Features**
+- [Writing messages](Writing-Messages)
 - [Files and FTP](Files-and-FTP)
 - [File transfers](File-Transfers)
 - [Doors](Doors)

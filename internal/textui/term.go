@@ -252,7 +252,28 @@ func (t *Term) Clear() {
 // readRune reads one key: a rune, with arrow keys and other escape
 // sequences dropped and CR LF taken as one CR.  While it waits it shows
 // what Notify has.
-func (t *Term) readRune() (rune, error) {
+func (t *Term) readRune() (rune, error) { return t.read(false) }
+
+// Keys EditKey reads beyond runes: the cursor and editing keys.
+const (
+	KeyUp rune = 0xE000 + iota
+	KeyDown
+	KeyRight
+	KeyLeft
+	KeyHome
+	KeyEnd
+	KeyPgUp
+	KeyPgDn
+	KeyInsert
+	KeyDelete
+)
+
+// EditKey reads one key as typed, for a full-screen editor: runes and
+// control characters as they are (CR LF as CR), the cursor and editing
+// keys as KeyUp and the rest, a lone ESC as ESC.
+func (t *Term) EditKey() (rune, error) { return t.read(true) }
+
+func (t *Term) read(keys bool) (rune, error) {
 	if err := t.Flush(); err != nil {
 		return 0, err
 	}
@@ -279,6 +300,17 @@ func (t *Term) readRune() (rune, error) {
 			continue
 		}
 		t.lastCR = r == '\r'
+		if r == 0x1b && keys {
+			k, err := t.escapeKey()
+			if err != nil {
+				return 0, err
+			}
+			if k == 0 {
+				continue
+			}
+			t.sinceKey = 0
+			return k, nil
+		}
 		if r == 0x1b {
 			if err := t.skipEscape(); err != nil {
 				return 0, err
@@ -431,6 +463,53 @@ func (t *Term) skipEscape() error {
 		t.r.UnreadByte()
 	}
 	return nil
+}
+
+// escapeKey reads the rest of an escape sequence as a key (ESC [ A, ESC O
+// H, ESC [ 3 ~, a VT52's ESC A ...): 0 for one that is no key, ESC for a
+// lone ESC.
+func (t *Term) escapeKey() (rune, error) {
+	t.c.SetReadDeadline(time.Now().Add(300 * time.Millisecond))
+	defer t.c.SetReadDeadline(time.Time{})
+	b, err := t.r.ReadByte()
+	if err != nil {
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			return 0x1b, nil
+		}
+		return 0, err
+	}
+	final := map[byte]rune{'A': KeyUp, 'B': KeyDown, 'C': KeyRight, 'D': KeyLeft, 'H': KeyHome, 'F': KeyEnd}
+	switch b {
+	case '[':
+		var param []byte
+		for i := 0; i < 16; i++ {
+			c, err := t.r.ReadByte()
+			if err != nil {
+				return 0, nil
+			}
+			if c >= 0x40 && c <= 0x7e {
+				if c == '~' {
+					return map[string]rune{"1": KeyHome, "7": KeyHome, "4": KeyEnd, "8": KeyEnd,
+						"2": KeyInsert, "3": KeyDelete, "5": KeyPgUp, "6": KeyPgDn}[string(param)], nil
+				}
+				return final[c], nil
+			}
+			param = append(param, c)
+		}
+		return 0, nil
+	case 'O':
+		c, err := t.r.ReadByte()
+		if err != nil {
+			return 0, nil
+		}
+		return final[c], nil
+	case 'A', 'B', 'C', 'D':
+		if t.VT52 {
+			return final[b], nil
+		}
+	}
+	t.r.UnreadByte()
+	return 0x1b, nil
 }
 
 // Key reads one key, upper-cased; Enter is '\r'.

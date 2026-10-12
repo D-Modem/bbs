@@ -446,7 +446,11 @@ func (u *ui) Panel(p *view.Panel) (string, error) {
 }
 
 func (u *ui) Edit(d *view.Draft) (bool, error) {
-	return u.editor(d.Title, d.To, d.Subject, d.Body, func(to, subject string, body []string) error {
+	body := d.Body
+	if len(body) == 0 {
+		body = d.Quote
+	}
+	return u.editor(d.Title, d.To, d.Subject, body, func(to, subject string, body []string) error {
 		if strings.TrimSpace(to) == "" {
 			return fmt.Errorf("say who it is to")
 		}
