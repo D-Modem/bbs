@@ -59,6 +59,7 @@ func (s *session) run() error {
 	if err := s.login(); err != nil {
 		return err
 	}
+	s.applyPrefs()
 	t.Notify = s.notify
 	defer func() { t.Notify = nil }()
 	err := app.Run(s.b, s.n, s)

@@ -2,6 +2,7 @@ package textui
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/app"
@@ -55,8 +56,69 @@ func (s *session) TerminalActions() []view.Action {
 		{ID: "rip", Label: "RIP on/off", Key: 'R'}}
 }
 
-// TerminalAction switches what was chosen.
+// applyPrefs treats the terminal as the user said to last time: ANSI and
+// UTF-8 as they set them, sixel and RIP off if they turned them off (on
+// only where the terminal says it has them), a Commodore's width.
+func (s *session) applyPrefs() {
+	t := s.t
+	p := s.n.Prefs()
+	switch {
+	case t.PETSCII:
+		if w, ok := p["width"]; ok && w != strconv.Itoa(t.Cols) {
+			t.SetPETSCII(true, map[string]int{"40": 40, "80": 80}[w])
+		}
+		return
+	case t.VT52:
+		return
+	}
+	if on, ok := p.On("ansi"); ok {
+		t.ANSI = on
+		if !on {
+			t.RIP = false
+		}
+	}
+	if on, ok := p.On("utf8"); ok && on != t.UTF8 {
+		t.UTF8 = on
+		if on && t.DEC {
+			t.DEC = false
+			t.setTranslator(nil)
+		}
+	}
+	if on, ok := p.On("sixel"); ok && !on {
+		t.Sixel = false
+	}
+	if on, ok := p.On("rip"); ok && !on {
+		t.RIP = false
+	}
+}
+
+// savePrefs keeps how the terminal is now, for the next call.
+func (s *session) savePrefs(id string) error {
+	t := s.t
+	onOff := map[bool]string{true: "on", false: "off"}
+	switch id {
+	case "width":
+		return s.n.SetPref("width", strconv.Itoa(t.Cols))
+	case "ansi":
+		if err := s.n.SetPref("ansi", onOff[t.ANSI]); err != nil || t.ANSI {
+			return err
+		}
+		return s.n.SetPref("rip", "off")
+	case "utf8", "sixel", "rip":
+		return s.n.SetPref(id, onOff[map[string]bool{"utf8": t.UTF8, "sixel": t.Sixel, "rip": t.RIP}[id]])
+	}
+	return nil
+}
+
+// TerminalAction switches what was chosen, and keeps it for next time.
 func (s *session) TerminalAction(id string) error {
+	if err := s.switchTerminal(id); err != nil {
+		return err
+	}
+	return s.savePrefs(id)
+}
+
+func (s *session) switchTerminal(id string) error {
 	t := s.t
 	if t.PETSCII != (id == "width") || t.VT52 {
 		return nil

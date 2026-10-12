@@ -83,6 +83,9 @@ func TestPETSCII(t *testing.T) {
 	d.expect(pet("[W]idth 40/80"))
 	d.send(typed("w"))
 	d.expect(pet("Terminal:  Commodore, 80x25"))
+	if u, _ := e.b.Store.UserByName("alice"); u.Prefs != "width=80" {
+		t.Errorf("kept %q", u.Prefs)
+	}
 	d.send(typed("q"))
 	d.expect(pet("Command: "))
 	d.send(typed("w"))

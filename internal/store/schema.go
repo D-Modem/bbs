@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS users (
 	time_day   {int} NOT NULL DEFAULT 0,
 	time_used  {int} NOT NULL DEFAULT 0,
 	dl_day     {int} NOT NULL DEFAULT 0,
-	dl_count   {int} NOT NULL DEFAULT 0
+	dl_count   {int} NOT NULL DEFAULT 0,
+	prefs      {str} NOT NULL DEFAULT ''
 )`, `
 CREATE TABLE IF NOT EXISTS areas (
 	id          {id},
@@ -183,6 +184,7 @@ var added = []struct{ table, column, decl string }{
 	{"areas", "post_req", "{str} NOT NULL DEFAULT ''"},
 	{"file_areas", "download_req", "{str} NOT NULL DEFAULT ''"},
 	{"file_areas", "upload_req", "{str} NOT NULL DEFAULT ''"},
+	{"users", "prefs", "{str} NOT NULL DEFAULT ''"},
 }
 
 // migrate makes the schema, or brings an older database up to it.

@@ -102,3 +102,25 @@ func TestQuote(t *testing.T) {
 		t.Errorf("Quote =\n%q\nwant\n%q", got, want)
 	}
 }
+
+func TestPrefs(t *testing.T) {
+	p := ParsePrefs("utf8=off width=40 bogus=1 ansi=maybe rip=on")
+	if p.String() != "rip=on utf8=off width=40" {
+		t.Errorf("parsed %q", p)
+	}
+	if on, ok := p.On("rip"); !on || !ok {
+		t.Error("rip")
+	}
+	if _, ok := p.On("ansi"); ok {
+		t.Error("ansi set")
+	}
+	got, err := ChangePrefs("utf8=off width=40", map[string]string{"width": "", "editor": "full"})
+	if err != nil || got != "editor=full utf8=off" {
+		t.Errorf("changed %q %v", got, err)
+	}
+	for _, bad := range []map[string]string{{"width": "132"}, {"nope": "on"}, {"nope": ""}} {
+		if _, err := ChangePrefs("", bad); err == nil {
+			t.Errorf("%v taken", bad)
+		}
+	}
+}

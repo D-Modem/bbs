@@ -634,6 +634,20 @@ func TestAccess(t *testing.T) {
 	if acc := me["access"].(map[string]any); acc["level"] != 20.0 || acc["validated"] != true {
 		t.Fatalf("access: %v", acc)
 	}
+	// settings: kept, checked, forgotten
+	if code, m, _ := s.do("PATCH", "/api/v1/me", alice, map[string]any{"prefs": map[string]string{"ansi": "off", "editor": "line"}}); code != 200 ||
+		m["prefs"].(map[string]any)["ansi"] != "off" {
+		t.Fatalf("prefs: %d %v", code, m)
+	}
+	for _, bad := range []map[string]string{{"ansi": "maybe"}, {"colour": "on"}} {
+		if code, _, _ := s.do("PATCH", "/api/v1/me", alice, map[string]any{"prefs": bad}); code != 400 {
+			t.Errorf("prefs %v: %d", bad, code)
+		}
+	}
+	s.do("PATCH", "/api/v1/me", alice, map[string]any{"prefs": map[string]string{"ansi": ""}})
+	if u, _ := s.b.Store.UserByName("alice"); u.Prefs != "editor=line" {
+		t.Errorf("kept %q", u.Prefs)
+	}
 	// a sysop sets them
 	code, m, _ := s.do("PATCH", "/api/v1/admin/users/alice", sysop, map[string]any{"level": 5, "flags": "+F"})
 	if code != 200 || m["level"] != 5.0 || m["flags"] != "F" {

@@ -99,6 +99,7 @@ What the caller gets:
 - everything else as on any ANSI terminal
 
 A caller can turn RIP off and on in their profile (`[R]IP`; on only if the
-terminal answers).
+terminal answers).  What they choose, and a Commodore's width, is kept for
+their next call ([Terminal identification](Terminal-Identification#what-a-caller-sets)).
 
 **See also:** [Customization](Customization), [Configuration](Configuration), [Modem callers](Modem-Callers)

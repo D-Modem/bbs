@@ -313,19 +313,33 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 		access["minutes_per_day"] = int(lvl.Time.Minutes())
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"user": j, "unread_mail": unread, "access": access,
-		"scopes": strings.Fields(whoOf(r).token.Scopes)})
+		"prefs": bbs.ParsePrefs(u.Prefs), "scopes": strings.Fields(whoOf(r).token.Scopes)})
 }
 
 func (s *Server) patchMe(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Location    *string `json:"location"`
-		OldPassword string  `json:"old_password"`
-		NewPassword string  `json:"new_password"`
+		Location    *string           `json:"location"`
+		OldPassword string            `json:"old_password"`
+		NewPassword string            `json:"new_password"`
+		Prefs       map[string]string `json:"prefs"`
 	}
 	if !s.decode(w, r, &req) {
 		return
 	}
 	u := whoOf(r).user
+	if req.Prefs != nil {
+		fresh, err := s.B.Store.UserByID(u.ID)
+		if err != nil {
+			fail(w, http.StatusNotFound, "no such user")
+			return
+		}
+		prefs, err := bbs.ChangePrefs(fresh.Prefs, req.Prefs)
+		if err != nil {
+			fail(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		s.B.Store.SetPrefs(u.ID, prefs)
+	}
 	if req.Location != nil {
 		s.B.Store.SetLocation(u.ID, bbs.Clean(*req.Location, bbs.MaxLocationLen))
 	}

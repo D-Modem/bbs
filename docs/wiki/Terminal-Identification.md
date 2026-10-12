@@ -72,4 +72,22 @@ vt = no
 `vt = no` asks nothing (sixel is then asked for by DA1 alone, as before)
 and changes nothing; `auto` (the default) asks.
 
+## What a caller sets
+
+What a caller switches in their profile is kept with their account and
+begins their next call:
+
+| setting | values | at the next call |
+|---|---|---|
+| `ansi` | `on`, `off` | ANSI as they set it, whatever the terminal answered (`off` turns RIP off too) |
+| `utf8` | `on`, `off` | UTF-8, or CP437 (ASCII where there is no ANSI) |
+| `sixel` | `on`, `off` | `off` keeps sixel off; `on` only where the terminal says it has it |
+| `rip` | `on`, `off` | the same for RIPscrip |
+| `width` | `40`, `80` | a Commodore's columns |
+| `editor` | `full`, `line` | the full-screen editor or the line editor |
+
+A Commodore and a VT52 take only what applies to them.  The settings are
+`prefs` at `GET /api/v1/me`, changed with `PATCH /api/v1/me`
+([HTTP API](HTTP-API)).
+
 **See also:** [PETSCII and RIP](PETSCII-and-RIP), [Sixel graphics](Sixel-Graphics), [Configuration](Configuration)

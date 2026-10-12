@@ -7,7 +7,8 @@ without one the name drawn in a pixel font.  The BBS asks every ANSI
 terminal for its device attributes (`CSI c`; sixel is attribute 4) and its
 character cell in pixels (`CSI 16 t`, to fit the logo to the window), so
 nothing changes for terminals without sixel.  A caller turns it off (or on,
-if their terminal has it) in their profile.
+if their terminal has it) in their profile, and it stays off on their
+later calls.
 
 `sixel = auto` is the default for telnet listeners and `no` for raw and
 rlogin ones: a picture is slow over a modem.

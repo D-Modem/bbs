@@ -45,6 +45,8 @@ type User struct {
 	// today's (TimeDay, YYYYMMDD) time online in seconds, and downloads
 	TimeDay, TimeUsed int
 	DLDay, DLCount    int
+	// the user's settings ("ansi=off width=80"): bbs.Prefs
+	Prefs string
 }
 
 // Area is a message area.
@@ -185,14 +187,14 @@ func HashPassword(pw string) (string, error) {
 }
 
 const userCols = `id, name, password, location, sysop, locked, created, last_login, logins, posts,
-	level, flags, time_day, time_used, dl_day, dl_count`
+	level, flags, time_day, time_used, dl_day, dl_count, prefs`
 
 func scanUser(row interface{ Scan(...any) error }) (*User, string, error) {
 	var u User
 	var pw string
 	var created, last int64
 	err := row.Scan(&u.ID, &u.Name, &pw, &u.Location, &u.Sysop, &u.Locked,
-		&created, &last, &u.Logins, &u.Posts, &u.Level, &u.Flags, &u.TimeDay, &u.TimeUsed, &u.DLDay, &u.DLCount)
+		&created, &last, &u.Logins, &u.Posts, &u.Level, &u.Flags, &u.TimeDay, &u.TimeUsed, &u.DLDay, &u.DLCount, &u.Prefs)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, "", ErrNotFound
 	}
@@ -268,6 +270,11 @@ func (s *Store) SetPassword(id int64, pw string) error {
 // SetLocation changes a user's location.
 func (s *Store) SetLocation(id int64, loc string) error {
 	return s.exec1(`UPDATE users SET location = ? WHERE id = ?`, loc, id)
+}
+
+// SetPrefs sets a user's settings.
+func (s *Store) SetPrefs(id int64, prefs string) error {
+	return s.exec1(`UPDATE users SET prefs = ? WHERE id = ?`, prefs, id)
 }
 
 // SetSysop gives or takes a user's sysop rights.
