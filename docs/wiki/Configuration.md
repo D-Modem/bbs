@@ -28,7 +28,7 @@ whether terminals are asked what they are: [Terminal identification](Terminal-Id
 | `[door NAME]` | a door program | [Doors](Doors) |
 | `screens_dir` (in `[general]`), `[menu NAME]`, `[strings]` | the sysop's screens, menus and prompts | [Customization](Customization) |
 | `[finger]`, `[gopher]` | the finger and gopher servers | [Finger and gopher](Finger-and-Gopher) |
-| `[http]` | the HTTP API, its WebSockets and metrics | [HTTP API](HTTP-API) |
+| `[http]` | the HTTP API, its WebSockets, the web terminal and metrics | [HTTP API](HTTP-API) |
 | `page_command` (in `[general]`) | telling the sysop of a page when they are not on | [Chat and paging](Chat-and-Paging) |
 
 `bbs check` reads the file and says what it found, with a warning for

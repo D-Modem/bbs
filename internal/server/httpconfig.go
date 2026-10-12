@@ -64,6 +64,9 @@ func (c *Config) httpSection(s *config.Section) error {
 		return err
 	}
 	h.SessionTTL = time.Duration(hours) * time.Hour
+	if h.Terminal, err = s.Bool("terminal", true); err != nil {
+		return err
+	}
 	c.HTTP = h
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -204,12 +203,7 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request, binary bool) {
 	if binary {
 		sub = ProtoBinary
 	}
-	opts := &websocket.AcceptOptions{Subprotocols: []string{sub}}
-	if s.S.CORS != "" {
-		if u, err := url.Parse(s.S.CORS); err == nil {
-			opts.OriginPatterns = []string{u.Host}
-		}
-	}
+	opts := &websocket.AcceptOptions{Subprotocols: []string{sub}, OriginPatterns: s.originPatterns()}
 	wh := whoOf(r)
 	c, err := websocket.Accept(w, r, opts)
 	if err != nil {

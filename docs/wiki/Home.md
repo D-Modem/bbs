@@ -67,6 +67,7 @@ What there is:
   and the usual drop files, or any Linux program, for text callers
 - [chat](Chat-and-Paging): rooms, messages to a node, paging the sysop
 - [finger and gopher](Finger-and-Gopher): who is on, and chosen areas in gopherspace
+- [a web terminal](HTTP-API#the-web-terminal): the BBS in a browser (xterm.js, built in)
 - [an HTTP API](HTTP-API): REST, server-sent events, and WebSockets (JSON or protobuf) where web clients chat with terminal callers; Prometheus metrics
 - [customization](Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
 - new users sign themselves up (or not: `new_users = no`)

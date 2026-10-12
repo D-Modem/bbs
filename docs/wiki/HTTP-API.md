@@ -25,6 +25,7 @@ key_file = /etc/bbs/tls/key.pem
 | `max_per_ip` | `20` | connections at once from one address |
 | `rate`, `burst` | `10`, `20` | requests a second per token (per address without one), and how many may come at once |
 | `session_hours` | `24` | how long a login's token lasts |
+| `terminal` | `yes` | the web terminal page (below) |
 
 The OpenAPI 3.1 description is at `/api/v1/openapi.json`.
 
@@ -177,6 +178,30 @@ ws.onmessage = (m) => {
 The server pings every 30 seconds.  Frames are at most 16 KB; a frame
 that does not read is answered by an error, and the same limits as on a
 terminal apply (200 characters a line, 8 lines in 10 seconds).
+
+## The web terminal
+
+`/terminal` (and `/`, which goes there) is the BBS in a browser: a page
+with [xterm.js](https://xtermjs.org/) (5.5, MIT licensed, built into the
+`bbs` binary: nothing is loaded from elsewhere) whose terminal is joined
+to the text BBS by a WebSocket, `/terminal/ws`.  The caller is a node like
+a telnet caller (*Who's online* says `web terminal`) and logs in at the
+BBS's own prompt, as on telnet: no token.  They get ANSI color and UTF-8
+(ANSI art's CP437 shown as Unicode), menus, messages, mail, chat, paging
+and doors; not file transfers (download files by the API or FTP).
+
+| | |
+|---|---|
+| `GET /terminal` | the page |
+| `GET /terminal/xterm.js`, `addon-fit.js`, `terminal.js`, `xterm.css`, `terminal.css`, `LICENSE.xterm` | its files |
+| `GET /terminal/ws?cols=&rows=` | the WebSocket, subprotocol `bbs.terminal`: binary frames, the terminal's bytes both ways; the size the page fits its window to (40-255 columns, 10-200 rows), kept for the call |
+
+The page allows scripts only from the BBS itself, no framing, and
+WebSockets only from its own host (and the `cors` origin).  Connections
+count against `max_per_ip` and `rate`, logins against the throttle as a
+terminal's do; behind a proxy on 127.0.0.1, throttling is the proxy's to
+do (the BBS sees every caller as the proxy).  `terminal = no` turns the
+page off.
 
 ## Metrics
 

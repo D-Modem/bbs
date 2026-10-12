@@ -327,8 +327,11 @@ func serve(cfg *server.Config) int {
 		}
 		go fd.Run(ctx)
 	}
+	srv := server.New(b, cfg.Listeners)
+	srv.Graphics = cfg.Graphics
+	srv.LogoFile = cfg.LogoFile
 	if cfg.HTTP != nil {
-		as := &api.Server{B: b, S: *cfg.HTTP, Fido: fd, Peers: cfg.Peers}
+		as := &api.Server{B: b, S: *cfg.HTTP, Fido: fd, Peers: cfg.Peers, Terminal: srv.WebTerminal}
 		if len(cfg.Peers) > 0 || cfg.NNTP != nil {
 			as.News = svc
 		}
@@ -355,9 +358,6 @@ func serve(cfg *server.Config) int {
 			}
 		}()
 	}
-	srv := server.New(b, cfg.Listeners)
-	srv.Graphics = cfg.Graphics
-	srv.LogoFile = cfg.LogoFile
 	if err := srv.Run(ctx); err != nil {
 		lg.Printf("%v", err)
 		return 1

@@ -297,11 +297,12 @@ type sshPty struct {
 	Modes            string
 }
 
-// sshTerm is a session channel as the text BBS wants a line: reads with
-// deadlines, and writes that hang up a client that stops reading.
+// sshTerm is a stream (an SSH session channel, a web terminal's
+// WebSocket) as the text BBS wants a line: reads with deadlines that only
+// end the read, and writes that hang up a client that stops reading.
 type sshTerm struct {
-	ch         ssh.Channel
-	conn       net.Conn
+	ch         io.ReadWriter
+	conn       io.Closer
 	cols, rows int
 
 	in   chan []byte
@@ -314,7 +315,7 @@ type sshTerm struct {
 	changed chan struct{} // closed when dl changes
 }
 
-func newSSHTerm(ch ssh.Channel, conn net.Conn, p sshPty) *sshTerm {
+func newSSHTerm(ch io.ReadWriter, conn io.Closer, p sshPty) *sshTerm {
 	t := &sshTerm{ch: ch, conn: conn, in: make(chan []byte), done: make(chan struct{}),
 		changed: make(chan struct{})}
 	if p.Cols >= 20 && p.Cols <= 255 && p.Rows >= 5 && p.Rows <= 255 {

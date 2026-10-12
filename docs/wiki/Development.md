@@ -21,7 +21,7 @@
 | `doors/dosemu2` | the Docker image DOS doors run in: dosemu2, its FOSSIL on COM1 |
 | `internal/finger` | the finger server |
 | `internal/gopher` | the gopher server |
-| `internal/api` | the HTTP API: REST, server-sent events, WebSockets, metrics, OpenAPI |
+| `internal/api` | the HTTP API: REST, server-sent events, WebSockets, metrics, OpenAPI; the web terminal page (`web/`: xterm.js, the page) |
 | `proto` | the WebSocket protocol, `bbs.v1` (`make proto` regenerates `internal/api/pb`) |
 | `internal/tcpserv` | what finger and gopher share: limits, timeouts |
 | `internal/screens` | the sysop's display files: finding them, @-codes, 3270 color tags |
@@ -105,6 +105,12 @@ PuTTY, the Linux console, a VT52) read into names, levels, sixel and
 monochrome; DEC Special Graphics and Latin-1 output, escapes passing
 through it; VT52 output; a VT220 given DEC graphics, Latin-1 and bold,
 shown as a VT220; a VT52 given its escapes and its cursor keys ignored;
-a terminal answering nothing left plain.
+a terminal answering nothing left plain.  The web terminal: the page, its
+headers and files (and no others), WebSockets refused from another
+origin or without the subprotocol, and a caller logging in through it,
+its size taken, shown as a web terminal, logging off.  Updating xterm.js:
+`npm pack @xterm/xterm @xterm/addon-fit`, and copy `lib/xterm.js`,
+`css/xterm.css`, `lib/addon-fit.js` and the license into
+`internal/api/web` (without their source map lines).
 
 **See also:** [Building](Building)

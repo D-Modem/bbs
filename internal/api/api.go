@@ -42,6 +42,7 @@ type Settings struct {
 	Burst      int           // and at once
 	SessionTTL time.Duration // of a login's token
 	MaxBody    int64         // bytes of a JSON request
+	Terminal   bool          // the web terminal page (if Server.Terminal is set)
 }
 
 // Server serves the API.
@@ -52,6 +53,10 @@ type Server struct {
 	News  *nntp.Service   // nil: no news
 	Peers []*nntp.Peer    // the news peers
 	Ctx   context.Context // the server's, for work started by a request
+	// Terminal runs the text BBS on a web terminal's line (c a WebSocket
+	// as a stream; host the caller's address, "" for a proxy's), cols x
+	// rows: the listeners' server's WebTerminal
+	Terminal func(c net.Conn, remote, host string, cols, rows int) error
 
 	mu      sync.Mutex
 	limits  map[string]*bucket
@@ -315,6 +320,14 @@ func (s *Server) Handler() http.Handler {
 		s.cors(w, r)
 		w.WriteHeader(http.StatusNoContent)
 	})
+	if s.terminalOn() {
+		mux.HandleFunc("GET /terminal", s.terminalPage)
+		mux.HandleFunc("GET /terminal/ws", s.terminalWS)
+		mux.HandleFunc("GET /terminal/{file}", s.terminalAsset)
+		mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/terminal", http.StatusFound)
+		})
+	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusNotFound, "no such endpoint: see /api/v1/openapi.json")
 	})

@@ -424,6 +424,7 @@ func (s *Server) text(rw io.ReadWriter, c deadliner, l *Listener, node *bbs.Node
 	}{rw, c}
 	t := textui.NewTerm(conn)
 	t.Clean8 = true
+	t.Ident = node.Caller.Ident
 	if sz, ok := rw.(interface{ Size() (int, int) }); ok {
 		if cols, rows := sz.Size(); cols > 0 {
 			t.Cols, t.Rows = cols, rows
@@ -517,6 +518,34 @@ func (s *Server) text(rw io.ReadWriter, c deadliner, l *Listener, node *bbs.Node
 func (s *Server) run(t *textui.Term, l *Listener, node *bbs.Node) error {
 	return textui.Run(s.B, node, t, textui.Options{CreateTrusted: l.CreateUsers,
 		LogoFile: s.LogoFile})
+}
+
+// WebTerminal is a caller at the HTTP server's web terminal page: c its
+// WebSocket as a stream, the page's xterm.js on it, cols x rows.
+func (s *Server) WebTerminal(c net.Conn, remote, host string, cols, rows int) error {
+	l := &Listener{Name: "web", Kind: "web", Via: "web terminal", ANSI: "yes", UTF8: "yes",
+		Sixel: "no", RIP: "no", PETSCII: "no", VT: "no"}
+	caller := &bbs.Caller{Via: l.Via, Listener: "http", Remote: remote, Terminal: "xterm.js"}
+	if host != "" {
+		caller.Source = "ip:" + host
+	}
+	node, err := s.B.Enter(caller, func() { c.Close() })
+	if err != nil {
+		io.WriteString(c, "\r\nAll lines are busy; please call again later.\r\n")
+		return nil
+	}
+	defer node.Leave()
+	node.SetIdent("web terminal")
+	s.B.Log.Printf("node %d: %s on the web terminal (%dx%d)", node.Num, remote, cols, rows)
+	// the WebSocket's own deadlines close it: the line's end only a read
+	t := newSSHTerm(c, c, sshPty{Cols: uint32(cols), Rows: uint32(rows)})
+	defer t.close()
+	err = s.text(t, t, l, node, "xterm-256color")
+	s.B.Log.Printf("node %d: gone", node.Num)
+	if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
+		return nil
+	}
+	return err
 }
 
 type deadliner interface{ SetReadDeadline(time.Time) error }

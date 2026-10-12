@@ -171,6 +171,8 @@ address = 127.0.0.1:2513
 ;burst = 20
 ; how long a /login session lasts
 ;session_hours = 24
+; the web terminal at /terminal: the BBS in a browser (xterm.js, built in)
+;terminal = yes
 
 ; The FTP server for the file areas: users log in with their BBS name and
 ; password; each file area is a directory.  bbs filearea add NAME makes

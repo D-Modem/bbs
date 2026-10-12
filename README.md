@@ -69,6 +69,7 @@ What there is:
   and the usual drop files, or any Linux program, for text callers
 - [chat](https://github.com/Neo-Desktop/bbs-sec/wiki/Chat-and-Paging): rooms, messages to a node, paging the sysop
 - [finger and gopher](https://github.com/Neo-Desktop/bbs-sec/wiki/Finger-and-Gopher): who is on, and chosen areas in gopherspace
+- [a web terminal](https://github.com/Neo-Desktop/bbs-sec/wiki/HTTP-API#the-web-terminal): the BBS in a browser (xterm.js, built in)
 - [an HTTP API](https://github.com/Neo-Desktop/bbs-sec/wiki/HTTP-API): REST, server-sent events, and WebSockets (JSON or protobuf) where web clients chat with terminal callers; Prometheus metrics
 - [customization](https://github.com/Neo-Desktop/bbs-sec/wiki/Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
 - new users sign themselves up (or not: `new_users = no`)

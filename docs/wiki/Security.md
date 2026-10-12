@@ -67,6 +67,11 @@
   and revocable; rate limits per token and per address; JSON bodies
   limited and strict; one CORS origin at most, and WebSockets only from
   it and the API's own host.  Metrics are on an address of their own.
+- The web terminal: the page's scripts only from the BBS (a Content
+  Security Policy: no inline scripts, no other hosts, no framing); its
+  WebSocket only from the BBS's own pages (or the `cors` origin), with
+  the HTTP server's TLS, connection and rate limits; the caller logs in
+  at the BBS's prompt like any terminal caller.
 - Screens: display files are read only from `screens_dir`, by names of
   letters, digits, `_` and `-` (no paths), at most 256 KB.  The values of
   @-codes are cleaned, so no escape sequence gets into a screen through
