@@ -202,6 +202,48 @@ func TestPostAndRead(t *testing.T) {
 	has(t, "screens", f.shown, "table General: alice|Hello|")
 }
 
+func TestScanToYouFind(t *testing.T) {
+	b, alice, sysop := setup(t)
+	other, _ := b.Store.CreateArea("Other", "More talk", false)
+	general, _ := b.Store.AreaByName("General")
+	for _, m := range []struct {
+		area          int64
+		to, sub, body string
+	}{{general.ID, "alice", "For you", "hello there"}, {other.ID, "All", "Weather", "rain today"},
+		{other.ID, "Alice", "Also for you", "more rain"}} {
+		if _, err := sysop.Post(map[int64]*store.Area{general.ID: general, other.ID: other}[m.area],
+			m.to, m.sub, []string{m.body}, 0); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f := run(t, b, alice,
+		"M",
+		// Other out of the scan: the new scan reads General's only
+		view.Choice{Action: "scan"}, view.Choice{Action: view.Pick, Row: 1}, view.Choice{Action: view.Back},
+		view.Choice{Action: "new"}, "next",
+		// to alice: both, newest first; the second read, then on past the end
+		view.Choice{Action: "toyou"}, view.Choice{Action: view.Pick, Row: 1}, "next", view.Choice{Action: view.Back},
+		// rain: the two in Other
+		view.Choice{Action: "find"}, map[string]string{"text": "RAIN"}, view.Choice{Action: view.Back},
+		view.Choice{Action: "find"}, map[string]string{"text": "x"},
+		view.Choice{Action: view.Back})
+	has(t, "screens", f.shown, "table Your new scan: General|Talk|yes; Other|More talk|yes")
+	has(t, "screens", f.shown, "table Your new scan: General|Talk|yes; Other|More talk|no")
+	has(t, "screens", f.shown, "message For you: hello there")
+	has(t, "screens", f.shown, "table Messages to you: Other|sysop|Also for you|")
+	has(t, "said", f.said, "That was the last.")
+	has(t, "screens", f.shown, "table Found: RAIN: Other|sysop|Also for you|")
+	has(t, "said", f.said, "Give two characters or more.")
+	for _, s := range f.shown {
+		if strings.Contains(s, "message Weather") {
+			t.Errorf("the new scan went into Other: %q", f.shown)
+		}
+	}
+	if off, _ := b.Store.ScanOff(alice.User().ID); !off[other.ID] {
+		t.Errorf("off %v", off)
+	}
+}
+
 func TestMailAndWho(t *testing.T) {
 	b, alice, sysop := setup(t)
 	f := run(t, b, alice,

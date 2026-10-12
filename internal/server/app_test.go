@@ -37,7 +37,7 @@ func TestShared3270(t *testing.T) {
 	if err != nil {
 		t.Fatalf("s3270: %v\n%s", err, out)
 	}
-	for _, want := range []string{"Welcome, alice.", "Message areas", "General", "PF5=New scan",
+	for _, want := range []string{"Welcome, alice.", "Message areas", "General", "PF5=New", "PF10=Find",
 		"Posted as #1.", "Hello from a 3270", "A line of the body.", "PF4=Reply",
 		"Your profile", "Access:", "Terminal:", "PF5=Location"} {
 		if !strings.Contains(string(out), want) {
@@ -47,7 +47,7 @@ func TestShared3270(t *testing.T) {
 
 	d := login(e, "sysop", "sysoppass1")
 	d.send("M")
-	d.expect("Area number, [N]ew scan, [+] add area, [Q]uit: ")
+	d.expect("Area number, [N]ew scan, [T]o you, [F]ind, [S]can setup, [+] add area, [Q]uit: ")
 	d.send("1\r")
 	d.expect("Hello from a 3270")
 	d.expect("Number to read, [R]ead new, [P]ost, [Q]uit: ")

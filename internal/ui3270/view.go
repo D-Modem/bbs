@@ -180,14 +180,20 @@ func (u *ui) Table(t *view.Table) (view.Choice, error) {
 		per -= 2
 	}
 	pick := t.Pick != ""
-	keys := []string{}
-	if pick {
-		keys = append(keys, "S+Enter=Select")
+	keyLine := func(sel, sep string) string {
+		keys := []string{}
+		if pick {
+			keys = append(keys, sel)
+		}
+		if k := pfKeys(t.Actions, sep); k != "" {
+			keys = append(keys, k)
+		}
+		return strings.Join(append(keys, "PF3=Back", "PF7/8=Page"), sep)
 	}
-	if k := pfKeys(t.Actions, "  "); k != "" {
-		keys = append(keys, k)
+	keys := keyLine("S+Enter=Select", "  ")
+	if len(keys) > u.cols-1 {
+		keys = keyLine("S=Select", " ") // many actions: closer
 	}
-	keys = append(keys, "PF3=Back", "PF7/8=Page")
 	numW := 0
 	mark := false
 	for _, r := range t.Rows {
@@ -205,7 +211,7 @@ func (u *ui) Table(t *view.Table) (view.Choice, error) {
 	top := 0
 	msg := ""
 	for {
-		scr := u.frame(t.Title, strings.Join(keys, "  "), msg)
+		scr := u.frame(t.Title, keys, msg)
 		msg = ""
 		if t.Command != "" {
 			// the command line first: the cursor goes to it, where an

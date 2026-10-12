@@ -276,3 +276,61 @@ func TestCopy(t *testing.T) {
 		t.Error("copied into a database with users")
 	}
 }
+
+func TestScanAndSearch(t *testing.T) {
+	s := open(t)
+	u, _ := s.CreateUser("alice", "password1", "", false)
+	a, _ := s.CreateArea("General", "", false)
+	b, _ := s.CreateArea("Other", "", false)
+	post := func(area int64, to, subject, body string) int64 {
+		id, err := s.Post(&Message{AreaID: area, FromID: u.ID, From: "bob", To: to, Subject: subject, Body: body})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	post(a.ID, "Alice", "Hello", "about 100% of it")
+	post(b.ID, "All", "Weather", "rain_today and snow")
+	post(a.ID, "alice", "Again", "x")
+
+	if err := s.SetScan(u.ID, b.ID, false); err != nil {
+		t.Fatal(err)
+	}
+	s.SetScan(u.ID, b.ID, false) // twice is once
+	off, err := s.ScanOff(u.ID)
+	if err != nil || len(off) != 1 || !off[b.ID] {
+		t.Fatalf("off %v %v", off, err)
+	}
+	s.SetScan(u.ID, b.ID, true)
+	if off, _ := s.ScanOff(u.ID); len(off) != 0 {
+		t.Errorf("still off %v", off)
+	}
+
+	to, err := s.MessagesTo("ALICE", 10)
+	if err != nil || len(to) != 2 || to[0].Subject != "Again" {
+		t.Fatalf("to alice: %v %v", to, err)
+	}
+	find := func(areas []int64, text string) []string {
+		ms, err := s.SearchMessages(areas, text, 10)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, m := range ms {
+			out = append(out, m.Subject)
+		}
+		return out
+	}
+	for _, c := range []struct {
+		areas []int64
+		text  string
+		want  string
+	}{{[]int64{a.ID, b.ID}, "RAIN", "Weather"}, {[]int64{a.ID}, "rain", ""},
+		{[]int64{a.ID, b.ID}, "100%", "Hello"}, {[]int64{a.ID, b.ID}, "0%", "Hello"},
+		{[]int64{a.ID, b.ID}, "n_t", "Weather"}, {[]int64{a.ID, b.ID}, "n t", ""},
+		{[]int64{a.ID, b.ID}, "BOB", "Again Weather Hello"}, {nil, "x", ""}} {
+		if got := strings.Join(find(c.areas, c.text), " "); got != c.want {
+			t.Errorf("%q in %v: %q", c.text, c.areas, got)
+		}
+	}
+}

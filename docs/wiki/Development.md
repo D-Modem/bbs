@@ -132,7 +132,10 @@ The full-screen editor: its text (wrapping as typed and as given, a word
 too long for a line, joining lines by Backspace and Delete, moving over
 line ends, quoting, the line limit), and an SSH caller writing a post
 with the cursor keys, replying with lines from the quote window and
-`/S`, then choosing the line editor; settings kept from call to call
+`/S`, then choosing the line editor; the new scan's areas, messages to
+you and finding (the scan kept, LIKE's wildcards taken as text, areas
+not read left out), through internal/app and in the store on every
+engine; settings kept from call to call
 (UTF-8 off over SSH, a Commodore's width) and through the API.
 The HTTP API: logins, tokens and scopes, every REST endpoint and its
 refusals, rate limits, the OpenAPI document against the routes, server-sent

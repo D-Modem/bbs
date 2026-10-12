@@ -61,6 +61,11 @@ CREATE TABLE IF NOT EXISTS lastread (
 	message_id {int} NOT NULL,
 	PRIMARY KEY (user_id, area_id)
 )`, `
+CREATE TABLE IF NOT EXISTS scan_off (
+	user_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	area_id {int} NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
+	PRIMARY KEY (user_id, area_id)
+)`, `
 CREATE TABLE IF NOT EXISTS mail (
 	id        {id},
 	from_id   {int} NOT NULL,

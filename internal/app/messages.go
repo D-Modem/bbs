@@ -23,9 +23,12 @@ func (s *Session) areas() error {
 			Pick: "Area number",
 			Columns: []view.Column{{Title: "Area", Width: 20}, {Title: "Description", Width: 36, Wide: true},
 				{Title: "Msgs", Width: 5, Right: true}, {Title: "New", Width: 5, Right: true}},
-			Actions: []view.Action{{ID: "new", Label: "New scan", Key: 'N', PF: 5}}}
+			Actions: []view.Action{{ID: "new", Label: "New scan", Key: 'N', PF: 5, Short: "New"},
+				{ID: "toyou", Label: "To you", Key: 'T', PF: 4},
+				{ID: "find", Label: "Find", Key: 'F', PF: 10},
+				{ID: "scan", Label: "Scan setup", Key: 'S', PF: 11, Short: "Scan"}}}
 		if s.User.Sysop {
-			t.Actions = append(t.Actions, view.Action{ID: "add", Label: "add area", Key: '+', PF: 6, Short: "Add area"})
+			t.Actions = append(t.Actions, view.Action{ID: "add", Label: "add area", Key: '+', PF: 6, Short: "Add"})
 		}
 		for i, a := range areas {
 			nw := ""
@@ -42,10 +45,26 @@ func (s *Session) areas() error {
 		switch c.Action {
 		case view.Back:
 			return nil
+		case "toyou":
+			if err := s.toYou(areas); err != nil {
+				return err
+			}
+		case "find":
+			if err := s.find(areas); err != nil {
+				return err
+			}
+		case "scan":
+			if err := s.scanSetup(areas); err != nil {
+				return err
+			}
 		case "new":
+			off, err := s.B.Store.ScanOff(s.User.ID)
+			if err != nil {
+				return err
+			}
 			found := false
 			for _, a := range areas {
-				if a.New == 0 {
+				if a.New == 0 || off[a.ID] {
 					continue
 				}
 				found = true
