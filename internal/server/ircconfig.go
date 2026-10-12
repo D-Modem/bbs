@@ -19,7 +19,11 @@ func (c *Config) ircSection(cf *config.File) error {
 	err := func() error {
 		i := &ircd.Settings{Address: s.String("address", ":6667"), TLSAddress: s.String("tls_address", ""),
 			CertFile: s.String("tls_cert", ""), KeyFile: s.String("tls_key", ""),
-			ServerName: s.String("server_name", ""), Network: s.String("network", "")}
+			ServerName: s.String("server_name", ""), Network: s.String("network", ""),
+			Service: s.String("service", "BBSServ")}
+		if !ircd.ValidNick(i.Service) {
+			return errors.New("service: the bot's nick, a letter then letters, digits, - and _")
+		}
 		if i.Address == "none" { // TLS only
 			i.Address = ""
 		}

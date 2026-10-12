@@ -35,6 +35,7 @@ type Settings struct {
 	Network    string // the network's name (default: the BBS's)
 	MaxClients int
 	MaxPerIP   int
+	Service    string // the services bot's nick (default BBSServ)
 }
 
 // Server serves IRC.
@@ -44,6 +45,7 @@ type Server struct {
 
 	created time.Time
 	support *isupport.List
+	svc     *service // BBSServ
 	mu      sync.Mutex
 	clients map[*client]bool
 }
@@ -72,7 +74,13 @@ func New(b *bbs.BBS, s Settings) (*Server, error) {
 			return r
 		}, b.Name)
 	}
-	srv := &Server{B: b, S: s, created: time.Now(), clients: map[*client]bool{}}
+	if s.Service == "" {
+		s.Service = "BBSServ"
+	}
+	if !ValidNick(s.Service) {
+		return nil, fmt.Errorf("irc: service %q: a nick is letters, digits, - and _", s.Service)
+	}
+	srv := &Server{B: b, S: s, created: time.Now(), clients: map[*client]bool{}, svc: newBBSServ(s.Service)}
 	srv.support = isupport.NewList()
 	for k, v := range map[string]string{
 		"CASEMAPPING": "ascii",
@@ -166,6 +174,14 @@ const (
 	RPL_WHOISSPECIAL = "320"
 	RPL_LISTSTART    = "321"
 )
+
+// ValidNick: a nick as Nick makes them (a letter first).
+func ValidNick(nick string) bool {
+	if nick == "" || len(nick) > 30 || !(nick[0] >= 'a' && nick[0] <= 'z' || nick[0] >= 'A' && nick[0] <= 'Z') {
+		return false
+	}
+	return Nick(nick) == nick
+}
 
 // fold is a nick or channel as compared (CASEMAPPING=ascii).
 func fold(s string) string { return strings.ToLower(s) }

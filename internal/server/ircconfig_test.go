@@ -17,7 +17,7 @@ func TestIRCConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.IRC.Address != ":6667" || c.IRC.Network != "TestNet" || c.IRC.MaxPerIP != 2 || c.IRC.MaxClients != 64 {
+	if c.IRC.Address != ":6667" || c.IRC.Network != "TestNet" || c.IRC.MaxPerIP != 2 || c.IRC.MaxClients != 64 || c.IRC.Service != "BBSServ" {
 		t.Errorf("irc %+v", c.IRC)
 	}
 	if len(c.Warnings) != 1 || !strings.Contains(c.Warnings[0], "in the clear") {
@@ -31,7 +31,8 @@ func TestIRCConfig(t *testing.T) {
 		"[irc]\naddress = none\n":      "somewhere to listen",
 		"[irc]\ntls_address = :6697\n": "tls_cert",
 		"[irc]\ntls_address = :6697\ntls_cert = /nonexistent\ntls_key = /nonexistent\n": "tls_cert, tls_key",
-		"[irc]\nmax_clients = 0\n": "max_clients",
+		"[irc]\nservice = Bad Bot\n": "service",
+		"[irc]\nmax_clients = 0\n":   "max_clients",
 	} {
 		if _, err := load(body); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%q: %v", body, err)

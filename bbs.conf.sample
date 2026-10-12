@@ -403,6 +403,8 @@ address = 127.0.0.1:2513
 ;network = DModem
 ;max_clients = 64
 ;max_per_ip = 4
+; the services bot's nick: /msg BBSServ HELP (your account's settings)
+;service = BBSServ
 
 ;[finger]
 ;address = :79

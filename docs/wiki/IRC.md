@@ -21,6 +21,7 @@ tls_key = /etc/bbs/tls.key
 | `network` | the BBS's name | the `NETWORK` clients show |
 | `max_clients` | `64` | connections at once |
 | `max_per_ip` | `4` | from one address |
+| `service` | `BBSServ` | the [services bot](#bbsserv)'s nick |
 
 `bbs check` warns about a plain `address` without a `tls_address`,
 because passwords then travel in the clear. The deny list and bans in
@@ -72,6 +73,35 @@ The server offers the IRCv3 capabilities `sasl`, `server-time` (the time
 of each line, the history replayed on join included), `echo-message`,
 `multi-prefix` and `userhost-in-names`.
 
+## BBSServ
+
+BBSServ is a services bot, like an IRC network's NickServ, for your BBS
+account. Everyone on the server is logged in, so it always acts on the
+account of whoever asks. Talk to it with `/msg BBSServ COMMAND`, or
+with its own command, `/BS COMMAND` (`/BBSSERV` also works). Its
+answers come as notices.
+
+| command | |
+|---|---|
+| `HELP [command]` | the commands, or how to use one |
+| `INFO` | your account: level, where you call from, alias, signature, settings, unread mail, keys, tokens, new scan |
+| `SET LOCATION`, `ABOUT`, `ALIAS` *value* | your profile's fields (no value, or `-`, clears one) |
+| `SET SIGNATURE` *line* `\|` *line* | up to three lines under what you write |
+| `SET ANSI`, `UTF8`, `SIXEL`, `RIP`, `WIDTH`, `EDITOR`, `EXPERT` *value* | your terminal and menu settings; cleared, a terminal setting goes back to what your terminal says |
+| `PASSWD` *now new* | your password |
+| `SCAN`, `SCAN ON`\|`OFF` *area*\|`ALL` | the areas of your new scan (and of your [QWK](Offline-Mail) packets) |
+| `KEYS`, `KEYS ADD` *password key*, `KEYS DEL` *n* | your [SSH keys](SSH). Adding one asks for your password, since a key opens your account |
+| `TOKENS`, `TOKENS REVOKE` *id* | your [HTTP API](HTTP-API) tokens |
+
+The same checks apply as on the BBS: an alias that is someone's name is
+refused, and so is a setting's wrong value. A wrong password (`KEYS
+ADD`, `PASSWD`) counts as a failed login. CTCP `VERSION`, `PING` and
+`TIME` are answered, and notices sent to the bot are ignored. A user
+whose BBS name is the bot's nick can't be reached by nick over IRC.
+
+`service = Account` in `[irc]` gives the bot another nick, and its own
+command becomes `/ACCOUNT`.
+
 ## Ergo
 
 The IRC protocol's parts come from [ergo](https://github.com/ergochat/ergo):
@@ -79,6 +109,9 @@ The IRC protocol's parts come from [ergo](https://github.com/ergochat/ergo):
 - messages are read and written by ergo's `irc-go` library (`ircmsg`,
   `ircreader`, and `ircfmt` for stripping formatting);
 - the numerics and the `ISUPPORT` list builder are taken from ergo's
-  source, under its MIT license (`internal/ircd/LICENSE.ergo`).
+  source, under its MIT license (`internal/ircd/LICENSE.ergo`);
+- BBSServ's framework (its command table, parameters, `HELP`, CTCP) is
+  adapted from ergo's services (`irc/services.go`), on which its
+  NickServ and ChanServ run.
 
 Its tests also use irc-go's client (`ircevent`).

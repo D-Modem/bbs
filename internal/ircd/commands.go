@@ -3,6 +3,7 @@ package ircd
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -68,7 +69,7 @@ func (c *client) command(m *ircmsg.Message) {
 		var on []string
 		for _, nick := range m.Params {
 			for _, w := range strings.Fields(nick) {
-				if len(c.nodesOf(w)) > 0 {
+				if len(c.nodesOf(w)) > 0 || fold(w) == fold(c.s.svc.Name) {
 					on = append(on, w)
 				}
 			}
@@ -99,6 +100,10 @@ func (c *client) command(m *ircmsg.Message) {
 	case "KICK", "INVITE", "OPER", "KILL", "KNOCK":
 		c.reply(ERR_NOPRIVILEGES, "Permission denied: the BBS's rooms are everyone's")
 	default:
+		if slices.Contains(c.s.svc.CommandAliases, m.Command) {
+			c.s.svc.command(c, m.Params)
+			return
+		}
 		c.reply(ERR_UNKNOWNCOMMAND, m.Command, "Unknown command")
 	}
 }
@@ -227,8 +232,12 @@ func (c *client) names(ch string) {
 	c.reply(RPL_ENDOFNAMES, ch, "End of /NAMES list")
 }
 
-// nodesOf are the nodes online of a nick's user.
+// nodesOf are the nodes online of a nick's user (none for the service's
+// nick, which is the service's).
 func (c *client) nodesOf(nick string) []bbs.NodeInfo {
+	if fold(nick) == fold(c.s.svc.Name) {
+		return nil
+	}
 	var out []bbs.NodeInfo
 	for _, n := range c.s.B.Nodes() {
 		if n.User != "" && fold(Nick(n.User)) == fold(nick) {
@@ -260,6 +269,13 @@ func (c *client) who(mask string) {
 }
 
 func (c *client) whois(nick string) {
+	if svc := c.s.svc; fold(nick) == fold(svc.Name) {
+		c.reply(RPL_WHOISUSER, svc.Name, svc.Name, c.s.S.ServerName, "*",
+			fmt.Sprintf("Your BBS account: /msg %s HELP", svc.Name))
+		c.reply(RPL_WHOISSERVER, svc.Name, c.s.S.ServerName, c.s.B.Name)
+		c.reply(RPL_ENDOFWHOIS, svc.Name, "End of /WHOIS list")
+		return
+	}
 	ns := c.nodesOf(nick)
 	if len(ns) == 0 {
 		c.reply(ERR_NOSUCHNICK, nick, "No such nick")
@@ -336,6 +352,12 @@ func (c *client) privmsg(command, target, text string) {
 	if target == "" || text == "" {
 		if !notice {
 			c.reply(ERR_NOTEXTTOSEND, "No text to send")
+		}
+		return
+	}
+	if fold(target) == fold(c.s.svc.Name) {
+		if !notice { // a NOTICE to a bot is never answered
+			c.s.svc.privmsg(c, stripped(text))
 		}
 		return
 	}
