@@ -39,6 +39,11 @@ type User struct {
 	LastLogin time.Time
 	Logins    int
 	Posts     int
+	Level     int    // access level, 0-255
+	Flags     string // access flags, letters A-Z
+	// today's (TimeDay, YYYYMMDD) time online in seconds, and downloads
+	TimeDay, TimeUsed int
+	DLDay, DLCount    int
 }
 
 // Area is a message area.
@@ -47,6 +52,8 @@ type Area struct {
 	Name        string
 	Description string
 	SysopOnly   bool   // only sysops post
+	ReadReq     string // the access requirement to read it ("": anyone)
+	PostReq     string // and to post
 	Newsgroup   string // its newsgroup ("": not one)
 	EchoTag     string // its FidoNet echo ("": not one)
 	Messages    int
@@ -213,14 +220,15 @@ func HashPassword(pw string) (string, error) {
 	return string(h), err
 }
 
-const userCols = `id, name, password, location, sysop, locked, created, last_login, logins, posts`
+const userCols = `id, name, password, location, sysop, locked, created, last_login, logins, posts,
+	level, flags, time_day, time_used, dl_day, dl_count`
 
 func scanUser(row interface{ Scan(...any) error }) (*User, string, error) {
 	var u User
 	var pw string
 	var created, last int64
 	err := row.Scan(&u.ID, &u.Name, &pw, &u.Location, &u.Sysop, &u.Locked,
-		&created, &last, &u.Logins, &u.Posts)
+		&created, &last, &u.Logins, &u.Posts, &u.Level, &u.Flags, &u.TimeDay, &u.TimeUsed, &u.DLDay, &u.DLCount)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, "", ErrNotFound
 	}
@@ -368,6 +376,7 @@ func (s *Store) DeleteArea(id int64) error {
 }
 
 const areaQuery = `SELECT a.id, a.name, a.description, a.sysop_only, COALESCE(a.newsgroup, ''), COALESCE(a.echotag, ''),
+	a.read_req, a.post_req,
 	(SELECT COUNT(*) FROM messages m WHERE m.area_id = a.id),
 	(SELECT COALESCE(MIN(m.id), 0) FROM messages m WHERE m.area_id = a.id),
 	(SELECT COALESCE(MAX(m.id), 0) FROM messages m WHERE m.area_id = a.id)
@@ -375,7 +384,7 @@ const areaQuery = `SELECT a.id, a.name, a.description, a.sysop_only, COALESCE(a.
 
 func scanArea(row interface{ Scan(...any) error }) (*Area, error) {
 	var a Area
-	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopOnly, &a.Newsgroup, &a.EchoTag, &a.Messages,
+	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopOnly, &a.Newsgroup, &a.EchoTag, &a.ReadReq, &a.PostReq, &a.Messages,
 		&a.FirstID, &a.LastID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -605,7 +614,9 @@ type FileArea struct {
 	ID          int64
 	Name        string
 	Description string
-	SysopUpload bool // only sysops upload
+	SysopUpload bool   // only sysops upload
+	DownloadReq string // the access requirement to download ("": anyone)
+	UploadReq   string // and to upload
 	Files       int
 	Bytes       int64
 }
@@ -651,14 +662,14 @@ func (s *Store) DeleteFileArea(id int64) error {
 	return s.exec1(`DELETE FROM file_areas WHERE id = ?`, id)
 }
 
-const fileAreaQuery = `SELECT a.id, a.name, a.description, a.sysop_upload,
+const fileAreaQuery = `SELECT a.id, a.name, a.description, a.sysop_upload, a.download_req, a.upload_req,
 	(SELECT COUNT(*) FROM files f WHERE f.area_id = a.id),
 	(SELECT COALESCE(SUM(f.size), 0) FROM files f WHERE f.area_id = a.id)
 	FROM file_areas a`
 
 func scanFileArea(row interface{ Scan(...any) error }) (*FileArea, error) {
 	var a FileArea
-	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopUpload, &a.Files, &a.Bytes)
+	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopUpload, &a.DownloadReq, &a.UploadReq, &a.Files, &a.Bytes)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}

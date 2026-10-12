@@ -228,6 +228,11 @@ var (
 
 func (fs *fileSystem) anonymous() bool { return fs.user.ID == 0 }
 
+// sees: an area the user may download from or upload into
+func (fs *fileSystem) sees(a *store.FileArea) bool {
+	return fs.s.B.CanDownload(fs.user, a) || !fs.anonymous() && fs.s.B.CanUpload(fs.user, a)
+}
+
 // resolve splits a path into its area and file (nil for /, file nil for an
 // area's directory).
 func (fs *fileSystem) resolve(name string) (*store.FileArea, *store.File, error) {
@@ -240,7 +245,7 @@ func (fs *fileSystem) resolve(name string) (*store.FileArea, *store.File, error)
 		return nil, nil, os.ErrNotExist
 	}
 	a, err := fs.s.B.Store.FileAreaByName(parts[0])
-	if errors.Is(err, store.ErrNotFound) {
+	if errors.Is(err, store.ErrNotFound) || err == nil && !fs.sees(a) {
 		return nil, nil, os.ErrNotExist
 	} else if err != nil {
 		return nil, nil, err
@@ -310,7 +315,9 @@ func (fs *fileSystem) ReadDir(name string) ([]os.FileInfo, error) {
 			return nil, err
 		}
 		for _, a := range areas {
-			out = append(out, areaInfo(a))
+			if fs.sees(a) {
+				out = append(out, areaInfo(a))
+			}
 		}
 		return out, nil
 	}
@@ -335,6 +342,9 @@ func (fs *fileSystem) GetHandle(name string, flags int, offset int64) (ftpserver
 		if f == nil {
 			return nil, errors.New("not a file")
 		}
+		if err := fs.s.B.MayDownload(fs.user, a); err != nil {
+			return nil, fmt.Errorf("%w: %v", os.ErrPermission, err)
+		}
 		r, err := fs.s.B.Files.OpenFile(f)
 		if err != nil {
 			return nil, err
@@ -355,7 +365,7 @@ func (fs *fileSystem) GetHandle(name string, flags int, offset int64) (ftpserver
 	if offset != 0 || flags&os.O_APPEND != 0 {
 		return nil, fmt.Errorf("%w: uploads cannot be resumed or appended to", os.ErrPermission)
 	}
-	if fs.anonymous() {
+	if fs.anonymous() || !fs.s.B.CanUpload(fs.user, a) {
 		return nil, os.ErrPermission
 	}
 	up, err := fs.s.B.Files.Upload(fs.user, a, path.Base(path.Clean("/"+name)), "")
@@ -391,7 +401,7 @@ func (d *download) Write([]byte) (int, error) { return 0, os.ErrPermission }
 
 func (d *download) Close() error {
 	if d.read > 0 {
-		d.fs.s.B.Store.CountDownload(d.f.ID)
+		d.fs.s.B.Downloaded(d.fs.user, d.f)
 		d.fs.s.B.Log.Printf("%s: %s downloaded %q (%d bytes)", d.fs.who, d.fs.user.Name, d.f.Name, d.read)
 	}
 	return d.file.Close()

@@ -86,6 +86,19 @@ type userJSON struct {
 	Posts     int        `json:"posts"`
 	Node      int        `json:"node,omitempty"` // online on, now
 	Locked    bool       `json:"locked,omitempty"`
+	Level     *int       `json:"level,omitempty"` // to sysops and the user
+	Flags     string     `json:"flags,omitempty"`
+}
+
+// userView is a user as the request's user may see them: their access
+// only to sysops and themselves.
+func (s *Server) userView(r *http.Request, u *store.User) userJSON {
+	j := s.userOut(u)
+	if me := whoOf(r).user; me != nil && (me.Sysop || me.ID == u.ID) {
+		level := u.Level
+		j.Level, j.Flags = &level, u.Flags
+	}
+	return j
 }
 
 func (s *Server) userOut(u *store.User) userJSON {
@@ -125,6 +138,8 @@ type areaJSON struct {
 	Unread      int    `json:"unread"`
 	LastRead    int64  `json:"last_read"`
 	CanPost     bool   `json:"can_post"`
+	ReadReq     string `json:"read_require,omitempty"`
+	PostReq     string `json:"post_require,omitempty"`
 }
 
 type messageJSON struct {
@@ -283,9 +298,21 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusNotFound, "no such user")
 		return
 	}
-	j := s.userOut(u)
+	j := s.userView(r, u)
 	unread, _ := s.B.Store.UnreadMail(u.ID)
-	writeJSON(w, http.StatusOK, map[string]any{"user": j, "unread_mail": unread,
+	lvl := s.B.LevelOf(u)
+	access := map[string]any{"level": u.Level, "name": lvl.Name, "flags": u.Flags,
+		"downloads_today": u.DownloadsToday(), "minutes_today": u.TimeToday() / 60,
+		"post": lvl.Post, "mail": lvl.Mail, "chat": lvl.Chat, "page": lvl.Page,
+		"download": lvl.Download, "upload": lvl.Upload, "doors": lvl.Doors,
+		"validated": u.Sysop || u.Level >= s.B.ValidatedLevel}
+	if lvl.Downloads > 0 {
+		access["downloads_per_day"] = lvl.Downloads
+	}
+	if lvl.Time > 0 {
+		access["minutes_per_day"] = int(lvl.Time.Minutes())
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"user": j, "unread_mail": unread, "access": access,
 		"scopes": strings.Fields(whoOf(r).token.Scopes)})
 }
 
@@ -403,7 +430,7 @@ func (s *Server) users(w http.ResponseWriter, r *http.Request) {
 	out := []userJSON{}
 	for _, u := range us {
 		if !u.Locked || sysop {
-			out = append(out, s.userOut(u))
+			out = append(out, s.userView(r, u))
 		}
 	}
 	writeJSON(w, http.StatusOK, out)
@@ -415,7 +442,7 @@ func (s *Server) user(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusNotFound, "no such user")
 		return
 	}
-	writeJSON(w, http.StatusOK, s.userOut(u))
+	writeJSON(w, http.StatusOK, s.userView(r, u))
 }
 
 // --- message areas
@@ -425,7 +452,7 @@ func (s *Server) areaOut(r *http.Request, a *store.Area) areaJSON {
 	unread, _ := s.B.Store.NewCount(u.ID, a.ID)
 	last, _ := s.B.Store.LastRead(u.ID, a.ID)
 	return areaJSON{a.ID, a.Name, a.Description, a.SysopOnly, a.Newsgroup, a.EchoTag, a.Messages,
-		a.FirstID, a.LastID, unread, last, bbs.CanPost(u, a)}
+		a.FirstID, a.LastID, unread, last, s.B.CanPost(u, a), a.ReadReq, a.PostReq}
 }
 
 func (s *Server) areas(w http.ResponseWriter, r *http.Request) {
@@ -436,7 +463,9 @@ func (s *Server) areas(w http.ResponseWriter, r *http.Request) {
 	}
 	out := []areaJSON{}
 	for _, a := range as {
-		out = append(out, s.areaOut(r, a))
+		if s.B.CanRead(whoOf(r).user, a) {
+			out = append(out, s.areaOut(r, a))
+		}
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -448,7 +477,7 @@ func (s *Server) areaByPath(w http.ResponseWriter, r *http.Request) *store.Area 
 		return nil
 	}
 	a, err := s.B.Store.Area(id)
-	if err != nil {
+	if err != nil || !s.B.CanRead(whoOf(r).user, a) {
 		fail(w, http.StatusNotFound, "no such area")
 		return nil
 	}
@@ -495,6 +524,11 @@ func (s *Server) message(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m, err := s.B.Store.Message(id)
+	if err == nil {
+		if a, err2 := s.B.Store.Area(m.AreaID); err2 != nil || !s.B.CanRead(whoOf(r).user, a) {
+			err = store.ErrNotFound
+		}
+	}
 	if err != nil {
 		fail(w, http.StatusNotFound, "no such message")
 		return
@@ -522,7 +556,7 @@ func (s *Server) post(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if !bbs.CanPost(whoOf(r).user, a) {
+	if !s.B.CanPost(whoOf(r).user, a) {
 		fail(w, http.StatusForbidden, "only the sysop posts here")
 		return
 	}
@@ -625,10 +659,14 @@ func (s *Server) fileAreas(w http.ResponseWriter, r *http.Request) {
 	}
 	fas, _ := s.B.Store.FileAreas()
 	out := []map[string]any{}
+	u := whoOf(r).user
 	for _, fa := range fas {
+		if !s.B.CanDownload(u, fa) && !s.B.CanUpload(u, fa) {
+			continue
+		}
 		out = append(out, map[string]any{"id": fa.ID, "name": fa.Name, "description": fa.Description,
 			"sysop_upload": fa.SysopUpload, "files": fa.Files,
-			"can_upload": files.CanUpload(whoOf(r).user, fa)})
+			"can_download": s.B.CanDownload(u, fa), "can_upload": s.B.CanUpload(u, fa)})
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -639,7 +677,8 @@ func (s *Server) fileAreaByPath(w http.ResponseWriter, r *http.Request) *store.F
 	}
 	id, ok := pathID(r, "id")
 	fa, err := s.B.Store.FileArea(id)
-	if !ok || err != nil {
+	u := whoOf(r).user
+	if !ok || err != nil || !s.B.CanDownload(u, fa) && !s.B.CanUpload(u, fa) {
 		fail(w, http.StatusNotFound, "no such file area")
 		return nil
 	}
@@ -665,6 +704,12 @@ func (s *Server) fileByPath(w http.ResponseWriter, r *http.Request) *store.File 
 	}
 	id, ok := pathID(r, "id")
 	f, err := s.B.Store.FileByID(id)
+	if ok && err == nil {
+		fa, err2 := s.B.Store.FileArea(f.AreaID)
+		if u := whoOf(r).user; err2 != nil || !s.B.CanDownload(u, fa) && !s.B.CanUpload(u, fa) {
+			err = store.ErrNotFound
+		}
+	}
 	if !ok || err != nil {
 		fail(w, http.StatusNotFound, "no such file")
 		return nil
@@ -683,6 +728,19 @@ func (s *Server) download(w http.ResponseWriter, r *http.Request) {
 	if f == nil {
 		return
 	}
+	u := whoOf(r).user
+	if fa, err := s.B.Store.FileArea(f.AreaID); err != nil {
+		fail(w, http.StatusNotFound, "no such file")
+		return
+	} else if r.Header.Get("Range") == "" {
+		if err := s.B.MayDownload(u, fa); err != nil {
+			fail(w, http.StatusForbidden, err.Error())
+			return
+		}
+	} else if !s.B.CanDownload(u, fa) {
+		fail(w, http.StatusForbidden, bbs.ErrNotAllowed.Error())
+		return
+	}
 	fh, err := s.B.Files.OpenFile(f)
 	if err != nil {
 		fail(w, http.StatusNotFound, "the file is missing")
@@ -693,7 +751,7 @@ func (s *Server) download(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", `attachment; filename="`+f.Name+`"`)
 	w.Header().Set("Digest", "sha-256="+f.SHA256)
 	if r.Header.Get("Range") == "" {
-		s.B.Store.CountDownload(f.ID)
+		s.B.Downloaded(u, f)
 	}
 	http.ServeContent(w, r, f.Name, f.Created, fh)
 }
@@ -705,6 +763,10 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := whoOf(r).user
+	if !s.B.CanUpload(u, fa) {
+		fail(w, http.StatusForbidden, "your access does not allow uploading here")
+		return
+	}
 	up, err := s.B.Files.Upload(u, fa, r.URL.Query().Get("name"), bbs.Clean(r.URL.Query().Get("description"), 60))
 	if err != nil {
 		status := http.StatusBadRequest
@@ -863,7 +925,7 @@ func (s *Server) addUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.B.Log.Printf("http: %s added user %s", whoOf(r).user.Name, u.Name)
-	writeJSON(w, http.StatusCreated, s.userOut(u))
+	writeJSON(w, http.StatusCreated, s.userView(r, u))
 }
 
 func (s *Server) patchUser(w http.ResponseWriter, r *http.Request) {
@@ -877,6 +939,8 @@ func (s *Server) patchUser(w http.ResponseWriter, r *http.Request) {
 		Sysop    *bool   `json:"sysop"`
 		Password *string `json:"password"`
 		Location *string `json:"location"`
+		Level    *int    `json:"level"`
+		Flags    *string `json:"flags"` // "AB", or an edit: "+A -B"
 	}
 	if !s.decode(w, r, &req) {
 		return
@@ -897,9 +961,24 @@ func (s *Server) patchUser(w http.ResponseWriter, r *http.Request) {
 	if req.Location != nil {
 		s.B.Store.SetLocation(u.ID, bbs.Clean(*req.Location, bbs.MaxLocationLen))
 	}
+	if req.Level != nil {
+		if *req.Level < 0 || *req.Level > bbs.MaxLevel {
+			fail(w, http.StatusBadRequest, "a level is 0 to 255")
+			return
+		}
+		s.B.Store.SetLevel(u.ID, *req.Level)
+	}
+	if req.Flags != nil {
+		fl, err := bbs.EditFlags(u.Flags, *req.Flags)
+		if err != nil {
+			fail(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		s.B.Store.SetFlags(u.ID, fl)
+	}
 	s.B.Log.Printf("http: %s changed user %s", whoOf(r).user.Name, u.Name)
 	u, _ = s.B.Store.UserByID(u.ID)
-	writeJSON(w, http.StatusOK, s.userOut(u))
+	writeJSON(w, http.StatusOK, s.userView(r, u))
 }
 
 func (s *Server) addArea(w http.ResponseWriter, r *http.Request) {
@@ -937,6 +1016,8 @@ func (s *Server) patchArea(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Newsgroup *string `json:"newsgroup"`
 		EchoTag   *string `json:"echo_tag"`
+		ReadReq   *string `json:"read_require"`
+		PostReq   *string `json:"post_require"`
 	}
 	if !s.decode(w, r, &req) {
 		return
@@ -959,6 +1040,25 @@ func (s *Server) patchArea(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := s.B.Store.SetEchoTag(a.ID, tag); err != nil {
 			fail(w, http.StatusConflict, err.Error())
+			return
+		}
+	}
+	if req.ReadReq != nil || req.PostReq != nil {
+		read, post := a.ReadReq, a.PostReq
+		if req.ReadReq != nil {
+			read = *req.ReadReq
+		}
+		if req.PostReq != nil {
+			post = *req.PostReq
+		}
+		for _, q := range []string{read, post} {
+			if _, err := bbs.ParseRequire(q); err != nil {
+				fail(w, http.StatusBadRequest, err.Error())
+				return
+			}
+		}
+		if err := s.B.Store.SetAreaRequire(a.ID, read, post); err != nil {
+			fail(w, http.StatusInternalServerError, "the system is in trouble")
 			return
 		}
 	}

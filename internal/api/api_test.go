@@ -614,3 +614,63 @@ func TestSSHKeys(t *testing.T) {
 		t.Fatalf("after delete: %v", ks)
 	}
 }
+
+// TestAccess: levels and requirements through the API; a user cannot
+// change their own access.
+func TestAccess(t *testing.T) {
+	s := setup(t, Settings{})
+	s.b.ValidatedLevel = 20
+	alice, sysop := s.login("alice", "alicepass1"), s.login("sysop", "sysoppass1")
+	// no raising one's own level or flags
+	for _, body := range []map[string]any{{"level": 255}, {"flags": "ABC"}} {
+		if code, m, _ := s.do("PATCH", "/api/v1/me", alice, body); code != 400 {
+			t.Fatalf("PATCH /me %v: %d %v", body, code, m)
+		}
+	}
+	if code, _, _ := s.do("PATCH", "/api/v1/admin/users/alice", alice, map[string]any{"level": 255}); code != 403 {
+		t.Fatalf("alice as admin: %d", code)
+	}
+	_, me, _ := s.do("GET", "/api/v1/me", alice, nil)
+	if acc := me["access"].(map[string]any); acc["level"] != 20.0 || acc["validated"] != true {
+		t.Fatalf("access: %v", acc)
+	}
+	// a sysop sets them
+	code, m, _ := s.do("PATCH", "/api/v1/admin/users/alice", sysop, map[string]any{"level": 5, "flags": "+F"})
+	if code != 200 || m["level"] != 5.0 || m["flags"] != "F" {
+		t.Fatalf("set: %d %v", code, m)
+	}
+	if code, _, _ := s.do("PATCH", "/api/v1/admin/users/alice", sysop, map[string]any{"level": 300}); code != 400 {
+		t.Fatalf("level 300: %d", code)
+	}
+	// level and flags are the user's and the sysop's to see
+	bob := s.login("bob", "bobpass123")
+	if _, u, _ := s.do("GET", "/api/v1/users/alice", bob, nil); u["level"] != nil || u["flags"] != nil {
+		t.Errorf("bob sees alice's access: %v", u)
+	}
+	if _, u, _ := s.do("GET", "/api/v1/users/alice", alice, nil); u["level"] != 5.0 {
+		t.Errorf("alice's own: %v", u)
+	}
+	// an area for level 20: hidden from alice, its messages too
+	_, _, list := s.do("GET", "/api/v1/areas", alice, nil)
+	before := len(list)
+	_, _, all := s.do("GET", "/api/v1/areas", sysop, nil)
+	id := int(all[0].(map[string]any)["id"].(float64))
+	code, m, _ = s.do("PATCH", fmt.Sprintf("/api/v1/admin/areas/%d", id), sysop,
+		map[string]any{"read_require": "20", "post_require": "20 F"})
+	if code != 200 || m["read_require"] != "20" {
+		t.Fatalf("require: %d %v", code, m)
+	}
+	if code, _, _ := s.do("PATCH", fmt.Sprintf("/api/v1/admin/areas/%d", id), sysop, map[string]any{"read_require": "300"}); code != 400 {
+		t.Fatalf("a bad requirement: %d", code)
+	}
+	_, _, list = s.do("GET", "/api/v1/areas", alice, nil)
+	if len(list) != before-1 {
+		t.Errorf("alice sees %d areas, was %d", len(list), before)
+	}
+	if code, _, _ := s.do("GET", fmt.Sprintf("/api/v1/areas/%d/messages", id), alice, nil); code != 404 {
+		t.Errorf("alice read a hidden area: %d", code)
+	}
+	if code, _, _ := s.do("POST", fmt.Sprintf("/api/v1/areas/%d/messages", id), bob, map[string]any{"subject": "s", "body": "b"}); code != 403 {
+		t.Errorf("bob posted without F: %d", code)
+	}
+}

@@ -72,6 +72,7 @@ What there is:
 - [a web terminal](https://github.com/Neo-Desktop/bbs-sec/wiki/HTTP-API#the-web-terminal): the BBS in a browser (xterm.js, built in)
 - [an HTTP API](https://github.com/Neo-Desktop/bbs-sec/wiki/HTTP-API): REST, server-sent events, and WebSockets (JSON or protobuf) where web clients chat with terminal callers; Prometheus metrics
 - [customization](https://github.com/Neo-Desktop/bbs-sec/wiki/Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
+- [access levels](https://github.com/Neo-Desktop/bbs-sec/wiki/Access-Levels): levels and flags, areas, doors and menus that require them, time and download limits a day, new users validated by the sysop
 - new users sign themselves up (or not: `new_users = no`)
 - SQLite storage, one file
 
@@ -102,6 +103,7 @@ The documentation is in the [wiki](https://github.com/Neo-Desktop/bbs-sec/wiki/)
 | [Running](https://github.com/Neo-Desktop/bbs-sec/wiki/Running) | first start, systemd, the defaults |
 | [Administration](https://github.com/Neo-Desktop/bbs-sec/wiki/Administration) | the bbs command: users, areas, files, mail exchange |
 | [Configuration](https://github.com/Neo-Desktop/bbs-sec/wiki/Configuration) | bbs.conf: its sections, listeners |
+| [Access levels](https://github.com/Neo-Desktop/bbs-sec/wiki/Access-Levels) | levels, flags, what areas, doors and menus require, daily limits, validation |
 | [Customization](https://github.com/Neo-Desktop/bbs-sec/wiki/Customization) | screens (ANSI art, 3270), menus, prompts |
 | [SSH](https://github.com/Neo-Desktop/bbs-sec/wiki/SSH) | the SSH listener, keys, host keys |
 | [Modem callers](https://github.com/Neo-Desktop/bbs-sec/wiki/Modem-Callers) | app_dmodem and modemmenu |

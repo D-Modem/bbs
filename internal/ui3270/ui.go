@@ -571,7 +571,7 @@ func (u *ui) area(a *store.Area) error {
 			return err
 		}
 		keys := "S+Enter=Read  PF3=Back  PF5=Read new  PF7=Up  PF8=Down"
-		if bbs.CanPost(u.user, a) {
+		if u.b.CanPost(u.user, a) {
 			keys += "  PF6=Post"
 		}
 		tb := &table{title: a.Name, keys: keys,
@@ -605,7 +605,7 @@ func (u *ui) area(a *store.Area) error {
 				return err
 			}
 		case go3270.AIDPF6:
-			if bbs.CanPost(u.user, a) {
+			if u.b.CanPost(u.user, a) {
 				if msg, err = u.post(a, "All", "", nil, 0); err != nil {
 					return err
 				}
@@ -678,7 +678,7 @@ func (u *ui) read(a *store.Area, m *store.Message) error {
 		u.b.Store.SetLastRead(u.user.ID, a.ID, m.ID)
 		canDelete := u.user.Sysop || u.user.ID == m.FromID
 		keys := "PF3=Back PF7/8=Scroll PF10=Prev PF11=Next"
-		if bbs.CanPost(u.user, a) {
+		if u.b.CanPost(u.user, a) {
 			keys += " PF4=Reply"
 		}
 		keys += " PF5=Mail"
@@ -713,7 +713,7 @@ func (u *ui) read(a *store.Area, m *store.Message) error {
 			}
 			m, off = nm, 0
 		case go3270.AIDPF4:
-			if bbs.CanPost(u.user, a) {
+			if u.b.CanPost(u.user, a) {
 				if msg, err = u.post(a, m.From, bbs.ReplySubject(m.Subject),
 					bbs.Quote(m.From, m.Body, 6), m.ID); err != nil {
 					return err

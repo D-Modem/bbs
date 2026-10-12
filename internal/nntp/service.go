@@ -155,8 +155,8 @@ func (s *Service) PostLocal(raw []byte, u *store.User) (*store.Message, error) {
 	if area == nil {
 		return nil, ErrNotHere
 	}
-	if !bbs.CanPost(u, area) {
-		return nil, fmt.Errorf("%w: only the sysop posts in %s", ErrRejected, area.Newsgroup)
+	if !s.B.CanPost(u, area) {
+		return nil, fmt.Errorf("%w: you may not post in %s", ErrRejected, area.Newsgroup)
 	}
 	m := s.message(a, area)
 	if strings.TrimSpace(news.Subject(a)) == "" {

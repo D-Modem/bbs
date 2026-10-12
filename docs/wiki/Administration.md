@@ -13,6 +13,19 @@ bbs user sysop NAME                 # and unsysop
 bbs user del NAME                   # their mail goes; their messages stay
 ```
 
+## Access
+
+```
+bbs user level NAME N               # 0-255
+bbs user flags NAME +AB -C          # or AB: exactly those
+bbs user waiting                    # under validated_level
+bbs user validate NAME
+bbs area require AREA READ POST     # "30 F", sysop, - for none
+bbs filearea require AREA DOWNLOAD UPLOAD
+```
+
+See [Access levels](Access-Levels).
+
 ## SSH keys
 
 ```

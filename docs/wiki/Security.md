@@ -67,6 +67,12 @@
   and revocable; rate limits per token and per address; JSON bodies
   limited and strict; one CORS origin at most, and WebSockets only from
   it and the API's own host.  Metrics are on an address of their own.
+- Access levels: checked in the BBS's core, so the text BBS, 3270s, FTP,
+  NNTP and the API keep them alike; an area a user may not read is not
+  listed, opened, or found by a message's number or Message-ID; no user
+  changes their own level or flags (`PATCH /api/v1/me` refuses them; only
+  sysops' tokens reach `/admin`); a requirement that does not read shuts
+  everyone but the sysop out.
 - The web terminal: the page's scripts only from the BBS (a Content
   Security Policy: no inline scripts, no other hosts, no framing); its
   WebSocket only from the BBS's own pages (or the `cors` origin), with

@@ -111,11 +111,12 @@ func (u *ui) bye() {
 
 // runMenu runs a menu of the sysop's until it is left (back) or the
 // caller logs off.
-func (u *ui) runMenu(m *bbs.Menu, depth int) error {
+func (u *ui) runMenu(full *bbs.Menu, depth int) error {
 	msg := ""
 	vars := u.n.Vars()
 	for {
 		u.user = u.n.Refresh()
+		m := u.b.MenuFor(full, u.user)
 		title := screens.String(m.Title, vars)
 		u.n.Doing(title)
 		scr := u.frame(title, "Enter=Select  PF3=Back", msg)
@@ -223,7 +224,11 @@ func (u *ui) do(it *bbs.MenuItem, depth int) (string, error) {
 		if depth >= 10 {
 			return "Menus nest too deep.", nil
 		}
-		return "", u.runMenu(u.b.Menus[strings.ToLower(it.Arg)], depth+1)
+		sub := u.b.Menus[strings.ToLower(it.Arg)]
+		if !bbs.MustRequire(sub.Require).Allows(u.user) {
+			return "That menu is not for you.", nil
+		}
+		return "", u.runMenu(sub, depth+1)
 	case "screen":
 		shown, err := u.screen(it.Arg)
 		if !shown {
@@ -232,7 +237,7 @@ func (u *ui) do(it *bbs.MenuItem, depth int) (string, error) {
 		return "", err
 	case "area":
 		a, err := u.b.Store.AreaByName(it.Arg)
-		if err != nil {
+		if err != nil || !u.b.CanRead(u.user, a) {
 			return "There is no area " + it.Arg + ".", nil
 		}
 		return "", u.area(a)

@@ -16,9 +16,15 @@ func (s *session) fileAreas() error {
 	t := s.t
 	for {
 		s.n.Doing("File areas")
-		areas, err := s.b.Store.FileAreas()
+		all, err := s.b.Store.FileAreas()
 		if err != nil {
 			return err
+		}
+		var areas []*store.FileArea
+		for _, a := range all {
+			if s.b.CanDownload(s.user, a) || s.b.CanUpload(s.user, a) {
+				areas = append(areas, a)
+			}
 		}
 		t.Println("")
 		t.Println(t.C(Cyan, "File areas"))
@@ -82,11 +88,11 @@ func (s *session) fileArea(a *store.FileArea) error {
 			lines = append(lines, "  No files here yet.")
 		}
 		t.Page(lines)
-		if s.b.FTPAddress != "" && files.CanUpload(s.user, a) {
+		if s.b.FTPAddress != "" && s.b.CanUpload(s.user, a) {
 			t.Println(t.C(Dim, "Upload by FTP into /"+a.Name+"/."))
 		}
 		prompt := "\nNumber for its details (and download), "
-		if files.CanUpload(s.user, a) {
+		if s.b.CanUpload(s.user, a) {
 			prompt += "[U]pload, "
 		}
 		cmd, err := t.Input(prompt+"[Q]uit: ", 6)

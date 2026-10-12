@@ -52,6 +52,10 @@ func (u *ui) indFile(a *store.FileArea, ind *go3270.IndFile) (string, error) {
 		if err != nil {
 			return end(transNoFile)
 		}
+		if err := u.b.MayDownload(u.user, a); err != nil {
+			end(transDenied)
+			return capital(err.Error()) + ".", nil
+		}
 		r, err := u.b.Files.OpenFile(f)
 		if err != nil {
 			return end(transRead)
@@ -67,7 +71,7 @@ func (u *ui) indFile(a *store.FileArea, ind *go3270.IndFile) (string, error) {
 			}
 			return end(transRead)
 		}
-		u.b.Store.CountDownload(f.ID)
+		u.b.Downloaded(u.user, f)
 		u.b.Log.Printf("node %d: %s downloaded %q by IND$FILE (%d bytes, %v)", u.n.Num, u.user.Name,
 			f.Name, n, time.Since(start).Round(time.Second))
 		return end(transOK)
@@ -78,6 +82,10 @@ func (u *ui) indFile(a *store.FileArea, ind *go3270.IndFile) (string, error) {
 	}
 	if files.ValidName(name) != "" {
 		return end(transBadName)
+	}
+	if !u.b.CanUpload(u.user, a) {
+		end(transDenied)
+		return "Your access does not allow uploading here.", nil
 	}
 	up, err := u.b.Files.Upload(u.user, a, name, "")
 	switch {
@@ -105,4 +113,12 @@ func (u *ui) indFile(a *store.FileArea, ind *go3270.IndFile) (string, error) {
 	u.b.Log.Printf("node %d: %s uploaded %q to %s by IND$FILE (%d bytes, sha256 %s)", u.n.Num,
 		u.user.Name, f.Name, a.Name, f.Size, f.SHA256)
 	return end(transOK)
+}
+
+// capital is s with its first letter upper case (an error as a sentence).
+func capital(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }

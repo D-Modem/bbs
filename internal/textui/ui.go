@@ -309,6 +309,12 @@ func (s *session) welcome() {
 			t.Println(t.C(Dim, "Your last call was "+u.LastLogin.Format("2006-01-02 15:04")+"."))
 		}
 	}
+	if left, ok := s.n.TimeLeft(); ok {
+		t.Println(t.C(Dim, fmt.Sprintf("You have %d minutes today.", int(left.Round(time.Minute).Minutes()))))
+	}
+	if !u.Sysop && u.Level < s.b.ValidatedLevel {
+		t.Println(t.C(Yellow, "Your account waits for the sysop's validation; mail the sysop if you like."))
+	}
 	if motd := s.b.MOTDText(); motd != "" {
 		t.Println("")
 		var lines []string
@@ -351,7 +357,18 @@ func (s *session) mainMenu() error {
 				chat += fmt.Sprintf(" (%d paging)", len(ps))
 			}
 		}
-		items = append(items, choice{"C", chat}, choice{"S", "Page the sysop"})
+		lvl := s.b.LevelOf(u)
+		if lvl.Chat {
+			items = append(items, choice{"C", chat})
+		}
+		if lvl.Page {
+			items = append(items, choice{"S", "Page the sysop"})
+		}
+		if u.Sysop && s.b.ValidatedLevel > s.b.NewUserLevel {
+			if w, _ := s.b.Store.UsersBelow(s.b.ValidatedLevel); len(w) > 0 {
+				items = append(items, choice{"V", fmt.Sprintf("Validate users (%d)", len(w))})
+			}
+		}
 		items = append(items, choice{"G", "Goodbye"})
 		k, err := s.menu("Main menu", items, "\n"+s.str("command_prompt"), true)
 		if err != nil {
@@ -369,9 +386,17 @@ func (s *session) mainMenu() error {
 				err = s.fileAreas()
 			}
 		case 'C':
-			err = s.chat("")
+			if lvl.Chat {
+				err = s.chat("")
+			}
 		case 'S':
-			err = s.page()
+			if lvl.Page {
+				err = s.page()
+			}
+		case 'V':
+			if u.Sysop {
+				err = s.validate()
+			}
 		case 'D':
 			if len(s.doorsFor()) > 0 {
 				err = s.doors()
@@ -510,7 +535,7 @@ func (s *session) area(a *store.Area) error {
 		}
 		t.Printf("%s%s: %d messages, %d new\n", t.C(Cyan, a.Name), group, a.Messages, nw)
 		menu := "[R]ead new, [L]ist, [#] read a number, "
-		if bbs.CanPost(s.user, a) {
+		if s.b.CanPost(s.user, a) {
 			menu += "[P]ost, "
 		}
 		cmd, err := t.Input(menu+"[Q]uit: ", 10)
@@ -529,7 +554,7 @@ func (s *session) area(a *store.Area) error {
 				return err
 			}
 		case "P":
-			if bbs.CanPost(s.user, a) {
+			if s.b.CanPost(s.user, a) {
 				if err := s.post(a, "All", "", nil, 0); err != nil {
 					return err
 				}
@@ -650,7 +675,7 @@ func (s *session) read(a *store.Area, m *store.Message) (bool, error) {
 		s.b.Store.SetLastRead(s.user.ID, a.ID, m.ID)
 		canDelete := s.user.Sysop || s.user.ID == m.FromID
 		prompt := "\n[N]ext, [P]revious, "
-		if bbs.CanPost(s.user, a) {
+		if s.b.CanPost(s.user, a) {
 			prompt += "[R]eply, "
 		}
 		prompt += "[M]ail reply, "
@@ -683,7 +708,7 @@ func (s *session) read(a *store.Area, m *store.Message) (bool, error) {
 			}
 			m = prev
 		case 'R':
-			if bbs.CanPost(s.user, a) {
+			if s.b.CanPost(s.user, a) {
 				if err := s.post(a, m.From, bbs.ReplySubject(m.Subject),
 					bbs.Quote(m.From, m.Body, 8), m.ID); err != nil {
 					return false, err
@@ -1020,6 +1045,21 @@ func (s *session) profile() error {
 		t.Printf("  Name:      %s\n", u.Name)
 		t.Printf("  From:      %s\n", u.Location)
 		t.Printf("  Member:    since %s, %d calls, %d posts\n", u.Created.Format("2006-01-02"), u.Logins, u.Posts)
+		lvl := s.b.LevelOf(u)
+		access := fmt.Sprintf("level %d (%s)", u.Level, lvl.Name)
+		if u.Flags != "" {
+			access += ", flags " + u.Flags
+		}
+		t.Printf("  Access:    %s\n", access)
+		if left, ok := s.n.TimeLeft(); ok {
+			t.Printf("  Today:     %d minutes left", int(left.Round(time.Minute).Minutes()))
+		} else {
+			t.Printf("  Today:     no time limit")
+		}
+		if lvl.Downloads > 0 {
+			t.Printf(", %d of %d downloads", u.DownloadsToday(), lvl.Downloads)
+		}
+		t.Println("")
 		onOff := map[bool]string{true: "on", false: "off"}
 		menu := "\n[L]ocation, [A]NSI on/off, [8]-bit UTF-8 on/off, [S]ixel on/off, [R]IP on/off, "
 		ident := ""

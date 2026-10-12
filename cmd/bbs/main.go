@@ -65,9 +65,14 @@ func usage() {
   bbs [-config FILE] user add NAME [-sysop]
   bbs [-config FILE] user passwd|lock|unlock|sysop|unsysop|del NAME
   bbs [-config FILE] user list
+  bbs [-config FILE] user level NAME N              access level, 0-255
+  bbs [-config FILE] user flags NAME +AB -C         access flags (or AB: exactly those)
+  bbs [-config FILE] user validate NAME             to validated_level
+  bbs [-config FILE] user waiting                   users under validated_level
   bbs [-config FILE] area add NAME [DESCRIPTION] [-sysop-only]
   bbs [-config FILE] area del NAME
   bbs [-config FILE] area list
+  bbs [-config FILE] area require AREA READ POST    access requirements ("30 F", sysop, -: none)
   bbs [-config FILE] area newsgroup AREA GROUP|-    (- : not a newsgroup)
   bbs [-config FILE] news sync [PEER]               exchange articles with peers now
   bbs [-config FILE] area echo AREA TAG|-           make an area a FidoNet echo (- : not one)
@@ -83,6 +88,7 @@ func usage() {
   bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
   bbs [-config FILE] filearea del NAME
   bbs [-config FILE] filearea list
+  bbs [-config FILE] filearea require AREA DOWNLOAD UPLOAD
   bbs [-config FILE] file add AREA PATH [DESCRIPTION]   (as the first sysop)
   bbs [-config FILE] file list AREA
   bbs [-config FILE] file del AREA NAME
@@ -419,6 +425,24 @@ func split(args []string) (words []string, flags map[string]bool) {
 }
 
 func userCmd(cfg *server.Config, args []string) {
+	if len(args) >= 3 && args[0] == "flags" {
+		// -C is an edit here, not an option
+		st := open(cfg)
+		defer st.Close()
+		u, err := st.UserByName(args[1])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", args[1], err))
+		}
+		fl, err := bbs.EditFlags(u.Flags, strings.Join(args[2:], " "))
+		if err != nil {
+			fatal(err)
+		}
+		if err := st.SetFlags(u.ID, fl); err != nil {
+			fatal(err)
+		}
+		fmt.Printf("%s: flags %q\n", u.Name, fl)
+		return
+	}
 	words, flags := split(args)
 	if len(words) == 0 {
 		usage()
@@ -441,7 +465,35 @@ func userCmd(cfg *server.Config, args []string) {
 			if u.External {
 				tags = append(tags, "external")
 			}
-			fmt.Printf("%-24s %5d calls %5d posts  %s\n", u.Name, u.Logins, u.Posts, strings.Join(tags, " "))
+			if u.Flags != "" {
+				tags = append(tags, "flags "+u.Flags)
+			}
+			fmt.Printf("%-24s level %3d %5d calls %5d posts  %s\n", u.Name, u.Level, u.Logins, u.Posts, strings.Join(tags, " "))
+		}
+		return
+	}
+	if words[0] == "level" && len(words) == 3 {
+		u, err := st.UserByName(words[1])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", words[1], err))
+		}
+		l, err := strconv.Atoi(words[2])
+		if err != nil || l < 0 || l > bbs.MaxLevel {
+			fatal(fmt.Errorf("a level is 0 to %d", bbs.MaxLevel))
+		}
+		if err := st.SetLevel(u.ID, l); err != nil {
+			fatal(err)
+		}
+		fmt.Printf("%s: level %d\n", u.Name, l)
+		return
+	}
+	if words[0] == "waiting" {
+		us, err := st.UsersBelow(cfg.Settings.ValidatedLevel)
+		if err != nil {
+			fatal(err)
+		}
+		for _, u := range us {
+			fmt.Printf("%-24s level %3d  since %s  %s\n", u.Name, u.Level, u.Created.Format("2006-01-02"), u.Location)
 		}
 		return
 	}
@@ -479,6 +531,8 @@ func userCmd(cfg *server.Config, args []string) {
 		err = st.SetSysop(u.ID, false)
 	case "del":
 		err = st.DeleteUser(u.ID)
+	case "validate":
+		err = st.SetLevel(u.ID, max(u.Level, cfg.Settings.ValidatedLevel))
 	default:
 		usage()
 	}
@@ -512,6 +566,9 @@ func areaCmd(cfg *server.Config, args []string) {
 			if a.EchoTag != "" {
 				only += " [echo " + a.EchoTag + "]"
 			}
+			if a.ReadReq != "" || a.PostReq != "" {
+				only += fmt.Sprintf(" (read %q, post %q)", a.ReadReq, a.PostReq)
+			}
 			fmt.Printf("%-20s %5d messages  %s%s\n", a.Name, a.Messages, a.Description, only)
 		}
 	case "add":
@@ -527,6 +584,19 @@ func areaCmd(cfg *server.Config, args []string) {
 			fatal(err)
 		}
 		fmt.Println("added", a.Name)
+	case "require":
+		if len(words) != 4 {
+			usage()
+		}
+		a, err := st.AreaByName(words[1])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", words[1], err))
+		}
+		read, post := requireArg(words[2]), requireArg(words[3])
+		if err := st.SetAreaRequire(a.ID, read, post); err != nil {
+			fatal(err)
+		}
+		fmt.Printf("%s: read %q, post %q\n", a.Name, read, post)
 	case "newsgroup":
 		if len(words) != 3 {
 			usage()
@@ -625,6 +695,19 @@ func fileAreaCmd(cfg *server.Config, args []string) {
 			fatal(err)
 		}
 		fmt.Println("added", a.Name)
+	case "require":
+		if len(words) != 4 {
+			usage()
+		}
+		a, err := st.FileAreaByName(words[1])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", words[1], err))
+		}
+		dl, ul := requireArg(words[2]), requireArg(words[3])
+		if err := st.SetFileAreaRequire(a.ID, dl, ul); err != nil {
+			fatal(err)
+		}
+		fmt.Printf("%s: download %q, upload %q\n", a.Name, dl, ul)
 	case "del":
 		if len(words) != 2 {
 			usage()
@@ -1001,4 +1084,17 @@ func sshKeyCmd(cfg *server.Config, args []string) {
 	default:
 		usage()
 	}
+}
+
+// requireArg is an access requirement given on the command line ("-":
+// none), checked.
+func requireArg(s string) string {
+	if s == "-" {
+		return ""
+	}
+	r, err := bbs.ParseRequire(s)
+	if err != nil {
+		fatal(err)
+	}
+	return r.String()
 }

@@ -99,7 +99,14 @@ a Commodore found while logging in: by DEL typed in the name, by a shifted lette
 commands and their escaping, the menu scene; a RIP terminal found by its
 answer, given a .rip screen, menus as buttons, the scene cleared on a
 choice and a pause before the next; an ANSI terminal without RIP given
-none of it.  Terminal identification: the answers of DEC's terminals and
+none of it.  Access levels: requirements read and written back, met and
+not (flags, !flags, sysop, locked users), flag edits; levels found for a
+user; areas hidden and posting refused by level and by flags, mail only to
+the sysop, chat and paging refused, the day's downloads counted and
+limited, doors, validation; the day's time running out (warned, hung up,
+counted); a new user waiting and validated by the sysop on the BBS; the
+API (no user raises their own level, levels and flags seen only by
+sysops and the user, area requirements); the configuration.  Terminal identification: the answers of DEC's terminals and
 of emulators (VT100 to VT525, xterm old and new, VTE, tmux, SyncTERM,
 PuTTY, the Linux console, a VT52) read into names, levels, sixel and
 monochrome; DEC Special Graphics and Latin-1 output, escapes passing

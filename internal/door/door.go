@@ -37,6 +37,7 @@ type Door struct {
 	Charset     string
 	TimeLimit   time.Duration
 	SysopOnly   bool
+	Require     string   // the access requirement ("": anyone)
 	Single      bool     // one caller at a time
 	PTY         bool     // run it on a pseudo-terminal, not pipes
 	Cleanup     []string // run after it (expanded), e.g. docker rm -f
@@ -141,7 +142,12 @@ func (d *Door) Run(line Line, in *Info, utf8Term bool, idle time.Duration, logf 
 		}
 		defer d.mu.Unlock()
 	}
-	in.TimeLeft = d.TimeLimit
+	// the door's limit, or the caller's time left today if less
+	limit := d.TimeLimit
+	if in.TimeLeft > 0 && (limit == 0 || in.TimeLeft < limit) {
+		limit = in.TimeLeft
+	}
+	in.TimeLeft = limit
 	in.CommType = d.CommType
 	if in.ComPort == 0 {
 		in.ComPort = 1
@@ -269,7 +275,7 @@ func (d *Door) Run(line Line, in *Info, utf8Term bool, idle time.Duration, logf 
 	}()
 
 	// the caller's input to the door
-	deadline := time.Now().Add(d.TimeLimit)
+	deadline := time.Now().Add(limit)
 	lastKey := time.Now()
 	buf := make([]byte, 1024)
 	var pending []byte // a UTF-8 character cut in two
@@ -283,7 +289,7 @@ func (d *Door) Run(line Line, in *Info, utf8Term bool, idle time.Duration, logf 
 			continue
 		default:
 		}
-		if d.TimeLimit > 0 && time.Now().After(deadline) {
+		if limit > 0 && time.Now().After(deadline) {
 			res.TimeUp = true
 			stop()
 			break

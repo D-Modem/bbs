@@ -77,10 +77,11 @@ func (s *session) logoff() error {
 
 // runMenu runs a menu of the sysop's until it is left (back) or the
 // caller logs off.
-func (s *session) runMenu(m *bbs.Menu, depth int) error {
+func (s *session) runMenu(full *bbs.Menu, depth int) error {
 	vars := s.n.Vars()
 	for {
 		s.user = s.n.Refresh()
+		m := s.b.MenuFor(full, s.user)
 		title := screens.String(m.Title, vars)
 		s.n.Doing(title)
 		shown := false
@@ -159,7 +160,12 @@ func (s *session) do(it *bbs.MenuItem, depth int) error {
 			t.Println("Menus nest too deep.")
 			return nil
 		}
-		return s.runMenu(s.b.Menus[strings.ToLower(it.Arg)], depth+1)
+		sub := s.b.Menus[strings.ToLower(it.Arg)]
+		if !bbs.MustRequire(sub.Require).Allows(s.user) {
+			t.Println(t.C(Red, "That menu is not for you."))
+			return nil
+		}
+		return s.runMenu(sub, depth+1)
 	case "screen":
 		shown, err := s.screen(it.Arg)
 		if err != nil {
@@ -172,7 +178,7 @@ func (s *session) do(it *bbs.MenuItem, depth int) error {
 		return t.Pause()
 	case "area":
 		a, err := s.b.Store.AreaByName(it.Arg)
-		if err != nil {
+		if err != nil || !s.b.CanRead(s.user, a) {
 			t.Println(t.C(Red, "There is no area "+it.Arg+"."))
 			return nil
 		}

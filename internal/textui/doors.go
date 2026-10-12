@@ -18,7 +18,7 @@ func (s *session) doorsFor() []*door.Door {
 		return nil // doors are ANSI programs
 	}
 	for _, d := range s.b.Doors {
-		if !d.SysopOnly || s.user.Sysop {
+		if s.b.CanDoor(s.user, d) {
 			out = append(out, d)
 		}
 	}
@@ -71,7 +71,11 @@ func (s *session) doors() error {
 func (s *session) openDoor(d *door.Door) error {
 	t := s.t
 	u := s.n.Refresh()
-	t.Println(t.C(Green, fmt.Sprintf("Opening %s (%d minutes)...", d.Name, int(d.TimeLimit/time.Minute))))
+	limit := d.TimeLimit
+	if left, ok := s.n.TimeLeft(); ok && (limit == 0 || left < limit) {
+		limit = left
+	}
+	t.Println(t.C(Green, fmt.Sprintf("Opening %s (%d minutes)...", d.Name, int(limit/time.Minute))))
 	port, err := t.Port()
 	if err != nil {
 		return err
@@ -79,7 +83,10 @@ func (s *session) openDoor(d *door.Door) error {
 	in := &door.Info{Node: s.n.Num, UserID: u.ID, UserName: u.Name, Location: u.Location,
 		Sysop: u.Sysop, Logins: u.Logins, Posts: u.Posts, LastLogin: u.LastLogin,
 		ANSI: t.ANSI, Rows: t.Rows, Cols: t.Cols, Baud: baud(s.c),
-		BBSName: s.b.Name, SysopName: s.b.Sysop}
+		BBSName: s.b.Name, SysopName: s.b.Sysop, Level: u.Level}
+	if left, ok := s.n.TimeLeft(); ok {
+		in.TimeLeft = max(left, time.Minute)
+	}
 	s.n.Doing("In " + d.Name)
 	s.b.Log.Printf("node %d: %s opened door %s", s.n.Num, u.Name, d.Name)
 	res, err := d.Run(port, in, t.UTF8, t.Idle, func(f string, a ...any) {

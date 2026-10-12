@@ -19,6 +19,16 @@ func migrate(db *sql.DB) error {
 		{"messages", "ftn_msgid", "TEXT"},
 		{"messages", "ftn", "BLOB"},
 		{"mail", "ftn_msgid", "TEXT"},
+		{"users", "level", "INTEGER NOT NULL DEFAULT 20"},
+		{"users", "flags", "TEXT NOT NULL DEFAULT ''"},
+		{"users", "time_day", "INTEGER NOT NULL DEFAULT 0"},
+		{"users", "time_used", "INTEGER NOT NULL DEFAULT 0"},
+		{"users", "dl_day", "INTEGER NOT NULL DEFAULT 0"},
+		{"users", "dl_count", "INTEGER NOT NULL DEFAULT 0"},
+		{"areas", "read_req", "TEXT NOT NULL DEFAULT ''"},
+		{"areas", "post_req", "TEXT NOT NULL DEFAULT ''"},
+		{"file_areas", "download_req", "TEXT NOT NULL DEFAULT ''"},
+		{"file_areas", "upload_req", "TEXT NOT NULL DEFAULT ''"},
 	}
 	for _, a := range add {
 		var n int

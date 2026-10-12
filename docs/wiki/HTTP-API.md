@@ -63,7 +63,7 @@ Errors are `{"error": "...", "code": "..."}`.
 | `POST /login`, `POST /logout` | a session token; ending it | (none), any |
 | `GET /system` | the name, sysop, counts, features | anonymous |
 | `GET /who` | who is online (with each `terminal`, as it said what it is) | anonymous |
-| `GET`, `PATCH /me` | your account; change your location or password | read |
+| `GET`, `PATCH /me` | your account and access; change your location or password | read |
 | `GET /me/tokens`, `DELETE /me/tokens/{id}` | your tokens; revoke one | any |
 | `GET /me/keys` | your SSH keys | read |
 | `POST /me/keys`, `DELETE /me/keys/{id}` | add an SSH key (`{"key": "ssh-ed25519 ..."}`, from a login's session only); delete one | any |
@@ -83,8 +83,8 @@ Errors are `{"error": "...", "code": "..."}`.
 | `GET /events` | server-sent events | chat or read |
 | `GET /ws`, `GET /ws/proto` | WebSockets | chat |
 | `GET /admin/pages`, `POST /admin/pages/{node}/answer` | pages waiting; answer one (node 0: the longest waiting) | sysop |
-| `POST /admin/users`, `PATCH /admin/users/{name}` | add a user; lock, unlock, make sysop, set password | sysop |
-| `POST /admin/areas`, `PATCH /admin/areas/{id}` | add an area; set its newsgroup or echo tag | sysop |
+| `POST /admin/users`, `PATCH /admin/users/{name}` | add a user; lock, unlock, make sysop, set password, `level`, `flags` | sysop |
+| `POST /admin/areas`, `PATCH /admin/areas/{id}` | add an area; set its newsgroup, echo tag, `read_require`, `post_require` | sysop |
 | `POST /admin/nodes/{n}/kick` | throw a caller off | sysop |
 | `GET /admin/fido`, `POST /admin/fido/poll` | FidoNet links and outbound; call them now | sysop |
 | `GET /admin/news`, `POST /admin/news/sync` | news peers; sync now | sysop |

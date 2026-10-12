@@ -51,6 +51,10 @@ func startHint(p *xfer.Protocol, upload bool) string {
 // download sends a file.
 func (s *session) download(a *store.FileArea, f *store.File) error {
 	t := s.t
+	if err := s.b.MayDownload(s.user, a); err != nil {
+		t.Println(t.C(Red, capital(err.Error())+"."))
+		return nil
+	}
 	p, err := s.chooseProtocol()
 	if err != nil || p == nil {
 		return err
@@ -75,7 +79,7 @@ func (s *session) download(a *store.FileArea, f *store.File) error {
 		t.Println(t.C(Red, "The transfer failed: "+err.Error()+"."))
 		return nil
 	}
-	s.b.Store.CountDownload(f.ID)
+	s.b.Downloaded(s.user, f)
 	s.b.Log.Printf("node %d: %s downloaded %q by %s (%d bytes, %v)", s.n.Num, s.user.Name, f.Name,
 		p.Name, f.Size, time.Since(start).Round(time.Second))
 	t.Println(t.C(Green, "Sent "+f.Name+"."))
@@ -131,8 +135,8 @@ func safeName(name string) string {
 // upload receives files into an area.
 func (s *session) upload(a *store.FileArea) error {
 	t := s.t
-	if !files.CanUpload(s.user, a) {
-		t.Println(t.C(Red, "Only the sysop uploads here."))
+	if !s.b.CanUpload(s.user, a) {
+		t.Println(t.C(Red, "Your access does not allow uploading here."))
 		return nil
 	}
 	p, err := s.chooseProtocol()
@@ -207,4 +211,12 @@ func (s *session) upload(a *store.FileArea) error {
 		}
 	}
 	return nil
+}
+
+// capital is s with its first letter upper case (an error as a sentence).
+func capital(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }

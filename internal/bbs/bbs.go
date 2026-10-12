@@ -37,23 +37,29 @@ type Settings struct {
 	ThrottleFails int           // failures from one source ...
 	ThrottleTime  time.Duration // ... within this lock it out for this
 	PageCommand   []string      // run when a page finds no sysop on
+
+	Levels         []Level // [level N], by number
+	NewUserLevel   int     // a new user's level
+	ValidatedLevel int     // a validated user's
 }
 
 // Defaults are the settings without a configuration.
 func Defaults() Settings {
 	return Settings{
-		Name:          "Go BBS",
-		Sysop:         "Sysop",
-		Banner:        "",
-		Goodbye:       "Thanks for calling.",
-		NewUsers:      true,
-		MaxNodes:      32,
-		Attempts:      3,
-		FailDelay:     3 * time.Second,
-		LoginTimeout:  2 * time.Minute,
-		IdleTimeout:   10 * time.Minute,
-		ThrottleFails: 10,
-		ThrottleTime:  10 * time.Minute,
+		Name:           "Go BBS",
+		Sysop:          "Sysop",
+		Banner:         "",
+		Goodbye:        "Thanks for calling.",
+		NewUsers:       true,
+		NewUserLevel:   20,
+		ValidatedLevel: 20,
+		MaxNodes:       32,
+		Attempts:       3,
+		FailDelay:      3 * time.Second,
+		LoginTimeout:   2 * time.Minute,
+		IdleTimeout:    10 * time.Minute,
+		ThrottleFails:  10,
+		ThrottleTime:   10 * time.Minute,
 	}
 }
 
@@ -147,6 +153,7 @@ type Node struct {
 	kick     func()
 	chatOnce sync.Once
 	cs       *chatState
+	clock    *clock // the day's time limit, for a caller logged in
 }
 
 // ErrBusy: every node is taken.
@@ -172,6 +179,7 @@ func (b *BBS) Enter(c *Caller, kick func()) (*Node, error) {
 
 // Leave gives the node back.
 func (n *Node) Leave() {
+	n.stopClock()
 	n.leaveChat()
 	n.b.mu.Lock()
 	delete(n.b.nodes, n.Num)
@@ -384,6 +392,7 @@ func (n *Node) loggedIn(u *store.User, how string) (*store.User, error) {
 		return nil, err
 	}
 	n.SetUser(u)
+	n.startClock(u)
 	n.b.Stats.Logins.Add(1)
 	n.Doing("Main menu")
 	n.b.Log.Printf("node %d: %s logged in (%s, %s from %s)", n.Num, u.Name, how,
@@ -413,6 +422,10 @@ func (n *Node) Register(name, pw, location string) (*store.User, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := b.Store.SetLevel(u.ID, b.NewUserLevel); err != nil {
+		return nil, err
+	}
+	u.Level = b.NewUserLevel
 	// a new account counts against the source like a failure, so that
 	// one caller cannot make thousands
 	b.failed(n.Caller.Source)
@@ -437,19 +450,17 @@ func (b *BBS) MOTDText() string {
 	return text
 }
 
-// CanPost reports whether u may post in area a.
-func CanPost(u *store.User, a *store.Area) bool {
-	return !a.SysopOnly || u.Sysop
-}
-
 // Post cleans and posts a message.
 func (n *Node) Post(a *store.Area, to, subject string, body []string, replyTo int64) (int64, error) {
 	u := n.User()
 	if u == nil {
 		return 0, errors.New("not logged in")
 	}
-	if !CanPost(u, a) {
-		return 0, errors.New("only the sysop posts here")
+	if !n.b.CanPost(u, a) {
+		if a.SysopOnly {
+			return 0, errors.New("only the sysop posts here")
+		}
+		return 0, errors.New("your access does not allow posting here")
 	}
 	m := &store.Message{AreaID: a.ID, FromID: u.ID, From: u.Name,
 		To: Clean(to, MaxNameLen), Subject: Clean(subject, MaxSubjectLen),
@@ -478,7 +489,11 @@ func (n *Node) SendMail(to, subject string, body []string, replyTo int64) error 
 	if u == nil {
 		return errors.New("not logged in")
 	}
+	mail := n.b.LevelOf(u).Mail
 	if name, addr, ok := SplitNetmail(to); ok {
+		if !mail {
+			return errors.New("your access allows mail only to the sysop")
+		}
 		return n.sendNetmail(u, name, addr, subject, body, replyTo)
 	}
 	rcpt, err := n.b.Store.UserByName(strings.TrimSpace(to))
@@ -487,6 +502,10 @@ func (n *Node) SendMail(to, subject string, body []string, replyTo int64) error 
 	}
 	if err != nil {
 		return err
+	}
+	// a user who may not mail may still write to the sysop (to be validated)
+	if !mail && !rcpt.Sysop {
+		return errors.New("your access allows mail only to the sysop")
 	}
 	m := &store.Message{FromID: u.ID, From: u.Name, ToID: rcpt.ID, To: rcpt.Name,
 		Subject: Clean(subject, MaxSubjectLen), Body: CleanBody(body), ReplyTo: replyTo}
@@ -566,13 +585,16 @@ func (b *BBS) AreasFor(u *store.User) ([]AreaNew, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := make([]AreaNew, len(areas))
-	for i, a := range areas {
+	out := make([]AreaNew, 0, len(areas))
+	for _, a := range areas {
+		if !b.CanRead(u, a) {
+			continue
+		}
 		n, err := b.Store.NewCount(u.ID, a.ID)
 		if err != nil {
 			return nil, err
 		}
-		out[i] = AreaNew{a, n}
+		out = append(out, AreaNew{a, n})
 	}
 	return out, nil
 }

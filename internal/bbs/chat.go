@@ -176,6 +176,10 @@ func (n *Node) JoinRoom(name string) ([]Event, error) {
 	if strings.HasPrefix(name, "sysop-") && name != pageRoom(n.Num) && !u.Sysop {
 		return nil, ErrNotYours
 	}
+	// the room a page waits in is the page's, not chat
+	if name != pageRoom(n.Num) && !n.b.LevelOf(u).Chat {
+		return nil, ErrNotAllowed
+	}
 	if n.Room() == name {
 		return nil, nil
 	}
@@ -371,6 +375,9 @@ func (n *Node) PageSysop(reason string) (string, int, error) {
 	u := n.User()
 	if u == nil {
 		return "", 0, errors.New("not logged in")
+	}
+	if !n.b.LevelOf(u).Page {
+		return "", 0, ErrNotAllowed
 	}
 	reason = Clean(reason, 60)
 	cs := n.chat()

@@ -436,13 +436,31 @@ func (ss *session) authinfo(args []string) {
 	}
 }
 
-// groups are the newsgroups (areas that are)
+// groups are the newsgroups (areas that are) this reader may see
 func (ss *session) groups() []*store.Area {
 	gs, err := ss.s.Svc.B.Store.Newsgroups()
 	if err != nil {
 		return nil
 	}
-	return gs
+	var out []*store.Area
+	for _, a := range gs {
+		if ss.visible(a) {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
+// visible: a peer sees every newsgroup; a reader those their access lets
+// them read; a reader not logged in those that need nothing
+func (ss *session) visible(a *store.Area) bool {
+	switch {
+	case ss.peer != nil:
+		return true
+	case ss.user != nil:
+		return ss.s.Svc.B.CanRead(ss.user, a)
+	}
+	return a.ReadReq == ""
 }
 
 func status(a *store.Area, post bool) string {
@@ -508,7 +526,7 @@ func (ss *session) groupCmd(args []string, list bool) {
 		}
 	} else {
 		a, err := ss.s.Svc.B.Store.AreaByNewsgroup(args[0])
-		if err != nil {
+		if err != nil || !ss.visible(a) {
 			ss.reply(411, "No such newsgroup")
 			return
 		}
@@ -597,7 +615,7 @@ func (ss *session) selectArticle(args []string) (*store.Message, int64, bool) {
 	if len(args) > 0 && strings.HasPrefix(args[0], "<") {
 		m, err := st.MessageByMessageID(args[0])
 		if err == nil {
-			if a, err := st.Area(m.AreaID); err == nil && a.Newsgroup != "" {
+			if a, err := st.Area(m.AreaID); err == nil && a.Newsgroup != "" && ss.visible(a) {
 				return m, 0, true
 			}
 		}
@@ -688,6 +706,11 @@ func (ss *session) selectRange(args []string) ([]*store.Message, bool, bool) {
 	st := ss.s.Svc.B.Store
 	if len(args) > 0 && strings.HasPrefix(args[0], "<") {
 		m, err := st.MessageByMessageID(args[0])
+		if err == nil {
+			if a, err2 := st.Area(m.AreaID); err2 != nil || !ss.visible(a) {
+				err = store.ErrNotFound
+			}
+		}
 		if err != nil || m.MessageID == "" {
 			ss.reply(430, "No article with that message-id")
 			return nil, false, false

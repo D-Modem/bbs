@@ -35,8 +35,9 @@ type Info struct {
 	LastLogin  time.Time
 	ANSI       bool
 	Rows, Cols int
-	Baud       int // the caller's line; 38400 for a network caller
-	TimeLeft   time.Duration
+	Baud       int           // the caller's line; 38400 for a network caller
+	TimeLeft   time.Duration // the caller's today (0: no limit; the door's own is less)
+	Level      int           // the caller's access level (0: 30)
 	BBSName    string
 	SysopName  string
 	ComPort    int // the door's COM port: 1
@@ -44,10 +45,14 @@ type Info struct {
 	Now        time.Time
 }
 
-// security is the level drop files give: 255 for sysops, 30 for others.
+// security is the level drop files give: 255 for sysops, the caller's
+// access level for others (30 if not said).
 func (in *Info) security() int {
 	if in.Sysop {
 		return 255
+	}
+	if in.Level > 0 {
+		return in.Level
 	}
 	return 30
 }

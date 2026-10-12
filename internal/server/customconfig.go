@@ -84,14 +84,17 @@ func menu(s *config.Section) (*bbs.Menu, error) {
 		return nil, errors.New("a menu needs a name: [menu main]")
 	}
 	m := &bbs.Menu{Name: name, Title: s.String("title", s.Name), Screen: s.String("screen", ""),
-		Prompt: s.String("prompt", "")}
+		Prompt: s.String("prompt", ""), Require: s.String("require", "")}
+	if _, err := bbs.ParseRequire(m.Require); err != nil {
+		return nil, fmt.Errorf("require: %v", err)
+	}
 	if m.Screen != "" && !screens.ValidName(m.Screen) {
 		return nil, errors.New("screen: a screen's name is lower case letters, digits, _ and -")
 	}
 	seen := map[string]bool{}
 	for _, k := range s.Keys() {
 		switch k {
-		case "title", "screen", "prompt":
+		case "title", "screen", "prompt", "require":
 			continue
 		}
 		it, err := bbs.ParseMenuItem(k, s.String(k, ""))

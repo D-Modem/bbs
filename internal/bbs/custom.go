@@ -6,23 +6,38 @@ import (
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
+	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
 // MenuItem is a key of a sysop's menu and what it does.
 type MenuItem struct {
-	Key    string // one character, upper case
-	Action string // see MenuActions; or door, menu, screen, area with Arg
-	Arg    string
-	Label  string // with @-codes
+	Key     string // one character, upper case
+	Action  string // see MenuActions; or door, menu, screen, area with Arg
+	Arg     string
+	Label   string // with @-codes
+	Require string // the access requirement ("": anyone)
 }
 
 // Menu is a sysop's menu ([menu NAME]); "main" replaces the built-in one.
 type Menu struct {
-	Name   string
-	Title  string // with @-codes
-	Screen string // a display file shown instead of the item list ("": none)
-	Prompt string // ("": the command prompt)
-	Items  []MenuItem
+	Name    string
+	Title   string // with @-codes
+	Screen  string // a display file shown instead of the item list ("": none)
+	Prompt  string // ("": the command prompt)
+	Items   []MenuItem
+	Require string // to be taken into it ("": anyone)
+}
+
+// MenuFor is m with only the items u may choose.
+func (b *BBS) MenuFor(m *Menu, u *store.User) *Menu {
+	out := *m
+	out.Items = nil
+	for _, it := range m.Items {
+		if MustRequire(it.Require).Allows(u) {
+			out.Items = append(out.Items, it)
+		}
+	}
+	return &out
 }
 
 // MenuActions are what a menu item may do by itself; door:NAME,
@@ -139,8 +154,12 @@ func ParseMenuItem(key, value string) (MenuItem, error) {
 	if len(k) != 1 || k[0] < '!' || k[0] > '~' {
 		return MenuItem{}, fmt.Errorf("%q: a menu key is one character", key)
 	}
+	value, req, _ := strings.Cut(value, "|")
+	if _, err := ParseRequire(req); err != nil {
+		return MenuItem{}, fmt.Errorf("%s: %v", key, err)
+	}
 	action, label, _ := strings.Cut(strings.TrimSpace(value), " ")
-	it := MenuItem{Key: string(k), Label: strings.TrimSpace(label)}
+	it := MenuItem{Key: string(k), Label: strings.TrimSpace(label), Require: strings.TrimSpace(req)}
 	if a, arg, ok := strings.Cut(action, ":"); ok {
 		switch a {
 		case "door", "menu", "area":

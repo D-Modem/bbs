@@ -70,6 +70,7 @@ What there is:
 - [a web terminal](HTTP-API#the-web-terminal): the BBS in a browser (xterm.js, built in)
 - [an HTTP API](HTTP-API): REST, server-sent events, and WebSockets (JSON or protobuf) where web clients chat with terminal callers; Prometheus metrics
 - [customization](Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
+- [access levels](Access-Levels): levels and flags, areas, doors and menus that require them, time and download limits a day, new users validated by the sysop
 - new users sign themselves up (or not: `new_users = no`)
 - SQLite storage, one file
 
@@ -81,6 +82,7 @@ What there is:
 | [Running](Running) | first start, systemd, the defaults |
 | [Administration](Administration) | the `bbs` command: users, areas, files, mail exchange |
 | [Configuration](Configuration) | `bbs.conf`: its sections, listeners |
+| [Access levels](Access-Levels) | levels, flags, what areas, doors and menus require, daily limits, validation |
 | [Customization](Customization) | screens (ANSI art, 3270), menus, prompts |
 | [SSH](SSH) | the SSH listener, keys, host keys |
 | [Modem callers](Modem-Callers) | app_dmodem and modemmenu |

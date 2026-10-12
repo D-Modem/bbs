@@ -92,6 +92,9 @@ func Load(path string) (*Config, error) {
 	if err := c.infoSections(cf); err != nil {
 		return nil, err
 	}
+	if err := c.levelSections(cf); err != nil {
+		return nil, err
+	}
 	if err := c.doorSections(cf); err != nil {
 		return nil, err
 	}
@@ -128,7 +131,7 @@ func Load(path string) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door", "finger", "gopher", "menu", "strings", "http":
+		case "general", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door", "finger", "gopher", "menu", "strings", "http", "level":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}

@@ -15,9 +15,15 @@ func (u *ui) fileAreas() error {
 	top := 0
 	for {
 		u.n.Doing("File areas")
-		areas, err := u.b.Store.FileAreas()
+		all, err := u.b.Store.FileAreas()
 		if err != nil {
 			return err
+		}
+		var areas []*store.FileArea
+		for _, a := range all {
+			if u.b.CanDownload(u.user, a) || u.b.CanUpload(u.user, a) {
+				areas = append(areas, a)
+			}
 		}
 		tb := &table{title: "File areas", top: top,
 			heading: fmt.Sprintf("%-20s %-38s %5s %9s", "Area", "Description", "Files", "Size"),
@@ -51,7 +57,7 @@ func (u *ui) fileAreas() error {
 func (u *ui) fileArea(a *store.FileArea) error {
 	top := 0
 	msg := ""
-	if u.b.FTPAddress != "" && files.CanUpload(u.user, a) {
+	if u.b.FTPAddress != "" && u.b.CanUpload(u.user, a) {
 		msg = "Upload by FTP into /" + a.Name + "/, or with your emulator's file transfer"
 	}
 	for {

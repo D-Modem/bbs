@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
 )
@@ -68,6 +69,10 @@ func doorSection(s *config.Section) (*door.Door, error) {
 	d.TimeLimit = time.Duration(mins) * time.Minute
 	if d.SysopOnly, err = s.Bool("sysop_only", false); err != nil {
 		return nil, err
+	}
+	d.Require = s.String("require", "")
+	if _, err := bbs.ParseRequire(d.Require); err != nil {
+		return nil, fmt.Errorf("require: %v", err)
 	}
 	if d.Single, err = s.Bool("single", false); err != nil {
 		return nil, err
