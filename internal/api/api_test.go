@@ -742,3 +742,24 @@ func TestBansAndHackLog(t *testing.T) {
 		t.Errorf("hack log: %d %v", code, l)
 	}
 }
+
+func TestCallersAndAbout(t *testing.T) {
+	s := setup(t, Settings{})
+	alice := s.login("alice", "alicepass1")
+	n, _ := s.b.Enter(&bbs.Caller{Via: "telnet"}, nil)
+	if _, err := n.Login("bob", "bobpass123"); err != nil {
+		t.Fatal(err)
+	}
+	n.Leave()
+	if code, _, l := s.do("GET", "/api/v1/callers", alice, nil); code != 200 || len(l) != 1 ||
+		l[0].(map[string]any)["user"] != "bob" || l[0].(map[string]any)["via"] != "telnet" {
+		t.Errorf("callers: %d %v", code, l)
+	}
+	if code, m, _ := s.do("PATCH", "/api/v1/me", alice, map[string]any{"about": "I like \x1b[2Jterminals"}); code != 200 ||
+		m["user"].(map[string]any)["about"] != "I like [2Jterminals" {
+		t.Errorf("about: %d %v", code, m)
+	}
+	if _, m, _ := s.do("GET", "/api/v1/users/alice", alice, nil); m["about"] != "I like [2Jterminals" {
+		t.Errorf("user: %v", m)
+	}
+}

@@ -79,6 +79,9 @@ type Menu struct {
 	Prompt string // "" the default
 	// a display file of the sysop's shown in place of the items
 	Screen string
+	// Brief: the prompt alone, the items when the caller asks (?): an
+	// expert's menus
+	Brief bool
 }
 
 // Column is a table's column.

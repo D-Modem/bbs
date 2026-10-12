@@ -85,6 +85,7 @@ begins their next call:
 | `rip` | `on`, `off` | the same for RIPscrip |
 | `width` | `40`, `80` | a Commodore's columns |
 | `editor` | `full`, `line` | the full-screen editor or the line editor |
+| `expert` | `on`, `off` | menus as their prompt alone, `?` for the rest |
 
 A Commodore and a VT52 take only what applies to them.  The settings are
 `prefs` at `GET /api/v1/me`, changed with `PATCH /api/v1/me`

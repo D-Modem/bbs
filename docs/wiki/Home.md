@@ -62,7 +62,10 @@ What there is:
 - [VT terminals identified](Terminal-Identification) (answerback, DA1, DA2, XTVERSION, VT52): DEC line drawing and Latin-1, bold on monochrome VTs, VT52 escapes
 - who's online (and how each caller came: ssh, telnet, tn3270, rlogin, modem
   with its rate), the user list, system info
-- your profile: where you call from, your password, SSH keys, ANSI and UTF-8
+- the last callers (*L*), feedback to the sysop (*K*, which any caller may
+  send), the user list with each user's details and a line about themselves
+- your profile: where you call from, a line about yourself, expert menus
+  (the prompt alone, `?` for the rest), your password, SSH keys, ANSI and UTF-8
 - [file areas](Files-and-FTP): files listed with their size, uploader, downloads and
   SHA-256, moved by XMODEM, YMODEM, ZMODEM or Kermit on the text BBS, by
   IND$FILE on a 3270 ([file transfers](File-Transfers)), or by FTP (FTPS); deleted by their uploader or the

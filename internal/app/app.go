@@ -184,11 +184,13 @@ func (s *Session) mainMenu(intro []view.Line) error {
 				items = append(items, view.Item{Key: "V", Label: fmt.Sprintf("Validate users (%d)", waiting)})
 			}
 		}
+		items = append(items, view.Item{Key: "L", Label: "Last callers"},
+			view.Item{Key: "K", Label: "Feedback to the sysop"})
 		if s.UI.Kind() == TN3270 {
 			items = append(items, view.Item{Key: "T", Label: "Your terminal"})
 		}
 		items = append(items, view.Item{Key: "G", Label: "Goodbye"})
-		k, err := s.UI.Menu(&view.Menu{Title: "Main menu", Intro: intro, Items: items})
+		k, err := s.UI.Menu(&view.Menu{Title: "Main menu", Intro: intro, Items: items, Brief: s.expert()})
 		intro = nil
 		if err != nil {
 			return err
@@ -198,6 +200,10 @@ func (s *Session) mainMenu(intro []view.Line) error {
 			err = s.areas()
 		case "E":
 			err = s.mail()
+		case "L":
+			err = s.lastCallers()
+		case "K":
+			err = s.feedback()
 		case "W":
 			err = s.who()
 		case "U":
@@ -237,6 +243,9 @@ func (s *Session) mainMenu(intro []view.Line) error {
 	}
 }
 
+// expert: the caller wants their menus brief.
+func (s *Session) expert() bool { return s.N.Prefs()["expert"] == "on" }
+
 // logoff: ErrLogoff once the front end has said goodbye.
 func (s *Session) logoff() error {
 	ok, err := s.UI.Logoff()
@@ -256,7 +265,7 @@ func (s *Session) runMenu(full *bbs.Menu, depth int, intro []view.Line) error {
 		m := s.B.MenuFor(full, u)
 		title := screens.String(m.Title, vars)
 		s.N.Doing(title)
-		vm := &view.Menu{Title: title, Intro: intro, Screen: m.Screen}
+		vm := &view.Menu{Title: title, Intro: intro, Screen: m.Screen, Brief: s.expert()}
 		intro = nil
 		for _, it := range m.Items {
 			vm.Items = append(vm.Items, view.Item{Key: it.Key, Label: screens.String(it.Label, vars)})
@@ -333,6 +342,10 @@ func (s *Session) do(it *bbs.MenuItem, depth int) error {
 		s.UI.Say(view.Bad, "That door is not open to you.")
 	case "chat":
 		return s.UI.Chat("", "")
+	case "callers":
+		return s.lastCallers()
+	case "feedback":
+		return s.feedback()
 	case "page":
 		return s.page()
 	case "logoff":

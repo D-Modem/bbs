@@ -33,6 +33,7 @@ func (s *Server) routes() map[string]route {
 		"DELETE /api/v1/me/keys/{id}":   {scope: "any", h: s.delKey},
 		"GET /api/v1/users":             {scope: "read", h: s.users},
 		"GET /api/v1/users/{name}":      {scope: "read", h: s.user},
+		"GET /api/v1/callers":           {scope: "read", h: s.callers},
 
 		"GET /api/v1/areas":                {scope: "read", h: s.areas},
 		"GET /api/v1/areas/{id}":           {scope: "read", h: s.area},
@@ -94,6 +95,7 @@ type userJSON struct {
 	Locked    bool       `json:"locked,omitempty"`
 	Level     *int       `json:"level,omitempty"` // to sysops and the user
 	Flags     string     `json:"flags,omitempty"`
+	About     string     `json:"about,omitempty"`
 }
 
 // userView is a user as the request's user may see them: their access
@@ -109,7 +111,7 @@ func (s *Server) userView(r *http.Request, u *store.User) userJSON {
 
 func (s *Server) userOut(u *store.User) userJSON {
 	j := userJSON{Name: u.Name, Location: u.Location, Sysop: u.Sysop, Created: u.Created,
-		Calls: u.Logins, Posts: u.Posts, Locked: u.Locked}
+		Calls: u.Logins, Posts: u.Posts, Locked: u.Locked, About: u.About}
 	if !u.LastLogin.IsZero() {
 		t := u.LastLogin
 		j.LastLogin = &t
@@ -336,6 +338,7 @@ func (s *Server) patchMe(w http.ResponseWriter, r *http.Request) {
 		OldPassword string            `json:"old_password"`
 		NewPassword string            `json:"new_password"`
 		Prefs       map[string]string `json:"prefs"`
+		About       *string           `json:"about"`
 	}
 	if !s.decode(w, r, &req) {
 		return
@@ -357,6 +360,9 @@ func (s *Server) patchMe(w http.ResponseWriter, r *http.Request) {
 	if req.Location != nil {
 		s.B.Store.SetLocation(u.ID, bbs.Clean(*req.Location, bbs.MaxLocationLen))
 	}
+	if req.About != nil {
+		s.B.Store.SetAbout(u.ID, bbs.Clean(*req.About, 60))
+	}
 	if req.NewPassword != "" {
 		if err := s.agent(r).ChangePassword(req.OldPassword, req.NewPassword); err != nil {
 			fail(w, http.StatusBadRequest, err.Error())
@@ -364,6 +370,25 @@ func (s *Server) patchMe(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.me(w, r)
+}
+
+// callers: the last callers, newest first
+func (s *Server) callers(w http.ResponseWriter, r *http.Request) {
+	n, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil || n <= 0 || n > 200 {
+		n = 20
+	}
+	cs, err := s.B.Store.LastCalls(n)
+	if err != nil {
+		fail(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	out := []map[string]any{}
+	for _, c := range cs {
+		out = append(out, map[string]any{"user": c.Name, "location": c.Location, "via": c.Via,
+			"node": c.Node, "at": c.At})
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (s *Server) myTokens(w http.ResponseWriter, r *http.Request) {

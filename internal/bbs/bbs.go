@@ -436,6 +436,10 @@ func (n *Node) loggedIn(u *store.User, how string) (*store.User, error) {
 	}
 	n.SetUser(u)
 	n.startClock(u)
+	if err := n.b.Store.AddCall(&store.Call{UserID: u.ID, Name: u.Name, Location: u.Location,
+		Via: n.Caller.Via, Node: n.Num}); err != nil {
+		n.b.Log.Printf("node %d: the last callers: %v", n.Num, err)
+	}
 	n.b.Stats.Logins.Add(1)
 	n.Doing("Main menu")
 	n.b.Log.Printf("node %d: %s logged in (%s, %s from %s)", n.Num, u.Name, how,

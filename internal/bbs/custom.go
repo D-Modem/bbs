@@ -53,6 +53,8 @@ var MenuActions = map[string]string{
 	"doors":    "the doors",
 	"chat":     "chat",
 	"page":     "page the sysop",
+	"callers":  "the last callers",
+	"feedback": "mail to the sysop",
 	"terminal": "a 3270's terminal details (nothing elsewhere)",
 	"back":     "back to the menu before",
 	"logoff":   "log off",

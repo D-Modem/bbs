@@ -133,7 +133,9 @@ The full-screen editor: its text (wrapping as typed and as given, a word
 too long for a line, joining lines by Backspace and Delete, moving over
 line ends, quoting, the line limit), and an SSH caller writing a post
 with the cursor keys, replying with lines from the quote window and
-`/S`, then choosing the line editor; keeping callers out (the deny file
+`/S`, then choosing the line editor; the last callers, feedback to the
+sysop, a user's details (more of them to a sysop) and mail from there, a
+line about oneself, expert menus and `?` on a text terminal; keeping callers out (the deny file
 read again as it changes, networks and IPv6, bans after the throttle and
 their end, name patterns, the hack log's lines; telnet over TLS with a
 login, a plain client on the TLS port getting nothing, a denied address

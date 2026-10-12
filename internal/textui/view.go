@@ -114,7 +114,18 @@ func (s *session) Menu(m *view.Menu) (string, error) {
 	if prompt == "" {
 		prompt = s.str("command_prompt")
 	}
-	k, err := s.menu(m.Title, items, "\n"+prompt, !shown)
+	brief := m.Brief && !s.t.RIP && !shown
+	if brief {
+		if p := strings.TrimRight(prompt, " "); strings.HasSuffix(p, ":") {
+			prompt = strings.TrimSuffix(p, ":") + " (? for the menu): "
+		} else {
+			prompt = p + " (? for the menu) "
+		}
+	}
+	k, err := s.menu(m.Title, items, "\n"+prompt, !shown && !brief)
+	if err == nil && brief && k == '?' {
+		k, err = s.menu(m.Title, items, "\n"+prompt, true)
+	}
 	if err != nil || k == '\r' {
 		return "", err
 	}

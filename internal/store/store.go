@@ -49,6 +49,7 @@ type User struct {
 	Prefs string
 	// files downloaded ever, and uploaded (the files there now)
 	Downloads, Uploads int
+	About              string // a line about themselves
 }
 
 // Area is a message area.
@@ -189,7 +190,7 @@ func HashPassword(pw string) (string, error) {
 }
 
 const userCols = `id, name, password, location, sysop, locked, created, last_login, logins, posts,
-	level, flags, time_day, time_used, dl_day, dl_count, prefs, downloads,
+	level, flags, time_day, time_used, dl_day, dl_count, prefs, downloads, about,
 	(SELECT COUNT(*) FROM files WHERE files.uploader_id = users.id)`
 
 func scanUser(row interface{ Scan(...any) error }) (*User, string, error) {
@@ -198,7 +199,7 @@ func scanUser(row interface{ Scan(...any) error }) (*User, string, error) {
 	var created, last int64
 	err := row.Scan(&u.ID, &u.Name, &pw, &u.Location, &u.Sysop, &u.Locked,
 		&created, &last, &u.Logins, &u.Posts, &u.Level, &u.Flags, &u.TimeDay, &u.TimeUsed, &u.DLDay, &u.DLCount, &u.Prefs,
-		&u.Downloads, &u.Uploads)
+		&u.Downloads, &u.About, &u.Uploads)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, "", ErrNotFound
 	}
@@ -279,6 +280,11 @@ func (s *Store) SetLocation(id int64, loc string) error {
 // SetPrefs sets a user's settings.
 func (s *Store) SetPrefs(id int64, prefs string) error {
 	return s.exec1(`UPDATE users SET prefs = ? WHERE id = ?`, prefs, id)
+}
+
+// SetAbout sets a user's line about themselves.
+func (s *Store) SetAbout(id int64, about string) error {
+	return s.exec1(`UPDATE users SET about = ? WHERE id = ?`, about, id)
 }
 
 // SetSysop gives or takes a user's sysop rights.

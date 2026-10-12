@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS users (
 	dl_day     {int} NOT NULL DEFAULT 0,
 	dl_count   {int} NOT NULL DEFAULT 0,
 	prefs      {str} NOT NULL DEFAULT '',
-	downloads  {int} NOT NULL DEFAULT 0
+	downloads  {int} NOT NULL DEFAULT 0,
+	about      {str} NOT NULL DEFAULT ''
 )`, `
 CREATE TABLE IF NOT EXISTS areas (
 	id          {id},
@@ -73,6 +74,15 @@ CREATE TABLE IF NOT EXISTS script_data (
 	name    {key} NOT NULL,
 	value   {text} NOT NULL,
 	PRIMARY KEY (script, user_id, name)
+)`, `
+CREATE TABLE IF NOT EXISTS calls (
+	id       {id},
+	user_id  {int} NOT NULL,
+	name     {str} NOT NULL,
+	location {str} NOT NULL DEFAULT '',
+	via      {str} NOT NULL DEFAULT '',
+	node     {int} NOT NULL DEFAULT 0,
+	at       {int} NOT NULL
 )`, `
 CREATE TABLE IF NOT EXISTS mail (
 	id        {id},
@@ -172,6 +182,7 @@ var indexes = []struct {
 	{"messages_message_id", "messages", "message_id", true},
 	{"messages_created", "messages", "created", false},
 	{"files_created", "files", "created", false},
+	{"calls_at", "calls", "at", false},
 	{"areas_echotag", "areas", "echotag", true},
 	{"messages_ftn_msgid", "messages", "ftn_msgid", false},
 	{"api_tokens_user", "api_tokens", "user_id", false},
@@ -202,6 +213,7 @@ var added = []struct{ table, column, decl string }{
 	{"users", "prefs", "{str} NOT NULL DEFAULT ''"},
 	{"files", "long_desc", "{text}"},
 	{"users", "downloads", "{int} NOT NULL DEFAULT 0"},
+	{"users", "about", "{str} NOT NULL DEFAULT ''"},
 }
 
 // migrate makes the schema, or brings an older database up to it.

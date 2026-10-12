@@ -57,7 +57,11 @@ func get[T any](f *fake, what string) T {
 func (f *fake) PageSize() int { return 10 }
 func (f *fake) Narrow() bool  { return false }
 func (f *fake) Menu(m *view.Menu) (string, error) {
-	f.shown = append(f.shown, "menu "+m.Title)
+	brief := ""
+	if m.Brief {
+		brief = " (brief)"
+	}
+	f.shown = append(f.shown, "menu "+m.Title+brief)
 	return get[string](f, "menu"), nil
 }
 func (f *fake) Table(t *view.Table) (view.Choice, error) {
@@ -308,6 +312,39 @@ func TestFileBase(t *testing.T) {
 	if fl, _ := b.Store.FileByName(area.ID, "doom.zip"); fl.Downloads != 1 {
 		t.Errorf("downloads %d", fl.Downloads)
 	}
+}
+
+func TestUserFeatures(t *testing.T) {
+	b, alice, sysop := setup(t)
+	// a call recorded by a login
+	n, _ := b.Enter(&bbs.Caller{Via: "ssh"}, nil)
+	if _, err := n.Login("alice", "password1"); err != nil {
+		t.Fatal(err)
+	}
+	n.Leave()
+	f := run(t, b, alice,
+		"L", view.Choice{Action: view.Back},
+		"K", draft{"ignored", "Feedback", []string{"Nice board."}},
+		"P", "about", map[string]string{"about": "Calls from a C64"}, "expert", view.Back,
+		"U", view.Choice{Action: view.Pick, Row: 1}, "mail", draft{"sysop", "Hello", []string{"Hi."}},
+		view.Choice{Action: view.Back})
+	has(t, "screens", f.shown, "table Last callers: alice|Here|ssh|")
+	has(t, "said", f.said, "Sent to sysop.")
+	has(t, "screens", f.shown, "panel Your profile: Name:alice; ")
+	has(t, "screens", f.shown, "Menus:in full")
+	has(t, "screens", f.shown, "menu Main menu (brief)")
+	has(t, "screens", f.shown, "panel sysop: Name:sysop; From:Here; ")
+	has(t, "said", f.said, "Sent.")
+	in, _ := b.Store.Inbox(sysop.User().ID)
+	if len(in) != 2 || in[0].Subject+in[1].Subject != "HelloFeedback" && in[0].Subject+in[1].Subject != "FeedbackHello" {
+		t.Errorf("the sysop's mail: %d", len(in))
+	}
+	if u := alice.Refresh(); u.About != "Calls from a C64" || alice.Prefs()["expert"] != "on" {
+		t.Errorf("alice: %q %v", u.About, alice.Prefs())
+	}
+	// the sysop sees more of a user
+	f = run(t, b, sysop, "U", view.Choice{Action: view.Pick, Row: 0}, view.Back, view.Choice{Action: view.Back})
+	has(t, "screens", f.shown, "About:Calls from a C64; Access:level 20 (Level 20)")
 }
 
 func TestMailAndWho(t *testing.T) {

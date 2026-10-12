@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/view"
 )
 
@@ -58,18 +59,113 @@ func (s *Session) users() error {
 	if err != nil {
 		return err
 	}
-	t := &view.Table{Title: "User list",
-		Columns: []view.Column{{Title: "User", Width: 24}, {Title: "From", Width: 26},
-			{Title: "Posts", Width: 6, Right: true}, {Title: "Last call", Width: 10, Wide: true}}}
-	for _, u := range us {
-		last := "never"
-		if !u.LastLogin.IsZero() {
-			last = u.LastLogin.Format("2006-01-02")
+	for {
+		t := &view.Table{Title: "User list", Pick: "Number for their details",
+			Columns: []view.Column{{Title: "User", Width: 24}, {Title: "From", Width: 26},
+				{Title: "Posts", Width: 6, Right: true}, {Title: "Last call", Width: 10, Wide: true}}}
+		for i, u := range us {
+			last := "never"
+			if !u.LastLogin.IsZero() {
+				last = u.LastLogin.Format("2006-01-02")
+			}
+			t.Rows = append(t.Rows, view.Row{Num: strconv.Itoa(i + 1), Hot: u.Sysop,
+				Cells: []string{u.Name, u.Location, strconv.Itoa(u.Posts), last}})
 		}
-		t.Rows = append(t.Rows, view.Row{Hot: u.Sysop,
-			Cells: []string{u.Name, u.Location, strconv.Itoa(u.Posts), last}})
+		c, err := s.UI.Table(t)
+		if err != nil || c.Action == view.Back {
+			return err
+		}
+		if c.Action != view.Pick {
+			continue
+		}
+		if c.Row < 0 {
+			s.UI.Say(view.Bad, "No such user.")
+			continue
+		}
+		if err := s.userDetail(us[c.Row]); err != nil {
+			return err
+		}
+	}
+}
+
+// userDetail: what there is to know of a user, and mail to them
+func (s *Session) userDetail(u *store.User) error {
+	last := "never"
+	if !u.LastLogin.IsZero() {
+		last = u.LastLogin.Format("2006-01-02 15:04")
+	}
+	p := &view.Panel{Title: u.Name, Lines: []view.Line{
+		view.V("Name:", u.Name),
+		view.V("From:", u.Location),
+		view.V("Member:", fmt.Sprintf("since %s, %d calls, %d posts", u.Created.Format("2006-01-02"), u.Logins, u.Posts)),
+		view.V("Last call:", last)}}
+	if u.About != "" {
+		p.Lines = append(p.Lines, view.V("About:", u.About))
+	}
+	if u.Sysop {
+		p.Lines = append(p.Lines, view.T(view.Bright, "The sysop."))
+	}
+	if me := s.User; me.Sysop {
+		// what sysops alone see
+		lvl := s.B.LevelOf(u)
+		p.Lines = append(p.Lines, view.V("Access:", fmt.Sprintf("level %d (%s), flags %q, %s",
+			u.Level, lvl.Name, u.Flags, map[bool]string{true: "locked", false: "not locked"}[u.Locked])),
+			view.V("Files:", fmt.Sprintf("%d downloaded, %d uploaded", u.Downloads, u.Uploads)))
+	}
+	if u.ID != s.User.ID {
+		p.Actions = []view.Action{{ID: "mail", Label: "Mail them", Key: 'M', PF: 5, Short: "Mail"}}
+	}
+	act, err := s.UI.Panel(p)
+	if err != nil || act != "mail" {
+		return err
+	}
+	return s.compose(u.Name, "", nil, 0)
+}
+
+// lastCallers: who called lately
+func (s *Session) lastCallers() error {
+	s.N.Doing("Last callers")
+	cs, err := s.B.Store.LastCalls(20)
+	if err != nil {
+		return err
+	}
+	t := &view.Table{Title: "Last callers", Empty: "No one has called yet.",
+		Columns: []view.Column{{Title: "User", Width: 20}, {Title: "From", Width: 22, Wide: true},
+			{Title: "Via", Width: 8}, {Title: "Node", Width: 4, Right: true}, {Title: "When", Width: 11}}}
+	for _, c := range cs {
+		when := c.At.Format("01-02 15:04")
+		t.Rows = append(t.Rows, view.Row{Cells: []string{c.Name, c.Location, c.Via, strconv.Itoa(c.Node), when}})
 	}
 	_, err = s.UI.Table(t)
+	return err
+}
+
+// sysop is the sysop mail goes to: the first one not locked ("": none).
+func (s *Session) sysop() string {
+	us, _ := s.B.Store.Users()
+	for _, u := range us {
+		if u.Sysop && !u.Locked {
+			return u.Name
+		}
+	}
+	return ""
+}
+
+// feedback: mail to the sysop (which any caller may send)
+func (s *Session) feedback() error {
+	name := s.sysop()
+	if name == "" {
+		s.UI.Say(view.Plain, "There is no sysop to write to.")
+		return nil
+	}
+	s.N.Doing("Writing to the sysop")
+	sent, err := s.UI.Edit(&view.Draft{Title: "Feedback to the sysop", To: name, Subject: "Feedback",
+		Send: func(to, subject string, body []string) error {
+			return s.N.SendMail(name, subject, body, 0)
+		}})
+	if err == nil && sent {
+		s.UI.Say(view.Good, "Sent to "+name+".")
+	}
 	return err
 }
 
@@ -133,6 +229,18 @@ func (s *Session) profile() error {
 			view.V("Today:", today),
 			view.V("Terminal:", s.UI.Terminal())},
 			Actions: []view.Action{{ID: "location", Label: "Location", Key: 'L', PF: 5}}}
+		if u.About != "" {
+			p.Lines = append(p.Lines, view.V("About:", u.About))
+		}
+		p.Actions = append(p.Actions, view.Action{ID: "about", Label: "About you", Key: 'Y', PF: 4, Short: "About"})
+		if s.UI.Kind() == Text {
+			mode := "off"
+			if s.expert() {
+				mode = "on"
+			}
+			p.Lines = append(p.Lines, view.V("Menus:", map[string]string{"on": "expert (the prompt alone)", "off": "in full"}[mode]))
+			p.Actions = append(p.Actions, view.Action{ID: "expert", Label: "Expert menus on/off", Key: 'X'})
+		}
 		p.Actions = append(p.Actions, s.UI.TerminalActions()...)
 		if !u.External {
 			p.Actions = append(p.Actions, view.Action{ID: "password", Label: "Password", Key: 'P', PF: 6},
@@ -157,6 +265,30 @@ func (s *Session) profile() error {
 				if err := s.B.Store.SetLocation(u.ID, bbs.Clean(v["loc"], bbs.MaxLocationLen)); err != nil {
 					return err
 				}
+			}
+		case "about":
+			v, ok, err := s.UI.Form(&view.Form{Title: "About you", Submit: "Save", Fields: []view.Field{
+				{Name: "about", Label: "About you", Prompt: "A line about yourself (Enter keeps it, - clears it): ",
+					Width: 60, Value: u.About}}})
+			if err != nil {
+				return err
+			}
+			if ok {
+				about := bbs.Clean(v["about"], 60)
+				if about == "-" {
+					about = ""
+				}
+				if err := s.B.Store.SetAbout(u.ID, about); err != nil {
+					return err
+				}
+			}
+		case "expert":
+			v := "on"
+			if s.expert() {
+				v = "off"
+			}
+			if err := s.N.SetPref("expert", v); err != nil {
+				return err
 			}
 		case "password":
 			if u.External {
@@ -363,14 +495,8 @@ func (s *Session) page() error {
 	if err != nil || !ok {
 		return err
 	}
-	us, err := s.B.Store.Users()
-	if err != nil {
-		return err
-	}
-	for _, u := range us {
-		if u.Sysop && !u.Locked {
-			return s.compose(u.Name, "Page: "+reason, nil, 0)
-		}
+	if name := s.sysop(); name != "" {
+		return s.compose(name, "Page: "+reason, nil, 0)
 	}
 	s.UI.Say(view.Plain, "There is no sysop to write to.")
 	return nil

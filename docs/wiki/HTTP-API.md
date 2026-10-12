@@ -63,7 +63,8 @@ Errors are `{"error": "...", "code": "..."}`.
 | `POST /login`, `POST /logout` | a session token; ending it | (none), any |
 | `GET /system` | the name, sysop, counts, features | anonymous |
 | `GET /who` | who is online (with each `terminal`, as it said what it is) | anonymous |
-| `GET`, `PATCH /me` | your account, access and settings; change your location, password or settings (`{"prefs": {"ansi": "off"}}`; `""` forgets one) | read |
+| `GET /callers?limit=` | the last callers, newest first | read |
+| `GET`, `PATCH /me` | your account, access and settings; change your location, a line about yourself (`about`), password or settings (`{"prefs": {"ansi": "off"}}`; `""` forgets one) | read |
 | `GET /me/tokens`, `DELETE /me/tokens/{id}` | your tokens; revoke one | any |
 | `GET /me/keys` | your SSH keys | read |
 | `POST /me/keys`, `DELETE /me/keys/{id}` | add an SSH key (`{"key": "ssh-ed25519 ..."}`, from a login's session only); delete one | any |
