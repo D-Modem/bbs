@@ -52,7 +52,15 @@ bbs area add NAME "DESCRIPTION" [-sysop-only]
 bbs area del NAME                   # and its messages
 bbs area newsgroup AREA GROUP       # make it a newsgroup (- : no longer)
 bbs area echo AREA TAG              # make it a FidoNet echo (- : no longer)
+bbs area group AREA GROUP           # list it under a group (- : none)
+bbs area aliases AREA yes|no        # whether its posters may use their aliases
+bbs area keep AREA MESSAGES DAYS    # keep the newest MESSAGES, for DAYS (0: no limit)
+bbs area purge                      # take away what areas keep no more, now
 ```
+
+What an area keeps is enforced hourly while the BBS runs (and by `bbs
+area purge`): beyond its newest `MESSAGES`, and older than `DAYS`,
+messages go, with their votes and polls.
 
 A sysop also adds areas from the BBS (`+` in the message areas) and
 deletes any message.  Newsgroups: [Newsgroups and NNTP](Newsgroups-and-NNTP);

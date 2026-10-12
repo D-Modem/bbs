@@ -8,7 +8,7 @@ import (
 )
 
 // copyOrder is the tables in an order their references allow.
-var copyOrder = []string{"users", "areas", "messages", "lastread", "scan_off", "mail", "file_areas", "files",
+var copyOrder = []string{"users", "areas", "messages", "votes", "poll_answers", "poll_votes", "lastread", "scan_off", "mail", "file_areas", "files",
 	"history", "peer_groups", "peer_push", "netmail_out", "api_tokens", "ssh_keys", "script_data", "calls"}
 
 var columnPat = regexp.MustCompile(`(?m)^\s*("?\w+"?)\s+(\{\w+\})`)

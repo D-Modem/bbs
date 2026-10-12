@@ -788,3 +788,48 @@ func TestEventsAndAvailable(t *testing.T) {
 		t.Errorf("nothing said: %d", code)
 	}
 }
+
+func TestVotesPollsThreads(t *testing.T) {
+	s := setup(t, Settings{})
+	alice, bob, sys := s.login("alice", "alicepass1"), s.login("bob", "bobpass123"), s.login("sysop", "sysoppass1")
+	if code, m, _ := s.do("PATCH", "/api/v1/admin/areas/1", sys, map[string]any{"group": "Local", "aliases": true,
+		"max_messages": 500, "max_days": 90}); code != 200 || m["group"] != "Local" || m["aliases"] != true || m["max_messages"] != 500.0 {
+		t.Fatalf("area: %d %v", code, m)
+	}
+	if code, _, _ := s.do("PATCH", "/api/v1/admin/areas/1", sys, map[string]any{"max_days": -1}); code != 400 {
+		t.Errorf("negative days: %d", code)
+	}
+	if code, _, _ := s.do("POST", "/api/v1/areas/1/messages", alice, map[string]any{"subject": "x", "body": "y", "alias": true}); code != 400 {
+		t.Errorf("an alias alice has not: %d", code)
+	}
+	u, _ := s.b.Store.UserByName("alice")
+	s.b.Store.SetAlias(u.ID, "Night Owl")
+	code, m, _ := s.do("POST", "/api/v1/areas/1/messages", alice, map[string]any{"subject": "Lunch?", "body": "Where?",
+		"alias": true, "poll": []string{"Here", "There"}})
+	if code != 201 || m["from"] != "Night Owl" {
+		t.Fatalf("poll: %d %v", code, m)
+	}
+	id := int(m["id"].(float64))
+	_, m, _ = s.do("POST", "/api/v1/areas/1/messages", bob, map[string]any{"subject": "Re: Lunch?", "body": "Here", "reply_to": id})
+	reply := int(m["id"].(float64))
+	if code, _, _ := s.do("POST", fmt.Sprintf("/api/v1/messages/%d/vote", id), alice, map[string]any{"value": 1}); code != 400 {
+		t.Errorf("own vote: %d", code)
+	}
+	if code, m, _ := s.do("POST", fmt.Sprintf("/api/v1/messages/%d/vote", id), bob, map[string]any{"value": 1}); code != 200 ||
+		m["votes"].(map[string]any)["up"] != 1.0 {
+		t.Errorf("vote: %d %v", code, m)
+	}
+	if code, m, _ := s.do("POST", fmt.Sprintf("/api/v1/messages/%d/answer", id), bob, map[string]any{"answer": 1}); code != 200 ||
+		m["poll"].(map[string]any)["mine"] != 1.0 {
+		t.Errorf("answer: %d %v", code, m)
+	}
+	for _, bad := range []map[string]any{{"answer": 2}, {}} {
+		if code, _, _ := s.do("POST", fmt.Sprintf("/api/v1/messages/%d/answer", id), bob, bad); code != 400 {
+			t.Errorf("answer %v: %d", bad, code)
+		}
+	}
+	if code, _, l := s.do("GET", fmt.Sprintf("/api/v1/messages/%d/thread", reply), alice, nil); code != 200 || len(l) != 2 ||
+		l[1].(map[string]any)["depth"] != 1.0 {
+		t.Errorf("thread: %d %v", code, l)
+	}
+}

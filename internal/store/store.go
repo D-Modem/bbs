@@ -50,6 +50,8 @@ type User struct {
 	// files downloaded ever, and uploaded (the files there now)
 	Downloads, Uploads int
 	About              string // a line about themselves
+	Alias              string // a name they may post under where an area allows ("": none)
+	Signature          string // lines put under what they write
 }
 
 // Area is a message area.
@@ -62,6 +64,10 @@ type Area struct {
 	PostReq     string // and to post
 	Newsgroup   string // its newsgroup ("": not one)
 	EchoTag     string // its FidoNet echo ("": not one)
+	Group       string // the group it is listed under ("": none)
+	Aliases     bool   // its posters may use their aliases
+	MaxMsgs     int    // the newest kept (0: all)
+	MaxDays     int    // the days a message is kept (0: for ever)
 	Messages    int
 	FirstID     int64
 	LastID      int64
@@ -190,7 +196,7 @@ func HashPassword(pw string) (string, error) {
 }
 
 const userCols = `id, name, password, location, sysop, locked, created, last_login, logins, posts,
-	level, flags, time_day, time_used, dl_day, dl_count, prefs, downloads, about,
+	level, flags, time_day, time_used, dl_day, dl_count, prefs, downloads, about, alias, signature,
 	(SELECT COUNT(*) FROM files WHERE files.uploader_id = users.id)`
 
 func scanUser(row interface{ Scan(...any) error }) (*User, string, error) {
@@ -199,7 +205,7 @@ func scanUser(row interface{ Scan(...any) error }) (*User, string, error) {
 	var created, last int64
 	err := row.Scan(&u.ID, &u.Name, &pw, &u.Location, &u.Sysop, &u.Locked,
 		&created, &last, &u.Logins, &u.Posts, &u.Level, &u.Flags, &u.TimeDay, &u.TimeUsed, &u.DLDay, &u.DLCount, &u.Prefs,
-		&u.Downloads, &u.About, &u.Uploads)
+		&u.Downloads, &u.About, &u.Alias, &u.Signature, &u.Uploads)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, "", ErrNotFound
 	}
@@ -359,7 +365,7 @@ func (s *Store) DeleteArea(id int64) error {
 }
 
 const areaQuery = `SELECT a.id, a.name, a.description, a.sysop_only, COALESCE(a.newsgroup, ''), COALESCE(a.echotag, ''),
-	a.read_req, a.post_req,
+	a.read_req, a.post_req, a.grp, a.aliases, a.max_msgs, a.max_days,
 	(SELECT COUNT(*) FROM messages m WHERE m.area_id = a.id),
 	(SELECT COALESCE(MIN(m.id), 0) FROM messages m WHERE m.area_id = a.id),
 	(SELECT COALESCE(MAX(m.id), 0) FROM messages m WHERE m.area_id = a.id)
@@ -367,7 +373,7 @@ const areaQuery = `SELECT a.id, a.name, a.description, a.sysop_only, COALESCE(a.
 
 func scanArea(row interface{ Scan(...any) error }) (*Area, error) {
 	var a Area
-	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopOnly, &a.Newsgroup, &a.EchoTag, &a.ReadReq, &a.PostReq, &a.Messages,
+	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopOnly, &a.Newsgroup, &a.EchoTag, &a.ReadReq, &a.PostReq, &a.Group, &a.Aliases, &a.MaxMsgs, &a.MaxDays, &a.Messages,
 		&a.FirstID, &a.LastID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound

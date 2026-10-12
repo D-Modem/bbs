@@ -216,7 +216,7 @@ func TestLoginAndPost(t *testing.T) {
 	d.send("M")
 	d.expect("[Q]uit: ")
 	d.send("1\r")
-	d.expect("[P]ost, [Q]uit: ")
+	d.expect("[P]ost, [L] New poll, [Q]uit: ")
 	d.send("P\r")
 	d.expect("To [All]: ")
 	d.send("\r")

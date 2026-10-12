@@ -71,7 +71,7 @@ Errors are `{"error": "...", "code": "..."}`.
 | `GET /users`, `/users/{name}` | users | read |
 | `GET /areas`, `/areas/{id}` | message areas, with your unread | read |
 | `GET /areas/{id}/messages?after=&limit=&body=no` | messages after an id (200 at most) | read |
-| `POST /areas/{id}/messages` | post: `{"subject", "body", "reply_to"}` | post |
+| `POST /areas/{id}/messages` | post: `{"subject", "body", "reply_to", "alias": true, "poll": ["answer", ...]}` | post |
 | `PUT /areas/{id}/lastread` | mark read up to a message | read |
 | `GET /messages/{id}` | a message | read |
 | `GET /mail`, `GET`, `DELETE /mail/{id}` | your inbox; a mail (marked read); delete it | mail |
@@ -79,6 +79,8 @@ Errors are `{"error": "...", "code": "..."}`.
 | `GET /fileareas`, `/fileareas/{id}/files`, `/files/{id}` | file areas and files | files |
 | `POST /fileareas/{id}/files?name=&description=` | upload: the body is the file | files |
 | `GET /files/{id}/content` | download (ranges work) | files |
+| `GET /messages/{id}/thread` | the message's thread from its start, with each one's depth | read |
+| `POST /messages/{id}/vote`, `POST /messages/{id}/answer` | vote (`{"value": 1}`, -1, 0); answer a poll (`{"answer": 0}`) | post |
 | `GET /files?q=` or `?since=` | files by words in their names and descriptions, or added since a time (RFC 3339), newest first | files |
 | `GET /admin/bans`, `DELETE /admin/bans/{ip}` | addresses banned for failed logins; lift a ban | sysop |
 | `GET /admin/hacklog?lines=` | the hack log's last lines | sysop |

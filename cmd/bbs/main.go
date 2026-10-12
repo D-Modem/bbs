@@ -13,6 +13,10 @@
 //	bbs [-config FILE] area newsgroup AREA GROUP|-
 //	bbs [-config FILE] news sync [PEER]
 //	bbs [-config FILE] area echo AREA TAG|-
+//	bbs [-config FILE] area group AREA GROUP|-
+//	bbs [-config FILE] area aliases AREA yes|no
+//	bbs [-config FILE] area keep AREA MESSAGES DAYS
+//	bbs [-config FILE] area purge
 //	bbs [-config FILE] fido poll|scan|toss [LINK]
 //	bbs [-config FILE] token add USER [-scope read,post,...] [-expires DAYS] [-name NAME]
 //	bbs [-config FILE] token list [USER]
@@ -78,6 +82,10 @@ func usage() {
   bbs [-config FILE] area newsgroup AREA GROUP|-    (- : not a newsgroup)
   bbs [-config FILE] news sync [PEER]               exchange articles with peers now
   bbs [-config FILE] area echo AREA TAG|-           make an area a FidoNet echo (- : not one)
+  bbs [-config FILE] area group AREA GROUP|-        list an area under a group (- : none)
+  bbs [-config FILE] area aliases AREA yes|no       whether its posters may use their aliases
+  bbs [-config FILE] area keep AREA MESSAGES DAYS   keep the newest MESSAGES, for DAYS (0: no limit)
+  bbs [-config FILE] area purge                     take away what areas keep no more, now
   bbs [-config FILE] fido poll [LINK]               call links (with a host) now
   bbs [-config FILE] fido scan|toss [LINK]          pack new mail, or take in what came
   bbs [-config FILE] token add USER [-scope read,post,mail,chat,files,sysop]
@@ -347,6 +355,21 @@ func serve(cfg *server.Config) int {
 		}
 		go fd.Run(ctx)
 	}
+	go func() {
+		// areas keep what they say (max_msgs, max_days): looked at hourly
+		t := time.NewTicker(time.Hour)
+		defer t.Stop()
+		for {
+			if _, err := b.PurgeAreas(); err != nil {
+				b.Log.Printf("purging: %v", err)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			}
+		}
+	}()
 	if b.Events != nil {
 		go b.Events.Run(ctx)
 	}
@@ -559,6 +582,14 @@ func userCmd(cfg *server.Config, args []string) {
 	fmt.Println("done")
 }
 
+// limit is n of what, or "no limit".
+func limit(n int, what string) string {
+	if n == 0 {
+		return "any number of " + what
+	}
+	return strconv.Itoa(n) + " " + what
+}
+
 func areaCmd(cfg *server.Config, args []string) {
 	words, flags := split(args)
 	if len(words) == 0 {
@@ -585,6 +616,15 @@ func areaCmd(cfg *server.Config, args []string) {
 			}
 			if a.ReadReq != "" || a.PostReq != "" {
 				only += fmt.Sprintf(" (read %q, post %q)", a.ReadReq, a.PostReq)
+			}
+			if a.Group != "" {
+				only += " {" + a.Group + "}"
+			}
+			if a.Aliases {
+				only += " (aliases)"
+			}
+			if a.MaxMsgs > 0 || a.MaxDays > 0 {
+				only += fmt.Sprintf(" (keeps %d messages, %d days)", a.MaxMsgs, a.MaxDays)
 			}
 			fmt.Printf("%-20s %5d messages  %s%s\n", a.Name, a.Messages, a.Description, only)
 		}
@@ -636,6 +676,58 @@ func areaCmd(cfg *server.Config, args []string) {
 		} else {
 			fmt.Println(a.Name, "is", group)
 		}
+	case "group", "aliases":
+		if len(words) != 3 {
+			usage()
+		}
+		a, err := st.AreaByName(words[1])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", words[1], err))
+		}
+		if words[0] == "group" {
+			g := bbs.Clean(words[2], 30)
+			if g == "-" {
+				g = ""
+			}
+			if err := st.SetAreaGroup(a.ID, g); err != nil {
+				fatal(err)
+			}
+			fmt.Printf("%s: group %q\n", a.Name, g)
+			return
+		}
+		on := map[string]bool{"yes": true, "no": false}
+		v, ok := on[strings.ToLower(words[2])]
+		if !ok {
+			usage()
+		}
+		if err := st.SetAreaAliases(a.ID, v); err != nil {
+			fatal(err)
+		}
+		fmt.Printf("%s: aliases %s\n", a.Name, words[2])
+	case "keep":
+		if len(words) != 4 {
+			usage()
+		}
+		a, err := st.AreaByName(words[1])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", words[1], err))
+		}
+		msgs, err1 := strconv.Atoi(words[2])
+		days, err2 := strconv.Atoi(words[3])
+		if err1 != nil || err2 != nil || msgs < 0 || days < 0 {
+			fatal(errors.New("keep: MESSAGES and DAYS are numbers, 0 for no limit"))
+		}
+		if err := st.SetAreaKeep(a.ID, msgs, days); err != nil {
+			fatal(err)
+		}
+		fmt.Printf("%s: keeps %s, for %s\n", a.Name, limit(msgs, "messages"), limit(days, "days"))
+	case "purge":
+		b := bbs.New(cfg.Settings, st, log.New(os.Stdout, "", 0))
+		n, err := b.PurgeAreas()
+		if err != nil {
+			fatal(err)
+		}
+		fmt.Printf("%d messages purged\n", n)
 	case "echo":
 		if len(words) != 3 {
 			usage()

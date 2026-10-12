@@ -420,3 +420,100 @@ func TestScriptData(t *testing.T) {
 		t.Errorf("a deleted user's: %d", n)
 	}
 }
+
+func TestMessageBaseDepth(t *testing.T) {
+	s := open(t)
+	u, _ := s.CreateUser("alice", "password1", "", false)
+	b, _ := s.CreateUser("bob", "password1", "", false)
+	a, _ := s.CreateArea("General", "", false)
+	post := func(subject string, reply int64, ago time.Duration) int64 {
+		id, err := s.Post(&Message{AreaID: a.ID, FromID: u.ID, From: "alice", To: "All", Subject: subject, Body: "x", ReplyTo: reply})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ago > 0 {
+			s.db.Exec(`UPDATE messages SET created = ? WHERE id = ?`, time.Now().Add(-ago).Unix(), id)
+		}
+		return id
+	}
+	root := post("Start", 0, 0)
+	r1 := post("Re: Start", root, 0)
+	post("Other", 0, 0)
+	r2 := post("Re: Re: Start", r1, 0)
+	r3 := post("Re: Start again", root, 0)
+	m, _ := s.Message(r2)
+	thread, depth, err := s.Thread(m)
+	var got []string
+	for i, m := range thread {
+		got = append(got, fmt.Sprintf("%d:%s", depth[i], m.Subject))
+	}
+	if err != nil || strings.Join(got, ",") != "0:Start,1:Re: Start,2:Re: Re: Start,1:Re: Start again" {
+		t.Errorf("thread %v %v", got, err)
+	}
+	_ = r3
+
+	// votes
+	s.Vote(root, u.ID, 1)
+	s.Vote(root, b.ID, -1)
+	s.Vote(root, b.ID, 1)
+	if up, down, mine, err := s.Votes(root, b.ID); up != 2 || down != 0 || mine != 1 || err != nil {
+		t.Errorf("votes %d %d %d %v", up, down, mine, err)
+	}
+	s.Vote(root, b.ID, 0)
+	if up, _, mine, _ := s.Votes(root, b.ID); up != 1 || mine != 0 {
+		t.Errorf("unvoted %d %d", up, mine)
+	}
+
+	// a poll
+	p := post("Tea or coffee?", 0, 0)
+	if ans, _, _, _ := s.Poll(root, u.ID); ans != nil {
+		t.Error("not a poll")
+	}
+	s.SetPoll(p, []string{"Tea", "Coffee"})
+	s.PollVote(p, u.ID, 1)
+	s.PollVote(p, b.ID, 0)
+	s.PollVote(p, b.ID, 1)
+	if ans, counts, mine, err := s.Poll(p, b.ID); len(ans) != 2 || counts[0] != 0 || counts[1] != 2 || mine != 1 || err != nil {
+		t.Errorf("poll %v %v %d %v", ans, counts, mine, err)
+	}
+
+	// aliases and signatures
+	if err := s.SetAlias(u.ID, "Bob"); err != ErrExists {
+		t.Errorf("another's name: %v", err)
+	}
+	if err := s.SetAlias(u.ID, "Night Owl"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetAlias(b.ID, "night owl"); err != ErrExists {
+		t.Errorf("another's alias: %v", err)
+	}
+	s.SetSignature(u.ID, "-- alice\nat the keys")
+	if x, _ := s.UserByID(u.ID); x.Alias != "Night Owl" || x.Signature != "-- alice\nat the keys" {
+		t.Errorf("user %+v", x)
+	}
+
+	// groups and keeping
+	s.SetAreaGroup(a.ID, "Local")
+	s.SetAreaAliases(a.ID, true)
+	s.SetAreaKeep(a.ID, 3, 0)
+	a, _ = s.Area(a.ID)
+	if a.Group != "Local" || !a.Aliases || a.MaxMsgs != 3 {
+		t.Errorf("area %+v", a)
+	}
+	n, err := s.Purge(a)
+	if err != nil || n != 3 || a.Messages != 6 {
+		t.Errorf("purged %d %v (of %d)", n, err, a.Messages)
+	}
+	if _, err := s.Message(root); err != ErrNotFound {
+		t.Error("the oldest kept")
+	}
+	old := post("Old", 0, 40*24*time.Hour)
+	s.SetAreaKeep(a.ID, 0, 30)
+	a, _ = s.Area(a.ID)
+	if n, _ := s.Purge(a); n != 1 {
+		t.Errorf("by age: %d", n)
+	}
+	if _, err := s.Message(old); err != ErrNotFound {
+		t.Error("an old one kept")
+	}
+}

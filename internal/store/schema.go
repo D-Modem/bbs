@@ -29,7 +29,9 @@ CREATE TABLE IF NOT EXISTS users (
 	dl_count   {int} NOT NULL DEFAULT 0,
 	prefs      {str} NOT NULL DEFAULT '',
 	downloads  {int} NOT NULL DEFAULT 0,
-	about      {str} NOT NULL DEFAULT ''
+	about      {str} NOT NULL DEFAULT '',
+	alias      {str} NOT NULL DEFAULT '',
+	signature  {str} NOT NULL DEFAULT ''
 )`, `
 CREATE TABLE IF NOT EXISTS areas (
 	id          {id},
@@ -39,7 +41,11 @@ CREATE TABLE IF NOT EXISTS areas (
 	newsgroup   {key},
 	echotag     {key},
 	read_req    {str} NOT NULL DEFAULT '',
-	post_req    {str} NOT NULL DEFAULT ''
+	post_req    {str} NOT NULL DEFAULT '',
+	grp         {str} NOT NULL DEFAULT '',
+	aliases     {bool} NOT NULL DEFAULT FALSE,
+	max_msgs    {int} NOT NULL DEFAULT 0,
+	max_days    {int} NOT NULL DEFAULT 0
 )`, `
 CREATE TABLE IF NOT EXISTS messages (
 	id         {id},
@@ -74,6 +80,24 @@ CREATE TABLE IF NOT EXISTS script_data (
 	name    {key} NOT NULL,
 	value   {text} NOT NULL,
 	PRIMARY KEY (script, user_id, name)
+)`, `
+CREATE TABLE IF NOT EXISTS votes (
+	message_id {int} NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+	user_id    {int} NOT NULL,
+	value      {int} NOT NULL,
+	PRIMARY KEY (message_id, user_id)
+)`, `
+CREATE TABLE IF NOT EXISTS poll_answers (
+	message_id {int} NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+	idx        {int} NOT NULL,
+	text       {str} NOT NULL,
+	PRIMARY KEY (message_id, idx)
+)`, `
+CREATE TABLE IF NOT EXISTS poll_votes (
+	message_id {int} NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+	user_id    {int} NOT NULL,
+	idx        {int} NOT NULL,
+	PRIMARY KEY (message_id, user_id)
 )`, `
 CREATE TABLE IF NOT EXISTS calls (
 	id       {id},
@@ -176,6 +200,7 @@ var indexes = []struct {
 	unique            bool
 }{
 	{"messages_area", "messages", "area_id, id", false},
+	{"messages_reply", "messages", "reply_to", false},
 	{"mail_to", "mail", "to_id, id", false},
 	{"files_uploader", "files", "uploader_id, created", false},
 	{"areas_newsgroup", "areas", "newsgroup", true},
@@ -214,6 +239,12 @@ var added = []struct{ table, column, decl string }{
 	{"files", "long_desc", "{text}"},
 	{"users", "downloads", "{int} NOT NULL DEFAULT 0"},
 	{"users", "about", "{str} NOT NULL DEFAULT ''"},
+	{"users", "alias", "{str} NOT NULL DEFAULT ''"},
+	{"users", "signature", "{str} NOT NULL DEFAULT ''"},
+	{"areas", "grp", "{str} NOT NULL DEFAULT ''"},
+	{"areas", "aliases", "{bool} NOT NULL DEFAULT FALSE"},
+	{"areas", "max_msgs", "{int} NOT NULL DEFAULT 0"},
+	{"areas", "max_days", "{int} NOT NULL DEFAULT 0"},
 }
 
 // migrate makes the schema, or brings an older database up to it.

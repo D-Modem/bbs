@@ -55,7 +55,7 @@ func (b *BBS) MakeArticle(u *store.User, a *store.Area, m *store.Message) {
 		}
 	}
 	m.MessageID = news.NewMessageID(ns.Domain)
-	art := news.New(news.Local{Name: u.Name, Address: localPart(u.Name) + "@" + ns.Domain,
+	art := news.New(news.Local{Name: m.From, Address: localPart(m.From) + "@" + ns.Domain,
 		Group: a.Newsgroup, Subject: m.Subject, Body: m.Body, References: refs,
 		MessageID: m.MessageID, PathHost: ns.PathHost, Organization: ns.Organization})
 	m.Raw = art.Bytes()

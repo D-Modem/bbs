@@ -36,12 +36,15 @@ func (s *Server) routes() map[string]route {
 		"GET /api/v1/users/{name}":      {scope: "read", h: s.user},
 		"GET /api/v1/callers":           {scope: "read", h: s.callers},
 
-		"GET /api/v1/areas":                {scope: "read", h: s.areas},
-		"GET /api/v1/areas/{id}":           {scope: "read", h: s.area},
-		"GET /api/v1/areas/{id}/messages":  {scope: "read", h: s.messages},
-		"POST /api/v1/areas/{id}/messages": {scope: "post", h: s.post},
-		"PUT /api/v1/areas/{id}/lastread":  {scope: "read", h: s.lastRead},
-		"GET /api/v1/messages/{id}":        {scope: "read", h: s.message},
+		"GET /api/v1/areas":                 {scope: "read", h: s.areas},
+		"GET /api/v1/areas/{id}":            {scope: "read", h: s.area},
+		"GET /api/v1/areas/{id}/messages":   {scope: "read", h: s.messages},
+		"POST /api/v1/areas/{id}/messages":  {scope: "post", h: s.post},
+		"PUT /api/v1/areas/{id}/lastread":   {scope: "read", h: s.lastRead},
+		"GET /api/v1/messages/{id}":         {scope: "read", h: s.message},
+		"GET /api/v1/messages/{id}/thread":  {scope: "read", h: s.thread},
+		"POST /api/v1/messages/{id}/vote":   {scope: "post", h: s.vote},
+		"POST /api/v1/messages/{id}/answer": {scope: "post", h: s.answerPoll},
 
 		"GET /api/v1/mail":         {scope: "mail", h: s.mail},
 		"GET /api/v1/mail/{id}":    {scope: "mail", h: s.mailOne},
@@ -152,20 +155,38 @@ type areaJSON struct {
 	CanPost     bool   `json:"can_post"`
 	ReadReq     string `json:"read_require,omitempty"`
 	PostReq     string `json:"post_require,omitempty"`
+	Group       string `json:"group,omitempty"`
+	Aliases     bool   `json:"aliases,omitempty"`
+	MaxMsgs     int    `json:"max_messages,omitempty"`
+	MaxDays     int    `json:"max_days,omitempty"`
 }
 
 type messageJSON struct {
-	ID        int64     `json:"id"`
-	Area      int64     `json:"area,omitempty"`
-	From      string    `json:"from"`
-	To        string    `json:"to"`
-	Subject   string    `json:"subject"`
-	Body      string    `json:"body,omitempty"`
-	ReplyTo   int64     `json:"reply_to,omitempty"`
-	Created   time.Time `json:"created"`
-	MessageID string    `json:"message_id,omitempty"`
-	FTNMsgID  string    `json:"ftn_msgid,omitempty"`
-	Read      *bool     `json:"read,omitempty"` // mail
+	ID        int64      `json:"id"`
+	Area      int64      `json:"area,omitempty"`
+	From      string     `json:"from"`
+	To        string     `json:"to"`
+	Subject   string     `json:"subject"`
+	Body      string     `json:"body,omitempty"`
+	ReplyTo   int64      `json:"reply_to,omitempty"`
+	Created   time.Time  `json:"created"`
+	MessageID string     `json:"message_id,omitempty"`
+	FTNMsgID  string     `json:"ftn_msgid,omitempty"`
+	Read      *bool      `json:"read,omitempty"` // mail
+	Votes     *votesJSON `json:"votes,omitempty"`
+	Poll      *pollJSON  `json:"poll,omitempty"`
+}
+
+type votesJSON struct {
+	Up   int `json:"up"`
+	Down int `json:"down"`
+	Mine int `json:"mine"`
+}
+
+type pollJSON struct {
+	Answers []string `json:"answers"`
+	Counts  []int    `json:"counts"`
+	Mine    int      `json:"mine"` // -1: not answered
 }
 
 func msgOut(m *store.Message, body bool) messageJSON {
@@ -509,7 +530,8 @@ func (s *Server) areaOut(r *http.Request, a *store.Area) areaJSON {
 	unread, _ := s.B.Store.NewCount(u.ID, a.ID)
 	last, _ := s.B.Store.LastRead(u.ID, a.ID)
 	return areaJSON{a.ID, a.Name, a.Description, a.SysopOnly, a.Newsgroup, a.EchoTag, a.Messages,
-		a.FirstID, a.LastID, unread, last, s.B.CanPost(u, a), a.ReadReq, a.PostReq}
+		a.FirstID, a.LastID, unread, last, s.B.CanPost(u, a), a.ReadReq, a.PostReq,
+		a.Group, a.Aliases, a.MaxMsgs, a.MaxDays}
 }
 
 func (s *Server) areas(w http.ResponseWriter, r *http.Request) {
@@ -574,11 +596,12 @@ func (s *Server) messages(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (s *Server) message(w http.ResponseWriter, r *http.Request) {
+// readable is the path's message, if the user may read its area.
+func (s *Server) readable(w http.ResponseWriter, r *http.Request) *store.Message {
 	id, ok := pathID(r, "id")
 	if !ok {
 		fail(w, http.StatusNotFound, "no such message")
-		return
+		return nil
 	}
 	m, err := s.B.Store.Message(id)
 	if err == nil {
@@ -588,9 +611,96 @@ func (s *Server) message(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		fail(w, http.StatusNotFound, "no such message")
+		return nil
+	}
+	return m
+}
+
+func (s *Server) message(w http.ResponseWriter, r *http.Request) {
+	m := s.readable(w, r)
+	if m == nil {
 		return
 	}
-	writeJSON(w, http.StatusOK, msgOut(m, true))
+	j := msgOut(m, true)
+	u := whoOf(r).user
+	if up, down, mine, err := s.B.Store.Votes(m.ID, u.ID); err == nil && up+down+mine != 0 {
+		j.Votes = &votesJSON{up, down, mine}
+	}
+	if ans, counts, mine, err := s.B.Store.Poll(m.ID, u.ID); err == nil && ans != nil {
+		j.Poll = &pollJSON{ans, counts, mine}
+	}
+	writeJSON(w, http.StatusOK, j)
+}
+
+// vote: {"value": 1, -1 or 0}
+func (s *Server) vote(w http.ResponseWriter, r *http.Request) {
+	m := s.readable(w, r)
+	if m == nil {
+		return
+	}
+	var req struct {
+		Value int `json:"value"`
+	}
+	if !s.decode(w, r, &req) {
+		return
+	}
+	u := whoOf(r).user
+	if req.Value < -1 || req.Value > 1 || req.Value != 0 && m.FromID == u.ID {
+		fail(w, http.StatusBadRequest, "value is 1, -1 or 0, and not on your own message")
+		return
+	}
+	if err := s.B.Store.Vote(m.ID, u.ID, req.Value); err != nil {
+		fail(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.message(w, r)
+}
+
+// answerPoll: {"answer": the answer's index}
+func (s *Server) answerPoll(w http.ResponseWriter, r *http.Request) {
+	m := s.readable(w, r)
+	if m == nil {
+		return
+	}
+	var req struct {
+		Answer *int `json:"answer"`
+	}
+	if !s.decode(w, r, &req) {
+		return
+	}
+	u := whoOf(r).user
+	ans, _, _, err := s.B.Store.Poll(m.ID, u.ID)
+	if err != nil || ans == nil {
+		fail(w, http.StatusBadRequest, "that message is no poll")
+		return
+	}
+	if req.Answer == nil || *req.Answer < 0 || *req.Answer >= len(ans) {
+		fail(w, http.StatusBadRequest, fmt.Sprintf("answer is 0 to %d", len(ans)-1))
+		return
+	}
+	if err := s.B.Store.PollVote(m.ID, u.ID, *req.Answer); err != nil {
+		fail(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s.message(w, r)
+}
+
+// thread: the message's thread, from its start, with each one's depth
+func (s *Server) thread(w http.ResponseWriter, r *http.Request) {
+	m := s.readable(w, r)
+	if m == nil {
+		return
+	}
+	ms, depth, err := s.B.Store.Thread(m)
+	if err != nil {
+		fail(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	out := []map[string]any{}
+	for i, x := range ms {
+		out = append(out, map[string]any{"message": msgOut(x, false), "depth": depth[i]})
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (s *Server) post(w http.ResponseWriter, r *http.Request) {
@@ -599,10 +709,12 @@ func (s *Server) post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		To      string `json:"to"`
-		Subject string `json:"subject"`
-		Body    string `json:"body"`
-		ReplyTo int64  `json:"reply_to"`
+		To      string   `json:"to"`
+		Subject string   `json:"subject"`
+		Body    string   `json:"body"`
+		ReplyTo int64    `json:"reply_to"`
+		Alias   bool     `json:"alias"`
+		Poll    []string `json:"poll"`
 	}
 	if !s.decode(w, r, &req) {
 		return
@@ -617,7 +729,8 @@ func (s *Server) post(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusForbidden, "only the sysop posts here")
 		return
 	}
-	id, err := s.agent(r).Post(a, req.To, req.Subject, lines(req.Body), req.ReplyTo)
+	id, err := s.agent(r).PostWith(a, req.To, req.Subject, lines(req.Body), req.ReplyTo,
+		bbs.PostOpts{Alias: req.Alias, Poll: req.Poll})
 	if err != nil {
 		fail(w, http.StatusBadRequest, err.Error())
 		return
@@ -1147,6 +1260,10 @@ func (s *Server) patchArea(w http.ResponseWriter, r *http.Request) {
 		EchoTag   *string `json:"echo_tag"`
 		ReadReq   *string `json:"read_require"`
 		PostReq   *string `json:"post_require"`
+		Group     *string `json:"group"`
+		Aliases   *bool   `json:"aliases"`
+		MaxMsgs   *int    `json:"max_messages"`
+		MaxDays   *int    `json:"max_days"`
 	}
 	if !s.decode(w, r, &req) {
 		return
@@ -1190,6 +1307,26 @@ func (s *Server) patchArea(w http.ResponseWriter, r *http.Request) {
 			fail(w, http.StatusInternalServerError, "the system is in trouble")
 			return
 		}
+	}
+	if req.Group != nil {
+		s.B.Store.SetAreaGroup(a.ID, bbs.Clean(*req.Group, 30))
+	}
+	if req.Aliases != nil {
+		s.B.Store.SetAreaAliases(a.ID, *req.Aliases)
+	}
+	if req.MaxMsgs != nil || req.MaxDays != nil {
+		msgs, days := a.MaxMsgs, a.MaxDays
+		if req.MaxMsgs != nil {
+			msgs = *req.MaxMsgs
+		}
+		if req.MaxDays != nil {
+			days = *req.MaxDays
+		}
+		if msgs < 0 || days < 0 {
+			fail(w, http.StatusBadRequest, "max_messages and max_days are 0 (no limit) or more")
+			return
+		}
+		s.B.Store.SetAreaKeep(a.ID, msgs, days)
 	}
 	a, _ = s.B.Store.Area(a.ID)
 	writeJSON(w, http.StatusOK, s.areaOut(r, a))

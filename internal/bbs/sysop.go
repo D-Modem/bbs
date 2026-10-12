@@ -125,3 +125,27 @@ func (b *BBS) SetSysopAvailable(on bool) {
 	b.sysopAway.Store(!on)
 	b.Log.Printf("the sysop is %s", map[bool]string{true: "available for chat", false: "not available for chat"}[on])
 }
+
+// PurgeAreas takes away the messages each area keeps no more (its
+// max_msgs, max_days); how many went.
+func (b *BBS) PurgeAreas() (int, error) {
+	as, err := b.Store.Areas()
+	if err != nil {
+		return 0, err
+	}
+	total := 0
+	for _, a := range as {
+		if a.MaxMsgs == 0 && a.MaxDays == 0 {
+			continue
+		}
+		n, err := b.Store.Purge(a)
+		if err != nil {
+			return total, fmt.Errorf("%s: %w", a.Name, err)
+		}
+		if n > 0 {
+			b.Log.Printf("purged %d messages from %s", n, a.Name)
+		}
+		total += n
+	}
+	return total, nil
+}

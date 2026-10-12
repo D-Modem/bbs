@@ -400,6 +400,55 @@ func TestSysopTools(t *testing.T) {
 	}
 }
 
+func TestMessageBase(t *testing.T) {
+	b, alice, sysop := setup(t)
+	gen, _ := b.Store.AreaByName("General")
+	b.Store.SetAreaAliases(gen.ID, true)
+	tech, _ := b.Store.CreateArea("Tech", "Machines", false)
+	b.Store.SetAreaGroup(tech.ID, "Hobbies")
+	f := run(t, b, alice,
+		// an alias and a signature
+		"P", "alias", map[string]string{"alias": "Night Owl"},
+		"signature", map[string]string{"1": "-- alice", "2": "at the keys"}, view.Back,
+		// a post as the alias, a poll, a reply
+		"M", view.Choice{Action: view.Pick, Row: 0}, // General: ungrouped, first
+		view.Choice{Action: "post"}, true, draft{"All", "Hello", []string{"First."}},
+		view.Choice{Action: "poll"}, map[string]string{"q": "Tea or coffee?", "a": "Tea | Coffee | "}, false,
+		view.Choice{Action: view.Pick, Row: 0}, "reply", false, draft{"Night Owl", "Re: Hello", []string{"Me too."}},
+		view.Back, view.Choice{Action: view.Back}, view.Choice{Action: view.Back})
+	has(t, "screens", f.shown, "table Message areas: |General|Talk|0|; Hobbies|Tech|Machines|0|")
+	has(t, "said", f.said, "Posted as #1.")
+	has(t, "said", f.said, "Posted as #2.")
+	has(t, "said", f.said, "Posted as #3.")
+	m, _ := b.Store.Message(1)
+	if m.From != "Night Owl" || m.FromID != alice.User().ID || !strings.HasSuffix(m.Body, "First.\n\n-- alice\nat the keys") {
+		t.Errorf("as the alias: %+v", m)
+	}
+	if r, _ := b.Store.Message(3); r.From != "alice" || r.ReplyTo != 1 {
+		t.Errorf("the reply: %+v", r)
+	}
+
+	// the sysop: the reply's original, its thread, a vote, the poll answered
+	f = run(t, b, sysop,
+		"M", view.Choice{Action: view.Pick, Row: 0},
+		view.Choice{Action: view.Pick, Row: -1, Num: "3"}, "original", "vote", "U", "thread",
+		view.Choice{Action: view.Pick, Row: 1}, "quit",
+		view.Choice{Action: view.Pick, Row: -1, Num: "2"},
+		"answer", view.Choice{Action: view.Pick, Row: 1}, view.Back,
+		view.Choice{Action: view.Back}, view.Choice{Action: view.Back})
+	has(t, "screens", f.shown, "message Hello: First.")
+	has(t, "screens", f.shown, "table Thread: Hello: Night Owl|Hello|")
+	has(t, "screens", f.shown, "; alice|  Re: Hello|")
+	has(t, "screens", f.shown, "message Tea or coffee?: Tea or coffee?")
+	has(t, "said", f.said, "Your answer is counted.")
+	if up, _, _, _ := b.Store.Votes(1, 0); up != 1 {
+		t.Errorf("votes up %d", up)
+	}
+	if _, counts, _, _ := b.Store.Poll(2, 0); counts[1] != 1 {
+		t.Errorf("poll %v", counts)
+	}
+}
+
 func TestMailAndWho(t *testing.T) {
 	b, alice, sysop := setup(t)
 	f := run(t, b, alice,

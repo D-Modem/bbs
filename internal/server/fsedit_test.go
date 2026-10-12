@@ -21,7 +21,7 @@ func TestFullScreenEditor(t *testing.T) {
 	d.send("M")
 	d.expect("[Q]uit: ")
 	d.send("1\r")
-	d.expect("[P]ost, [Q]uit: ")
+	d.expect("[P]ost, [L] New poll, [Q]uit: ")
 	d.send("P\r")
 	d.expect("To [All]: ")
 	d.send("\r")
@@ -39,7 +39,7 @@ func TestFullScreenEditor(t *testing.T) {
 	}
 
 	// a reply: the quote window, a line taken from it, the line editor's /S
-	d.expect("[P]ost, [Q]uit: ")
+	d.expect("[P]ost, [L] New poll, [Q]uit: ")
 	d.send("1\r")
 	d.expect("[R]eply")
 	d.send("R")

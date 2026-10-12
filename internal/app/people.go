@@ -232,7 +232,15 @@ func (s *Session) profile() error {
 		if u.About != "" {
 			p.Lines = append(p.Lines, view.V("About:", u.About))
 		}
-		p.Actions = append(p.Actions, view.Action{ID: "about", Label: "About you", Key: 'Y', PF: 4, Short: "About"})
+		if u.Alias != "" {
+			p.Lines = append(p.Lines, view.V("Alias:", u.Alias))
+		}
+		if u.Signature != "" {
+			p.Lines = append(p.Lines, view.V("Signature:", strings.ReplaceAll(u.Signature, "\n", " / ")))
+		}
+		p.Actions = append(p.Actions, view.Action{ID: "about", Label: "About you", Key: 'Y', PF: 4, Short: "About"},
+			view.Action{ID: "alias", Label: "Alias", Key: 'I', PF: 2},
+			view.Action{ID: "signature", Label: "Signature", Key: 'G', PF: 1, Short: "Sig"})
 		if s.UI.Kind() == Text {
 			mode := "off"
 			if s.expert() {
@@ -281,6 +289,55 @@ func (s *Session) profile() error {
 				if err := s.B.Store.SetAbout(u.ID, about); err != nil {
 					return err
 				}
+			}
+		case "alias":
+			v, ok, err := s.UI.Form(&view.Form{Title: "Your alias", Submit: "Save", Fields: []view.Field{
+				{Name: "alias", Label: "Alias", Prompt: "An alias to post under where areas allow (Enter keeps it, - clears it): ",
+					Width: bbs.MaxNameLen, Value: u.Alias}}})
+			if err != nil {
+				return err
+			}
+			if !ok {
+				continue
+			}
+			alias := strings.TrimSpace(v["alias"])
+			if alias == "-" {
+				alias = ""
+			}
+			if alias != "" {
+				if msg := s.N.CheckNewName(alias); msg != "" {
+					s.UI.Say(view.Bad, msg)
+					continue
+				}
+			}
+			switch err := s.B.Store.SetAlias(u.ID, alias); {
+			case errors.Is(err, store.ErrExists):
+				s.UI.Say(view.Bad, "That is someone's name or alias.")
+			case err != nil:
+				return err
+			}
+		case "signature":
+			v, ok, err := s.UI.Form(&view.Form{Title: "Your signature", Submit: "Save",
+				Intro: []view.Line{view.L("Up to three lines, put under your posts and mail; - clears it.")},
+				Fields: []view.Field{{Name: "1", Label: "Line 1", Width: 70}, {Name: "2", Label: "Line 2", Width: 70},
+					{Name: "3", Label: "Line 3", Width: 70}}})
+			if err != nil {
+				return err
+			}
+			if !ok {
+				continue
+			}
+			var ls []string
+			for _, k := range []string{"1", "2", "3"} {
+				if l := bbs.Clean(v[k], 70); l != "" {
+					ls = append(ls, l)
+				}
+			}
+			if len(ls) == 1 && ls[0] == "-" {
+				ls = nil
+			}
+			if err := s.B.Store.SetSignature(u.ID, strings.Join(ls, "\n")); err != nil {
+				return err
 			}
 		case "expert":
 			v := "on"

@@ -524,9 +524,43 @@ func (b *BBS) MOTDText() string {
 
 // Post cleans and posts a message.
 func (n *Node) Post(a *store.Area, to, subject string, body []string, replyTo int64) (int64, error) {
+	return n.PostWith(a, to, subject, body, replyTo, PostOpts{})
+}
+
+// PostOpts are a post's choices: under the poster's alias (where the area
+// allows), a poll's answers.
+type PostOpts struct {
+	Alias bool
+	Poll  []string
+}
+
+// MaxPollAnswers is the most answers a poll has.
+const MaxPollAnswers = 10
+
+// PostWith is Post with choices.
+func (n *Node) PostWith(a *store.Area, to, subject string, body []string, replyTo int64, o PostOpts) (int64, error) {
 	u := n.User()
 	if u == nil {
 		return 0, errors.New("not logged in")
+	}
+	var answers []string
+	for _, p := range o.Poll {
+		if p = Clean(p, 60); p != "" {
+			answers = append(answers, p)
+		}
+	}
+	if o.Poll != nil && (len(answers) < 2 || len(answers) > MaxPollAnswers) {
+		return 0, fmt.Errorf("a poll has 2 to %d answers", MaxPollAnswers)
+	}
+	from := u.Name
+	if o.Alias {
+		if !a.Aliases {
+			return 0, errors.New("this area takes no aliases")
+		}
+		if u.Alias == "" {
+			return 0, errors.New("you have no alias (set one in your profile)")
+		}
+		from = u.Alias
 	}
 	if !n.b.CanPost(u, a) {
 		if a.SysopOnly {
@@ -534,7 +568,7 @@ func (n *Node) Post(a *store.Area, to, subject string, body []string, replyTo in
 		}
 		return 0, errors.New("your access does not allow posting here")
 	}
-	m := &store.Message{AreaID: a.ID, FromID: u.ID, From: u.Name,
+	m := &store.Message{AreaID: a.ID, FromID: u.ID, From: from,
 		To: Clean(to, MaxNameLen), Subject: Clean(subject, MaxSubjectLen),
 		Body: CleanBody(body), ReplyTo: replyTo}
 	if m.To == "" {
@@ -548,9 +582,16 @@ func (n *Node) Post(a *store.Area, to, subject string, body []string, replyTo in
 	}
 	n.b.MakeArticle(u, a, m)
 	id, err := n.b.Store.Post(m)
+	if err == nil && answers != nil {
+		err = n.b.Store.SetPoll(id, answers)
+	}
 	if err == nil {
 		n.b.Stats.Posts.Add(1)
-		n.b.Log.Printf("node %d: %s posted #%d in %s", n.Num, u.Name, id, a.Name)
+		as := ""
+		if o.Alias {
+			as = " as " + from
+		}
+		n.b.Log.Printf("node %d: %s posted #%d in %s%s", n.Num, u.Name, id, a.Name, as)
 	}
 	return id, err
 }
