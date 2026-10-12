@@ -93,7 +93,7 @@ func TestChat3270(t *testing.T) {
 		"Connect(" + addr + ")", "Wait(10,InputField)",
 		`String("alice")`, "Tab()", `String("alicepass1")`, "Enter()", "Wait(5,InputField)",
 		"Wait(2,Seconds)", "Enter()", "Wait(5,InputField)", "Ascii()",
-		`String("9")`, "Enter()", "Wait(5,InputField)",
+		`String("c")`, "Enter()", "Wait(5,InputField)",
 		`String("hello from a 3270")`, "Enter()", "Wait(5,InputField)",
 		"Wait(2,Seconds)", "PF(5)", "Wait(5,InputField)", "Ascii()",
 		"PF(3)", "Wait(5,InputField)", "Quit()", ""}, "\n")

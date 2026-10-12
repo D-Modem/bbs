@@ -5,7 +5,6 @@ package ui3270
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/racingmars/go3270"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/app"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
@@ -70,6 +70,8 @@ type ui struct {
 	drawn    bool      // vector graphics are on the screen
 	chatting bool      // in a chat room (its lines are its screen's)
 	backlog  []string  // other nodes' lines not shown yet
+	say      string    // for the next screen's message line
+	sayBad   bool      // and it is of something refused or failed
 }
 
 // Run is a caller's session on a 3270, from the logon screen to the
@@ -95,13 +97,11 @@ func (u *ui) run() error {
 	if err := u.logon(); err != nil {
 		return err
 	}
-	if _, err := u.screen("welcome"); err != nil {
-		return err
+	err := app.Run(u.b, u.n, u)
+	if errors.Is(err, app.ErrLogoff) {
+		err = errLogoff
 	}
-	if m := u.b.Menus["main"]; m != nil {
-		return u.runMenu(m, 0)
-	}
-	return u.mainMenu()
+	return err
 }
 
 // show sends a screen and returns the caller's answer, the values merged
@@ -201,6 +201,12 @@ func (u *ui) frame(title, keys, msg string) go3270.Screen {
 	mid := u.cols - 1 - 30 - len(node)
 	head := bbs.Fit(name, 30) + bbs.Fit(centre(title, mid), mid) + node
 	color := go3270.Red
+	if msg == "" && u.say != "" {
+		msg, u.say, color = u.say, "", go3270.White
+		if u.sayBad {
+			color, u.sayBad = go3270.Red, false
+		}
+	}
 	if msg == "" {
 		if msg = u.notice(); msg != "" {
 			color = go3270.Yellow
@@ -363,295 +369,7 @@ func (u *ui) register() (bool, error) {
 	}
 }
 
-func (u *ui) mainMenu() error {
-	msg := ""
-	first := true
-	for {
-		u.user = u.n.Refresh()
-		u.n.Doing("Main menu")
-		unread, _ := u.b.Store.UnreadMail(u.user.ID)
-		mail := "E-mail"
-		if unread > 0 {
-			mail += fmt.Sprintf("   (%d new)", unread)
-		}
-		scr := u.frame("Main menu", "Enter=Select  PF3=Log off", msg)
-		msg = ""
-		welcome, _ := u.n.Str("welcome")
-		scr = append(scr, u.text(2, 2, welcome, go3270.White, true))
-		if first && !u.user.LastLogin.IsZero() {
-			scr = append(scr, u.text(3, 2, "Your last call was "+
-				u.user.LastLogin.Format("2006-01-02 15:04")+".", go3270.Blue, false))
-		}
-		items := []string{"Message areas", mail, "Who's online", "User list", "Your profile", "System info", "Your terminal"}
-		if u.b.Files != nil {
-			items = append(items, "File areas")
-		}
-		chat := "Chat"
-		if u.user.Sysop {
-			if ps := u.b.Pages(); len(ps) > 0 {
-				chat += fmt.Sprintf("   (%d paging)", len(ps))
-			}
-		}
-		items = append(items, chat, "Page the sysop")
-		scr = append(scr, u.boxed(4, 2, 5+len(items)+1, 40, go3270.Blue)...)
-		for i, it := range items {
-			scr = append(scr, u.text(5+i, 4, strconv.Itoa(i+1), go3270.Yellow, true),
-				u.text(5+i, 7, it, go3270.Green, false))
-		}
-		scr = append(scr, u.text(5+len(items), 4, "X", go3270.Yellow, true),
-			u.text(5+len(items), 7, "Log off", go3270.Green, false))
-		row := 6 + len(items) + 1
-		if motd := u.b.MOTDText(); motd != "" && first {
-			for _, l := range strings.Split(strings.TrimRight(motd, "\n"), "\n") {
-				if row >= u.rows-4 {
-					break
-				}
-				scr = append(scr, u.text(row, 2, bbs.Clean(l, u.cols-4), go3270.White, false))
-				row++
-			}
-		}
-		first = false
-		scr = append(scr, u.text(u.rows-3, 2, "Option ===>", go3270.Turquoise, false))
-		scr = append(scr, u.input(u.rows-3, 14, 2, "opt", false)...)
-		resp, v, err := u.show(scr, nil)
-		if err != nil {
-			return err
-		}
-		if resp.AID == go3270.AIDPF3 {
-			v["opt"] = "X"
-		} else if resp.AID != go3270.AIDEnter {
-			continue
-		}
-		label := ""
-		if k, e := strconv.Atoi(v["opt"]); e == nil && k >= 1 && k <= len(items) {
-			label = items[k-1]
-		}
-		switch {
-		case strings.HasPrefix(label, "Chat"):
-			err = u.chat("", "")
-			v["opt"] = "-"
-		case label == "Page the sysop":
-			err = u.page()
-			v["opt"] = "-"
-		}
-		switch strings.ToUpper(v["opt"]) {
-		case "", "-":
-		case "1":
-			err = u.areas()
-		case "2":
-			err = u.mail()
-		case "3":
-			err = u.who()
-		case "4":
-			err = u.users()
-		case "5":
-			err = u.profile()
-		case "6":
-			err = u.info()
-		case "7":
-			err = u.terminal()
-		case "8":
-			if u.b.Files != nil && label == "File areas" {
-				err = u.fileAreas()
-			}
-		case "X":
-			u.b.Log.Printf("node %d: %s logged off", u.n.Num, u.user.Name)
-			u.bye()
-			return errLogoff
-		default:
-			msg = fmt.Sprintf("Choose 1 to %d, or X.", len(items))
-		}
-		if err != nil {
-			return err
-		}
-	}
-}
-
-// table is a page of selectable lines: an S field before each, the column
-// heading above.  It returns the index chosen (-1 for none), the AID, and
-// the page's first index after paging keys.
-type table struct {
-	title, heading, keys string
-	lines                []string
-	top                  int
-}
-
 func (u *ui) perPage() int { return u.rows - 6 }
-
-func (u *ui) pickFrom(tb *table, msg string) (int, go3270.AID, error) {
-	for {
-		per := u.perPage()
-		scr := u.frame(tb.title, tb.keys, msg)
-		msg = ""
-		scr = append(scr, u.text(2, 0, "   "+tb.heading, go3270.Turquoise, false))
-		for i := 0; i < per && tb.top+i < len(tb.lines); i++ {
-			name := "s" + strconv.Itoa(i)
-			scr = append(scr, go3270.Field{Row: 3 + i, Col: 0, Write: true, Name: name,
-				Color: go3270.Green, Highlighting: go3270.Underscore})
-			scr = append(scr, u.text(3+i, 2, tb.lines[tb.top+i], go3270.Green, false))
-		}
-		if len(tb.lines) == 0 {
-			scr = append(scr, u.text(4, 2, "Nothing here yet.", go3270.White, false))
-		}
-		resp, v, err := u.show(scr, nil)
-		if err != nil {
-			return -1, resp.AID, err
-		}
-		switch resp.AID {
-		case go3270.AIDPF7:
-			if tb.top -= per; tb.top < 0 {
-				tb.top = 0
-			}
-			continue
-		case go3270.AIDPF8:
-			if tb.top+per < len(tb.lines) {
-				tb.top += per
-			} else {
-				msg = "That is the end."
-			}
-			continue
-		case go3270.AIDEnter:
-			for i := 0; i < per && tb.top+i < len(tb.lines); i++ {
-				if v["s"+strconv.Itoa(i)] != "" {
-					return tb.top + i, resp.AID, nil
-				}
-			}
-			return -1, resp.AID, nil
-		}
-		return -1, resp.AID, nil
-	}
-}
-
-func (u *ui) areas() error {
-	msg := ""
-	top := 0
-	for {
-		u.n.Doing("Message areas")
-		areas, err := u.b.AreasFor(u.user)
-		if err != nil {
-			return err
-		}
-		tb := &table{title: "Message areas", top: top,
-			heading: fmt.Sprintf("%-20s %-38s %6s %5s", "Area", "Description", "Msgs", "New"),
-			keys:    "Type S by an area, Enter  PF3=Back  PF7=Up  PF8=Down"}
-		for _, a := range areas {
-			tb.lines = append(tb.lines, fmt.Sprintf("%s %s %6d %5d", bbs.Fit(a.Name, 20),
-				bbs.Fit(a.Description, 38), a.Messages, a.New))
-		}
-		i, aid, err := u.pickFrom(tb, msg)
-		top = tb.top
-		msg = ""
-		if err != nil {
-			return err
-		}
-		if aid == go3270.AIDPF3 {
-			return nil
-		}
-		if i >= 0 {
-			if err := u.area(areas[i].Area); err != nil {
-				return err
-			}
-		}
-	}
-}
-
-// area: an area's messages, a page at a time
-func (u *ui) area(a *store.Area) error {
-	starts := []int64{0}
-	msg := ""
-	for {
-		u.n.Doing("In " + a.Name)
-		last, err := u.b.Store.LastRead(u.user.ID, a.ID)
-		if err != nil {
-			return err
-		}
-		per := u.perPage()
-		ms, err := u.b.Store.Messages(a.ID, starts[len(starts)-1], per)
-		if err != nil {
-			return err
-		}
-		keys := "S+Enter=Read  PF3=Back  PF5=Read new  PF7=Up  PF8=Down"
-		if u.b.CanPost(u.user, a) {
-			keys += "  PF6=Post"
-		}
-		tb := &table{title: a.Name, keys: keys,
-			heading: fmt.Sprintf("%7s %-16s %-38s %s", "#", "From", "Subject", "Date")}
-		for _, m := range ms {
-			mark := " "
-			if m.ID > last {
-				mark = "*"
-			}
-			tb.lines = append(tb.lines, fmt.Sprintf("%s%6d %s %s %s", mark, m.ID, bbs.Fit(m.From, 16),
-				bbs.Fit(m.Subject, 38), m.Created.Format("01-02 15:04")))
-		}
-		i, aid, err := u.pickFrom(tb, msg)
-		msg = ""
-		if err != nil {
-			return err
-		}
-		switch aid {
-		case go3270.AIDPF3:
-			return nil
-		case go3270.AIDPF5:
-			nm, err := u.b.Store.Messages(a.ID, last, 1)
-			if err != nil {
-				return err
-			}
-			if len(nm) == 0 {
-				msg = "No new messages."
-				continue
-			}
-			if err := u.read(a, nm[0]); err != nil {
-				return err
-			}
-		case go3270.AIDPF6:
-			if u.b.CanPost(u.user, a) {
-				if msg, err = u.post(a, "All", "", nil, 0); err != nil {
-					return err
-				}
-			}
-		case go3270.AIDPF7:
-			if len(starts) > 1 {
-				starts = starts[:len(starts)-1]
-			}
-		case go3270.AIDPF8:
-			if len(ms) == per {
-				starts = append(starts, ms[len(ms)-1].ID)
-			} else {
-				msg = "That is the end."
-			}
-		case go3270.AIDEnter:
-			if i >= 0 {
-				if err := u.read(a, ms[i]); err != nil {
-					return err
-				}
-			}
-		}
-	}
-}
-
-// messageScreen: a message's headers and a window of its body from off
-func (u *ui) messageScreen(m *store.Message, title, keys, msg string, off int) (go3270.Screen, int) {
-	scr := u.frame(title, keys, msg)
-	scr = append(scr,
-		u.text(1, 0, "From:", go3270.Turquoise, false),
-		u.text(1, 6, bbs.Fit(m.From, 24), go3270.Yellow, true),
-		u.text(1, 32, "To:", go3270.Turquoise, false),
-		u.text(1, 36, bbs.Fit(m.To, 24), go3270.Green, false),
-		u.text(2, 0, "Subj:", go3270.Turquoise, false),
-		u.text(2, 6, m.Subject, go3270.White, true),
-		u.text(3, 0, "Date:", go3270.Turquoise, false),
-		u.text(3, 6, m.Created.Format("2006-01-02 15:04"), go3270.Green, false),
-		u.text(4, 0, u.rule(u.cols-2), go3270.Blue, false))
-	// the body as written: lines of up to 79, the width of the text editor
-	width := min(u.cols-1, bbs.MaxLineLen)
-	lines := bbs.Wrap(m.Body, width)
-	room := u.rows - 7
-	for i := 0; i < room && off+i < len(lines); i++ {
-		scr = append(scr, u.text(5+i, 0, bbs.Clean(lines[off+i], width), go3270.Green, false))
-	}
-	return scr, len(lines)
-}
 
 // scroll moves a body window by a PF7 or PF8; the new offset, and false if
 // the key was not a scroll.
@@ -667,73 +385,6 @@ func (u *ui) scroll(aid go3270.AID, off, total int) (int, bool) {
 		return off, true
 	}
 	return off, false
-}
-
-// read: messages of an area, from m on
-func (u *ui) read(a *store.Area, m *store.Message) error {
-	off := 0
-	msg := ""
-	for {
-		u.n.Doing("Reading " + a.Name)
-		u.b.Store.SetLastRead(u.user.ID, a.ID, m.ID)
-		canDelete := u.user.Sysop || u.user.ID == m.FromID
-		keys := "PF3=Back PF7/8=Scroll PF10=Prev PF11=Next"
-		if u.b.CanPost(u.user, a) {
-			keys += " PF4=Reply"
-		}
-		keys += " PF5=Mail"
-		if canDelete {
-			keys += " PF9=Del"
-		}
-		scr, total := u.messageScreen(m, fmt.Sprintf("%s  #%d", a.Name, m.ID), keys, msg, off)
-		msg = ""
-		resp, _, err := u.show(scr, nil)
-		if err != nil {
-			return err
-		}
-		if o, ok := u.scroll(resp.AID, off, total); ok {
-			off = o
-			continue
-		}
-		switch resp.AID {
-		case go3270.AIDPF3:
-			return nil
-		case go3270.AIDPF10, go3270.AIDPF11, go3270.AIDEnter:
-			next := resp.AID != go3270.AIDPF10
-			nm, err := u.b.Store.Neighbour(a.ID, m.ID, next)
-			if errors.Is(err, store.ErrNotFound) {
-				if next {
-					msg = "That was the last message."
-				} else {
-					msg = "That is the first message."
-				}
-				continue
-			} else if err != nil {
-				return err
-			}
-			m, off = nm, 0
-		case go3270.AIDPF4:
-			if u.b.CanPost(u.user, a) {
-				if msg, err = u.post(a, m.From, bbs.ReplySubject(m.Subject),
-					bbs.Quote(m.From, m.Body, 6), m.ID); err != nil {
-					return err
-				}
-			}
-		case go3270.AIDPF5:
-			if msg, err = u.compose(m.From, bbs.ReplySubject(m.Subject),
-				bbs.Quote(m.From, m.Body, 6), 0); err != nil {
-				return err
-			}
-		case go3270.AIDPF9:
-			if canDelete {
-				if err := u.n.DeleteMessage(m); err != nil {
-					msg = err.Error()
-					continue
-				}
-				return nil
-			}
-		}
-	}
 }
 
 // editor: To, Subject and a screen of body lines.  ok is false if the
@@ -782,131 +433,20 @@ func (u *ui) editor(title, to, subject string, body []string,
 			lines = append(lines, strings.TrimRight(v["l"+strconv.Itoa(i)], " \x00"))
 		}
 		if err := check(v["to"], v["subject"], lines); err != nil {
-			msg = err.Error() + "."
+			msg = capital(err.Error()) + "."
 			continue
 		}
 		return true, nil
 	}
 }
 
-// post: a message to an area; the message for the screen after
-func (u *ui) post(a *store.Area, to, subject string, quote []string, replyTo int64) (string, error) {
-	u.n.Doing("Writing in " + a.Name)
-	var id int64
-	ok, err := u.editor("Post in "+a.Name, to, subject, quote, func(to, subject string, body []string) error {
-		var err error
-		id, err = u.n.Post(a, to, subject, body, replyTo)
-		return err
-	})
-	if err != nil || !ok {
-		return "", err
-	}
-	return fmt.Sprintf("Posted as #%d.", id), nil
-}
-
-// compose: a private mail; the message for the screen after
-func (u *ui) compose(to, subject string, quote []string, replyTo int64) (string, error) {
-	u.n.Doing("Writing mail")
-	ok, err := u.editor("New mail", to, subject, quote, func(to, subject string, body []string) error {
-		return u.n.SendMail(to, subject, body, replyTo)
-	})
-	if err != nil || !ok {
-		return "", err
-	}
-	return "Sent.", nil
-}
-
-func (u *ui) mail() error {
-	msg := ""
-	top := 0
-	for {
-		u.n.Doing("Reading mail")
-		inbox, err := u.b.Store.Inbox(u.user.ID)
-		if err != nil {
-			return err
-		}
-		tb := &table{title: "Your mail", top: top,
-			keys:    "S+Enter=Read  PF3=Back  PF6=New mail  PF7=Up  PF8=Down",
-			heading: fmt.Sprintf(" %-20s %-40s %s", "From", "Subject", "Date")}
-		for _, m := range inbox {
-			mark := " "
-			if !m.Read {
-				mark = "*"
-			}
-			tb.lines = append(tb.lines, fmt.Sprintf("%s%s %s %s", mark, bbs.Fit(m.From, 20),
-				bbs.Fit(m.Subject, 40), m.Created.Format("01-02 15:04")))
-		}
-		i, aid, err := u.pickFrom(tb, msg)
-		top = tb.top
-		msg = ""
-		if err != nil {
-			return err
-		}
-		switch aid {
-		case go3270.AIDPF3:
-			return nil
-		case go3270.AIDPF6:
-			if msg, err = u.compose("", "", nil, 0); err != nil {
-				return err
-			}
-		case go3270.AIDEnter:
-			if i >= 0 {
-				if msg, err = u.readMail(inbox, i); err != nil {
-					return err
-				}
-			}
-		}
-	}
-}
-
-func (u *ui) readMail(inbox []*store.Message, i int) (string, error) {
-	off := 0
-	msg := ""
-	for {
-		m := inbox[i]
-		u.b.Store.MarkMailRead(u.user.ID, m.ID)
-		scr, total := u.messageScreen(m, fmt.Sprintf("Mail %d of %d", i+1, len(inbox)),
-			"PF3=Back PF4=Reply PF7/8=Scroll PF9=Delete PF10=Prev PF11=Next", msg, off)
-		msg = ""
-		resp, _, err := u.show(scr, nil)
-		if err != nil {
-			return "", err
-		}
-		if o, ok := u.scroll(resp.AID, off, total); ok {
-			off = o
-			continue
-		}
-		switch resp.AID {
-		case go3270.AIDPF3:
-			return "", nil
-		case go3270.AIDPF4:
-			if msg, err = u.compose(m.From, bbs.ReplySubject(m.Subject),
-				bbs.Quote(m.From, m.Body, 6), m.ID); err != nil {
-				return "", err
-			}
-		case go3270.AIDPF9:
-			if err := u.b.Store.DeleteMail(u.user.ID, m.ID); err != nil {
-				return "", err
-			}
-			return "Deleted.", nil
-		case go3270.AIDPF10:
-			if i > 0 {
-				i, off = i-1, 0
-			} else {
-				msg = "That is the first."
-			}
-		case go3270.AIDPF11, go3270.AIDEnter:
-			if i+1 < len(inbox) {
-				i, off = i+1, 0
-			} else {
-				msg = "That was the last."
-			}
-		}
-	}
-}
-
 // list shows lines a page at a time until PF3
 func (u *ui) list(title, heading string, lines []string) error {
+	return u.listColored(title, heading, lines, nil)
+}
+
+// listColored is list with each line's color (nil: all green).
+func (u *ui) listColored(title, heading string, lines []string, colors []go3270.Color) error {
 	top := 0
 	msg := ""
 	for {
@@ -915,7 +455,11 @@ func (u *ui) list(title, heading string, lines []string) error {
 		scr = append(scr, u.text(2, 0, heading, go3270.Turquoise, false))
 		per := u.perPage()
 		for i := 0; i < per && top+i < len(lines); i++ {
-			scr = append(scr, u.text(3+i, 0, lines[top+i], go3270.Green, false))
+			color := go3270.Green
+			if top+i < len(colors) {
+				color = colors[top+i]
+			}
+			scr = append(scr, u.text(3+i, 0, lines[top+i], color, false))
 		}
 		resp, _, err := u.show(scr, nil)
 		if err != nil {
@@ -934,134 +478,4 @@ func (u *ui) list(title, heading string, lines []string) error {
 			}
 		}
 	}
-}
-
-func (u *ui) who() error {
-	u.n.Doing("Who's online")
-	var lines []string
-	for _, n := range u.b.Nodes() {
-		name := n.User
-		if name == "" {
-			name = "(logging in)"
-		}
-		lines = append(lines, fmt.Sprintf("%4d  %s %s %5dm  %s", n.Num, bbs.Fit(name, 20),
-			bbs.Fit(n.Via, 16), int(time.Since(n.Since).Minutes()), n.Activity))
-	}
-	return u.list("Who's online", fmt.Sprintf("%4s  %-20s %-16s %6s  %s", "Node", "User", "Via", "Time", "Doing"), lines)
-}
-
-func (u *ui) users() error {
-	u.n.Doing("User list")
-	us, err := u.b.Store.Users()
-	if err != nil {
-		return err
-	}
-	var lines []string
-	for _, x := range us {
-		last := "never"
-		if !x.LastLogin.IsZero() {
-			last = x.LastLogin.Format("2006-01-02")
-		}
-		mark := " "
-		if x.Sysop {
-			mark = "*"
-		}
-		lines = append(lines, fmt.Sprintf("%s%s %s %6d  %s", mark, bbs.Fit(x.Name, 24),
-			bbs.Fit(x.Location, 26), x.Posts, last))
-	}
-	return u.list("User list", fmt.Sprintf(" %-24s %-26s %6s  %s", "User", "From", "Posts", "Last call"), lines)
-}
-
-func (u *ui) profile() error {
-	msg := ""
-	for {
-		u.user = u.n.Refresh()
-		x := u.user
-		u.n.Doing("Profile")
-		scr := u.frame("Your profile", "Enter=Save  PF3=Back", msg)
-		msg = ""
-		rows, cols := u.dev.AltDimensions()
-		cp := "default"
-		if c := u.dev.Codepage(); c != nil {
-			cp = c.ID()
-		}
-		scr = append(scr,
-			u.text(2, 2, "Name:          "+x.Name, go3270.White, true),
-			u.text(3, 2, fmt.Sprintf("Member:        since %s, %d calls, %d posts",
-				x.Created.Format("2006-01-02"), x.Logins, x.Posts), go3270.Green, false),
-			u.text(4, 2, fmt.Sprintf("Terminal:      %s, %dx%d, code page %s",
-				u.dev.TerminalType(), cols, rows, cp), go3270.Green, false),
-			u.text(6, 2, "Calling from ===>", go3270.Turquoise, false))
-		scr = append(scr, u.input(6, 20, bbs.MaxLocationLen, "location", false)...)
-		if !x.External {
-			scr = append(scr,
-				u.text(8, 2, "To change your password:", go3270.White, false),
-				u.text(9, 2, "Password now ===>", go3270.Turquoise, false),
-				u.text(10, 2, "New password ===>", go3270.Turquoise, false),
-				u.text(11, 2, "Again        ===>", go3270.Turquoise, false))
-			scr = append(scr, u.input(9, 20, 32, "old", true)...)
-			scr = append(scr, u.input(10, 20, 32, "new", true)...)
-			scr = append(scr, u.input(11, 20, 32, "again", true)...)
-		}
-		resp, v, err := u.show(scr, map[string]string{"location": x.Location})
-		if err != nil {
-			return err
-		}
-		if resp.AID == go3270.AIDPF3 {
-			return nil
-		}
-		if resp.AID != go3270.AIDEnter {
-			continue
-		}
-		loc := bbs.Clean(v["location"], bbs.MaxLocationLen)
-		if loc != x.Location {
-			if err := u.b.Store.SetLocation(x.ID, loc); err != nil {
-				return err
-			}
-			msg = "Saved."
-		}
-		if v["old"] != "" || v["new"] != "" {
-			if v["new"] != v["again"] {
-				msg = "The new passwords differ."
-				continue
-			}
-			if err := u.n.ChangePassword(v["old"], v["new"]); err != nil {
-				msg = err.Error() + "."
-				continue
-			}
-			msg = "Your password is changed."
-		}
-	}
-}
-
-func (u *ui) info() error {
-	b := u.b
-	areas, _ := b.Store.Areas()
-	msgs := 0
-	for _, a := range areas {
-		msgs += a.Messages
-	}
-	us, _ := b.Store.Users()
-	lines := []string{b.Name, ""}
-	if b.Location != "" {
-		lines = append(lines, "Location:  "+b.Location)
-	}
-	lines = append(lines,
-		"Sysop:     "+b.Sysop,
-		fmt.Sprintf("Users:     %d", len(us)),
-		fmt.Sprintf("Messages:  %d in %d areas", msgs, len(areas)),
-		fmt.Sprintf("Nodes:     %d of %d in use", len(b.Nodes()), b.MaxNodes),
-		"Software:  bbs-sec: telnet, SSH, TN3270, rlogin, modems; ANSI, RIP, PETSCII")
-	if len(areas) > 0 {
-		lines = append(lines, "", "Messages by area:")
-		most := 0
-		for _, a := range areas {
-			most = max(most, a.Messages)
-		}
-		for _, a := range areas {
-			lines = append(lines, fmt.Sprintf("  %s %5d %s", bbs.Fit(a.Name, 20), a.Messages,
-				u.bar(a.Messages, most, u.cols-32)))
-		}
-	}
-	return u.list("System info", "", lines)
 }

@@ -11,9 +11,10 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
 )
 
-// doorsFor are the doors a user may open.
-func (s *session) doorsFor() []*door.Door {
+// Doors are the doors the caller may open.
+func (s *session) Doors() []*door.Door {
 	var out []*door.Door
+	s.user = s.n.User()
 	if s.t.PETSCII {
 		return nil // doors are ANSI programs
 	}
@@ -39,36 +40,8 @@ func baud(c *bbs.Caller) int {
 	return 38400
 }
 
-// doors: the list of doors, and into one
-func (s *session) doors() error {
-	t := s.t
-	for {
-		s.n.Doing("Doors")
-		ds := s.doorsFor()
-		t.Println("")
-		t.Println(t.C(Cyan, "Doors"))
-		for i, d := range ds {
-			t.Printf("  %s %s %s\n", t.C(Yellow, fmt.Sprintf("%2d", i+1)), bbs.Fit(d.Name, 20), t.C(Dim, d.Description))
-		}
-		if len(ds) == 0 {
-			t.Println("  (none)")
-		}
-		num, err := t.Input("\nDoor number (Enter to go back): ", 3)
-		if err != nil || num == "" {
-			return err
-		}
-		i, err := strconv.Atoi(num)
-		if err != nil || i < 1 || i > len(ds) {
-			t.Println("No such door.")
-			continue
-		}
-		if err := s.openDoor(ds[i-1]); err != nil {
-			return err
-		}
-	}
-}
-
-func (s *session) openDoor(d *door.Door) error {
+// OpenDoor runs a door.
+func (s *session) OpenDoor(d *door.Door) error {
 	t := s.t
 	u := s.n.Refresh()
 	limit := d.TimeLimit

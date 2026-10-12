@@ -48,9 +48,16 @@ func startHint(p *xfer.Protocol, upload bool) string {
 	return fmt.Sprintf("Start your terminal program's %s %s now; Ctrl-X five times cancels.", p.Name, dir)
 }
 
-// download sends a file.
-func (s *session) download(a *store.FileArea, f *store.File) error {
+// Transfers: files go by transfer protocols.
+func (s *session) Transfers() bool { return true }
+
+// FileCommand: there is no file area command line.
+func (s *session) FileCommand(*store.FileArea, string) (string, error) { return "", nil }
+
+// Download sends a file.
+func (s *session) Download(a *store.FileArea, f *store.File) error {
 	t := s.t
+	s.user = s.n.User()
 	if err := s.b.MayDownload(s.user, a); err != nil {
 		t.Println(t.C(Red, capital(err.Error())+"."))
 		return nil
@@ -132,9 +139,10 @@ func safeName(name string) string {
 	return name
 }
 
-// upload receives files into an area.
-func (s *session) upload(a *store.FileArea) error {
+// Upload receives files into an area.
+func (s *session) Upload(a *store.FileArea) error {
 	t := s.t
+	s.user = s.n.User()
 	if !s.b.CanUpload(s.user, a) {
 		t.Println(t.C(Red, "Your access does not allow uploading here."))
 		return nil

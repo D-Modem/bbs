@@ -778,7 +778,7 @@ func TestIndFile(t *testing.T) {
 	script := strings.Join([]string{
 		"Connect(" + addr + ")", "Wait(10,InputField)",
 		`String("alice")`, "Tab()", `String("alicepass1")`, "Enter()", "Wait(5,InputField)",
-		`String("8")`, "Enter()", "Wait(5,InputField)",
+		`String("f")`, "Enter()", "Wait(5,InputField)",
 		`String("s")`, "Enter()", "Wait(5,InputField)",
 		// s3270 4.1's Transfer returns before the transfer ends: wait
 		"Transfer(Direction=send,Host=tso,LocalFile=" + up + ",HostFile=up.bin,Mode=binary)", "Wait(3,Seconds)",

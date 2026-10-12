@@ -109,47 +109,6 @@ func (u *ui) chat(room, msg string) error {
 	}
 }
 
-// page: page the sysop, and wait for them in chat
-func (u *ui) page() error {
-	msg := ""
-	for {
-		scr := u.frame("Page the sysop", "Enter=Page  PF3=Give up", msg)
-		scr = append(scr, u.text(2, 2, "What is it about?", go3270.Green, false))
-		scr = append(scr, u.input(3, 2, 60, "reason", false)...)
-		resp, v, err := u.show(scr, nil)
-		if err != nil || resp.AID == go3270.AIDPF3 {
-			return err
-		}
-		reason := strings.TrimSpace(v["reason"])
-		if reason == "" {
-			msg = "Say what it is about."
-			continue
-		}
-		room, told, err := u.n.PageSysop(reason)
-		if err != nil {
-			msg = err.Error() + "."
-			continue
-		}
-		if told > 0 {
-			return u.chat(room, "The sysop has been paged: wait for them here (PF3 to give up).")
-		}
-		u.n.CancelPage()
-		us, err := u.b.Store.Users()
-		if err != nil {
-			return err
-		}
-		for _, x := range us {
-			if x.Sysop && !x.Locked {
-				_, err := u.compose(x.Name, "Page: "+reason, []string{
-					"(The sysop is not on just now: leave them a message.)", ""}, 0)
-				return err
-			}
-		}
-		u.message("The sysop is not available.")
-		return nil
-	}
-}
-
 // message shows a line until Enter.
 func (u *ui) message(s string) {
 	scr := u.frame("", "Enter=Continue", "")

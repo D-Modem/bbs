@@ -28,19 +28,25 @@ The same caller on a 3270:
 
 ```
  D-Modem BBS                                    Main menu                 Node 1
+
    Welcome, alice.
-     1  Message areas
-     2  E-mail   (1 new)
-     3  Who's online
-     4  User list
-     5  Your profile
-     6  System info
-     7  Your terminal
-     8  Chat
-     9  Page the sysop
-     X  Log off
+
+   ┌───────────────────────────────────────────┐
+   │ M  Message areas                          │
+   │ E  E-mail (1 new)                         │
+   │ W  Who's online                           │
+   │ U  User list                              │
+   │ P  Your profile                           │
+   │ I  System info                            │
+   │ C  Chat                                   │
+   │ S  Page the sysop                         │
+   │ T  Your terminal                          │
+   │ G  Goodbye                                │
+   └───────────────────────────────────────────┘
+
    Option ===>
- Enter=Select  PF3=Log off
+
+ Enter=Select  PF3=Back
 ```
 
 What there is:

@@ -5,8 +5,10 @@
 | `cmd/bbs` | the command: serve, check, init, user and area administration |
 | `internal/server` | listeners, session headers, rlogin, SSH, telling 3270s from the rest |
 | `internal/telnet` | the server side of telnet: options, terminal type, window size, the handoff to go3270 |
-| `internal/textui` | the text BBS: line editing, ANSI detection, paging, the menus |
-| `internal/ui3270` | the 3270 BBS: screens and PF keys on go3270, and its graphics |
+| `internal/view` | what the screens show, described once: menus, tables, messages, forms, panels, drafts |
+| `internal/app` | the screens after the login, for every front end: menus, areas, mail, files, who's online, the profile, validation, paging the sysop |
+| `internal/textui` | the text front end: the login, line editing, ANSI detection, paging, RIP menus; the screens as prompts and keys; chat, doors, transfers |
+| `internal/ui3270` | the 3270 front end: the logon, the screens as fields and PF keys on go3270; chat, IND$FILE, its graphics |
 | `internal/sixel` | the sixel encoder |
 | `internal/petscii` | the Commodore's character set: translating ANSI and UTF-8 out, keys in |
 | `internal/rip` | RIPscrip: MegaNums, commands, menu scenes |
@@ -30,6 +32,34 @@
 | `internal/bbs` | the BBS itself: nodes, logins, new users, posting, cleaning text |
 | `internal/store` | the database: SQLite, PostgreSQL, MySQL or MariaDB (`dialect.go` what differs, `schema.go` the tables), copying between them |
 | `internal/config` | the configuration file |
+
+## Screens
+
+The screens after the login are written once, in `internal/app`, and
+drawn by each front end.  A screen is a description in
+`internal/view`'s terms, handed to the front end, which shows it, waits
+for the caller and says what they chose:
+
+| view | text terminal | 3270 |
+|---|---|---|
+| `Menu` | `[K] Label` in two columns (one under 60 columns), RIP buttons, the command prompt | a box of keys, `Option ===>` |
+| `Table` | numbered rows a page at a time; `Area number, [N]ew scan, [Q]uit: ` | `S` by a row; PF keys; PF7/PF8 |
+| `Message` | headers, the body paged; `[N]ext, [R]eply, ...` | headers, the body scrolled; PF10/PF11, PF4 ... |
+| `Form` | a question a field | one screen of fields |
+| `Panel` | lines, then `[L]ocation, [P]assword, ...` | lines, PF keys |
+| `Draft` | `To`, `Subject`, the line editor | the full-screen editor |
+| `Confirm`, `Say`, `Show` | `[Y/n]`, a line, lines and a pause | a Y/N field, the message line, a page |
+
+An action has a key for text terminals and a PF key for 3270s (and a
+short label for the 3270's key line).  What a front end alone can do is
+its `app.Frontend`: the sysop's display files, chat, doors (text), file
+transfers (protocols on text, IND$FILE on a 3270), the terminal's line
+on the profile and what may be switched there, the goodbye.  The logins
+stay with the front ends, since they decide what the terminal is.
+
+A new screen is a function in `internal/app` building views; a new
+front end implements `app.Frontend`.  `internal/app`'s tests drive the
+screens with a scripted front end, no terminal at all.
 
 ## Tests
 
@@ -91,6 +121,13 @@ and what it refuses; a text caller through an ANSI logon (CP437 as it
 is), the strings, a welcome screen, the sysop's menus and submenus, a
 screen with a pause and a goodbye screen; and a 3270 (s3270) through a
 colored logon screen, welcome, the sysop's main menu and a screen.
+The shared screens: `internal/app` driven by a scripted front end
+(posting, reading on and back, a new scan and reply, a number not on the
+page, mail to no one and to the sysop, a node message, deleting, the
+profile, a password that differs, validating with a bad level first);
+the column layout; the text prompts' keys; and a 3270 (s3270) through
+the areas, a post from the editor, reading it, the profile, with a text
+caller reading the 3270's post.
 The HTTP API: logins, tokens and scopes, every REST endpoint and its
 refusals, rate limits, the OpenAPI document against the routes, server-sent
 events and node messages, both WebSockets (auth by header and by first

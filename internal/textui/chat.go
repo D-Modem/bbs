@@ -1,9 +1,7 @@
 package textui
 
 import (
-	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
@@ -28,9 +26,12 @@ func (s *session) notify() []string {
 	return out
 }
 
-// chat: the chat rooms, from room (the main one if "")
-func (s *session) chat(room string) error {
+// Chat is the chat rooms, from room (the main one if ""), the note first.
+func (s *session) Chat(room, note string) error {
 	t := s.t
+	if note != "" {
+		t.Println(t.C(Green, note))
+	}
 	if room == "" {
 		room = bbs.MainRoom
 	}
@@ -78,71 +79,4 @@ func (s *session) chat(room string) error {
 		}
 		t.notices()
 	}
-}
-
-// page: page the sysop, and wait for them in chat
-func (s *session) page() error {
-	t := s.t
-	t.Println("")
-	reason, err := t.Input("Page the sysop about (Enter to give up): ", 60)
-	if err != nil || reason == "" {
-		return err
-	}
-	room, told, err := s.n.PageSysop(reason)
-	if err != nil {
-		t.Println(t.C(Red, err.Error()+"."))
-		return nil
-	}
-	if told > 0 {
-		t.Println(t.C(Green, "The sysop has been paged.  Wait for them here (/quit to give up)."))
-		return s.chat(room)
-	}
-	t.Println("The sysop is not available just now.")
-	if len(s.b.PageCommand) > 0 {
-		t.Println("They have been told you called for them.")
-	}
-	s.n.CancelPage()
-	ok, err := t.YesNo("Leave them a message?", true)
-	if err != nil || !ok {
-		return err
-	}
-	us, err := s.b.Store.Users()
-	if err != nil {
-		return err
-	}
-	for _, u := range us {
-		if u.Sysop && !u.Locked {
-			return s.compose(u.Name, "Page: "+reason, nil, 0)
-		}
-	}
-	t.Println("There is no sysop to write to.")
-	return nil
-}
-
-// messageNode: a line to another node, from who's online
-func (s *session) messageNode() error {
-	t := s.t
-	num, err := t.Input("Send a node a message (its number, Enter for none): ", 3)
-	if err != nil || num == "" {
-		return err
-	}
-	n, err := strconv.Atoi(num)
-	if err != nil {
-		t.Println("That is not a node's number.")
-		return nil
-	}
-	text, err := t.Input("Message: ", bbs.MaxChatLine)
-	if err != nil || text == "" {
-		return err
-	}
-	if err := s.n.Message(n, text); err != nil {
-		if errors.Is(err, bbs.ErrNoNode) {
-			t.Println(t.C(Red, "There is no one on that node."))
-		} else {
-			t.Println(t.C(Red, err.Error()+"."))
-		}
-		return nil
-	}
-	t.Println(t.C(Green, "Sent."))
-	return nil
 }
