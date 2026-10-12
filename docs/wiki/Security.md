@@ -87,3 +87,51 @@
   a user's name or location.
 - The log has logins, failures, posts and mail sent (never passwords or
   message text).
+
+## Keeping callers out
+
+```
+; bbs.conf
+[security]
+deny_file = /etc/bbs/deny.txt          ; addresses refused
+name_deny_file = /etc/bbs/names.txt    ; names no new account may have
+hack_log = /var/log/bbs/hack.log       ; who tried what
+ban_minutes = 60                       ; a throttled address is banned this long
+```
+
+- `deny_file` lists addresses and networks, one a line (`192.0.2.7`,
+  `198.51.100.0/24`, `2001:db8::/32`; `#` or `;` begins a comment).  A
+  connection from one is closed at once on every service: the terminal
+  listeners and SSH, FTP, NNTP, the HTTP API and web terminal, finger,
+  gopher and binkp.  Callers through unix sockets (a modem server, an
+  upstream menu) are never refused.  The file is read again when it
+  changes; `bbs check` warns of lines that are not addresses.
+- `ban_minutes`: an address that `throttle_failures` turns away is banned
+  outright for that long, from every service (not a caller ID: those are a
+  modem server's callers, and a ban would not stop them).  Bans are kept
+  in memory; `GET /api/v1/admin/bans` lists them and `DELETE
+  /api/v1/admin/bans/{ip}` lifts one.
+- `name_deny_file` has patterns, one a line, in any case, `*` for any run
+  of characters (`*sysop*`, `admin*`): no new user, nor an account an
+  upstream menu makes, may take a name that matches.  Names such as
+  `sysop`, `root` and `new` are refused anyway.
+- The hack log has failed logins (and the names tried), logins to locked
+  accounts, throttled and banned addresses, refused connections and
+  refused names, one a line with the time; `GET /api/v1/admin/hacklog`
+  shows its end.  It is opened for each line, so it may be rotated.
+
+## Telnet over TLS
+
+```
+[listen telnets]
+type = telnet
+address = :992
+tls_cert = /etc/bbs/cert.pem
+tls_key = /etc/bbs/key.pem
+```
+
+A telnet or raw listener with `tls_cert` and `tls_key` takes TLS (1.2 or
+later) and then telnet (or TN3270) as usual: SyncTERM (TelnetS) and
+`c3270 L:host:992` speak it.  A client has 15 seconds to finish the
+handshake.
+

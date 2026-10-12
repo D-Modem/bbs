@@ -23,6 +23,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/api/pb"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
+	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -715,5 +716,29 @@ func TestAccess(t *testing.T) {
 	}
 	if code, _, _ := s.do("POST", fmt.Sprintf("/api/v1/areas/%d/messages", id), bob, map[string]any{"subject": "s", "body": "b"}); code != 403 {
 		t.Errorf("bob posted without F: %d", code)
+	}
+}
+
+func TestBansAndHackLog(t *testing.T) {
+	s := setup(t, Settings{})
+	s.b.Guard = &guard.Guard{HackLog: filepath.Join(t.TempDir(), "hack.log"), BanTime: time.Hour}
+	s.b.Guard.Ban("192.0.2.9", "too many failed logins")
+	sys, alice := s.login("sysop", "sysoppass1"), s.login("alice", "alicepass1")
+	if code, _, _ := s.do("GET", "/api/v1/admin/bans", alice, nil); code != 403 {
+		t.Errorf("alice: %d", code)
+	}
+	if code, _, l := s.do("GET", "/api/v1/admin/bans", sys, nil); code != 200 || len(l) != 1 ||
+		l[0].(map[string]any)["ip"] != "192.0.2.9" {
+		t.Errorf("bans: %d %v", code, l)
+	}
+	if code, _, _ := s.do("DELETE", "/api/v1/admin/bans/192.0.2.9", sys, nil); code != 204 {
+		t.Errorf("unban: %d", code)
+	}
+	if code, _, _ := s.do("DELETE", "/api/v1/admin/bans/192.0.2.9", sys, nil); code != 404 {
+		t.Errorf("unban again: %d", code)
+	}
+	code, _, l := s.do("GET", "/api/v1/admin/hacklog?lines=5", sys, nil)
+	if code != 200 || len(l) != 2 || !strings.Contains(l[1].(string), "192.0.2.9 ban lifted by sysop") {
+		t.Errorf("hack log: %d %v", code, l)
 	}
 }

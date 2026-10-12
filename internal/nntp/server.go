@@ -105,6 +105,9 @@ func hostOf(a net.Addr) string {
 }
 
 func (s *Server) admit(c net.Conn) (string, bool) {
+	if s.Svc.B.Refuse("nntp", c.RemoteAddr()) {
+		return "502 Not here", false
+	}
 	h := hostOf(c.RemoteAddr())
 	s.mu.Lock()
 	defer s.mu.Unlock()

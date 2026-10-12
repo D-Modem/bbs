@@ -41,6 +41,7 @@ func (s *Server) Run(ctx context.Context) error {
 // Serve answers on ln until ctx is done.
 func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	ts := &tcpserv.Server{Name: "finger", MaxClients: s.S.MaxClients, MaxPerIP: s.S.MaxPerIP,
+		Refuse:  func(c net.Conn) bool { return s.B.Refuse("finger", c.RemoteAddr()) },
 		Timeout: 30 * time.Second, Log: s.B.Log, Handle: s.handle,
 		Busy: func(c net.Conn) { c.Write([]byte("Too busy; try again later.\r\n")) }}
 	return ts.Serve(ctx, ln)

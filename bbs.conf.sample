@@ -116,6 +116,15 @@ throttle_time = 600
 ;   socket_mode = 0660   a unix socket's permissions
 ;   socket_group = ...   and its group
 
+; keeping callers out: a file of addresses and networks refused, one of
+; names no new user may take (* wildcards), the hack log, and how long an
+; address throttled for failed logins is banned outright
+;[security]
+;deny_file = /etc/bbs/deny.txt
+;name_deny_file = /etc/bbs/names.txt
+;hack_log = /var/log/bbs/hack.log
+;ban_minutes = 60
+
 ; telnet and TN3270, for everyone (port 23 needs root or
 ; CAP_NET_BIND_SERVICE)
 [listen telnet]
@@ -123,6 +132,13 @@ type = telnet
 address = :2300
 tn3270 = yes
 max_per_ip = 4
+
+; telnet over TLS (port 992), for SyncTERM (TelnetS), c3270 L:host:992
+;[listen telnets]
+;type = telnet
+;address = :992
+;tls_cert = /etc/bbs/cert.pem
+;tls_key = /etc/bbs/key.pem
 
 ; app_dmodem's [bbs] profile (mode = tcp, host = 127.0.0.1, port = 2323):
 ; modem callers, raw.  Keep it to 127.0.0.1

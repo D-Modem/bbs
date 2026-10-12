@@ -23,6 +23,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -66,6 +67,9 @@ type Listener struct {
 	SocketGroup   string
 	HostKeys      []string // ssh: the host keys' files
 	Legacy        bool     // ssh: offer old algorithms too (CBC ciphers, DH group 1)
+	// TLS: telnet or raw over TLS (telnets, port 992), with this
+	// certificate and key
+	CertFile, KeyFile string
 
 	ssh *ssh.ServerConfig
 }
@@ -145,6 +149,18 @@ func (s *Server) Run(ctx context.Context) error {
 }
 
 func (s *Server) listen(l *Listener) (net.Listener, error) {
+	if l.CertFile != "" {
+		cert, err := tls.LoadX509KeyPair(l.CertFile, l.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("tls: %w", err)
+		}
+		ln, err := net.Listen("tcp", l.Address)
+		if err != nil {
+			return nil, err
+		}
+		return tls.NewListener(ln, &tls.Config{Certificates: []tls.Certificate{cert},
+			MinVersion: tls.VersionTLS12}), nil
+	}
 	if !l.Unix() {
 		return net.Listen("tcp", l.Address)
 	}
@@ -264,6 +280,18 @@ func (s *Server) handle(nc net.Conn, l *Listener) {
 	remote := "local"
 	if c.RemoteAddr() != nil && c.RemoteAddr().String() != "" && c.RemoteAddr().String() != "@" {
 		remote = c.RemoteAddr().String()
+	}
+	if s.B.Refuse("[listen "+l.Name+"]", nc.RemoteAddr()) {
+		return
+	}
+	if tc, ok := nc.(*tls.Conn); ok {
+		// a client that says nothing does not hold the connection
+		tc.SetDeadline(time.Now().Add(15 * time.Second))
+		if err := tc.Handshake(); err != nil {
+			s.B.Log.Printf("[listen %s] %s: TLS: %v", l.Name, nc.RemoteAddr(), err)
+			return
+		}
+		tc.SetDeadline(time.Time{})
 	}
 	if !s.track(c, l) {
 		s.B.Log.Printf("[listen %s] %s: too many connections from there", l.Name, remote)

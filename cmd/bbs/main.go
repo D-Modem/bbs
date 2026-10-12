@@ -283,6 +283,7 @@ func serve(cfg *server.Config) int {
 	b.News = cfg.News
 	b.Doors = cfg.Doors
 	b.Screens, b.Menus, b.Text, b.ScriptsDir = cfg.Screens, cfg.Menus, cfg.Text, cfg.ScriptsDir
+	b.Guard = cfg.Guard
 	if b.Files, err = files.Open(st, cfg.FilesDir, cfg.MaxFileSize, cfg.UploadQuota); err != nil {
 		lg.Printf("files: %v", err)
 		return 1

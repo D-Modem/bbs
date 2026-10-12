@@ -133,7 +133,11 @@ The full-screen editor: its text (wrapping as typed and as given, a word
 too long for a line, joining lines by Backspace and Delete, moving over
 line ends, quoting, the line limit), and an SSH caller writing a post
 with the cursor keys, replying with lines from the quote window and
-`/S`, then choosing the line editor; scripts (screens, data kept for all
+`/S`, then choosing the line editor; keeping callers out (the deny file
+read again as it changes, networks and IPv6, bans after the throttle and
+their end, name patterns, the hack log's lines; telnet over TLS with a
+login, a plain client on the TLS port getting nothing, a denied address
+closed at once, the API's bans and log); scripts (screens, data kept for all
 and for a user, posting with refusals caught, a runaway loop stopped and a
 slow caller not, failures told to the sysop alone, a hang-up the script
 cannot catch, exit, the sample poll, the configuration's checks, and the

@@ -21,6 +21,9 @@ type Server struct {
 	Log        *log.Logger
 	Handle     func(c net.Conn)
 	Busy       func(c net.Conn) // told when a limit turns one away (may be nil)
+	// Refuse, if set, says to close a connection at once (the sysop's
+	// deny list, bans)
+	Refuse func(c net.Conn) bool
 
 	mu      sync.Mutex
 	clients int
@@ -62,6 +65,9 @@ func host(c net.Conn) string {
 
 func (s *Server) serve(c net.Conn) {
 	defer c.Close()
+	if s.Refuse != nil && s.Refuse(c) {
+		return
+	}
 	h := host(c)
 	s.mu.Lock()
 	if s.MaxClients > 0 && s.clients >= s.MaxClients || s.MaxPerIP > 0 && s.perIP[h] >= s.MaxPerIP {

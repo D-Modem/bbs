@@ -147,6 +147,9 @@ func host(a net.Addr) string {
 
 // ClientConnected greets a client, or turns it away over the limits.
 func (s *Server) ClientConnected(cc ftpserver.ClientContext) (string, error) {
+	if s.B.Refuse("ftp", cc.RemoteAddr()) {
+		return "Not here.", errors.New("refused")
+	}
 	h := host(cc.RemoteAddr())
 	s.mu.Lock()
 	defer s.mu.Unlock()

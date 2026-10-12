@@ -1,11 +1,15 @@
 package bbs
 
 import (
+	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
+	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -239,5 +243,45 @@ func TestDownloadRatio(t *testing.T) {
 	u.Sysop = true
 	if left, _ := b.DownloadsLeft(u); left != -1 {
 		t.Errorf("sysop %d", left)
+	}
+}
+
+func TestGuardedLogins(t *testing.T) {
+	b, ns := chatBBS(t)
+	dir := t.TempDir()
+	names := filepath.Join(dir, "names")
+	os.WriteFile(names, []byte("*spam*\n"), 0644)
+	b.Guard = &guard.Guard{HackLog: filepath.Join(dir, "hack.log"), NameDenyFile: names, BanTime: time.Hour}
+	b.ThrottleFails, b.ThrottleTime, b.FailDelay, b.NewUsers = 3, time.Minute, 0, true
+	addr := &net.TCPAddr{IP: net.ParseIP("192.0.2.9"), Port: 4000}
+	for i := 0; i < 3; i++ {
+		if _, err := b.Authenticate("node 9", "ip:192.0.2.9", "root", "x"); err != ErrBadLogin {
+			t.Fatalf("try %d: %v", i, err)
+		}
+	}
+	if !b.Refuse("[listen telnet]", addr) {
+		t.Error("not banned after three failures")
+	}
+	if b.Refuse("[listen telnet]", &net.TCPAddr{IP: net.ParseIP("192.0.2.10")}) {
+		t.Error("another address banned")
+	}
+	if b.Refuse("[listen modem]", &net.UnixAddr{Name: "modem.sock"}) {
+		t.Error("a unix socket refused")
+	}
+	if msg := ns["alice"].CheckNewName("Big Spammer"); msg != "That name is not allowed here." {
+		t.Errorf("a denied name: %q", msg)
+	}
+	if msg := ns["alice"].CheckNewName("Zed"); msg != "" {
+		t.Errorf("Zed: %q", msg)
+	}
+	if _, err := ns["alice"].Register("Spam King", "password12", ""); err != ErrNameDenied {
+		t.Errorf("register: %v", err)
+	}
+	log := strings.Join(b.Guard.Tail(20), "\n")
+	for _, want := range []string{`ip:192.0.2.9 node 9: failed login as "root"`, "192.0.2.9 banned until",
+		"192.0.2.9 [listen telnet]: refused: banned until", `new user "Spam King" refused by name_deny_file`} {
+		if !strings.Contains(log, want) {
+			t.Errorf("no %q in the hack log:\n%s", want, log)
+		}
 	}
 }

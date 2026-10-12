@@ -358,6 +358,9 @@ func (sv *Server) release(c net.Conn) {
 func (sv *Server) serve(c net.Conn) {
 	defer c.Close()
 	f := sv.F
+	if f.B.Refuse("binkp", c.RemoteAddr()) {
+		return
+	}
 	s := &session{f: f, c: c, r: bufio.NewReader(c), w: bufio.NewWriter(c),
 		who: c.RemoteAddr().String(), frames: make(chan frame, 16)}
 	if !sv.admit(c) {

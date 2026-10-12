@@ -254,7 +254,7 @@ func (s *session) register() (bool, error) {
 		if err != nil || name == "" {
 			return false, err
 		}
-		if msg := bbs.ValidName(name); msg != "" {
+		if msg := s.n.CheckNewName(name); msg != "" {
 			t.Println(t.C(Red, msg))
 			continue
 		}

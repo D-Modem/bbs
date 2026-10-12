@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"github.com/Neo-Desktop/bbs-sec/internal/api"
@@ -18,6 +19,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/finger"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
 	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
+	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 	"github.com/Neo-Desktop/bbs-sec/internal/logo"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
@@ -55,6 +57,7 @@ type Config struct {
 	Log        string // syslog, stderr, none, or a file
 	Listeners  []*Listener
 	Warnings   []string
+	Guard      *guard.Guard // [security]
 }
 
 // DefaultListeners are used when the file has no [listen] section: telnet
@@ -109,6 +112,9 @@ func Load(path string) (*Config, error) {
 	if err := c.ftpSection(cf.Get("ftp", "")); err != nil {
 		return nil, fmt.Errorf("[ftp] %w", err)
 	}
+	if err := c.securitySection(cf.Get("security", "")); err != nil {
+		return nil, fmt.Errorf("[security] %w", err)
+	}
 	names := map[string]bool{}
 	for _, sec := range cf.All("listen") {
 		l, err := listener(sec)
@@ -133,7 +139,7 @@ func Load(path string) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door", "finger", "gopher", "menu", "strings", "http", "level":
+		case "general", "security", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door", "finger", "gopher", "menu", "strings", "http", "level":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}
@@ -226,6 +232,27 @@ func (c *Config) general(g *config.Section) error {
 	return nil
 }
 
+// securitySection reads [security]: the deny files, the hack log, bans.
+func (c *Config) securitySection(sec *config.Section) error {
+	g := &guard.Guard{}
+	c.Guard = g
+	if sec == nil {
+		return nil
+	}
+	g.DenyFile = sec.String("deny_file", "")
+	g.NameDenyFile = sec.String("name_deny_file", "")
+	g.HackLog = sec.String("hack_log", "")
+	mins, err := sec.Int("ban_minutes", 0, 0, 7*24*60)
+	if err != nil {
+		return err
+	}
+	g.BanTime = time.Duration(mins) * time.Minute
+	for _, w := range g.Check() {
+		c.Warnings = append(c.Warnings, "[security] "+w)
+	}
+	return nil
+}
+
 func listener(sec *config.Section) (*Listener, error) {
 	if sec.Name == "" {
 		return nil, errors.New("a listener needs a name: [listen NAME]")
@@ -294,6 +321,18 @@ func listener(sec *config.Section) (*Listener, error) {
 	}
 	if l.Legacy, err = sec.Bool("legacy", false); err != nil {
 		return nil, err
+	}
+	l.CertFile, l.KeyFile = sec.String("tls_cert", ""), sec.String("tls_key", "")
+	if (l.CertFile == "") != (l.KeyFile == "") {
+		return nil, errors.New("tls_cert and tls_key: both, or neither")
+	}
+	if l.CertFile != "" && (l.Kind != "telnet" && l.Kind != "raw" || l.Unix()) {
+		return nil, errors.New("tls_cert: only for telnet and raw listeners on a TCP port")
+	}
+	if l.CertFile != "" {
+		if _, err := tls.LoadX509KeyPair(l.CertFile, l.KeyFile); err != nil {
+			return nil, fmt.Errorf("tls_cert, tls_key: %v", err)
+		}
 	}
 	if sec.Has("legacy") && l.Kind != "ssh" {
 		return nil, errors.New("legacy: only for type = ssh")

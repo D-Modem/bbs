@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -67,6 +68,9 @@ func (s *Server) routes() map[string]route {
 		"POST /api/v1/admin/areas":               {scope: "sysop", h: s.addArea},
 		"PATCH /api/v1/admin/areas/{id}":         {scope: "sysop", h: s.patchArea},
 		"POST /api/v1/admin/nodes/{n}/kick":      {scope: "sysop", h: s.kick},
+		"GET /api/v1/admin/bans":                 {scope: "sysop", h: s.bans},
+		"DELETE /api/v1/admin/bans/{ip}":         {scope: "sysop", h: s.unban},
+		"GET /api/v1/admin/hacklog":              {scope: "sysop", h: s.hackLog},
 		"GET /api/v1/admin/fido":                 {scope: "sysop", h: s.fido},
 		"POST /api/v1/admin/fido/poll":           {scope: "sysop", h: s.fidoPoll},
 		"GET /api/v1/admin/news":                 {scope: "sysop", h: s.news},
@@ -1169,6 +1173,38 @@ func (s *Server) kick(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) bans(w http.ResponseWriter, r *http.Request) {
+	out := []map[string]any{}
+	for ip, until := range s.B.Guard.Bans() {
+		out = append(out, map[string]any{"ip": ip, "until": until})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i]["ip"].(string) < out[j]["ip"].(string) })
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (s *Server) unban(w http.ResponseWriter, r *http.Request) {
+	ip := r.PathValue("ip")
+	if !s.B.Guard.Unban(ip) {
+		fail(w, http.StatusNotFound, "that address is not banned")
+		return
+	}
+	s.B.Log.Printf("api: %s lifted the ban on %s", whoOf(r).user.Name, ip)
+	s.B.Guard.Hack("%s ban lifted by %s", ip, whoOf(r).user.Name)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) hackLog(w http.ResponseWriter, r *http.Request) {
+	n, err := strconv.Atoi(r.URL.Query().Get("lines"))
+	if err != nil || n <= 0 || n > 1000 {
+		n = 100
+	}
+	lines := s.B.Guard.Tail(n)
+	if lines == nil {
+		lines = []string{}
+	}
+	writeJSON(w, http.StatusOK, lines)
 }
 
 func (s *Server) fido(w http.ResponseWriter, r *http.Request) {

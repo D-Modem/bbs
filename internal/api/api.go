@@ -361,6 +361,10 @@ func (l *limitListener) Accept() (net.Conn, error) {
 		if err != nil {
 			return nil, err
 		}
+		if l.s.B.Refuse("http", c.RemoteAddr()) {
+			c.Close()
+			continue
+		}
 		h, _, _ := net.SplitHostPort(c.RemoteAddr().String())
 		l.s.mu.Lock()
 		if l.s.S.MaxPerIP > 0 && l.s.perIP[h] >= l.s.S.MaxPerIP {

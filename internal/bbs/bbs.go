@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
+	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
 	"log"
+	"net"
 	"os"
 	"sort"
 	"strings"
@@ -124,6 +126,8 @@ type BBS struct {
 	Text    map[string]string
 	// ScriptsDir has the sysop's JavaScript ("": no scripts)
 	ScriptsDir string
+	// Guard keeps addresses and names out, and the hack log (nil: none)
+	Guard *guard.Guard
 	// Stats count logins, posts and the like
 	Stats Stats
 
@@ -278,10 +282,11 @@ func (b *BBS) KickAll() {
 
 // Errors of logins.
 var (
-	ErrBadLogin  = errors.New("wrong name or password")
-	ErrLocked    = errors.New("this account is locked")
-	ErrThrottled = errors.New("too many failed logins; try again later")
-	ErrNoNew     = errors.New("new accounts are not taken")
+	ErrBadLogin   = errors.New("wrong name or password")
+	ErrLocked     = errors.New("this account is locked")
+	ErrThrottled  = errors.New("too many failed logins; try again later")
+	ErrNoNew      = errors.New("new accounts are not taken")
+	ErrNameDenied = errors.New("that name is not allowed here")
 )
 
 // throttled reports whether source has failed too often lately.
@@ -302,6 +307,31 @@ func (b *BBS) throttled(source string) bool {
 		b.failures[source] = f
 	}
 	return len(f) >= b.ThrottleFails
+}
+
+// Refuse says whether a connection to service (finger, nntp, [listen
+// telnet] ...) from addr is to be closed: an address in the deny file, or
+// banned.  It is logged, and to the hack log.
+func (b *BBS) Refuse(service string, addr net.Addr) bool {
+	a, ok := addr.(*net.TCPAddr)
+	if !ok {
+		return false // a unix socket's: the modem server, a menu
+	}
+	ip := a.IP.String()
+	if no, why := b.Guard.Refused(ip); no {
+		b.Log.Printf("%s: %s refused: %s", service, ip, why)
+		b.Guard.Hack("%s %s: refused: %s", ip, service, why)
+		return true
+	}
+	return false
+}
+
+// ban bans a source that is an address (not a caller ID), for the guard's
+// ban time.
+func (b *BBS) ban(source, why string) {
+	if ip, ok := strings.CutPrefix(source, "ip:"); ok {
+		b.Guard.Ban(ip, why)
+	}
 }
 
 func (b *BBS) failed(source string) {
@@ -339,6 +369,8 @@ func (n *Node) Login(name, pw string) (*store.User, error) {
 func (b *BBS) Authenticate(who, source, name, pw string) (*store.User, error) {
 	if b.throttled(source) {
 		b.Log.Printf("%s: %s: login refused, throttled", who, source)
+		b.Guard.Hack("%s %s: login refused, throttled", source, who)
+		b.ban(source, "too many failed logins")
 		time.Sleep(b.FailDelay)
 		return nil, ErrThrottled
 	}
@@ -347,6 +379,10 @@ func (b *BBS) Authenticate(who, source, name, pw string) (*store.User, error) {
 		b.failed(source)
 		b.Stats.LoginFailures.Add(1)
 		b.Log.Printf("%s: %s: failed login as %q", who, source, Clean(name, MaxNameLen))
+		b.Guard.Hack("%s %s: failed login as %q", source, who, Clean(name, MaxNameLen))
+		if b.throttled(source) {
+			b.ban(source, "too many failed logins")
+		}
 		time.Sleep(b.FailDelay)
 		return nil, ErrBadLogin
 	}
@@ -356,6 +392,7 @@ func (b *BBS) Authenticate(who, source, name, pw string) (*store.User, error) {
 	}
 	if u.Locked {
 		b.Log.Printf("%s: %s: %s is locked", who, source, u.Name)
+		b.Guard.Hack("%s %s: login as %s, a locked account", source, who, u.Name)
 		time.Sleep(b.FailDelay)
 		return nil, ErrLocked
 	}
@@ -370,6 +407,10 @@ func (n *Node) LoginTrusted(name string, create bool) (*store.User, error) {
 	if errors.Is(err, store.ErrNotFound) && create {
 		if msg := ValidName(name); msg != "" {
 			return nil, fmt.Errorf("%s: %s", name, msg)
+		}
+		if b.Guard.NameDenied(name) {
+			b.Guard.Hack("%s node %d: new external user %q refused by name_deny_file", n.Caller.Source, n.Num, name)
+			return nil, ErrNameDenied
 		}
 		u, err = b.Store.CreateUser(name, "", "", false)
 		if err == nil {
@@ -402,6 +443,19 @@ func (n *Node) loggedIn(u *store.User, how string) (*store.User, error) {
 	return u, nil
 }
 
+// CheckNewName says what is wrong with a new account's name for the
+// node's caller ("": nothing but perhaps that it is taken).
+func (n *Node) CheckNewName(name string) string {
+	if msg := ValidName(name); msg != "" {
+		return msg
+	}
+	if n.b.Guard.NameDenied(name) {
+		n.b.Guard.Hack("%s node %d: new user %q refused by name_deny_file", n.Caller.Source, n.Num, Clean(name, MaxNameLen))
+		return "That name is not allowed here."
+	}
+	return ""
+}
+
 // Register makes a new account for the node's caller and logs it in.
 func (n *Node) Register(name, pw, location string) (*store.User, error) {
 	b := n.b
@@ -413,6 +467,11 @@ func (n *Node) Register(name, pw, location string) (*store.User, error) {
 	}
 	if msg := ValidPassword(pw, name); msg != "" {
 		return nil, errors.New(msg)
+	}
+	if b.Guard.NameDenied(name) {
+		b.Log.Printf("node %d: new user %q refused by name_deny_file", n.Num, Clean(name, MaxNameLen))
+		b.Guard.Hack("%s node %d: new user %q refused by name_deny_file", n.Caller.Source, n.Num, Clean(name, MaxNameLen))
+		return nil, ErrNameDenied
 	}
 	if b.throttled(n.Caller.Source) {
 		return nil, ErrThrottled
