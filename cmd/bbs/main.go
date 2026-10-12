@@ -83,7 +83,7 @@ func usage() {
   bbs [-config FILE] token list [USER]
   bbs [-config FILE] token revoke ID
   bbs [-config FILE] db copy DATABASE              copy the database into a new one
-                     (a path, postgres://user:password@host/db, mysql://user:password@host/db)
+                     (a path, postgres://, mysql:// or mariadb://user:password@host/db)
   bbs [-config FILE] sshkey add USER FILE|-          SSH keys (authorized_keys lines) to log in with
   bbs [-config FILE] sshkey list [USER]
   bbs [-config FILE] sshkey del ID

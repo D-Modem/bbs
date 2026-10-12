@@ -40,10 +40,16 @@ func TestEngine(t *testing.T) {
 	}
 	r1, err1 := s.CreateUser("Rene", "renepass1", "", false)
 	r2, err2 := s.CreateUser("René", "renepass1", "", false)
-	if err1 != nil || err2 != nil || r1.ID == r2.ID {
+	if strings.Contains(s.Engine(), "accents ignored") {
+		// MariaDB before 10.10 has no collation that keeps accents but not case
+		if err1 != nil || !errors.Is(err2, ErrExists) {
+			t.Fatalf("Rene and René: %v %v", err1, err2)
+		}
+		r2, _ = s.CreateUser("Renée", "renepass1", "", false)
+	} else if err1 != nil || err2 != nil || r1.ID == r2.ID {
 		t.Fatalf("Rene and René: %v %v", err1, err2)
 	}
-	if got, _ := s.UserByName("rené"); got == nil || got.ID != r2.ID {
+	if got, _ := s.UserByName(strings.ToLower(r2.Name)); got == nil || got.ID != r2.ID {
 		// SQLite's NOCASE folds ASCII only: René is found as written
 		if s.Engine() != SQLite {
 			t.Errorf("rené: %v", got)

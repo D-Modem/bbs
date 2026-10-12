@@ -1,15 +1,16 @@
 The BBS keeps its users, messages, mail, file records, FidoNet and news
 state, tokens and keys in one database: **SQLite** (the default, one file,
-nothing to run), **PostgreSQL** (12 or later) or **MySQL** (8.0 or later).
+nothing to run), **PostgreSQL** (12 or later), **MySQL** (8.0 or later) or
+**MariaDB** (10.11 or later; 10.6 with a difference, below).
 File areas' files are kept on disk in every case (`files_dir`).  Tested with
-PostgreSQL 16 and MySQL 8.4; MariaDB is not one of them (it lacks MySQL
-8's collations).
+PostgreSQL 16, MySQL 8.4, and MariaDB 11.4, 10.11 and 10.6.
 
 ```ini
 [general]
 database = /var/lib/bbs/bbs.db                                ; SQLite
 ;database = postgres://bbs:PASSWORD@db.example.org/bbs         ; PostgreSQL
 ;database = mysql://bbs:PASSWORD@db.example.org:3306/bbs       ; MySQL
+;database = mariadb://bbs:PASSWORD@db.example.org:3306/bbs     ; MariaDB
 ```
 
 | `database` | |
@@ -17,6 +18,7 @@ database = /var/lib/bbs/bbs.db                                ; SQLite
 | a path (or `sqlite:PATH`) | SQLite: the file is made (0600) if it is not there |
 | `postgres://` or `postgresql://` | PostgreSQL, in pgx's form: `?sslmode=require`, `?search_path=bbs` and the like after it |
 | `mysql://user:password@host:port/db` | MySQL; `?tls=true` and go-sql-driver's other options after it |
+| `mariadb://...`, `mariadb:DSN` | MariaDB, the same way (the BBS finds MariaDB behind a `mysql://` too) |
 | `mysql:DSN` | MySQL in go-sql-driver's own form, for a unix socket: `mysql:bbs:PASSWORD@unix(/run/mysqld/mysqld.sock)/bbs` |
 
 The BBS makes its tables (and adds columns later versions bring) when it
@@ -41,6 +43,12 @@ counts as a duplicate).
   `VARCHAR(255)`, descriptions and the like in `VARCHAR(1024)`, messages
   in `MEDIUMTEXT` (16 MB).  The BBS's connection sets the SQL mode it
   needs (`ANSI_QUOTES`, strict), whatever the server's default.
+- **MariaDB** is a MySQL to the BBS, but for its collations, which the
+  BBS chooses when it connects: UCA 14.0's (`utf8mb4_uca1400_as_ci`,
+  10.10 and later), which match names as MySQL's do.  MariaDB 10.6 (out of
+  support since July 2026) has no collation that ignores case but not
+  accents: there names ignore both (René *is* Rene, and only one of them
+  can be a user).  `bbs check` and the log say which.
 - **SQLite** uses one connection (it takes one writer at a time); the
   servers up to ten.
 

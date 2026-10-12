@@ -74,7 +74,7 @@ What there is:
 - [customization](https://github.com/Neo-Desktop/bbs-sec/wiki/Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
 - [access levels](https://github.com/Neo-Desktop/bbs-sec/wiki/Access-Levels): levels and flags, areas, doors and menus that require them, time and download limits a day, new users validated by the sysop
 - new users sign themselves up (or not: `new_users = no`)
-- [SQLite, PostgreSQL or MySQL](https://github.com/Neo-Desktop/bbs-sec/wiki/Databases), and `bbs db copy` between them
+- [SQLite, PostgreSQL, MySQL or MariaDB](https://github.com/Neo-Desktop/bbs-sec/wiki/Databases), and `bbs db copy` between them
 
 ## Quick start
 
@@ -102,7 +102,7 @@ The documentation is in the [wiki](https://github.com/Neo-Desktop/bbs-sec/wiki/)
 | [Building](https://github.com/Neo-Desktop/bbs-sec/wiki/Building) | Go, the go3270-sec fork, make |
 | [Running](https://github.com/Neo-Desktop/bbs-sec/wiki/Running) | first start, systemd, the defaults |
 | [Administration](https://github.com/Neo-Desktop/bbs-sec/wiki/Administration) | the bbs command: users, areas, files, mail exchange |
-| [Databases](https://github.com/Neo-Desktop/bbs-sec/wiki/Databases) | SQLite, PostgreSQL, MySQL; moving between them |
+| [Databases](https://github.com/Neo-Desktop/bbs-sec/wiki/Databases) | SQLite, PostgreSQL, MySQL, MariaDB; moving between them |
 | [Configuration](https://github.com/Neo-Desktop/bbs-sec/wiki/Configuration) | bbs.conf: its sections, listeners |
 | [Access levels](https://github.com/Neo-Desktop/bbs-sec/wiki/Access-Levels) | levels, flags, what areas, doors and menus require, daily limits, validation |
 | [Customization](https://github.com/Neo-Desktop/bbs-sec/wiki/Customization) | screens (ANSI art, 3270), menus, prompts |

@@ -42,6 +42,8 @@ func TestAddresses(t *testing.T) {
 		"postgres://bbs:secret@db/bbs":          "postgres://bbs:xxxxx@db/bbs",
 		"mysql://bbs:secret@db:3306/bbs":        "mysql://bbs:xxxxx@db:3306/bbs",
 		"mysql:bbs:secret@unix(/run/my.sock)/b": "mysql:bbs:xxxxx@unix(/run/my.sock)/b",
+		"mariadb://bbs:secret@db/bbs":           "mariadb://bbs:xxxxx@db/bbs",
+		"mariadb:bbs:secret@tcp(db:3306)/bbs":   "mariadb:bbs:xxxxx@tcp(db:3306)/bbs",
 		"/var/lib/bbs/bbs.db":                   "/var/lib/bbs/bbs.db",
 	} {
 		if got := Describe(addr); !strings.HasPrefix(got, want) || strings.Contains(got, "secret") {
@@ -56,7 +58,7 @@ func TestAddresses(t *testing.T) {
 	if _, err := mysqlConfig("mysql://bbs:pw@db/"); err == nil {
 		t.Error("no database name taken")
 	}
-	if !IsFile("bbs.db") || !IsFile("sqlite:x.db") || IsFile("postgresql://x/y") || IsFile("mysql:u@/d") {
+	if !IsFile("bbs.db") || !IsFile("sqlite:x.db") || IsFile("postgresql://x/y") || IsFile("mysql:u@/d") || IsFile("mariadb://u@h/d") {
 		t.Error("IsFile")
 	}
 }

@@ -28,18 +28,19 @@
 | `internal/xfer` | XMODEM, YMODEM, ZMODEM and Kermit, both ways |
 | `internal/logo` | the logo: a PNG, or the name in a pixel font |
 | `internal/bbs` | the BBS itself: nodes, logins, new users, posting, cleaning text |
-| `internal/store` | the database: SQLite, PostgreSQL or MySQL (`dialect.go` what differs, `schema.go` the tables), copying between them |
+| `internal/store` | the database: SQLite, PostgreSQL, MySQL or MariaDB (`dialect.go` what differs, `schema.go` the tables), copying between them |
 | `internal/config` | the configuration file |
 
 ## Tests
 
-With `BBS_TEST_DATABASE` set to a PostgreSQL or MySQL server, every test's
+With `BBS_TEST_DATABASE` set to a PostgreSQL, MySQL or MariaDB server, every test's
 store is a database of its own there (a schema on PostgreSQL, a database
 on MySQL, dropped after), so the whole suite runs on that engine:
 
 ```
 BBS_TEST_DATABASE='postgres://bbs:PASSWORD@127.0.0.1/bbs?sslmode=disable' go test ./...
 BBS_TEST_DATABASE='mysql://bbs:PASSWORD@127.0.0.1:3306/bbs' go test ./...
+BBS_TEST_DATABASE='mariadb://bbs:PASSWORD@127.0.0.1:3306/bbs' go test ./...
 ```
 
 (the user may `CREATE SCHEMA`, or `CREATE DATABASE`).  The store's own

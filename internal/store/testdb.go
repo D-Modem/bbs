@@ -42,7 +42,7 @@ func testDatabase() (string, func(), error) {
 		q.Set("search_path", name)
 		u.RawQuery = q.Encode()
 		return u.String(), func() { dropTest("pgx", base, "DROP SCHEMA "+name+" CASCADE") }, nil
-	case strings.HasPrefix(base, "mysql"):
+	case strings.HasPrefix(base, "mysql"), strings.HasPrefix(base, "mariadb"):
 		cfg, err := mysqlConfig(base)
 		if err != nil {
 			return "", nil, err
@@ -62,7 +62,7 @@ func testDatabase() (string, func(), error) {
 			dropTest("mysql", c.FormatDSN(), "DROP DATABASE "+name)
 		}, nil
 	}
-	return "", nil, fmt.Errorf("BBS_TEST_DATABASE: %q is not postgres:// or mysql://", base)
+	return "", nil, fmt.Errorf("BBS_TEST_DATABASE: %q is not postgres://, mysql:// or mariadb://", base)
 }
 
 func dropTest(driver, dsn, stmt string) {

@@ -1,4 +1,5 @@
-// Package store keeps the BBS in a database, SQLite, PostgreSQL or MySQL:
+// Package store keeps the BBS in a database, SQLite, PostgreSQL or MySQL
+// (or MariaDB):
 // users, message areas and their messages, private mail, what each user
 // has read, files' records, FidoNet's and news' state, tokens and keys.
 package store
@@ -99,7 +100,7 @@ type Store struct {
 // Open opens (and makes, if need be) the database at addr: a file's path
 // (SQLite; "sqlite:" before it may say so), or a PostgreSQL or MySQL
 // server's address: postgres://user:password@host/bbs,
-// mysql://user:password@host:3306/bbs.
+// mysql://user:password@host:3306/bbs (or mariadb://).
 func Open(addr string) (*Store, error) {
 	var drop func()
 	// (tests' plain paths only: "sqlite:" is SQLite whatever the test)
@@ -140,6 +141,12 @@ func Open(addr string) (*Store, error) {
 	if err := x.Ping(); err != nil {
 		x.Close()
 		return nil, fmt.Errorf("%s: %w", Describe(addr), err)
+	}
+	if x.d.name == MySQL {
+		if err := x.mysqlFlavor(); err != nil {
+			x.Close()
+			return nil, fmt.Errorf("%s: %w", Describe(addr), err)
+		}
 	}
 	if err := migrate(x); err != nil {
 		x.Close()

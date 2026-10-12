@@ -24,7 +24,8 @@ const (
 // dialect is what differs between the engines: the store's SQL is written
 // once, with ? placeholders and SQLite's forms, and made the engine's here.
 type dialect struct {
-	name string
+	name   string
+	flavor string // what the server is, if not name: "mariadb"
 	// the schema's types
 	types map[string]string
 }
@@ -48,6 +49,34 @@ var dialects = map[string]*dialect{
 		"{str}":  "VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs",
 		"{text}": "MEDIUMTEXT CHARACTER SET utf8mb4", "{blob}": "LONGBLOB",
 	}},
+}
+
+// mysqlFlavor finds whether a MySQL server is MariaDB, which has its own
+// collations: UCA 14.0's (10.10 and later), or, before them, Unicode
+// 5.2's, case- and accent-insensitive, for names.
+func (x *db) mysqlFlavor() error {
+	var v string
+	if err := x.QueryRow(`SELECT VERSION()`).Scan(&v); err != nil {
+		return err
+	}
+	if !strings.Contains(strings.ToLower(v), "mariadb") {
+		return nil
+	}
+	d := &dialect{name: MySQL, flavor: "mariadb", types: map[string]string{}}
+	for k, t := range x.d.types {
+		d.types[k] = t
+	}
+	var probe string
+	if err := x.QueryRow(`SELECT CONVERT('a' USING utf8mb4) COLLATE utf8mb4_uca1400_as_ci`).Scan(&probe); err == nil {
+		d.types["{name}"] = "VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_as_ci"
+		d.types["{str}"] = "VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_uca1400_as_cs"
+	} else {
+		d.flavor = "mariadb (accents ignored in names: before 10.10)"
+		d.types["{name}"] = "VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci"
+		d.types["{str}"] = "VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin"
+	}
+	x.d = d
+	return nil
 }
 
 // ddl is a schema statement in the engine's types.
@@ -223,7 +252,8 @@ func (x *db) index(name, table, cols string, unique bool) error {
 
 // openDB opens a database by its address: a path (SQLite), postgres://
 // or postgresql:// (PostgreSQL, as pgx takes it), mysql://user:pass@host:port/db
-// or mysql:DSN (MySQL, go-sql-driver's form).
+// or mysql:DSN (MySQL, go-sql-driver's form; mariadb: the same, for
+// MariaDB, which is found either way).
 func openDB(addr string) (*db, error) {
 	switch {
 	case strings.HasPrefix(addr, "postgres://"), strings.HasPrefix(addr, "postgresql://"):
@@ -233,7 +263,7 @@ func openDB(addr string) (*db, error) {
 		}
 		sdb.SetMaxOpenConns(10)
 		return &db{DB: sdb, d: dialects[Postgres]}, nil
-	case strings.HasPrefix(addr, "mysql:"):
+	case strings.HasPrefix(addr, "mysql:"), strings.HasPrefix(addr, "mariadb:"):
 		cfg, err := mysqlConfig(addr)
 		if err != nil {
 			return nil, err
@@ -252,6 +282,7 @@ func openDB(addr string) (*db, error) {
 // mysql:DSN; with the SQL mode the store's SQL wants (ANSI quotes, strict).
 func mysqlConfig(addr string) (*mysql.Config, error) {
 	var cfg *mysql.Config
+	addr = strings.Replace(addr, "mariadb:", "mysql:", 1)
 	if strings.HasPrefix(addr, "mysql://") {
 		u, err := url.Parse(addr)
 		if err != nil {
@@ -295,11 +326,17 @@ func mysqlConfig(addr string) (*mysql.Config, error) {
 // server's.
 func IsFile(addr string) bool {
 	return !strings.HasPrefix(addr, "postgres://") && !strings.HasPrefix(addr, "postgresql://") &&
-		!strings.HasPrefix(addr, "mysql:")
+		!strings.HasPrefix(addr, "mysql:") && !strings.HasPrefix(addr, "mariadb:")
 }
 
-// Engine is the store's: SQLite, Postgres or MySQL.
-func (s *Store) Engine() string { return s.db.d.name }
+// Engine is the store's: SQLite, Postgres or MySQL; "mariadb ..." for
+// MariaDB (a MySQL to the store).
+func (s *Store) Engine() string {
+	if s.db.d.flavor != "" {
+		return s.db.d.flavor
+	}
+	return s.db.d.name
+}
 
 // Describe is the database's address without its password, for logs.
 func Describe(addr string) string {
@@ -309,10 +346,12 @@ func Describe(addr string) string {
 			return u.String()
 		}
 	}
-	if strings.HasPrefix(addr, "mysql:") && !strings.HasPrefix(addr, "mysql://") {
-		if cfg, err := mysql.ParseDSN(strings.TrimPrefix(addr, "mysql:")); err == nil && cfg.Passwd != "" {
-			cfg.Passwd = "xxxxx"
-			return "mysql:" + cfg.FormatDSN()
+	for _, scheme := range []string{"mysql:", "mariadb:"} {
+		if strings.HasPrefix(addr, scheme) && !strings.HasPrefix(addr, scheme+"//") {
+			if cfg, err := mysql.ParseDSN(strings.TrimPrefix(addr, scheme)); err == nil && cfg.Passwd != "" {
+				cfg.Passwd = "xxxxx"
+				return scheme + cfg.FormatDSN()
+			}
 		}
 	}
 	return addr
