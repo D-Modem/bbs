@@ -90,6 +90,18 @@ bbs qwknet call [NET]               # call QWK networks' hubs now
 bbs user qwknode|unqwknode NAME     # an account a QWK node calls this hub as
 ```
 
+## Chat rooms
+
+```
+bbs room list                       # the permanent rooms, with their topics
+bbs room add ROOM ["TOPIC"]         # kept open when empty (IRC: held by BBSServ)
+bbs room topic ROOM ["TOPIC"]       # set its topic (none: clear it)
+bbs room del ROOM                   # it goes with its last caller
+```
+
+See [IRC](IRC#permanent-rooms).  A running BBS takes these at its next
+start; BBSServ's `ROOM` changes it at once.
+
 The server does all of these on its own schedule; these are for now.
 
 ## The rest

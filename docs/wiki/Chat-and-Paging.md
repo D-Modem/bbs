@@ -5,7 +5,7 @@ message to one node, and by paging the sysop.
 
 *C* on the text main menu (*Chat* on a 3270's) goes into the main room.
 Anyone may make another with `/join NAME`; a room goes when its last
-caller leaves.  Whoever comes in sees its last 20 lines.
+caller leaves, unless the sysop has made it [permanent](IRC#permanent-rooms).  Whoever comes in sees its last 20 lines.
 
 | command | |
 |---|---|
@@ -15,6 +15,7 @@ caller leaves.  Whoever comes in sees its last 20 lines.
 | `/rooms` | the rooms in use, and who is in them |
 | `/join ROOM` | go to another room (letters, digits and `-`, up to 20) |
 | `/msg NODE TEXT` | a line to one node, wherever its caller is |
+| `/topic [TEXT]` | the room's topic; the sysop sets a [permanent room](IRC#permanent-rooms)'s |
 | `/quit` | leave the chat |
 | `/help` | these |
 

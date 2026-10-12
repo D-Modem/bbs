@@ -100,6 +100,12 @@ CREATE TABLE IF NOT EXISTS poll_votes (
 	idx        {int} NOT NULL,
 	PRIMARY KEY (message_id, user_id)
 )`, `
+CREATE TABLE IF NOT EXISTS chat_rooms (
+	name       {key} PRIMARY KEY,
+	topic      {str} NOT NULL DEFAULT '',
+	created_by {str} NOT NULL DEFAULT '',
+	created    {int} NOT NULL
+)`, `
 CREATE TABLE IF NOT EXISTS qwk_msgs (
 	net        {key} NOT NULL,
 	number     {int} NOT NULL,

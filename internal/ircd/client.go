@@ -113,8 +113,12 @@ func (c *client) send(tags map[string]string, source, command string, params ...
 	}
 	m := ircmsg.MakeMessage(tags, source, command, params...)
 	switch command {
-	case "PRIVMSG", "NOTICE", "ERROR":
+	case "PRIVMSG", "NOTICE", "ERROR", "TOPIC":
 		m.ForceTrailing() // text is trailing, as clients look for it
+	default:
+		if len(command) == 3 && command[0] >= '0' && command[0] <= '9' && len(params) > 1 {
+			m.ForceTrailing() // a numeric's last parameter: its text, or a list
+		}
 	}
 	line, err := m.LineBytesStrict(false, maxLine)
 	if err != nil && !errors.Is(err, ircmsg.ErrorBodyTooLong) {

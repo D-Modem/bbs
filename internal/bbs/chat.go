@@ -24,6 +24,7 @@ const (
 	Paged                    // a caller pages the sysop (to sysops)
 	Notice                   // from the system
 	Mail                     // a new mail for the caller
+	Topic                    // a room's topic (set, or shown on coming in)
 )
 
 // Event is something for a node to show its caller.
@@ -51,6 +52,11 @@ func (e Event) String() string {
 		return fmt.Sprintf("Message from %s (node %d): %s", e.From, e.Node, e.Text)
 	case Mail:
 		return "New mail from " + e.From + ": " + e.Text
+	case Topic:
+		if e.From != "" {
+			return e.From + " set the topic: " + e.Text
+		}
+		return "Topic: " + e.Text
 	case Paged:
 		s := fmt.Sprintf("%s (node %d) is paging you", e.From, e.Node)
 		if e.Text != "" {
@@ -86,8 +92,10 @@ type chatState struct {
 
 // room is a chat room's members and its last lines.
 type room struct {
-	members map[*Node]bool
-	history []Event
+	members   map[*Node]bool
+	history   []Event
+	permanent bool   // kept open when empty (store's chat_rooms)
+	topic     string // a permanent room's
 }
 
 // hub is the BBS's chat: its rooms.
@@ -108,7 +116,16 @@ var (
 var roomName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,19}$`)
 
 func (b *BBS) hub() *hub {
-	b.hubOnce.Do(func() { b.chat = &hub{rooms: map[string]*room{}} })
+	b.hubOnce.Do(func() {
+		b.chat = &hub{rooms: map[string]*room{}}
+		rs, err := b.Store.ChatRooms()
+		if err != nil {
+			b.Log.Printf("chat: the permanent rooms: %v", err)
+		}
+		for _, r := range rs {
+			b.chat.rooms[r.Name] = &room{members: map[*Node]bool{}, permanent: true, topic: r.Topic}
+		}
+	})
 	return b.chat
 }
 
@@ -288,7 +305,11 @@ func (n *Node) enter(name string) []Event {
 	}
 	others := r.membersList()
 	r.members[n] = true
-	hist := append([]Event(nil), r.history...)
+	var hist []Event
+	if r.topic != "" {
+		hist = append(hist, Event{Kind: Topic, Room: name, Text: r.topic, Time: time.Now()})
+	}
+	hist = append(hist, r.history...)
 	h.mu.Unlock()
 	e := Event{Kind: Joined, Room: name, From: n.name(), Node: n.Num, Time: time.Now()}
 	for _, o := range others {
@@ -326,7 +347,7 @@ func (n *Node) exit(name string) {
 	if r != nil {
 		delete(r.members, n)
 		others = r.membersList()
-		if len(r.members) == 0 {
+		if len(r.members) == 0 && !r.permanent {
 			delete(h.rooms, name)
 		}
 	}
@@ -403,8 +424,10 @@ func (n *Node) SayIn(name, text string, emote bool) error {
 
 // RoomInfo is a room and who is in it.
 type RoomInfo struct {
-	Name  string
-	Users []string
+	Name      string
+	Users     []string
+	Permanent bool // kept open when empty
+	Topic     string
 }
 
 // Rooms lists the chat rooms in use (private ones only to sysops and
@@ -419,16 +442,18 @@ func (n *Node) Rooms() []RoomInfo {
 		if strings.HasPrefix(name, "sysop-") && name != pageRoom(n.Num) && (u == nil || !u.Sysop) {
 			continue
 		}
-		ri := RoomInfo{Name: name}
+		ri := RoomInfo{Name: name, Permanent: r.permanent, Topic: r.topic}
 		for m := range r.members {
 			ri.Users = append(ri.Users, fmt.Sprintf("%s (%d)", m.name(), m.Num))
 		}
 		sort.Strings(ri.Users)
 		out = append(out, ri)
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	sortRooms(out)
 	return out
 }
+
+func sortRooms(rs []RoomInfo) { sort.Slice(rs, func(i, j int) bool { return rs[i].Name < rs[j].Name }) }
 
 // node finds a node online.
 func (b *BBS) node(num int) *Node {

@@ -20,6 +20,7 @@
 //	bbs [-config FILE] fido poll|scan|toss [LINK]
 //	bbs [-config FILE] user qwknode|unqwknode NAME
 //	bbs [-config FILE] qwknet call [NET]
+//	bbs [-config FILE] room list|add|del|topic [ROOM] [TOPIC]
 //	bbs [-config FILE] token add USER [-scope read,post,...] [-expires DAYS] [-name NAME]
 //	bbs [-config FILE] token list [USER]
 //	bbs [-config FILE] token revoke ID
@@ -94,6 +95,9 @@ func usage() {
   bbs [-config FILE] fido scan|toss [LINK]          pack new mail, or take in what came
   bbs [-config FILE] user qwknode|unqwknode NAME     an account for another BBS, a QWK network node
   bbs [-config FILE] qwknet call [NET]               call QWK networks' hubs now
+  bbs [-config FILE] room list                       permanent chat rooms (IRC channels)
+  bbs [-config FILE] room add|topic ROOM [TOPIC]     make a room permanent; set its topic
+  bbs [-config FILE] room del ROOM                   a room permanent no more
   bbs [-config FILE] token add USER [-scope read,post,mail,chat,files,sysop]
                      [-expires DAYS] [-name NAME]   an API key (printed once)
   bbs [-config FILE] token list [USER]
@@ -239,6 +243,8 @@ func main() {
 		fidoCmd(cfg, args)
 	case "qwknet":
 		qwkNetCmd(cfg, args)
+	case "room":
+		roomCmd(cfg, args)
 	case "token":
 		tokenCmd(cfg, args)
 	case "sshkey":
@@ -965,6 +971,44 @@ func newsCmd(cfg *server.Config, args []string) {
 	if n == 0 {
 		fatal(errors.New("no such peer"))
 	}
+}
+
+func roomCmd(cfg *server.Config, args []string) {
+	words, _ := split(args)
+	if len(words) == 0 {
+		usage()
+	}
+	st := open(cfg)
+	defer st.Close()
+	b := bbs.New(cfg.Settings, st, log.New(os.Stderr, "bbs: ", log.LstdFlags))
+	if words[0] == "list" {
+		for _, r := range b.PermanentRooms() {
+			fmt.Printf("#%-20s %s\n", r.Name, r.Topic)
+		}
+		return
+	}
+	if len(words) < 2 || len(words) > 3 {
+		usage()
+	}
+	name, topic := strings.TrimPrefix(words[1], "#"), ""
+	if len(words) == 3 {
+		topic = words[2]
+	}
+	var err error
+	switch words[0] {
+	case "add":
+		err = b.AddPermanentRoom(name, topic, "the bbs command")
+	case "del":
+		err = b.RemovePermanentRoom(name, "the bbs command")
+	case "topic":
+		err = b.SetRoomTopic(name, topic, "the bbs command")
+	default:
+		usage()
+	}
+	if err != nil {
+		fatal(err)
+	}
+	fmt.Println("done")
 }
 
 func qwkNetCmd(cfg *server.Config, args []string) {

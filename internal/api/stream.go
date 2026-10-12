@@ -27,7 +27,7 @@ const (
 var kinds = map[bbs.EventKind]pb.Event_Kind{
 	bbs.Said: pb.Event_SAID, bbs.Emoted: pb.Event_EMOTED, bbs.Joined: pb.Event_JOINED,
 	bbs.Left: pb.Event_LEFT, bbs.Private: pb.Event_PRIVATE, bbs.Paged: pb.Event_PAGED,
-	bbs.Notice: pb.Event_NOTICE, bbs.Mail: pb.Event_MAIL,
+	bbs.Notice: pb.Event_NOTICE, bbs.Mail: pb.Event_MAIL, bbs.Topic: pb.Event_NOTICE,
 }
 
 func pbEvent(e bbs.Event) *pb.Event {

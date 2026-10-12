@@ -115,7 +115,7 @@ func TestBBSServ(t *testing.T) {
 	c.expect(from + "\x01VERSION BBSServ (bbs-sec)\x01")
 	c.send("WHOIS BBSServ", "ISON BBSServ nobody")
 	c.expect("311 alice BBSServ BBSServ irc.test * :Your BBS account")
-	c.expect("303 alice BBSServ")
+	c.expect("303 alice :BBSServ")
 	c.send("NOTICE BBSServ :INFO", "PING :done")
 	if l := c.expect("PONG"); strings.Contains(l, "Account") {
 		t.Error("a NOTICE was answered")
@@ -130,5 +130,71 @@ func TestServiceName(t *testing.T) {
 	srv, err := New(e.b, Settings{Address: "127.0.0.1:0", Service: "Account"})
 	if err != nil || srv.svc.Name != "Account" || !strings.Contains(strings.Join(srv.svc.CommandAliases, " "), "ACCOUNT") {
 		t.Errorf("%v %v", srv.svc, err)
+	}
+}
+
+func TestPermanentChannels(t *testing.T) {
+	e := start(t)
+	a := e.dial(t)
+	a.login("alice", "alice")
+	s := e.dial(t)
+	s.login("sysop", "sysop")
+	svc := ":BBSServ!BBSServ@irc.test NOTICE "
+
+	a.send("PRIVMSG BBSServ :ROOMS", "PRIVMSG BBSServ :ROOM ADD #lobby Hi")
+	a.expect(svc + "alice :There are no permanent rooms.")
+	a.expect(svc + "alice :Permanent rooms are the sysop's to make.")
+	s.send("PRIVMSG BBSServ :ROOM ADD #Lobby Say hello to everyone", "BS ROOM ADD #bad.name")
+	s.expect(svc + "sysop :#lobby is a permanent room: BBSServ holds it open.")
+	s.expect(svc + "sysop :A room's name is 1 to 20 letters")
+
+	// held open, empty, with its topic
+	a.send("LIST")
+	a.expect("322 alice #lobby 1 :Say hello to everyone")
+	a.send("PRIVMSG BBSServ :ROOMS")
+	a.expect(svc + "alice :#lobby                0 in  Say hello to everyone")
+	a.send("JOIN #lobby")
+	a.expect("JOIN #lobby")
+	a.expect("332 alice #lobby :Say hello to everyone")
+	a.expect("353 alice = #lobby :@BBSServ alice")
+	a.send("WHO #lobby")
+	a.expect("352 alice #lobby BBSServ irc.test irc.test BBSServ H@")
+	a.send("WHOIS BBSServ")
+	a.expect("319 alice BBSServ :@#lobby")
+
+	// topics: the sysop's, by TOPIC or by the service
+	a.send("TOPIC #lobby :mine now")
+	a.expect(" 482 alice #lobby :A topic is set by the sysop")
+	s.send("TOPIC #lobby :Be kind")
+	a.expect(":BBSServ!BBSServ@irc.test TOPIC #lobby :Be kind")
+	s.send("BS ROOM TOPIC #lobby")
+	a.expect(":BBSServ!BBSServ@irc.test TOPIC #lobby :")
+	a.send("TOPIC #lobby")
+	a.expect("331 alice #lobby :No topic is set")
+	a.send("JOIN #other", "TOPIC #other :x")
+	a.expect(" 482 alice #other :Only permanent rooms have topics")
+
+	// a caller on the BBS sees it too
+	bob := e.caller(t, "bob")
+	if rs := bob.Rooms(); len(rs) != 2 || !rs[0].Permanent {
+		t.Errorf("rooms %+v", rs)
+	}
+
+	// kept when everyone leaves; let go, it goes
+	a.send("PART #lobby")
+	a.expect("PART #lobby")
+	if rs := e.b.PermanentRooms(); len(rs) != 1 {
+		t.Errorf("permanent %v", rs)
+	}
+	s.send("BS ROOM DEL #lobby", "BS ROOM DEL #lobby")
+	s.expect(svc + "sysop :#lobby goes when its last caller leaves.")
+	s.expect(svc + "sysop :That room is not a permanent one.")
+	a.send("LIST")
+	if l := a.expect("323 alice"); strings.Contains(l, "lobby") {
+		t.Error("still listed")
+	}
+	a.send("NAMES #other")
+	if l := a.expect("353 alice = #other"); strings.Contains(l, "BBSServ") {
+		t.Errorf("the service in a room it does not hold: %q", l)
 	}
 }

@@ -12,8 +12,10 @@ var ChatHelp = []string{
 	"Type to talk.  Commands:",
 	"  /who            who is in this room      /rooms          the rooms in use",
 	"  /join ROOM      go to another room       /me ACTION      * you do something",
-	"  /msg NODE TEXT  a message to one node    /quit           leave the chat",
+	"  /msg NODE TEXT  a message to one node    /topic          this room's topic",
+	"  /quit           leave the chat",
 	"Sysops:  /pages  callers paging   /answer [NODE]  answer one   /busy  pages on or off",
+	"         /topic TEXT  set a permanent room's topic",
 }
 
 // ChatCommand does a line typed in chat: talk, or a /command.  It gives
@@ -48,9 +50,34 @@ func (n *Node) ChatCommand(line string) (out []string, leave bool, err error) {
 			return []string{"No one is chatting."}, false, nil
 		}
 		for _, r := range rs {
-			out = append(out, fmt.Sprintf("%-20s %s", r.Name, strings.Join(r.Users, ", ")))
+			who := strings.Join(r.Users, ", ")
+			if r.Permanent {
+				if who == "" {
+					who = "(no one yet)"
+				}
+				if r.Topic != "" {
+					who += "  - " + r.Topic
+				}
+			}
+			out = append(out, fmt.Sprintf("%-20s %s", r.Name, who))
 		}
 		return out, false, nil
+	case "topic":
+		room := n.Room()
+		if room == "" {
+			return nil, false, ErrNotInRoom
+		}
+		if arg == "" {
+			topic, _ := n.b.RoomTopic(room)
+			if topic == "" {
+				return []string{"No topic is set."}, false, nil
+			}
+			return []string{"Topic: " + topic}, false, nil
+		}
+		if u := n.User(); u == nil || !u.Sysop {
+			return nil, false, fmt.Errorf("a topic is set by the sysop")
+		}
+		return nil, false, n.b.SetRoomTopic(room, arg, n.name())
 	case "join", "j":
 		hist, err := n.JoinRoom(arg)
 		if err != nil {

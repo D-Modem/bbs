@@ -62,9 +62,10 @@ up to 20 at once. Joining shows the room's last 20 lines.
 | `LIST` | the rooms in use |
 | a page, mail, a notice | a `NOTICE` from the server |
 
-Sysops show as channel operators (`@`), but there's nothing to operate:
-rooms have no topics, modes, kicks or bans. Colors and other formatting
-are stripped from lines going into the rooms.
+Sysops show as channel operators (`@`), but there's little to operate:
+rooms have no modes, kicks or bans, and only [permanent
+rooms](#permanent-rooms) have topics. Colors and other formatting are
+stripped from lines going into the rooms.
 
 A sysop is told of a page by a `NOTICE`. Joining `#sysop-N` answers the
 page from node N, just as `/answer` does in the BBS's chat.
@@ -72,6 +73,31 @@ page from node N, just as `/answer` does in the BBS's chat.
 The server offers the IRCv3 capabilities `sasl`, `server-time` (the time
 of each line, the history replayed on join included), `echo-message`,
 `multi-prefix` and `userhost-in-names`.
+
+## Permanent rooms
+
+A room goes when its last caller leaves, unless the sysop makes it
+permanent. BBSServ holds a permanent room open, empty or not and across
+restarts. It sits in the channel as an operator (`@BBSServ` in `NAMES`
+and `WHO`), and `LIST` and BBSServ's `ROOMS` show the room with its
+topic even when no one is in it. Permanent rooms are the BBS's own: on
+the text BBS and 3270s too, `/rooms` lists them with their topics, and
+coming in shows the topic.
+
+| | |
+|---|---|
+| `/msg BBSServ ROOMS` | the permanent rooms (anyone) |
+| `/msg BBSServ ROOM ADD #room [topic]` | make a room permanent (the sysop) |
+| `/msg BBSServ ROOM TOPIC #room [topic]` | set its topic, or clear it |
+| `/msg BBSServ ROOM DEL #room` | permanent no more: it goes with its last caller |
+| `TOPIC #room :text` | the sysop sets the topic from the channel |
+| `/topic [text]` | in the BBS's chat: the room's topic; the sysop sets it |
+| `bbs room list`, `add`, `topic`, `del` | the same from the shell |
+
+A topic set is told to those in the room: on IRC as a `TOPIC` from
+BBSServ, on the BBS as a line ("sysop set the topic: ..."). Changes made
+with the `bbs` command reach a running BBS at its next start; those made
+through BBSServ apply at once.
 
 ## BBSServ
 
@@ -92,6 +118,7 @@ answers come as notices.
 | `SCAN`, `SCAN ON`\|`OFF` *area*\|`ALL` | the areas of your new scan (and of your [QWK](Offline-Mail) packets) |
 | `KEYS`, `KEYS ADD` *password key*, `KEYS DEL` *n* | your [SSH keys](SSH). Adding one asks for your password, since a key opens your account |
 | `TOKENS`, `TOKENS REVOKE` *id* | your [HTTP API](HTTP-API) tokens |
+| `ROOMS`; `ROOM ADD`\|`DEL`\|`TOPIC` *#room* | the [permanent rooms](#permanent-rooms); making them (the sysop) |
 
 The same checks apply as on the BBS: an alias that is someone's name is
 refused, and so is a setting's wrong value. A wrong password (`KEYS

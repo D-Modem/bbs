@@ -166,7 +166,10 @@ parting, the node gone with QUIT, TLS, bad nicks; irc-go's own client
 with SASL and echo-message; BBSServ (help, info, each of the settings and
 their refusals, the new scan, SSH keys added with the password and
 deleted, tokens revoked, the password, by /msg and by /BS, CTCP, WHOIS,
-notices unanswered); the configuration's checks); QWK offline mail (packets and REPs read back
+notices unanswered); permanent rooms (open when empty, their topics shown
+on coming in and told when set, by /topic, TOPIC and BBSServ, refused to
+those not the sysop, kept across a restart, let go; @BBSServ in NAMES,
+WHO, WHOIS and LIST, on every database engine); the configuration's checks); QWK offline mail (packets and REPs read back
 as a reader would, long subjects as QWKE kludges, CP437, another BBS's REP
 refused, the indexes' MBF floats; a packet's messages read only once it
 has gone, the REP's replies posted and mailed as the caller, a REP twice

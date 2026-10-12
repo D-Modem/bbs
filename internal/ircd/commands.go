@@ -53,7 +53,7 @@ func (c *client) command(m *ircmsg.Message) {
 	case "LIST":
 		c.list()
 	case "TOPIC":
-		c.topic(param(m, 0), len(m.Params) > 1)
+		c.topic(param(m, 0), param(m, 1), len(m.Params) > 1)
 	case "MODE":
 		c.mode(m)
 	case "AWAY":
@@ -174,10 +174,12 @@ func (c *client) join(list string) {
 		}
 		ch = "#" + name
 		c.send(nil, c.source(), "JOIN", ch)
-		c.reply(RPL_NOTOPIC, ch, "No topic is set")
+		c.sendTopic(ch, name)
 		c.names(ch)
 		for _, e := range hist {
-			c.event(e)
+			if e.Kind != bbs.Topic { // shown above
+				c.event(e)
+			}
 		}
 	}
 }
@@ -206,6 +208,14 @@ func (c *client) names(ch string) {
 	if name != "" && (c.n.InRoom(name) || !strings.HasPrefix(name, "sysop-")) {
 		var line []string
 		seen := map[string]bool{}
+		if _, permanent := c.s.B.RoomTopic(name); permanent {
+			// the service holds the permanent rooms open
+			entry := c.s.svc.Name
+			if c.caps["userhost-in-names"] {
+				entry = c.s.svc.source(c)
+			}
+			line = append(line, "@"+entry)
+		}
 		for _, m := range c.s.B.RoomMembers(name) {
 			nick, user, host, op := c.member(m)
 			entry := nick
@@ -250,6 +260,11 @@ func (c *client) nodesOf(nick string) []bbs.NodeInfo {
 func (c *client) who(mask string) {
 	if name := room(mask); name != "" {
 		if c.n.InRoom(name) || !strings.HasPrefix(name, "sysop-") {
+			if _, permanent := c.s.B.RoomTopic(name); permanent {
+				svc := c.s.svc
+				c.reply(RPL_WHOREPLY, "#"+name, svc.Name, c.s.S.ServerName, c.s.S.ServerName, svc.Name, "H@",
+					"0 Your BBS account and the permanent rooms")
+			}
 			for _, m := range c.s.B.RoomMembers(name) {
 				nick, user, host, op := c.member(m)
 				flags := "H"
@@ -272,6 +287,13 @@ func (c *client) whois(nick string) {
 	if svc := c.s.svc; fold(nick) == fold(svc.Name) {
 		c.reply(RPL_WHOISUSER, svc.Name, svc.Name, c.s.S.ServerName, "*",
 			fmt.Sprintf("Your BBS account: /msg %s HELP", svc.Name))
+		var chans []string
+		for _, r := range c.s.B.PermanentRooms() {
+			chans = append(chans, "@#"+r.Name)
+		}
+		if len(chans) > 0 {
+			c.reply(RPL_WHOISCHANNELS, svc.Name, strings.Join(chans, " "))
+		}
 		c.reply(RPL_WHOISSERVER, svc.Name, c.s.S.ServerName, c.s.B.Name)
 		c.reply(RPL_ENDOFWHOIS, svc.Name, "End of /WHOIS list")
 		return
@@ -308,19 +330,39 @@ func (c *client) whois(nick string) {
 func (c *client) list() {
 	c.reply(RPL_LISTSTART, "Channel", "Users  Name")
 	for _, r := range c.n.Rooms() {
-		c.reply(RPL_LIST, "#"+r.Name, strconv.Itoa(len(r.Users)), "")
+		users := len(r.Users)
+		if r.Permanent {
+			users++ // the service
+		}
+		c.reply(RPL_LIST, "#"+r.Name, strconv.Itoa(users), r.Topic)
 	}
 	c.reply(RPL_LISTEND, "End of /LIST")
 }
 
-func (c *client) topic(ch string, set bool) {
+func (c *client) topic(ch, text string, set bool) {
 	name := room(ch)
+	_, permanent := c.s.B.RoomTopic(name)
 	switch {
-	case name == "" || !c.n.InRoom(name):
+	case name == "" || !c.n.InRoom(name) && !permanent:
 		c.reply(ERR_NOTONCHANNEL, ch, "You're not on that channel")
-	case set:
-		c.reply(ERR_CHANOPRIVSNEEDED, ch, "The BBS's rooms have no topics")
+	case !set:
+		c.sendTopic("#"+name, name)
+	case !permanent:
+		c.reply(ERR_CHANOPRIVSNEEDED, ch, fmt.Sprintf("Only permanent rooms have topics (/msg %s HELP ROOM)", c.s.svc.Name))
+	case !c.u.Sysop:
+		c.reply(ERR_CHANOPRIVSNEEDED, ch, "A topic is set by the sysop")
 	default:
+		if err := c.s.B.SetRoomTopic(name, text, c.u.Name); err != nil {
+			c.reply(ERR_UNKNOWNERROR, "TOPIC", err.Error())
+		}
+	}
+}
+
+// sendTopic tells the client a room's topic.
+func (c *client) sendTopic(ch, name string) {
+	if topic, _ := c.s.B.RoomTopic(name); topic != "" {
+		c.reply(RPL_TOPIC, ch, topic)
+	} else {
 		c.reply(RPL_NOTOPIC, ch, "No topic is set")
 	}
 }
@@ -462,6 +504,8 @@ func (c *client) event(e bbs.Event) {
 		if e.Node != c.n.Num {
 			c.send(tags, c.sourceOf(e.From, e.Node), "PART", "#"+e.Room)
 		}
+	case bbs.Topic:
+		c.send(tags, c.s.svc.source(c), "TOPIC", "#"+e.Room, e.Text)
 	case bbs.Private:
 		c.send(tags, c.sourceOf(e.From, e.Node), "PRIVMSG", c.nick, e.Text)
 	case bbs.Paged:

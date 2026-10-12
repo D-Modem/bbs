@@ -93,6 +93,29 @@ TOKENS REVOKE ends one.`,
 			maxParams: 2,
 		},
 	}
+	svc.Commands["rooms"] = &serviceCommand{
+		handler:   bsRooms,
+		help:      "Syntax: $bROOMS$b\n\nROOMS lists the permanent rooms: channels " + name + " keeps open\nwhen no one is in them, each with its topic.",
+		helpShort: "$bROOMS$b lists the permanent rooms.",
+		maxParams: 0,
+	}
+	svc.Commands["room"] = &serviceCommand{
+		handler: bsRoom,
+		help: `Syntax: $bROOM ADD <#room> [topic]$b
+        $bROOM DEL <#room>$b
+        $bROOM TOPIC <#room> [topic]$b
+
+For the sysop.  ROOM ADD makes a room permanent: ` + name + ` holds it
+open, empty or not, across restarts, on IRC and on the BBS alike.  ROOM
+DEL lets it go when its last caller leaves.  ROOM TOPIC sets its topic
+(none: clears it), as TOPIC does in the channel.`,
+		helpShort:         "$bROOM$b makes rooms permanent, and sets their topics (sysops).",
+		minParams:         2,
+		maxParams:         3,
+		unsplitFinalParam: true,
+	}
+	svc.Commands["channel"] = &serviceCommand{aliasOf: "room"}
+	svc.Commands["channels"] = &serviceCommand{aliasOf: "rooms"}
 	svc.Commands["account"] = &serviceCommand{aliasOf: "info"}
 	svc.Commands["password"] = &serviceCommand{aliasOf: "passwd"}
 	return svc
@@ -397,4 +420,53 @@ func capital(s string) string {
 		return s
 	}
 	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+func bsRooms(svc *service, c *client, _ string, _ []string) {
+	rs := c.s.B.PermanentRooms()
+	if len(rs) == 0 {
+		svc.notice(c, "There are no permanent rooms.")
+		return
+	}
+	for _, r := range rs {
+		line := fmt.Sprintf("#%-20s %d in", r.Name, len(r.Users))
+		if r.Topic != "" {
+			line += "  " + r.Topic
+		}
+		svc.notice(c, line)
+	}
+}
+
+func bsRoom(svc *service, c *client, _ string, params []string) {
+	b := c.s.B
+	if !c.fresh().Sysop {
+		svc.notice(c, "Permanent rooms are the sysop's to make.")
+		return
+	}
+	name := strings.TrimPrefix(params[1], "#")
+	topic := ""
+	if len(params) > 2 {
+		topic = params[2]
+	}
+	var err error
+	switch strings.ToLower(params[0]) {
+	case "add":
+		if err = b.AddPermanentRoom(name, topic, c.u.Name); err == nil {
+			svc.notice(c, fmt.Sprintf("#%s is a permanent room: %s holds it open.", strings.ToLower(name), svc.Name))
+		}
+	case "del", "delete":
+		if err = b.RemovePermanentRoom(name, c.u.Name); err == nil {
+			svc.notice(c, fmt.Sprintf("#%s goes when its last caller leaves.", strings.ToLower(name)))
+		}
+	case "topic":
+		if err = b.SetRoomTopic(name, topic, c.u.Name); err == nil {
+			svc.notice(c, fmt.Sprintf("The topic of #%s is set.", strings.ToLower(name)))
+		}
+	default:
+		svc.notice(c, fmt.Sprintf("ROOM ADD, DEL or TOPIC: /msg %s HELP ROOM", svc.Name))
+		return
+	}
+	if err != nil {
+		svc.notice(c, capital(err.Error())+".")
+	}
 }
