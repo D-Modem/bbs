@@ -30,6 +30,7 @@
 | `doors/dosemu2` | the Docker image DOS doors run in: dosemu2, its FOSSIL on COM1 |
 | `internal/finger` | the finger server |
 | `internal/gopher` | the gopher server |
+| `internal/forum` | the web forum: its pages (html/template), the skin's CSS (`static/`), sessions by the API's tokens |
 | `internal/api` | the HTTP API: REST, server-sent events, WebSockets, metrics, OpenAPI; the web terminal page (`web/`: xterm.js, the page) |
 | `proto` | the WebSocket protocol, `bbs.v1` (`make proto` regenerates `internal/api/pb`) |
 | `internal/tcpserv` | what finger and gopher share: limits, timeouts |
@@ -230,7 +231,16 @@ shown as a VT220; a VT52 given its escapes and its cursor keys ignored;
 a terminal answering nothing left plain.  The web terminal: the page, its
 headers and files (and no others), WebSockets refused from another
 origin or without the subprotocol, and a caller logging in through it,
-its size taken, shown as a web terminal, logging off.  Updating xterm.js:
+its size taken, shown as a web terminal, logging off.  The web forum:
+guests reading (and not what needs a level), logging in and out by the
+API's session tokens (and not by an API key), signing up; topics and
+replies, forms refused without their token, posts' HTML escaped and links
+made links, long lines wrapped and not cut, quotes, polls, likes, unread
+topics and areas, aliases hiding the writer, deleting (the writer's own,
+the sysop's any), news-only areas, search and who's online; in the store,
+topics threaded across areas, read marks, a topic mended when its first
+post or its replies' parent goes, and threads found for messages from
+before.  Updating xterm.js:
 `npm pack @xterm/xterm @xterm/addon-fit`, and copy `lib/xterm.js`,
 `css/xterm.css`, `lib/addon-fit.js` and the license into
 `internal/api/web` (without their source map lines).

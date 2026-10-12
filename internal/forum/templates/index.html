@@ -1,0 +1,56 @@
+{{define "index.html"}}{{template "head" .}}
+<div class="pagehead">
+  <h1>{{.BBS}} Forums</h1>
+</div>
+{{range .Body.Categories}}
+<div class="box category">
+  <h2 class="maintitle">{{.Name}}</h2>
+  <table class="board">
+    <tbody>
+    {{range $i, $f := .Forums}}
+    <tr{{if $f.Unread}} class="unread"{{end}}>
+      <td class="col-icon"><span class="status {{if $f.Unread}}new{{else}}read{{end}}" title="{{if $f.Unread}}New posts{{else}}No new posts{{end}}"></span></td>
+      <td class="col-forum">
+        <h3><a href="/forum/area/{{$f.Area.ID}}">{{$f.Area.Name}}</a></h3>
+        {{if $f.Area.Description}}<p class="desc">{{$f.Area.Description}}</p>{{end}}
+      </td>
+      <td class="col-stats">
+        <ul><li><strong>{{num $f.Topics}}</strong> {{if eq $f.Topics 1}}topic{{else}}topics{{end}}</li>
+        <li><strong>{{num $f.Replies}}</strong> {{if eq $f.Replies 1}}reply{{else}}replies{{end}}</li></ul>
+      </td>
+      <td class="col-last">
+        {{with $f.Last}}
+        {{template "avatar" (av .From "mini")}}
+        <ul class="last-post">
+          <li><a href="/forum/post/{{.ID}}" class="topic">{{truncate $f.LastTopic.Subject 32}}</a></li>
+          <li>By {{.From}}</li>
+          <li class="desc">{{when .Created}}</li>
+        </ul>
+        {{else}}<span class="desc">No posts yet</span>{{end}}
+      </td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<div class="box"><h2 class="maintitle">Forums</h2><div class="box-body"><p class="desc">There are no forums open to you yet.{{if not .User}} <a href="/forum/login">Sign in</a> to see more.{{end}}</p></div></div>
+{{end}}
+
+<div class="box stats">
+  <h2 class="maintitle">Board Statistics</h2>
+  <div class="statblock">
+    <h3>{{len .Body.Online}} {{if eq (len .Body.Online) 1}}user is{{else}}users are{{end}} online</h3>
+    <p>{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a> <span class="desc">({{$n.Via}})</span>{{else}}<span class="desc">No one is on just now.</span>{{end}}</p>
+  </div>
+  <div class="statblock">
+    <h3>Forum Statistics</h3>
+    <ul class="statlist">
+      <li><strong>{{num .Body.Stats.Posts}}</strong> total posts</li>
+      <li><strong>{{num .Body.Stats.Topics}}</strong> topics</li>
+      <li><strong>{{num .Body.Stats.Members}}</strong> members</li>
+      {{with .Body.Stats.Newest}}<li>Newest member: <a href="/forum/user/{{path .Name}}">{{.Name}}</a></li>{{end}}
+    </ul>
+  </div>
+</div>
+{{template "foot" .}}{{end}}

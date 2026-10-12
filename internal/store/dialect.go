@@ -199,6 +199,10 @@ func (t *tx) Exec(q string, args ...any) (sql.Result, error) {
 	return t.Tx.Exec(t.d.query(q), args...)
 }
 
+func (t *tx) QueryRow(q string, args ...any) *sql.Row {
+	return t.Tx.QueryRow(t.d.query(q), args...)
+}
+
 func (t *tx) insertID(q string, args ...any) (int64, error) {
 	return insertID(t.d, t.Tx.Exec, t.Tx.QueryRow, q, args)
 }

@@ -44,6 +44,8 @@ type Settings struct {
 	SessionTTL time.Duration // of a login's token
 	MaxBody    int64         // bytes of a JSON request
 	Terminal   bool          // the web terminal page (if Server.Terminal is set)
+	Forum      bool          // the web forum, /forum/
+	Guests     bool          // the forum's guests read the areas anyone may
 }
 
 // Server serves the API.
@@ -323,13 +325,27 @@ func (s *Server) Handler() http.Handler {
 		s.cors(w, r)
 		w.WriteHeader(http.StatusNoContent)
 	})
+	if s.S.Forum {
+		fh, err := s.forum()
+		if err != nil {
+			s.B.Log.Printf("http: the forum: %v", err)
+		} else {
+			mux.Handle("/forum/", fh)
+			mux.Handle("/forum", fh)
+			mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "/forum/", http.StatusFound)
+			})
+		}
+	}
 	if s.terminalOn() {
 		mux.HandleFunc("GET /terminal", s.terminalPage)
 		mux.HandleFunc("GET /terminal/ws", s.terminalWS)
 		mux.HandleFunc("GET /terminal/{file}", s.terminalAsset)
-		mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/terminal", http.StatusFound)
-		})
+		if !s.S.Forum {
+			mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "/terminal", http.StatusFound)
+			})
+		}
 	}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusNotFound, "no such endpoint: see /api/v1/openapi.json")

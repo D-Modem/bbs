@@ -1,0 +1,296 @@
+// Package forum is the BBS's message areas as a web forum, in the manner
+// of the bulletin boards of the 2010s: categories of forums, topics, posts
+// with their authors beside them.  It is served by the HTTP API's server
+// at /forum/, on the same accounts, areas and messages as the terminals:
+// a post here is a post there.
+package forum
+
+import (
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"embed"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"html/template"
+	"io/fs"
+	"net"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/store"
+)
+
+//go:embed templates/*.html static/*
+var content embed.FS
+
+// Sessions are the logins: the HTTP API's session tokens.
+type Sessions interface {
+	// Login checks a name and password (throttled and logged as any
+	// login) and gives a session's secret.
+	Login(r *http.Request, name, password string) (secret string, u *store.User, err error)
+	// User is a session's user (nil: none, or ended).
+	User(secret string) *store.User
+	// Logout ends a session.
+	Logout(secret string)
+}
+
+// Server serves the forum.
+type Server struct {
+	B        *bbs.BBS
+	Sessions Sessions
+	Guests   bool          // those not logged in read the areas anyone may
+	Secure   bool          // the cookie only over TLS
+	Terminal bool          // the web terminal is there to link to
+	TTL      time.Duration // a login's
+
+	tmpl *template.Template
+	key  []byte // for forms' CSRF tokens
+}
+
+// Base is where the forum is.
+const Base = "/forum"
+
+const (
+	cookieName = "bbs_forum"
+	perPage    = 20
+)
+
+// Handler is the forum's routes, under Base.
+func (s *Server) Handler() (http.Handler, error) {
+	if s.tmpl == nil {
+		t, err := template.New("").Funcs(funcs).ParseFS(content, "templates/*.html")
+		if err != nil {
+			return nil, err
+		}
+		s.tmpl = t
+		s.key = make([]byte, 32)
+		rand.Read(s.key)
+	}
+	static, _ := fs.Sub(content, "static")
+	mux := http.NewServeMux()
+	mux.Handle("GET "+Base+"/static/", http.StripPrefix(Base+"/static/", staticFiles(static)))
+	for pattern, h := range map[string]func(*req){
+		"GET " + Base + "/{$}":               s.index,
+		"GET " + Base + "/area/{id}":         s.area,
+		"POST " + Base + "/area/{id}/read":   s.markRead,
+		"GET " + Base + "/area/{id}/new":     s.newTopic,
+		"POST " + Base + "/area/{id}/new":    s.newTopic,
+		"GET " + Base + "/topic/{id}":        s.topic,
+		"POST " + Base + "/topic/{id}/reply": s.reply,
+		"GET " + Base + "/post/{id}":         s.findPost,
+		"POST " + Base + "/post/{id}/like":   s.like,
+		"POST " + Base + "/post/{id}/answer": s.answer,
+		"POST " + Base + "/post/{id}/delete": s.deletePost,
+		"GET " + Base + "/user/{name}":       s.profile,
+		"GET " + Base + "/online":            s.online,
+		"GET " + Base + "/search":            s.search,
+		"GET " + Base + "/login":             s.login,
+		"POST " + Base + "/login":            s.login,
+		"POST " + Base + "/logout":           s.logout,
+		"GET " + Base + "/register":          s.register,
+		"POST " + Base + "/register":         s.register,
+	} {
+		mux.HandleFunc(pattern, s.wrap(h))
+	}
+	mux.HandleFunc(Base, func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, Base+"/", http.StatusMovedPermanently)
+	})
+	return mux, nil
+}
+
+func staticFiles(f fs.FS) http.Handler {
+	files := http.FileServer(http.FS(f))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+		files.ServeHTTP(w, r)
+	})
+}
+
+// req is a request in hand: who asks, and the page being made.
+type req struct {
+	w      http.ResponseWriter
+	r      *http.Request
+	s      *Server
+	user   *store.User // nil: a guest
+	secret string
+}
+
+func (s *Server) wrap(h func(*req)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if v := recover(); v != nil {
+				s.B.Log.Printf("forum %s %s: panic: %v", r.Method, r.URL.Path, v)
+				http.Error(w, "something went wrong", http.StatusInternalServerError)
+			}
+		}()
+		q := &req{w: w, r: r, s: s}
+		if c, err := r.Cookie(cookieName); err == nil {
+			q.secret = c.Value
+			q.user = s.Sessions.User(c.Value)
+		}
+		hd := w.Header()
+		hd.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'; form-action 'self'; base-uri 'none'")
+		hd.Set("X-Frame-Options", "DENY")
+		hd.Set("Referrer-Policy", "same-origin")
+		if r.Method == http.MethodPost {
+			r.Body = http.MaxBytesReader(w, r.Body, 128<<10)
+			if err := r.ParseForm(); err != nil {
+				q.fail(http.StatusBadRequest, "That form could not be read.")
+				return
+			}
+			// a logged-in user's forms carry their token (logins and
+			// sign-ups have no session yet)
+			if q.user != nil && !hmac.Equal([]byte(r.PostForm.Get("csrf")), []byte(q.csrf())) {
+				q.fail(http.StatusForbidden, "That form has expired: go back, reload the page and try again.")
+				return
+			}
+		}
+		h(q)
+	}
+}
+
+// csrf is the token a logged-in user's forms carry: their session's.
+func (q *req) csrf() string {
+	if q.secret == "" {
+		return ""
+	}
+	m := hmac.New(sha256.New, q.s.key)
+	m.Write([]byte(q.secret))
+	return hex.EncodeToString(m.Sum(nil))[:32]
+}
+
+// host is the caller's address.
+func (q *req) host() string {
+	h, _, err := net.SplitHostPort(q.r.RemoteAddr)
+	if err != nil {
+		return q.r.RemoteAddr
+	}
+	return h
+}
+
+// node is a node for the user's doing something as on the BBS (posting,
+// voting): not in who's online, as the API's requests are.
+func (q *req) node() *bbs.Node {
+	n := q.s.B.Agent(q.user, "web")
+	n.Caller.Source = "ip:" + q.host()
+	return n
+}
+
+// canRead: the user (or a guest) may read the area.
+func (q *req) canRead(a *store.Area) bool {
+	if q.user == nil {
+		return q.s.Guests && a.ReadReq == ""
+	}
+	return q.s.B.CanRead(q.user, a)
+}
+
+func (q *req) canPost(a *store.Area) bool {
+	return q.user != nil && q.s.B.CanPost(q.user, a)
+}
+
+// areas are the areas the user may read.
+func (q *req) areas() ([]*store.Area, error) {
+	all, err := q.s.B.Store.Areas()
+	if err != nil {
+		return nil, err
+	}
+	var out []*store.Area
+	for _, a := range all {
+		if q.canRead(a) {
+			out = append(out, a)
+		}
+	}
+	return out, nil
+}
+
+// page is what every page's layout shows.
+type page struct {
+	Title    string
+	BBS      string
+	User     *store.User
+	CSRF     string
+	Crumbs   []crumb
+	Tab      string // forums, online, search
+	Terminal bool
+	Register bool
+	Notice   string
+	Now      time.Time
+	Online   int
+	Body     any // the page's own
+}
+
+type crumb struct {
+	Name, URL string
+}
+
+// render shows a page.
+func (q *req) render(status int, name, title string, crumbs []crumb, body any) {
+	p := page{Title: title, BBS: q.s.B.Name, User: q.user, CSRF: q.csrf(), Crumbs: crumbs, Terminal: q.s.Terminal,
+		Register: q.user == nil && q.s.B.NewUsers, Now: time.Now(), Body: body, Notice: q.r.URL.Query().Get("notice")}
+	switch {
+	case strings.HasPrefix(name, "online"):
+		p.Tab = "online"
+	case strings.HasPrefix(name, "search"):
+		p.Tab = "search"
+	default:
+		p.Tab = "forums"
+	}
+	for _, n := range q.s.B.Nodes() {
+		if n.User != "" {
+			p.Online++
+		}
+	}
+	var buf strings.Builder
+	if err := q.s.tmpl.ExecuteTemplate(&buf, name, p); err != nil {
+		q.s.B.Log.Printf("forum: %s: %v", name, err)
+		http.Error(q.w, "the page could not be made", http.StatusInternalServerError)
+		return
+	}
+	q.w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	q.w.Header().Set("Cache-Control", "no-store")
+	q.w.WriteHeader(status)
+	fmt.Fprint(q.w, buf.String())
+}
+
+// fail shows an error page.
+func (q *req) fail(status int, msg string) {
+	q.render(status, "error.html", "Error", nil, map[string]any{"Message": msg, "Status": status})
+}
+
+// needLogin sends a guest to the login page, back here after.
+func (q *req) needLogin() bool {
+	if q.user != nil {
+		return false
+	}
+	back := q.r.URL.Path
+	if q.r.Method != http.MethodGet {
+		back = q.r.Referer()
+		if !strings.HasPrefix(back, "/") {
+			back = Base + "/"
+		}
+	}
+	http.Redirect(q.w, q.r, Base+"/login?back="+urlEscape(back), http.StatusSeeOther)
+	return true
+}
+
+// back sends the user on after a form.
+func (q *req) redirect(to string) { http.Redirect(q.w, q.r, to, http.StatusSeeOther) }
+
+// errNotFound pages
+var errNoArea = errors.New("there is no such forum, or it is not open to you")
+
+// setCookie gives the browser its session.
+func (q *req) setCookie(secret string) {
+	c := &http.Cookie{Name: cookieName, Value: secret, Path: Base, HttpOnly: true, Secure: q.s.Secure,
+		SameSite: http.SameSiteLaxMode}
+	if secret == "" {
+		c.MaxAge = -1
+	} else {
+		c.Expires = time.Now().Add(q.s.TTL)
+	}
+	http.SetCookie(q.w, c)
+}

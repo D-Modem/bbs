@@ -88,7 +88,8 @@ type Message struct {
 	Body    string
 	ReplyTo int64
 	Created time.Time
-	Read    bool // mail only
+	Read    bool  // mail only
+	Thread  int64 // the topic's first message (0: this is the first)
 
 	// a newsgroup's article: its Message-ID, where it came from ("" from
 	// here, else the peer's name) and the article as it is sent
@@ -413,13 +414,13 @@ func (s *Store) AreaByName(name string) (*Area, error) {
 }
 
 const msgCols = `id, area_id, from_id, from_name, to_name, subject, body, reply_to, created,
-	COALESCE(message_id, ''), origin, COALESCE(ftn_msgid, '')`
+	COALESCE(message_id, ''), origin, COALESCE(ftn_msgid, ''), thread`
 
 func scanMessage(row interface{ Scan(...any) error }) (*Message, error) {
 	var m Message
 	var created int64
 	err := row.Scan(&m.ID, &m.AreaID, &m.FromID, &m.From, &m.To, &m.Subject,
-		&m.Body, &m.ReplyTo, &created, &m.MessageID, &m.Origin, &m.FTNMsgID)
+		&m.Body, &m.ReplyTo, &created, &m.MessageID, &m.Origin, &m.FTNMsgID, &m.Thread)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -438,10 +439,25 @@ func (s *Store) Post(m *Message) (int64, error) {
 	if m.MessageID != "" {
 		msgid = m.MessageID
 	}
+	// an answer is in the topic of what it answers, in the same area
+	m.Thread = 0
+	if m.ReplyTo > 0 {
+		var area, thread int64
+		err := tx.QueryRow(`SELECT area_id, thread FROM messages WHERE id = ?`, m.ReplyTo).Scan(&area, &thread)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return 0, err
+		}
+		if err == nil && area == m.AreaID {
+			m.Thread = thread
+			if m.Thread == 0 {
+				m.Thread = m.ReplyTo
+			}
+		}
+	}
 	id, err := tx.insertID(`INSERT INTO messages (area_id, from_id, from_name, to_name, subject, body, reply_to, created,
-		message_id, origin, raw, ftn_msgid, ftn)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, m.AreaID, m.FromID, m.From, m.To, m.Subject, m.Body, m.ReplyTo, now(),
-		msgid, m.Origin, m.Raw, nullString(m.FTNMsgID), m.FTN)
+		message_id, origin, raw, ftn_msgid, ftn, thread)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, m.AreaID, m.FromID, m.From, m.To, m.Subject, m.Body, m.ReplyTo, now(),
+		msgid, m.Origin, m.Raw, nullString(m.FTNMsgID), m.FTN, m.Thread)
 	if err != nil {
 		if isUnique(err) {
 			return 0, ErrExists
@@ -497,9 +513,31 @@ func (s *Store) Neighbour(area, id int64, next bool) (*Message, error) {
 	return scanMessage(s.db.QueryRow(q, area, id))
 }
 
-// DeleteMessage removes a message.
+// DeleteMessage removes a message.  A topic's first message gone, the
+// next of the topic begins it.
 func (s *Store) DeleteMessage(id int64) error {
-	return s.exec1(`DELETE FROM messages WHERE id = ?`, id)
+	if err := s.exec1(`DELETE FROM messages WHERE id = ?`, id); err != nil {
+		return err
+	}
+	return s.mendThread(id)
+}
+
+// mendThread gives a topic whose first message has gone a new first: the
+// oldest of the rest.
+func (s *Store) mendThread(root int64) error {
+	var next int64
+	err := s.db.QueryRow(`SELECT id FROM messages WHERE thread = ? ORDER BY id LIMIT 1`, root).Scan(&next)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if _, err := s.db.Exec(`UPDATE messages SET thread = ? WHERE thread = ?`, next, root); err != nil {
+		return err
+	}
+	_, err = s.db.Exec(`UPDATE messages SET thread = 0 WHERE id = ?`, next)
+	return err
 }
 
 // LastRead is the last message of an area the user has read.

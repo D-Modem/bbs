@@ -1,0 +1,43 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="pagehead">
+  <h1>{{$b.Area.Name}}</h1>
+  {{if $b.Area.Description}}<p class="desc">{{$b.Area.Description}}</p>{{end}}
+</div>
+<div class="topic-buttons">
+  {{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="button important">Start New Topic</a>
+  {{else if not .User}}<a href="/forum/login?back={{urlq (printf "/forum/area/%d" $b.Area.ID)}}" class="button">Sign In to Post</a>{{end}}
+  {{template "pages" $b.Pages}}
+</div>
+<div class="box">
+  <h2 class="maintitle">{{$b.Area.Name}} <span class="count">{{plural $b.Count "topic" "topics"}}</span></h2>
+  <table class="board topics">
+    <tbody>
+    {{range $b.Topics}}
+    <tr{{if .Unread}} class="unread"{{end}}>
+      <td class="col-icon"><span class="status topic {{if .Unread}}new{{else}}read{{end}}" title="{{if .Unread}}New replies{{else}}No new replies{{end}}"></span></td>
+      <td class="col-topic">
+        <h3><a href="/forum/topic/{{.Root.ID}}">{{.Root.Subject}}</a></h3>
+        {{if gt .Pages 1}}<span class="minipages">{{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a>{{end}}</span>{{end}}
+        <p class="desc">Started by {{.Root.From}}, {{when .Root.Created}}</p>
+      </td>
+      <td class="col-stats"><ul><li><strong>{{num .Replies}}</strong> {{if eq .Replies 1}}reply{{else}}replies{{end}}</li></ul></td>
+      <td class="col-last">
+        {{template "avatar" (av .Last.From "mini")}}
+        <ul class="last-post">
+          <li><a href="/forum/post/{{.Last.ID}}" class="topic">{{when .Last.Created}}</a></li>
+          <li>By {{.Last.From}}</li>
+        </ul>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="none">There are no topics in this forum yet.{{if $b.CanPost}} <a href="/forum/area/{{$b.Area.ID}}/new">Start the first one.</a>{{end}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+<div class="topic-buttons bottom">
+  {{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="button secondary">Mark Forum Read</button></form>{{end}}
+  {{template "pages" $b.Pages}}
+</div>
+{{template "foot" .}}{{end}}

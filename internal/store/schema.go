@@ -62,7 +62,8 @@ CREATE TABLE IF NOT EXISTS messages (
 	origin     {str} NOT NULL DEFAULT '',
 	raw        {blob},
 	ftn_msgid  {key},
-	ftn        {blob}
+	ftn        {blob},
+	thread     {int} NOT NULL DEFAULT 0
 )`, `
 CREATE TABLE IF NOT EXISTS lastread (
 	user_id    {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -111,6 +112,12 @@ CREATE TABLE IF NOT EXISTS qwk_msgs (
 	number     {int} NOT NULL,
 	message_id {int} NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
 	PRIMARY KEY (net, number)
+)`, `
+CREATE TABLE IF NOT EXISTS topic_read (
+	user_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	root    {int} NOT NULL,
+	last    {int} NOT NULL,
+	PRIMARY KEY (user_id, root)
 )`, `
 CREATE TABLE IF NOT EXISTS qwk_seen (
 	user_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -232,6 +239,7 @@ var indexes = []struct {
 	{"api_tokens_user", "api_tokens", "user_id", false},
 	{"ssh_keys_user", "ssh_keys", "user_id", false},
 	{"qwk_msgs_message", "qwk_msgs", "message_id", false},
+	{"messages_thread", "messages", "thread", false},
 }
 
 // added are the columns added since the first schema: an older database
@@ -266,6 +274,7 @@ var added = []struct{ table, column, decl string }{
 	{"areas", "max_msgs", "{int} NOT NULL DEFAULT 0"},
 	{"areas", "max_days", "{int} NOT NULL DEFAULT 0"},
 	{"users", "qwk_node", "{bool} NOT NULL DEFAULT FALSE"},
+	{"messages", "thread", "{int} NOT NULL DEFAULT 0"},
 }
 
 // migrate makes the schema, or brings an older database up to it.
@@ -281,6 +290,7 @@ func migrate(x *db) error {
 			return err
 		}
 	}
+	threads := false // messages.thread is new: the threads are to be found
 	for _, a := range added {
 		ok, err := x.hasColumn(a.table, a.column)
 		if err != nil {
@@ -290,6 +300,12 @@ func migrate(x *db) error {
 			if _, err := x.Exec(fmt.Sprintf(`ALTER TABLE %s ADD COLUMN %s %s`, a.table, a.column, x.d.ddl(a.decl))); err != nil {
 				return err
 			}
+			threads = threads || a.table == "messages" && a.column == "thread"
+		}
+	}
+	if threads {
+		if err := findThreads(x); err != nil {
+			return fmt.Errorf("finding the threads: %w", err)
 		}
 	}
 	for _, i := range indexes {

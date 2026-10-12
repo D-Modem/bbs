@@ -1,0 +1,25 @@
+{{define "search.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="box">
+  <h2 class="maintitle">Search</h2>
+  <form method="get" action="/forum/search" class="box-body searchform">
+    <input type="search" name="q" value="{{$b.Q}}" placeholder="Words in posts, their titles or authors" aria-label="Search for" autofocus>
+    <button class="button">Search</button>
+  </form>
+</div>
+{{with $b.Error}}<p class="message error">{{.}}</p>{{end}}
+{{if $b.Searched}}
+<div class="box">
+  <h2 class="maintitle">Results <span class="count">{{plural (len $b.Hits) "post" "posts"}}{{if eq (len $b.Hits) 50}} (the newest){{end}}</span></h2>
+  <table class="board">
+    <tbody>
+    {{range $b.Hits}}
+    <tr><td class="col-topic"><h3><a href="/forum/post/{{.M.ID}}">{{.M.Subject}}</a></h3>
+      <p class="desc">By {{.M.From}}, {{when .M.Created}} in <a href="/forum/area/{{.Area.ID}}">{{.Area.Name}}</a></p>
+      <p class="snippet">{{snippet .M.Body 200}}</p></td></tr>
+    {{else}}<tr><td class="none">Nothing was found.</td></tr>{{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{template "foot" .}}{{end}}

@@ -1,0 +1,14 @@
+{{define "login.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="box narrow">
+  <h2 class="maintitle">Sign In</h2>
+  <form method="post" action="/forum/login" class="box-body signin">
+    <input type="hidden" name="back" value="{{$b.Back}}">
+    {{with $b.Error}}<p class="message error">{{.}}</p>{{end}}
+    <p class="desc">Use your BBS name and password: the same as by telnet, SSH or the terminal.</p>
+    <label class="field"><span>Name</span><input type="text" name="name" value="{{$b.Name}}" autocomplete="username" required autofocus></label>
+    <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
+    <div class="editor-foot">{{if .Register}}<a href="/forum/register">Create an account</a>{{end}}<button class="button important">Sign In</button></div>
+  </form>
+</div>
+{{template "foot" .}}{{end}}

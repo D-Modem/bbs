@@ -67,6 +67,12 @@ func (c *Config) httpSection(s *config.Section) error {
 	if h.Terminal, err = s.Bool("terminal", true); err != nil {
 		return err
 	}
+	if h.Forum, err = s.Bool("forum", true); err != nil {
+		return err
+	}
+	if h.Guests, err = s.Bool("forum_guests", true); err != nil {
+		return err
+	}
 	c.HTTP = h
 	return nil
 }

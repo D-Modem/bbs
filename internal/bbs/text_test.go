@@ -124,3 +124,28 @@ func TestPrefs(t *testing.T) {
 		}
 	}
 }
+
+func TestWrapBody(t *testing.T) {
+	long := strings.Repeat("word ", 30) + "https://example.org/end"
+	got := WrapBody("short\r\n" + long + "\n> " + long)
+	if got[0] != "short" {
+		t.Fatalf("got %q", got)
+	}
+	var plain, quoted []string
+	for _, l := range got[1:] {
+		if len([]rune(l)) > MaxLineLen {
+			t.Errorf("line too long: %q", l)
+		}
+		if strings.HasPrefix(l, "> ") {
+			quoted = append(quoted, strings.TrimPrefix(l, "> "))
+		} else {
+			plain = append(plain, l)
+		}
+	}
+	if strings.Join(plain, " ") != strings.TrimSpace(long) || strings.Join(quoted, " ") != strings.TrimSpace(long) {
+		t.Errorf("words lost: %q", got)
+	}
+	if len(quoted) < 2 {
+		t.Errorf("quote not carried on: %q", got)
+	}
+}

@@ -1,0 +1,72 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if ne .Title .BBS}}{{.Title}} - {{end}}{{.BBS}}</title>
+<link rel="stylesheet" href="/forum/static/forum.css">
+</head>
+<body>
+<div id="userbar"><div class="wrap">
+  {{if .User}}
+  <ul class="inline">
+    <li>Signed in as <a href="/forum/user/{{path .User.Name}}" class="me">{{.User.Name}}</a></li>
+    <li><a href="/forum/search">Search</a></li>
+    <li><form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Sign Out</button></form></li>
+  </ul>
+  {{else}}
+  <ul class="inline">
+    <li><a href="/forum/login">Sign In</a></li>
+    {{if .Register}}<li><a href="/forum/register" class="register">Create Account</a></li>{{end}}
+  </ul>
+  {{end}}
+</div></div>
+<div id="branding"><div class="wrap">
+  <a href="/forum/" class="logo"><span class="logo-mark">&#9636;</span>{{.BBS}}</a>
+</div></div>
+<div id="nav"><div class="wrap">
+  <ul class="tabs">
+    <li{{if eq .Tab "forums"}} class="active"{{end}}><a href="/forum/">Forums</a></li>
+    <li{{if eq .Tab "online"}} class="active"{{end}}><a href="/forum/online">Online ({{.Online}})</a></li>
+    <li{{if eq .Tab "search"}} class="active"{{end}}><a href="/forum/search">Search</a></li>
+    {{if .Terminal}}<li><a href="/terminal">Terminal</a></li>{{end}}
+  </ul>
+  <form action="/forum/search" method="get" class="navsearch"><input type="search" name="q" placeholder="Search..." aria-label="Search"></form>
+</div></div>
+<div id="content" class="wrap">
+  <ol class="crumbs">
+    <li><a href="/forum/">{{.BBS}}</a></li>
+    {{range .Crumbs}}<li>&rsaquo; {{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</li>{{end}}
+  </ol>
+  {{if eq .Notice "welcome"}}<p class="message good">Welcome! Your account is made, and you are signed in.</p>{{end}}
+{{end}}
+
+{{define "foot"}}
+  <ol class="crumbs bottom">
+    <li><a href="/forum/">{{.BBS}}</a></li>
+    {{range .Crumbs}}<li>&rsaquo; {{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</li>{{end}}
+  </ol>
+</div>
+<div id="footer" class="wrap">
+  <ul class="inline"><li><a href="/forum/">Forums</a></li><li><a href="/forum/online">Online Users</a></li>{{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}</ul>
+  <p class="copyright">{{.BBS}} &middot; the forums of a BBS, powered by bbs-sec &middot; {{when .Now}}</p>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "avatar"}}<span class="avatar {{avatar .Name}} {{.Size}}" aria-hidden="true">{{initial .Name}}</span>{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}<ul class="pagination">
+  <li class="pagejump">Page {{.Cur}} of {{.Total}}</li>
+  {{if gt .Cur 1}}<li><a href="{{.URL .Prev}}" rel="prev">&laquo; Prev</a></li>{{end}}
+  {{$cur := .Cur}}{{$p := .}}{{range .Shown}}{{if eq . 0}}<li class="gap">&hellip;</li>{{else if eq . $cur}}<li class="active">{{.}}</li>{{else}}<li><a href="{{$p.URL .}}">{{.}}</a></li>{{end}}{{end}}
+  {{if .Next}}<li><a href="{{.URL .Next}}" rel="next">Next &raquo;</a></li>{{end}}
+</ul>{{end}}{{end}}
+
+{{define "error.html"}}{{template "head" .}}
+<div class="box">
+  <h2 class="maintitle">Sorry, there is a problem</h2>
+  <div class="box-body"><p class="message error">{{.Body.Message}}</p><p><a href="/forum/">Back to the forums</a></p></div>
+</div>
+{{template "foot" .}}{{end}}

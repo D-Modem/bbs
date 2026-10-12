@@ -55,6 +55,12 @@ func (s *Store) Purge(a *Area) (int, error) {
 		k, _ := res.RowsAffected()
 		n += int(k)
 	}
+	if n > 0 {
+		// topics whose first messages went begin again with their oldest
+		if err := s.mendOrphans(a.ID); err != nil {
+			return n, err
+		}
+	}
 	return n, nil
 }
 

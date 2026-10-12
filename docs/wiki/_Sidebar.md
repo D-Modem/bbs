@@ -32,6 +32,7 @@
 - [IRC](IRC)
 - [MRC](MRC)
 - [Finger and gopher](Finger-and-Gopher)
+- [Web forum](Web-Forum)
 - [HTTP API](HTTP-API)
 
 **More**

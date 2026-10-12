@@ -242,10 +242,6 @@ func (s *Server) agent(r *http.Request) *bbs.Node {
 }
 
 // lines splits a body into lines for the BBS's editor's checks.
-func lines(body string) []string {
-	return strings.Split(strings.ReplaceAll(body, "\r\n", "\n"), "\n")
-}
-
 // --- login
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
@@ -736,7 +732,7 @@ func (s *Server) post(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusForbidden, "only the sysop posts here")
 		return
 	}
-	id, err := s.agent(r).PostWith(a, req.To, req.Subject, lines(req.Body), req.ReplyTo,
+	id, err := s.agent(r).PostWith(a, req.To, req.Subject, bbs.WrapBody(req.Body), req.ReplyTo,
 		bbs.PostOpts{Alias: req.Alias, Poll: req.Poll})
 	if err != nil {
 		fail(w, http.StatusBadRequest, err.Error())
@@ -813,7 +809,7 @@ func (s *Server) sendMail(w http.ResponseWriter, r *http.Request) {
 	if !s.decode(w, r, &req) {
 		return
 	}
-	if err := s.agent(r).SendMail(req.To, req.Subject, lines(req.Body), req.ReplyTo); err != nil {
+	if err := s.agent(r).SendMail(req.To, req.Subject, bbs.WrapBody(req.Body), req.ReplyTo); err != nil {
 		fail(w, http.StatusBadRequest, err.Error())
 		return
 	}

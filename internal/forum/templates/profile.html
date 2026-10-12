@@ -1,0 +1,34 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="box profile">
+  <h2 class="maintitle">{{$u.Name}}</h2>
+  <div class="profile-body">
+    <div class="profile-side">
+      {{template "avatar" (av $u.Name "huge")}}
+      <p class="group{{if $u.Sysop}} admin{{end}}">{{group $u}}</p>
+      {{if .Body.On}}<p class="online-now">&#9679; Online now</p>{{end}}
+    </div>
+    <div class="profile-main">
+      {{if $u.About}}<p class="about">&ldquo;{{$u.About}}&rdquo;</p>{{end}}
+      <dl class="facts">
+        <dt>Member since</dt><dd>{{date $u.Created}}</dd>
+        <dt>Last visit</dt><dd>{{when $u.LastLogin}}</dd>
+        <dt>Posts</dt><dd>{{num $u.Posts}}</dd>
+        <dt>Calls</dt><dd>{{num $u.Logins}}</dd>
+        {{if $u.Location}}<dt>From</dt><dd>{{$u.Location}}</dd>{{end}}
+        {{range .Body.On}}<dt>Now</dt><dd>On node {{.Num}} by {{.Via}}: {{.Activity}}</dd>{{end}}
+      </dl>
+    </div>
+  </div>
+</div>
+<div class="box">
+  <h2 class="maintitle">Recent posts</h2>
+  <table class="board">
+    <tbody>
+    {{range .Body.Recent}}
+    <tr><td class="col-topic"><h3><a href="/forum/post/{{.ID}}">{{.Subject}}</a></h3><p class="desc">{{when .Created}}</p><p class="snippet">{{snippet .Body 160}}</p></td></tr>
+    {{else}}<tr><td class="none">No posts to show.</td></tr>{{end}}
+    </tbody>
+  </table>
+</div>
+{{template "foot" .}}{{end}}

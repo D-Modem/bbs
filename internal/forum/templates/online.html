@@ -1,0 +1,15 @@
+{{define "online.html"}}{{template "head" .}}
+<div class="box">
+  <h2 class="maintitle">Online Users <span class="count">{{plural (len .Body.Nodes) "node" "nodes"}} in use</span></h2>
+  <table class="board list">
+    <thead><tr><th>Node</th><th>Name</th><th>Came by</th><th>Doing</th><th>Since</th></tr></thead>
+    <tbody>
+    {{range .Body.Nodes}}
+    <tr><td>{{.Num}}</td>
+      <td>{{if .User}}{{template "avatar" (av .User "tiny")}} <a href="/forum/user/{{path .User}}">{{.User}}</a>{{else}}<span class="desc">Logging in</span>{{end}}</td>
+      <td>{{.Via}}{{with .Terminal}} <span class="desc">({{.}})</span>{{end}}</td><td>{{.Activity}}</td><td class="desc">{{when .Since}}</td></tr>
+    {{else}}<tr><td colspan="5" class="none">No one is on just now.</td></tr>{{end}}
+    </tbody>
+  </table>
+</div>
+{{template "foot" .}}{{end}}

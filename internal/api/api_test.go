@@ -10,8 +10,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -899,5 +902,53 @@ func TestQWKNodeAdmin(t *testing.T) {
 	}
 	if code, _, _ := s.do("POST", "/api/v1/admin/qwknet/call", sysop, nil); code != 404 {
 		t.Errorf("call without nets: %d", code)
+	}
+}
+
+// the web forum, signed in with the API's sessions
+func TestForumSessions(t *testing.T) {
+	s := setup(t, Settings{Forum: true, Guests: true})
+	jar, _ := cookiejar.New(nil)
+	c := &http.Client{Jar: jar}
+	resp, err := c.Get(s.ts.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.Request.URL.Path != "/forum/" {
+		t.Errorf("/ went to %s", resp.Request.URL.Path)
+	}
+	resp, _ = c.PostForm(s.ts.URL+"/forum/login", url.Values{"name": {"alice"}, "password": {"alicepass1"}})
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if !strings.Contains(string(body), "Signed in as") {
+		t.Fatalf("login: %s", body)
+	}
+	toks, _ := s.b.Store.Tokens(0)
+	if len(toks) != 1 || !toks[0].Session || !strings.HasPrefix(toks[0].Name, "forum login") {
+		t.Errorf("tokens %+v", toks)
+	}
+	// an API key is no cookie
+	key := s.key("bob", "read post")
+	req, _ := http.NewRequest("GET", s.ts.URL+"/forum/", nil)
+	req.AddCookie(&http.Cookie{Name: "bbs_forum", Value: key})
+	resp, _ = http.DefaultClient.Do(req)
+	body, _ = io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if strings.Contains(string(body), "Signed in as") {
+		t.Error("an API key signed in")
+	}
+	// signing out ends the session
+	page, _ := c.Get(s.ts.URL + "/forum/")
+	b, _ := io.ReadAll(page.Body)
+	page.Body.Close()
+	m := regexp.MustCompile(`name="csrf" value="([0-9a-f]+)"`).FindSubmatch(b)
+	if m == nil {
+		t.Fatal("no csrf")
+	}
+	resp, _ = c.PostForm(s.ts.URL+"/forum/logout", url.Values{"csrf": {string(m[1])}})
+	resp.Body.Close()
+	if toks, _ := s.b.Store.Tokens(0); len(toks) != 1 || toks[0].Session {
+		t.Errorf("after logout %+v", toks)
 	}
 }

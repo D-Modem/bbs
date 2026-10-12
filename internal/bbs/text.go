@@ -157,6 +157,34 @@ func Wrap(text string, width int) []string {
 	return out
 }
 
+// quotePrefix is a quoted line's mark ("> ", " XX> "), to carry on to the
+// lines it wraps into.
+var quotePrefix = regexp.MustCompile(`^ ?[A-Za-z]{0,3}> ?`)
+
+// WrapBody is text typed in paragraphs (as on the web) as a message body's
+// lines: long lines wrapped to MaxLineLen, rather than cut, each piece of
+// a quoted line quoted again.
+func WrapBody(text string) []string {
+	var out []string
+	for _, l := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
+		l = strings.TrimRight(l, " \t\r")
+		if utf8.RuneCountInString(l) <= MaxLineLen {
+			out = append(out, l)
+			continue
+		}
+		prefix := quotePrefix.FindString(l)
+		rest := l[len(prefix):]
+		if prefix != "" {
+			prefix = strings.TrimRight(prefix, " ") + " "
+			rest = strings.TrimLeft(rest, " ")
+		}
+		for _, w := range Wrap(rest, MaxLineLen-len(prefix)) {
+			out = append(out, prefix+w)
+		}
+	}
+	return out
+}
+
 // Fit pads or cuts s to exactly width runes.
 func Fit(s string, width int) string {
 	r := []rune(s)

@@ -1,0 +1,15 @@
+{{define "register.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="box narrow">
+  <h2 class="maintitle">Create Account</h2>
+  <form method="post" action="/forum/register" class="box-body signin">
+    {{with $b.Error}}<p class="message error">{{.}}</p>{{end}}
+    <p class="desc">An account here is an account on the BBS: call it by telnet or SSH with the same name and password.</p>
+    <label class="field"><span>Name</span><input type="text" name="name" value="{{$b.Name}}" maxlength="24" autocomplete="username" required autofocus></label>
+    <label class="field"><span>Password (8 or more)</span><input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
+    <label class="field"><span>Password again</span><input type="password" name="password2" minlength="8" autocomplete="new-password" required></label>
+    <label class="field"><span>Where you are (optional)</span><input type="text" name="location" value="{{$b.Location}}" maxlength="40"></label>
+    <div class="editor-foot"><button class="button important">Create Account</button></div>
+  </form>
+</div>
+{{template "foot" .}}{{end}}

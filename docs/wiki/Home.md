@@ -83,6 +83,7 @@ What there is:
   [IRC](IRC) channels too, for IRC clients, and [MRC](MRC)'s rooms join the
   BBSes' Multi Relay Chat
 - [finger and gopher](Finger-and-Gopher): who is on, and chosen areas in gopherspace
+- [a web forum](Web-Forum): the message areas as a bulletin board in the browser, in the manner of Invision Power Board 3
 - [a web terminal](HTTP-API#the-web-terminal): the BBS in a browser (xterm.js, built in)
 - [an HTTP API](HTTP-API): REST, server-sent events, and WebSockets (JSON or protobuf) where web clients chat with terminal callers; Prometheus metrics
 - [customization](Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
@@ -118,6 +119,7 @@ What there is:
 | [IRC](IRC) | the IRC server: the chat rooms as channels |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
+| [Web forum](Web-Forum) | the message areas as a web forum |
 | [HTTP API](HTTP-API) | REST, events, WebSockets in JSON and protobuf, tokens, metrics |
 | [Security](Security) | what is guarded, and how |
 | [Development](Development) | the source's layout, the tests |

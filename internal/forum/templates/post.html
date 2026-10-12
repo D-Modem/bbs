@@ -1,0 +1,20 @@
+{{define "post.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="box">
+  <h2 class="maintitle">Start a new topic in {{$b.Area.Name}}</h2>
+  <form method="post" action="/forum/area/{{$b.Area.ID}}/new" class="box-body editor">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    {{with $b.Error}}<p class="message error">{{.}}</p>{{end}}
+    <label class="field"><span>Topic title</span><input type="text" name="subject" maxlength="72" required value="{{$b.Subject}}"></label>
+    <label class="field"><span>Post</span><textarea name="body" rows="12" required>{{$b.Body}}</textarea></label>
+    <details class="poll-maker"{{if $b.Poll}} open{{end}}>
+      <summary>Add a poll</summary>
+      <label class="field"><span>Answers, one to a line (2 to 10)</span><textarea name="poll" rows="4">{{$b.Poll}}</textarea></label>
+    </details>
+    <div class="editor-foot">
+      {{if $b.Aliases}}<label><input type="checkbox" name="alias"> Post as {{.User.Alias}}</label>{{end}}
+      <button class="button important">Post New Topic</button>
+    </div>
+  </form>
+</div>
+{{template "foot" .}}{{end}}

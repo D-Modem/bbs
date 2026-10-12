@@ -207,6 +207,10 @@ address = 127.0.0.1:2513
 ;session_hours = 24
 ; the web terminal at /terminal: the BBS in a browser (xterm.js, built in)
 ;terminal = yes
+; the web forum at /forum/ (and /): the message areas as a bulletin board;
+; forum_guests: those not logged in read the areas anyone may read
+;forum = yes
+;forum_guests = yes
 
 ; Access levels: a user's level (0-255) gets what the [level] at or
 ; below it says; areas, doors and menus may require a level and flags

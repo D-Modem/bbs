@@ -26,6 +26,7 @@ key_file = /etc/bbs/tls/key.pem
 | `rate`, `burst` | `10`, `20` | requests a second per token (per address without one), and how many may come at once |
 | `session_hours` | `24` | how long a login's token lasts |
 | `terminal` | `yes` | the web terminal page (below) |
+| `forum`, `forum_guests` | `yes`, `yes` | the [web forum](Web-Forum), and guests reading it |
 
 The OpenAPI 3.1 description is at `/api/v1/openapi.json`.
 
@@ -193,7 +194,7 @@ terminal apply (200 characters a line, 8 lines in 10 seconds).
 
 ## The web terminal
 
-`/terminal` (and `/`, which goes there) is the BBS in a browser: a page
+`/terminal` (and `/`, which goes there when the [web forum](Web-Forum) is off) is the BBS in a browser: a page
 with [xterm.js](https://xtermjs.org/) (5.5, MIT licensed, built into the
 `bbs` binary: nothing is loaded from elsewhere) whose terminal is joined
 to the text BBS by a WebSocket, `/terminal/ws`.  The caller is a node like
