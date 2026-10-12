@@ -15,6 +15,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/events"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/guard"
+	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/view"
 )
@@ -27,6 +28,8 @@ type fake struct {
 	script []any // a string (Menu, Message, Panel), view.Choice, map[string]string (Form), bool (Confirm), draft
 	shown  []string
 	said   []string
+	// what SendData sent, what ReceiveData gives
+	sentData, upload []byte
 }
 
 // draft is Edit's answer: what is sent.
@@ -141,10 +144,19 @@ func (f *fake) Download(fs []FileRef) error {
 }
 func (f *fake) Upload(*store.FileArea) error                        { return nil }
 func (f *fake) FileCommand(*store.FileArea, string) (string, error) { return "", nil }
-func (f *fake) Terminal() string                                    { return "test" }
-func (f *fake) TerminalActions() []view.Action                      { return nil }
-func (f *fake) TerminalAction(string) error                         { return nil }
-func (f *fake) TerminalInfo() error                                 { return nil }
+func (f *fake) SendData(name string, data []byte) (bool, error) {
+	f.said = append(f.said, fmt.Sprintf("sent %s (%d bytes)", name, len(data)))
+	f.sentData = data
+	return true, nil
+}
+func (f *fake) ReceiveData(int64) ([]byte, error) { return f.upload, nil }
+func (f *fake) DataCommand(string, func(string) ([]byte, func(), error), func(string, []byte) string) (string, error) {
+	return "", nil
+}
+func (f *fake) Terminal() string               { return "test" }
+func (f *fake) TerminalActions() []view.Action { return nil }
+func (f *fake) TerminalAction(string) error    { return nil }
+func (f *fake) TerminalInfo() error            { return nil }
 func (f *fake) Watch(n int) error {
 	f.shown = append(f.shown, fmt.Sprintf("watch %d", n))
 	return nil
@@ -499,5 +511,37 @@ func TestProfileAndValidate(t *testing.T) {
 	has(t, "said", f.said, "No one else is waiting.")
 	if u, _ := b.Store.UserByName("zed"); u.Level != 20 {
 		t.Errorf("level %d", u.Level)
+	}
+}
+
+func TestOfflineMail(t *testing.T) {
+	b, alice, sysop := setup(t)
+	gen, _ := b.Store.AreaByName("General")
+	if _, err := sysop.Post(gen, "All", "News", []string{"Read me offline."}, 0); err != nil {
+		t.Fatal(err)
+	}
+	var rep bytes.Buffer
+	qwk.WriteREP(&rep, b.BBSID(), []qwk.Message{{Conf: int(gen.ID), To: "sysop", Subject: "Re: News", Ref: 1, Body: "Read it."}})
+	f := &fake{t: t, b: b, upload: rep.Bytes(), script: []any{"O",
+		view.Choice{Action: "download"}, view.Choice{Action: "download"},
+		view.Choice{Action: "upload"}, view.Choice{Action: "upload"},
+		view.Choice{Action: view.Back}, "G"}}
+	if err := Run(b, alice, f); err != ErrLogoff {
+		t.Fatalf("Run: %v; shown %q", err, f.shown)
+	}
+	has(t, "screens", f.shown, "table Offline mail (QWK): Your packet|GOBBS.QWK")
+	has(t, "screens", f.shown, "New messages|1 in 1 areas")
+	has(t, "said", f.said, "sent GOBBS.QWK")
+	has(t, "said", f.said, "1 messages packed (0 of them mail)")
+	has(t, "said", f.said, "There is nothing new for your packet.")
+	has(t, "said", f.said, "Your replies: 1 posted, 0 mailed.")
+	has(t, "said", f.said, "Your replies: 0 posted, 0 mailed, 1 already in.")
+	p, err := qwk.ReadPacket(f.sentData)
+	if err != nil || len(p.Messages) != 1 || p.Messages[0].Body != "Read me offline." {
+		t.Errorf("packet %+v %v", p, err)
+	}
+	ms, _ := b.Store.Messages(gen.ID, 1, 10)
+	if len(ms) != 1 || ms[0].From != "alice" || ms[0].ReplyTo != 1 {
+		t.Errorf("replies %+v", ms)
 	}
 }

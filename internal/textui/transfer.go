@@ -1,6 +1,7 @@
 package textui
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -261,6 +262,89 @@ func (s *session) Upload(a *store.FileArea) error {
 		}
 	}
 	return nil
+}
+
+// SendData sends a file made for the caller.
+func (s *session) SendData(name string, data []byte) (bool, error) {
+	t := s.t
+	p, err := s.chooseProtocol()
+	if err != nil || p == nil {
+		return false, err
+	}
+	t.Println(t.C(Cyan, startHint(p, false)))
+	port, err := t.Port()
+	if err != nil {
+		return false, err
+	}
+	s.n.Doing("Downloading " + name)
+	err = p.Send(port, []xfer.Outgoing{{Name: name, Size: int64(len(data)), ModTime: time.Now(),
+		Data: bytes.NewReader(data)}})
+	t.Settle(time.Second)
+	t.Println("")
+	if err != nil {
+		s.b.Log.Printf("node %d: %s: %s download of %s failed: %v", s.n.Num, s.n.User().Name, p.Name, name, err)
+		t.Println(t.C(Red, "The transfer failed: "+err.Error()+"."))
+		return false, nil
+	}
+	t.Println(t.C(Green, "Sent "+name+"."))
+	return true, nil
+}
+
+// buffer takes an upload into memory, up to max bytes.
+type buffer struct {
+	b    bytes.Buffer
+	max  int64
+	done *[]byte
+}
+
+func (in *buffer) Write(p []byte) (int, error) {
+	if int64(in.b.Len()+len(p)) > in.max {
+		return 0, files.ErrTooLarge
+	}
+	return in.b.Write(p)
+}
+func (in *buffer) Abort()        {}
+func (in *buffer) Commit() error { *in.done = in.b.Bytes(); return nil }
+
+// ReceiveData receives one file from the caller.
+func (s *session) ReceiveData(max int64) ([]byte, error) {
+	t := s.t
+	p, err := s.chooseProtocol()
+	if err != nil || p == nil {
+		return nil, err
+	}
+	var got []byte
+	taken := false
+	sink := func(name string, size int64) (xfer.Incoming, error) {
+		if taken {
+			return nil, errors.New("one file at a time")
+		}
+		if size > max {
+			return nil, files.ErrTooLarge
+		}
+		taken = true
+		return &buffer{max: max, done: &got}, nil
+	}
+	t.Println(t.C(Cyan, startHint(p, true)))
+	port, err := t.Port()
+	if err != nil {
+		return nil, err
+	}
+	s.n.Doing("Uploading")
+	err = p.Receive(port, sink)
+	t.Settle(time.Second)
+	t.Println("")
+	if err != nil && got == nil {
+		s.b.Log.Printf("node %d: %s: %s upload failed: %v", s.n.Num, s.n.User().Name, p.Name, err)
+		t.Println(t.C(Red, "The transfer failed: "+err.Error()+"."))
+		return nil, nil
+	}
+	return got, nil
+}
+
+// DataCommand: there is no command line.
+func (s *session) DataCommand(string, func(string) ([]byte, func(), error), func(string, []byte) string) (string, error) {
+	return "", nil
 }
 
 // capital is s with its first letter upper case (an error as a sentence).

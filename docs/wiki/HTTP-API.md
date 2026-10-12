@@ -76,6 +76,8 @@ Errors are `{"error": "...", "code": "..."}`.
 | `GET /messages/{id}` | a message | read |
 | `GET /mail`, `GET`, `DELETE /mail/{id}` | your inbox; a mail (marked read); delete it | mail |
 | `POST /mail` | send: to a user, or `Name@zone:net/node` as netmail | mail |
+| `GET /qwk?mark=no` | your [QWK packet](Offline-Mail) (`X-QWK-Messages`: how many); its messages then count as read, unless `mark=no` | mail |
+| `POST /qwk/rep` | a REP packet (the body): `{"posted", "mailed", "duplicates", "errors"}` | mail and post |
 | `GET /fileareas`, `/fileareas/{id}/files`, `/files/{id}` | file areas and files | files |
 | `POST /fileareas/{id}/files?name=&description=` | upload: the body is the file | files |
 | `GET /files/{id}/content` | download (ranges work) | files |

@@ -53,6 +53,18 @@ type Frontend interface {
 	// FileCommand runs what was typed on a file area's command line; what
 	// to tell the caller after.
 	FileCommand(a *store.FileArea, cmd string) (string, error)
+	// SendData sends a file made for the caller (a QWK packet) by a
+	// transfer protocol; true if it went.
+	SendData(name string, data []byte) (bool, error)
+	// ReceiveData receives a file by a transfer protocol, up to max bytes;
+	// nil if none came.
+	ReceiveData(max int64) ([]byte, error)
+	// DataCommand runs a transfer typed on a 3270's command line for
+	// files made for the caller: get makes what a GET asks for (and sent,
+	// called once it has gone), put takes what a PUT brings.  What to tell
+	// the caller after.
+	DataCommand(cmd string, get func(name string) (data []byte, sent func(), err error),
+		put func(name string, data []byte) string) (string, error)
 	// Terminal is the terminal's line on the profile, and what the caller
 	// may change of it there.
 	Terminal() string
@@ -190,7 +202,8 @@ func (s *Session) mainMenu(intro []view.Line) error {
 				items = append(items, view.Item{Key: "V", Label: fmt.Sprintf("Validate users (%d)", waiting)})
 			}
 		}
-		items = append(items, view.Item{Key: "L", Label: "Last callers"},
+		items = append(items, view.Item{Key: "O", Label: "Offline mail (QWK)"},
+			view.Item{Key: "L", Label: "Last callers"},
 			view.Item{Key: "K", Label: "Feedback to the sysop"})
 		if u.Sysop {
 			items = append(items, view.Item{Key: "*", Label: "Sysop tools"})
@@ -209,6 +222,8 @@ func (s *Session) mainMenu(intro []view.Line) error {
 			err = s.areas()
 		case "E":
 			err = s.mail()
+		case "O":
+			err = s.offline()
 		case "L":
 			err = s.lastCallers()
 		case "*":
@@ -368,6 +383,8 @@ func (s *Session) do(it *bbs.MenuItem, depth int) error {
 		return s.sysopMenu()
 	case "feedback":
 		return s.feedback()
+	case "qwk":
+		return s.offline()
 	case "page":
 		return s.page()
 	case "logoff":

@@ -24,6 +24,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 	"github.com/Neo-Desktop/bbs-sec/internal/logo"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
+	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
@@ -193,6 +194,10 @@ func (c *Config) general(g *config.Section) error {
 	s.MOTD = g.String("motd", s.MOTD)
 	s.MOTDFile = g.String("motd_file", s.MOTDFile)
 	s.Goodbye = g.String("goodbye", s.Goodbye)
+	s.QWKID = strings.ToUpper(g.String("qwk_id", s.QWKID))
+	if s.QWKID != "" && !qwk.ValidID(s.QWKID) {
+		return errors.New("qwk_id: 1 to 8 letters and digits")
+	}
 	if s.PageCommand, err = door.Split(g.String("page_command", "")); err != nil {
 		return fmt.Errorf("page_command: %w", err)
 	}

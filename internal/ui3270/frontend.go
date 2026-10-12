@@ -28,6 +28,19 @@ func (u *ui) Transfers() bool              { return false }
 func (u *ui) Download([]app.FileRef) error { return nil }
 func (u *ui) Upload(*store.FileArea) error { return nil }
 
+func (u *ui) SendData(string, []byte) (bool, error) { return false, nil }
+func (u *ui) ReceiveData(int64) ([]byte, error)     { return nil, nil }
+
+// DataCommand runs an IND$FILE transfer of a file made for the caller.
+func (u *ui) DataCommand(cmd string, get func(string) ([]byte, func(), error), put func(string, []byte) string) (string, error) {
+	u.user = u.n.User()
+	ind, ok := go3270.ParseIndFile(cmd)
+	if !ok {
+		return "Commands here are IND$FILE GET and PUT, from your emulator's file transfer.", nil
+	}
+	return u.indData(ind, get, put)
+}
+
 // FileCommand runs an IND$FILE transfer typed on a file area's command line.
 func (u *ui) FileCommand(a *store.FileArea, cmd string) (string, error) {
 	u.user = u.n.User()

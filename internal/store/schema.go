@@ -99,6 +99,12 @@ CREATE TABLE IF NOT EXISTS poll_votes (
 	idx        {int} NOT NULL,
 	PRIMARY KEY (message_id, user_id)
 )`, `
+CREATE TABLE IF NOT EXISTS qwk_seen (
+	user_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	hash    {key} NOT NULL,
+	at      {int} NOT NULL,
+	PRIMARY KEY (user_id, hash)
+)`, `
 CREATE TABLE IF NOT EXISTS calls (
 	id       {id},
 	user_id  {int} NOT NULL,

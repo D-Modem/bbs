@@ -15,6 +15,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
+	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -50,6 +51,8 @@ func (s *Server) routes() map[string]route {
 		"GET /api/v1/mail/{id}":    {scope: "mail", h: s.mailOne},
 		"DELETE /api/v1/mail/{id}": {scope: "mail", h: s.mailDelete},
 		"POST /api/v1/mail":        {scope: "mail", h: s.sendMail},
+		"GET /api/v1/qwk":          {scope: "mail", h: s.qwkPacket},
+		"POST /api/v1/qwk/rep":     {scope: "mail", h: s.qwkREP},
 
 		"GET /api/v1/fileareas":             {scope: "files", h: s.fileAreas},
 		"GET /api/v1/fileareas/{id}/files":  {scope: "files", h: s.files},
@@ -1040,6 +1043,51 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
 	s.B.Log.Printf("http: %s uploaded %q (%d bytes) to %s", u.Name, f.Name, f.Size, fa.Name)
 	w.Header().Set("Location", fmt.Sprintf("/api/v1/files/%d", f.ID))
 	writeJSON(w, http.StatusCreated, fileOut(f))
+}
+
+// --- QWK offline mail
+
+// qwkPacket: the user's packet (new messages and unread mail), which then
+// count as read, unless ?mark=no.
+func (s *Server) qwkPacket(w http.ResponseWriter, r *http.Request) {
+	out, err := s.B.Agent(whoOf(r).user, "api").QWKPacket()
+	if err != nil {
+		fail(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+out.Name+`"`)
+	w.Header().Set("Content-Length", strconv.Itoa(len(out.Data)))
+	w.Header().Set("X-QWK-Messages", strconv.Itoa(out.Messages))
+	if _, err := w.Write(out.Data); err != nil {
+		return // not all of it went: nothing counts as read
+	}
+	if r.URL.Query().Get("mark") != "no" {
+		out.Done()
+	}
+}
+
+// qwkREP: the body is a REP packet; what came of it.
+func (s *Server) qwkREP(w http.ResponseWriter, r *http.Request) {
+	if !whoOf(r).has("post") {
+		fail(w, http.StatusForbidden, "the token has no post scope")
+		return
+	}
+	data, err := io.ReadAll(http.MaxBytesReader(w, r.Body, qwk.MaxREP))
+	if err != nil {
+		fail(w, http.StatusRequestEntityTooLarge, "a REP packet is at most 16 MB")
+		return
+	}
+	res, err := s.B.Agent(whoOf(r).user, "api").ImportREP(data)
+	if err != nil {
+		fail(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if res.Errors == nil {
+		res.Errors = []string{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"posted": res.Posted, "mailed": res.Mailed,
+		"duplicates": res.Duplicates, "errors": res.Errors})
 }
 
 // --- chat (what needs a node needs an open stream: /events or /ws)

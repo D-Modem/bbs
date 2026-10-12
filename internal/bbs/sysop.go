@@ -133,6 +133,10 @@ func (b *BBS) PurgeAreas() (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	// what REPs brought, kept a while against uploads twice over
+	if err := b.Store.ForgetREPs(time.Now().AddDate(0, 0, -90)); err != nil {
+		return 0, err
+	}
 	total := 0
 	for _, a := range as {
 		if a.MaxMsgs == 0 && a.MaxDays == 0 {

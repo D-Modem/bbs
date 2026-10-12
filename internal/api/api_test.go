@@ -25,6 +25,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/events"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/guard"
+	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -831,5 +832,55 @@ func TestVotesPollsThreads(t *testing.T) {
 	if code, _, l := s.do("GET", fmt.Sprintf("/api/v1/messages/%d/thread", reply), alice, nil); code != 200 || len(l) != 2 ||
 		l[1].(map[string]any)["depth"] != 1.0 {
 		t.Errorf("thread: %d %v", code, l)
+	}
+}
+
+func TestQWK(t *testing.T) {
+	s := setup(t, Settings{})
+	gen, _ := s.b.Store.AreaByName("General")
+	bob, _ := s.b.Store.UserByName("bob")
+	s.b.Agent(bob, "test").Post(gen, "All", "Offline", []string{"For the packet."}, 0)
+	alice := s.login("alice", "alicepass1")
+	get := func(q string) ([]byte, http.Header) {
+		req, _ := http.NewRequest("GET", s.ts.URL+"/api/v1/qwk"+q, nil)
+		req.Header.Set("Authorization", "Bearer "+alice)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		data, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != 200 {
+			t.Fatalf("qwk: %d %s", resp.StatusCode, data)
+		}
+		return data, resp.Header
+	}
+	data, h := get("?mark=no")
+	if h.Get("X-QWK-Messages") != "1" || !strings.Contains(h.Get("Content-Disposition"), "TESTBBS.QWK") {
+		t.Errorf("headers %v", h)
+	}
+	if p, err := qwk.ReadPacket(data); err != nil || len(p.Messages) != 1 {
+		t.Fatalf("packet %v %v", p, err)
+	}
+	if _, h = get(""); h.Get("X-QWK-Messages") != "1" {
+		t.Error("mark=no marked")
+	}
+	if _, h = get(""); h.Get("X-QWK-Messages") != "0" {
+		t.Error("not marked")
+	}
+
+	var rep bytes.Buffer
+	qwk.WriteREP(&rep, "TESTBBS", []qwk.Message{{Conf: int(gen.ID), To: "bob", Subject: "Re: Offline", Body: "Got it."},
+		{Conf: 0, To: "nobody", Subject: "Lost", Body: "x"}})
+	code, m, _ := s.do("POST", "/api/v1/qwk/rep", alice, rep.Bytes())
+	if code != 200 || m["posted"] != 1.0 || len(m["errors"].([]any)) != 1 {
+		t.Errorf("rep: %d %v", code, m)
+	}
+	if code, m, _ := s.do("POST", "/api/v1/qwk/rep", alice, "junk"); code != 400 {
+		t.Errorf("junk: %d %v", code, m)
+	}
+	readOnly := s.key("alice", "mail")
+	if code, _, _ := s.do("POST", "/api/v1/qwk/rep", readOnly, rep.Bytes()); code != 403 {
+		t.Errorf("no post scope: %d", code)
 	}
 }

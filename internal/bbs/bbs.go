@@ -41,6 +41,7 @@ type Settings struct {
 	ThrottleFails int           // failures from one source ...
 	ThrottleTime  time.Duration // ... within this lock it out for this
 	PageCommand   []string      // run when a page finds no sysop on
+	QWKID         string        // QWK packets' BBSID ("": made of Name)
 
 	Levels         []Level // [level N], by number
 	NewUserLevel   int     // a new user's level

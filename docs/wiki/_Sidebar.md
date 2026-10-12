@@ -22,6 +22,7 @@
 **Features**
 - [Message areas](Message-Areas)
 - [Writing messages](Writing-Messages)
+- [Offline mail (QWK)](Offline-Mail)
 - [Files and FTP](Files-and-FTP)
 - [File transfers](File-Transfers)
 - [Doors](Doors)

@@ -1,6 +1,7 @@
 package ui3270
 
 import (
+	"bytes"
 	"errors"
 	"strings"
 	"time"
@@ -113,6 +114,63 @@ func (u *ui) indFile(a *store.FileArea, ind *go3270.IndFile) (string, error) {
 	u.b.Log.Printf("node %d: %s uploaded %q to %s by IND$FILE (%d bytes, sha256 %s)", u.n.Num,
 		u.user.Name, f.Name, a.Name, f.Size, f.SHA256)
 	return end(transOK)
+}
+
+// maxData is the most an IND$FILE PUT of data brings.
+const maxData = 16 << 20
+
+// indData runs an IND$FILE transfer of a file made for the caller: GET
+// sends what get makes of the name, PUT gives what came to put.
+func (u *ui) indData(ind *go3270.IndFile, get func(string) ([]byte, func(), error),
+	put func(string, []byte) string) (string, error) {
+	conn := u.g.Conn
+	if go3270.DFTBufferSize(u.dev) == 0 {
+		return "Your emulator does not do DFT file transfers.", nil
+	}
+	name := strings.Trim(ind.Name, `'"`)
+	if i := strings.LastIndexAny(name, `/\:`); i >= 0 {
+		name = name[i+1:]
+	}
+	end := func(msg string) {
+		if err := go3270.DFTMessage(conn, dftTimeout, msg); err != nil {
+			u.b.Log.Printf("node %d: IND$FILE: %v", u.n.Num, err)
+		}
+	}
+	if ind.Get {
+		data, sent, err := get(name)
+		if err != nil {
+			end(transNoFile)
+			return capital(err.Error()) + ".", nil
+		}
+		u.n.Doing("Downloading " + name)
+		if _, err := go3270.SendFileDFT(conn, u.dev, bytes.NewReader(data), dftTimeout); err != nil {
+			u.b.Log.Printf("node %d: %s: IND$FILE GET %q failed: %v", u.n.Num, u.user.Name, name, err)
+			if errors.Is(err, go3270.ErrDFTAborted) {
+				return "The transfer was cancelled.", nil
+			}
+			end(transRead)
+			return "The transfer failed.", nil
+		}
+		sent()
+		end(transOK)
+		return "Sent " + name + ".", nil
+	}
+	if ind.Append {
+		end(transBadParm)
+		return "", nil
+	}
+	var buf bytes.Buffer
+	u.n.Doing("Uploading " + name)
+	if _, err := go3270.ReceiveFileDFT(conn, u.dev, &buf, maxData, dftTimeout); err != nil {
+		u.b.Log.Printf("node %d: %s: IND$FILE PUT %q failed: %v", u.n.Num, u.user.Name, name, err)
+		if errors.Is(err, go3270.ErrDFTAborted) {
+			return "The transfer was cancelled.", nil
+		}
+		end(transWrite)
+		return "The transfer failed.", nil
+	}
+	end(transOK)
+	return put(name, buf.Bytes()), nil
 }
 
 // capital is s with its first letter upper case (an error as a sentence).

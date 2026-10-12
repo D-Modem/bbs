@@ -38,6 +38,9 @@ log = syslog
 ; {node} and {reason} filled in; no shell).  E.g. a push by ntfy.sh:
 ;page_command = curl -s -d "{user} on node {node}: {reason}" https://ntfy.sh/my-bbs-pages
 goodbye = Thanks for calling.
+; QWK offline mail: the packets' name (BBSID.QWK), up to 8 letters and
+; digits; by default made of the name.  See docs/wiki/Offline-Mail.md
+;qwk_id = DMODEM
 ; the logo: a PNG (at most 1000x400), shown as sixel graphics on telnet
 ; terminals that have them, and on 3270s (below).  Without one, the
 ; system's name is drawn in a pixel font

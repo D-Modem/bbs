@@ -220,6 +220,9 @@ type fileSystem struct {
 	user *store.User
 	host string
 	who  string
+
+	packet *bbs.QWKOut // the user's QWK packet, as made last
+	made   time.Time
 }
 
 var (
@@ -290,6 +293,9 @@ func fileInfo(f *store.File) info     { return info{name: f.Name, size: f.Size, 
 
 // Stat describes an entry.
 func (fs *fileSystem) Stat(name string) (os.FileInfo, error) {
+	if q, ok := fs.qwkPath(name); ok {
+		return fs.qwkStat(q)
+	}
 	a, f, err := fs.resolve(name)
 	switch {
 	case err != nil:
@@ -304,6 +310,16 @@ func (fs *fileSystem) Stat(name string) (os.FileInfo, error) {
 
 // ReadDir lists / (the areas) or an area (its files).
 func (fs *fileSystem) ReadDir(name string) ([]os.FileInfo, error) {
+	if q, ok := fs.qwkPath(name); ok {
+		if q != "" {
+			return nil, errors.New("not a directory")
+		}
+		i, err := fs.qwkStat(fs.s.B.BBSID() + ".QWK")
+		if err != nil {
+			return nil, err
+		}
+		return []os.FileInfo{i}, nil
+	}
 	a, f, err := fs.resolve(name)
 	if err != nil {
 		return nil, err
@@ -318,9 +334,12 @@ func (fs *fileSystem) ReadDir(name string) ([]os.FileInfo, error) {
 			return nil, err
 		}
 		for _, a := range areas {
-			if fs.sees(a) {
+			if fs.sees(a) && (fs.anonymous() || !strings.EqualFold(a.Name, qwkDir)) {
 				out = append(out, areaInfo(a))
 			}
+		}
+		if !fs.anonymous() {
+			out = append(out, info{name: qwkDir, dir: true, mtime: time.Unix(0, 0)})
 		}
 		return out, nil
 	}
@@ -336,6 +355,9 @@ func (fs *fileSystem) ReadDir(name string) ([]os.FileInfo, error) {
 
 // GetHandle opens a file to download, or a new one to upload.
 func (fs *fileSystem) GetHandle(name string, flags int, offset int64) (ftpserver.FileTransfer, error) {
+	if q, ok := fs.qwkPath(name); ok {
+		return fs.qwkHandle(q, flags, offset)
+	}
 	a, f, err := fs.resolve(name)
 	write := flags&(os.O_WRONLY|os.O_RDWR) != 0
 	if !write {

@@ -25,6 +25,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
+	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -163,7 +164,7 @@ func names(t *testing.T, c *client.ServerConn, dir string) string {
 func TestUploadDownload(t *testing.T) {
 	e := start(t, nil)
 	c := e.login(t, "alice", "alicepass1")
-	if got := names(t, c, "/"); got != "Uploads,Official" {
+	if got := names(t, c, "/"); got != "Uploads,Official,qwk" {
 		t.Errorf("/ = %s", got)
 	}
 	if err := c.Stor("/Uploads/hello.txt", strings.NewReader("hello, world\n")); err != nil {
@@ -324,5 +325,55 @@ func TestPerIPLimit(t *testing.T) {
 	}
 	if err == nil {
 		t.Error("a second connection from the address")
+	}
+}
+
+func TestQWK(t *testing.T) {
+	e := start(t, nil)
+	gen, _ := e.b.Store.CreateArea("General", "", false)
+	bob, _ := e.b.Store.UserByName("bob")
+	e.b.Agent(bob, "test").Post(gen, "All", "Offline", []string{"By FTP."}, 0)
+	c := e.login(t, "alice", "alicepass1")
+	id := e.b.BBSID()
+	if got := names(t, c, "/qwk"); got != id+".QWK" {
+		t.Errorf("/qwk = %s", got)
+	}
+	r, err := c.Retr("/qwk/" + id + ".QWK")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := io.ReadAll(r)
+	r.Close()
+	p, err := qwk.ReadPacket(data)
+	if err != nil || len(p.Messages) != 1 || p.Messages[0].Body != "By FTP." {
+		t.Fatalf("packet %+v %v", p, err)
+	}
+	alice, _ := e.b.Store.UserByName("alice")
+	for i := 0; ; i++ { // the close is counted after the transfer's end
+		if n, _ := e.b.Store.NewCount(alice.ID, gen.ID); n == 0 {
+			break
+		}
+		if i > 100 {
+			t.Fatal("the packet's messages still new")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	var rep bytes.Buffer
+	qwk.WriteREP(&rep, id, []qwk.Message{{Conf: int(gen.ID), To: "bob", Subject: "Re: Offline", Body: "Got it by FTP."}})
+	if err := c.Stor("/qwk/"+id+".REP", &rep); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Stor("/qwk/other.txt", strings.NewReader("x")); err == nil {
+		t.Error("a file not a REP taken")
+	}
+	ms, _ := e.b.Store.Messages(gen.ID, 1, 10)
+	if len(ms) != 1 || ms[0].From != "alice" {
+		t.Errorf("replies %+v", ms)
+	}
+	// none for anonymous callers
+	e2 := start(t, func(s *Settings) { s.Anonymous = true })
+	a := e2.login(t, "anonymous", "x")
+	if _, err := a.List("/qwk"); err == nil {
+		t.Error("anonymous sees /qwk")
 	}
 }
