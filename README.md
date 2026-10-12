@@ -76,6 +76,8 @@ What there is:
   replies brought back (by a transfer protocol, IND$FILE, FTP or the API); QWK networks as a hub or a node
 - [FidoNet](https://github.com/Neo-Desktop/bbs-sec/wiki/FidoNet) (or any FTN network): message areas that are echoes, netmail
   as private mail, and a binkp mailer to exchange packets with links
+- [IRC](https://github.com/Neo-Desktop/bbs-sec/wiki/IRC): the chat rooms as IRC channels, built on parts of
+  [ergo](https://github.com/ergochat/ergo); logins by SASL or the server password, TLS
 - [doors](https://github.com/Neo-Desktop/bbs-sec/wiki/Doors): DOS door games in dosemu2 (in Docker), with a FOSSIL on COM1
   and the usual drop files, or any Linux program, for text callers
 - [chat](https://github.com/Neo-Desktop/bbs-sec/wiki/Chat-and-Paging): rooms, messages to a node, paging the sysop
@@ -128,6 +130,7 @@ The documentation is in the [wiki](https://github.com/Neo-Desktop/bbs-sec/wiki/)
 | [Doors](https://github.com/Neo-Desktop/bbs-sec/wiki/Doors) | DOS doors in dosemu2 (Docker), Linux doors |
 | [Newsgroups and NNTP](https://github.com/Neo-Desktop/bbs-sec/wiki/Newsgroups-and-NNTP) | the NNTP server, news peers |
 | [FidoNet](https://github.com/Neo-Desktop/bbs-sec/wiki/FidoNet) | echomail, netmail, binkp |
+| [IRC](https://github.com/Neo-Desktop/bbs-sec/wiki/IRC) | the IRC server: the chat rooms as channels |
 | [Offline mail](https://github.com/Neo-Desktop/bbs-sec/wiki/Offline-Mail) | QWK packets, REP replies, QWK networks |
 | [Chat and paging](https://github.com/Neo-Desktop/bbs-sec/wiki/Chat-and-Paging) | chat rooms, node messages, paging the sysop |
 | [Finger and gopher](https://github.com/Neo-Desktop/bbs-sec/wiki/Finger-and-Gopher) | who is on, and the BBS in gopherspace |

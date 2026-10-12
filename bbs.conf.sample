@@ -390,6 +390,20 @@ address = 127.0.0.1:2513
 
 ; finger: who is on ("finger @host"), and who a user is ("finger name@host").
 ; Port 79 needs CAP_NET_BIND_SERVICE (bbs.service.sample)
+; IRC: the chat rooms as channels (#main ...), for IRC clients.  Users log
+; in with their BBS names and passwords (SASL PLAIN, or the server
+; password as name:password).  See docs/wiki/IRC.md
+;[irc]
+;address = :6667
+; IRC over TLS (and address = none for TLS only)
+;tls_address = :6697
+;tls_cert = /etc/bbs/tls.crt
+;tls_key = /etc/bbs/tls.key
+;server_name = irc.example.org
+;network = DModem
+;max_clients = 64
+;max_per_ip = 4
+
 ;[finger]
 ;address = :79
 ;online = yes

@@ -78,7 +78,8 @@ What there is:
   as private mail, and a binkp mailer to exchange packets with links
 - [doors](Doors): DOS door games in dosemu2 (in Docker), with a FOSSIL on COM1
   and the usual drop files, or any Linux program, for text callers
-- [chat](Chat-and-Paging): rooms, messages to a node, paging the sysop
+- [chat](Chat-and-Paging): rooms, messages to a node, paging the sysop; the rooms are
+  [IRC](IRC) channels too, for IRC clients
 - [finger and gopher](Finger-and-Gopher): who is on, and chosen areas in gopherspace
 - [a web terminal](HTTP-API#the-web-terminal): the BBS in a browser (xterm.js, built in)
 - [an HTTP API](HTTP-API): REST, server-sent events, and WebSockets (JSON or protobuf) where web clients chat with terminal callers; Prometheus metrics
@@ -112,6 +113,7 @@ What there is:
 | [Newsgroups and NNTP](Newsgroups-and-NNTP) | the NNTP server, news peers |
 | [FidoNet](FidoNet) | echomail, netmail, binkp |
 | [Chat and paging](Chat-and-Paging) | chat rooms, node messages, paging the sysop |
+| [IRC](IRC) | the IRC server: the chat rooms as channels |
 | [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
 | [HTTP API](HTTP-API) | REST, events, WebSockets in JSON and protobuf, tokens, metrics |
 | [Security](Security) | what is guarded, and how |

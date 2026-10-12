@@ -58,6 +58,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
 	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
+	"github.com/Neo-Desktop/bbs-sec/internal/ircd"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
 	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
@@ -196,6 +197,9 @@ func main() {
 			}
 			fmt.Println()
 		}
+		if i := cfg.IRC; i != nil {
+			fmt.Printf("irc: %q, TLS %q\n", i.Address, i.TLSAddress)
+		}
 		if cfg.Finger != nil {
 			fmt.Printf("finger: %s (online %v, users %v)\n", cfg.Finger.Address, cfg.Finger.Online, cfg.Finger.Users)
 		}
@@ -324,6 +328,19 @@ func serve(cfg *server.Config) int {
 		}()
 	}
 	svc.RunPeers(ctx, cfg.Peers)
+	if cfg.IRC != nil {
+		is, err := ircd.New(b, *cfg.IRC)
+		if err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+		go func() {
+			if err := is.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
 	if cfg.Finger != nil {
 		fs := &finger.Server{B: b, S: *cfg.Finger}
 		go func() {

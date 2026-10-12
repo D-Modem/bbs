@@ -77,7 +77,8 @@ type chatState struct {
 	inbox   []Event
 	wake    chan struct{}
 	room    string
-	busy    bool // a sysop not to be paged
+	also    map[string]bool // rooms an IRC client is in besides (JoinAlso)
+	busy    bool            // a sysop not to be paged
 	sent    []time.Time
 	paging  string    // why this caller pages the sysop ("": not)
 	pagedAt time.Time // when
@@ -162,28 +163,122 @@ func (n *Node) name() string {
 // pageRoom is the private room a caller paging the sysop waits in.
 func pageRoom(node int) string { return fmt.Sprintf("sysop-%d", node) }
 
-// JoinRoom takes the node into a room (leaving the one it is in), and
-// gives it the room's last lines.
-func (n *Node) JoinRoom(name string) ([]Event, error) {
+// mayJoin checks a room's name, and that the node may go in.
+func (n *Node) mayJoin(name string) (string, error) {
 	name = strings.ToLower(strings.TrimSpace(name))
 	if !roomName.MatchString(name) {
-		return nil, ErrNoRoom
+		return "", ErrNoRoom
 	}
 	u := n.User()
 	if u == nil {
-		return nil, errors.New("not logged in")
+		return "", errors.New("not logged in")
 	}
 	if strings.HasPrefix(name, "sysop-") && name != pageRoom(n.Num) && !u.Sysop {
-		return nil, ErrNotYours
+		return "", ErrNotYours
 	}
 	// the room a page waits in is the page's, not chat
 	if name != pageRoom(n.Num) && !n.b.LevelOf(u).Chat {
-		return nil, ErrNotAllowed
+		return "", ErrNotAllowed
+	}
+	return name, nil
+}
+
+// JoinRoom takes the node into a room (leaving the one it is in), and
+// gives it the room's last lines.
+func (n *Node) JoinRoom(name string) ([]Event, error) {
+	name, err := n.mayJoin(name)
+	if err != nil {
+		return nil, err
 	}
 	if n.Room() == name {
 		return nil, nil
 	}
 	n.LeaveRoom()
+	hist := n.enter(name)
+	cs := n.chat()
+	cs.mu.Lock()
+	cs.room = name
+	cs.mu.Unlock()
+	return hist, nil
+}
+
+// JoinAlso takes the node into a room as well as those it is in (an IRC
+// client's channels), and gives it the room's last lines.
+func (n *Node) JoinAlso(name string) ([]Event, error) {
+	name, err := n.mayJoin(name)
+	if err != nil {
+		return nil, err
+	}
+	cs := n.chat()
+	cs.mu.Lock()
+	in := cs.also[name] || cs.room == name
+	if !in {
+		if cs.also == nil {
+			cs.also = map[string]bool{}
+		}
+		cs.also[name] = true
+	}
+	cs.mu.Unlock()
+	if in {
+		return nil, nil
+	}
+	return n.enter(name), nil
+}
+
+// InRoom: the node is in that room.
+func (n *Node) InRoom(name string) bool {
+	cs := n.chat()
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	return cs.room == name || cs.also[name]
+}
+
+// Part takes the node out of a room it is in.
+func (n *Node) Part(name string) {
+	cs := n.chat()
+	cs.mu.Lock()
+	in := cs.also[name]
+	delete(cs.also, name)
+	current := cs.room == name
+	cs.mu.Unlock()
+	switch {
+	case in:
+		n.exit(name)
+	case current:
+		n.LeaveRoom()
+	}
+}
+
+// RoomMembers are the names of those in a room, and their nodes.
+func (b *BBS) RoomMembers(name string) []RoomMember {
+	h := b.hub()
+	h.mu.Lock()
+	var ns []*Node
+	if r := h.rooms[name]; r != nil {
+		ns = r.membersList()
+	}
+	h.mu.Unlock()
+	out := make([]RoomMember, 0, len(ns))
+	for _, m := range ns {
+		b.mu.Lock()
+		via := m.Caller.Via
+		b.mu.Unlock()
+		out = append(out, RoomMember{Name: m.name(), Node: m.Num, Via: via})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Node < out[j].Node })
+	return out
+}
+
+// RoomMember is one in a room.
+type RoomMember struct {
+	Name string
+	Node int
+	Via  string
+}
+
+// enter puts the node in a room's members, tells the others, and gives
+// the room's last lines.
+func (n *Node) enter(name string) []Event {
 	h := n.b.hub()
 	h.mu.Lock()
 	r := h.rooms[name]
@@ -195,15 +290,11 @@ func (n *Node) JoinRoom(name string) ([]Event, error) {
 	r.members[n] = true
 	hist := append([]Event(nil), r.history...)
 	h.mu.Unlock()
-	cs := n.chat()
-	cs.mu.Lock()
-	cs.room = name
-	cs.mu.Unlock()
-	e := Event{Kind: Joined, Room: name, From: u.Name, Node: n.Num, Time: time.Now()}
+	e := Event{Kind: Joined, Room: name, From: n.name(), Node: n.Num, Time: time.Now()}
 	for _, o := range others {
 		o.deliver(e)
 	}
-	return hist, nil
+	return hist
 }
 
 func (r *room) membersList() []*Node {
@@ -221,9 +312,13 @@ func (n *Node) LeaveRoom() {
 	name := cs.room
 	cs.room = ""
 	cs.mu.Unlock()
-	if name == "" {
-		return
+	if name != "" {
+		n.exit(name)
 	}
+}
+
+// exit takes the node out of a room's members, and tells the others.
+func (n *Node) exit(name string) {
 	h := n.b.hub()
 	h.mu.Lock()
 	r := h.rooms[name]
@@ -264,12 +359,20 @@ func (n *Node) flood() bool {
 
 // Say says a line in the node's room (emote: as /me).
 func (n *Node) Say(text string, emote bool) error {
+	name := n.Room()
+	if name == "" {
+		return ErrNotInRoom
+	}
+	return n.SayIn(name, text, emote)
+}
+
+// SayIn says a line in a room the node is in.
+func (n *Node) SayIn(name, text string, emote bool) error {
 	text = Clean(text, MaxChatLine)
 	if text == "" {
 		return nil
 	}
-	name := n.Room()
-	if name == "" {
+	if !n.InRoom(name) {
 		return ErrNotInRoom
 	}
 	if n.flood() {
@@ -474,7 +577,13 @@ func (b *BBS) Pages() []PageInfo {
 
 // Answer takes a sysop into the room of a caller paging (the one waiting
 // longest if node is 0), and ends the page.
-func (n *Node) Answer(node int) ([]Event, int, error) {
+func (n *Node) Answer(node int) ([]Event, int, error) { return n.answer(node, n.JoinRoom) }
+
+// AnswerAlso answers a page in the caller's room as well as the rooms
+// the node is in (an IRC client's).
+func (n *Node) AnswerAlso(node int) ([]Event, int, error) { return n.answer(node, n.JoinAlso) }
+
+func (n *Node) answer(node int, join func(string) ([]Event, error)) ([]Event, int, error) {
 	u := n.User()
 	if u == nil || !u.Sysop {
 		return nil, 0, errors.New("only a sysop answers pages")
@@ -491,7 +600,7 @@ func (n *Node) Answer(node int) ([]Event, int, error) {
 		return nil, 0, ErrNoNode
 	}
 	o.endPage()
-	hist, err := n.JoinRoom(pageRoom(node))
+	hist, err := join(pageRoom(node))
 	if err == nil {
 		o.deliver(Event{Kind: Notice, Text: u.Name + " answered your page.", Time: time.Now()})
 	}
@@ -512,5 +621,15 @@ func (n *Node) CancelPage() { n.endPage() }
 // leaveChat is the node going: out of its room, its page forgotten.
 func (n *Node) leaveChat() {
 	n.LeaveRoom()
+	cs := n.chat()
+	cs.mu.Lock()
+	var also []string
+	for r := range cs.also {
+		also = append(also, r)
+	}
+	cs.mu.Unlock()
+	for _, r := range also {
+		n.Part(r)
+	}
 	n.endPage()
 }

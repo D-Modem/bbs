@@ -26,6 +26,9 @@ or with nothing typed) or PF5.
 
 A caller may say 8 lines in 10 seconds; more is refused ("slow down").
 
+The rooms are channels on the BBS's [IRC](IRC) server too: `#main` and
+the rest, with IRC clients in them alongside the callers.
+
 ## Messages to a node
 
 *Who's online* on the text BBS ends by offering to send a node a line;

@@ -20,6 +20,7 @@
 | `internal/ftp` | the FTP server: the file areas as a file system |
 | `internal/news` | articles: parsing, checking, making, decoding; wildmats |
 | `internal/nntp` | the NNTP server and the peers' client |
+| `internal/ircd` | the IRC server: channels as chat rooms; ergo's irc-go, numerics and ISUPPORT list |
 | `internal/qwknet` | a QWK network's node: calling the hub by FTP, REPs up, packets down |
 | `internal/qwk` | QWK packets and REPs: MESSAGES.DAT's blocks, CONTROL.DAT, indexes (MBF floats), QWKE kludges, CP437 |
 | `internal/ftn` | FidoNet's formats: addresses, Type 2+ packets, messages, kludges, character sets |
@@ -157,7 +158,12 @@ cannot catch, exit, the sample poll, the configuration's checks, and the
 sample one-liners on a text terminal and on a 3270 by s3270); the file base (FILE_ID.DIZ in CP437
 with colors, a ZIP's and a tar.gz's listings, new files, finding by the
 DIZ's words, tagging by numbers, a batch of two by YMODEM, ratios and the day's limit together, the API's
-search and listings); QWK offline mail (packets and REPs read back
+search and listings); the IRC server (logins by PASS and SASL PLAIN, and refused; a nick
+made of a name with a space; lines both ways between an IRC client and
+a telnet caller, /me, node messages, the room's history with
+server-time, WHO, WHOIS, LIST, a page answered by joining its room,
+parting, the node gone with QUIT, TLS, bad nicks; irc-go's own client
+with SASL and echo-message; the configuration's checks); QWK offline mail (packets and REPs read back
 as a reader would, long subjects as QWKE kludges, CP437, another BBS's REP
 refused, the indexes' MBF floats; a packet's messages read only once it
 has gone, the REP's replies posted and mailed as the caller, a REP twice

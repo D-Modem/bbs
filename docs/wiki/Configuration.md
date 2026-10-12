@@ -32,6 +32,7 @@ whether terminals are asked what they are: [Terminal identification](Terminal-Id
 | `[security]` | deny lists, bans, the hack log | [Security](Security) |
 | `[event NAME]` | scheduled programs | [Sysop tools](Sysop-Tools) |
 | `[finger]`, `[gopher]` | the finger and gopher servers | [Finger and gopher](Finger-and-Gopher) |
+| `[irc]` | the IRC server for the chat rooms | [IRC](IRC) |
 | `database` (in `[general]`) | SQLite's file, or a PostgreSQL, MySQL or MariaDB server | [Databases](Databases) |
 | `[level N]`, `new_user_level`, `validated_level` (in `[general]`) | access levels | [Access levels](Access-Levels) |
 | `[http]` | the HTTP API, its WebSockets, the web terminal and metrics | [HTTP API](HTTP-API) |
