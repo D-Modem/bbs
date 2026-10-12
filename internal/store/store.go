@@ -47,6 +47,8 @@ type User struct {
 	DLDay, DLCount    int
 	// the user's settings ("ansi=off width=80"): bbs.Prefs
 	Prefs string
+	// files downloaded ever, and uploaded (the files there now)
+	Downloads, Uploads int
 }
 
 // Area is a message area.
@@ -187,14 +189,16 @@ func HashPassword(pw string) (string, error) {
 }
 
 const userCols = `id, name, password, location, sysop, locked, created, last_login, logins, posts,
-	level, flags, time_day, time_used, dl_day, dl_count, prefs`
+	level, flags, time_day, time_used, dl_day, dl_count, prefs, downloads,
+	(SELECT COUNT(*) FROM files WHERE files.uploader_id = users.id)`
 
 func scanUser(row interface{ Scan(...any) error }) (*User, string, error) {
 	var u User
 	var pw string
 	var created, last int64
 	err := row.Scan(&u.ID, &u.Name, &pw, &u.Location, &u.Sysop, &u.Locked,
-		&created, &last, &u.Logins, &u.Posts, &u.Level, &u.Flags, &u.TimeDay, &u.TimeUsed, &u.DLDay, &u.DLCount, &u.Prefs)
+		&created, &last, &u.Logins, &u.Posts, &u.Level, &u.Flags, &u.TimeDay, &u.TimeUsed, &u.DLDay, &u.DLCount, &u.Prefs,
+		&u.Downloads, &u.Uploads)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, "", ErrNotFound
 	}
@@ -602,6 +606,7 @@ type File struct {
 	Uploader    string
 	Created     time.Time
 	Downloads   int
+	LongDesc    string // more lines of description (a FILE_ID.DIZ's)
 }
 
 // CreateFileArea adds a file area.
@@ -671,13 +676,14 @@ func (s *Store) FileAreaByName(name string) (*FileArea, error) {
 	return scanFileArea(s.db.QueryRow(fileAreaQuery+` WHERE a.name = ?`, name))
 }
 
-const fileCols = `id, area_id, name, description, size, sha256, uploader_id, uploader, created, downloads`
+const fileCols = `id, area_id, name, description, size, sha256, uploader_id, uploader, created, downloads,
+	COALESCE(long_desc, '')`
 
 func scanFile(row interface{ Scan(...any) error }) (*File, error) {
 	var f File
 	var created int64
 	err := row.Scan(&f.ID, &f.AreaID, &f.Name, &f.Description, &f.Size, &f.SHA256,
-		&f.UploaderID, &f.Uploader, &created, &f.Downloads)
+		&f.UploaderID, &f.Uploader, &created, &f.Downloads, &f.LongDesc)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -687,9 +693,9 @@ func scanFile(row interface{ Scan(...any) error }) (*File, error) {
 
 // AddFile records a file; ErrExists if the area has one of that name.
 func (s *Store) AddFile(f *File) (int64, error) {
-	id, err := s.db.insertID(`INSERT INTO files (area_id, name, description, size, sha256, uploader_id, uploader, created)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, f.AreaID, f.Name, f.Description, f.Size, f.SHA256,
-		f.UploaderID, f.Uploader, now())
+	id, err := s.db.insertID(`INSERT INTO files (area_id, name, description, size, sha256, uploader_id, uploader, created, long_desc)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, f.AreaID, f.Name, f.Description, f.Size, f.SHA256,
+		f.UploaderID, f.Uploader, now(), f.LongDesc)
 	if err != nil {
 		if isUnique(err) {
 			return 0, ErrExists
@@ -701,7 +707,45 @@ func (s *Store) AddFile(f *File) (int64, error) {
 
 // Files lists an area's files by name.
 func (s *Store) Files(area int64) ([]*File, error) {
-	rows, err := s.db.Query(`SELECT `+fileCols+` FROM files WHERE area_id = ? ORDER BY name`, area)
+	return s.fileList(`SELECT `+fileCols+` FROM files WHERE area_id = ? ORDER BY name`, area)
+}
+
+// FilesSince are the files of the areas added since t, newest first, up
+// to limit.
+func (s *Store) FilesSince(areas []int64, t time.Time, limit int) ([]*File, error) {
+	if len(areas) == 0 {
+		return nil, nil
+	}
+	in, args := inList(areas)
+	return s.fileList(`SELECT `+fileCols+` FROM files WHERE area_id IN (`+in+`) AND created > ?
+		ORDER BY created DESC, id DESC LIMIT ?`, append(args, t.Unix(), limit)...)
+}
+
+// SearchFiles are the files of the areas whose name or descriptions have
+// text in them (in any case), newest first, up to limit.
+func (s *Store) SearchFiles(areas []int64, text string, limit int) ([]*File, error) {
+	if len(areas) == 0 {
+		return nil, nil
+	}
+	in, args := inList(areas)
+	p := likeEscape(text)
+	return s.fileList(`SELECT `+fileCols+` FROM files WHERE area_id IN (`+in+`)
+		AND (LOWER(name{plain}) LIKE ? ESCAPE '!' OR LOWER(description) LIKE ? ESCAPE '!' OR LOWER(COALESCE(long_desc, '')) LIKE ? ESCAPE '!')
+		ORDER BY created DESC, id DESC LIMIT ?`, append(args, p, p, p, limit)...)
+}
+
+// inList is "?, ?, ?" for ids, and the ids as arguments.
+func inList(ids []int64) (string, []any) {
+	marks := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		marks[i], args[i] = "?", id
+	}
+	return strings.Join(marks, ", "), args
+}
+
+func (s *Store) fileList(q string, args ...any) ([]*File, error) {
+	rows, err := s.db.Query(q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -730,6 +774,11 @@ func (s *Store) FileByID(id int64) (*File, error) {
 // DeleteFile removes a file's record.
 func (s *Store) DeleteFile(id int64) error {
 	return s.exec1(`DELETE FROM files WHERE id = ?`, id)
+}
+
+// SetFileLongDesc changes a file's longer description.
+func (s *Store) SetFileLongDesc(id int64, desc string) error {
+	return s.exec1(`UPDATE files SET long_desc = ? WHERE id = ?`, desc, id)
 }
 
 // SetFileDescription changes a file's description.

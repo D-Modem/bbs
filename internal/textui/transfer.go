@@ -3,10 +3,12 @@ package textui
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 	"unicode"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/app"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
@@ -54,42 +56,82 @@ func (s *session) Transfers() bool { return true }
 // FileCommand: there is no file area command line.
 func (s *session) FileCommand(*store.FileArea, string) (string, error) { return "", nil }
 
-// Download sends a file.
-func (s *session) Download(a *store.FileArea, f *store.File) error {
+// started marks when a protocol first reads a file.
+type started struct {
+	r  io.Reader
+	on *bool
+}
+
+func (s started) Read(p []byte) (int, error) {
+	*s.on = true
+	return s.r.Read(p)
+}
+
+// Download sends files: many at once by a batch protocol, one by XMODEM.
+func (s *session) Download(fs []app.FileRef) error {
 	t := s.t
 	s.user = s.n.User()
-	if err := s.b.MayDownload(s.user, a); err != nil {
-		t.Println(t.C(Red, capital(err.Error())+"."))
+	for _, r := range fs {
+		if !s.b.CanDownload(s.user, r.Area) {
+			t.Println(t.C(Red, "Your access does not allow downloading from "+r.Area.Name+"."))
+			return nil
+		}
+	}
+	if left, why := s.b.DownloadsLeft(s.user); left >= 0 && len(fs) > left {
+		t.Println(t.C(Red, capital(why.Error())+"."))
 		return nil
 	}
 	p, err := s.chooseProtocol()
 	if err != nil || p == nil {
 		return err
 	}
-	r, err := s.b.Files.OpenFile(f)
-	if err != nil {
-		return err
+	if !p.Batch && len(fs) > 1 {
+		t.Println(t.C(Red, p.Name+" sends one file at a time: choose a batch protocol (YMODEM, ZMODEM, Kermit)."))
+		return nil
 	}
-	defer r.Close()
+	out := make([]xfer.Outgoing, len(fs))
+	begun := make([]bool, len(fs))
+	var size int64
+	for i, r := range fs {
+		f := r.File
+		in, err := s.b.Files.OpenFile(f)
+		if err != nil {
+			return err
+		}
+		defer in.Close()
+		out[i] = xfer.Outgoing{Name: f.Name, Size: f.Size, ModTime: f.Created, Data: started{in, &begun[i]}}
+		size += f.Size
+	}
 	t.Println(t.C(Cyan, startHint(p, false)))
 	port, err := t.Port()
 	if err != nil {
 		return err
 	}
-	s.n.Doing("Downloading " + f.Name)
+	what := fs[0].File.Name
+	if len(fs) > 1 {
+		what = fmt.Sprintf("%d files", len(fs))
+	}
+	s.n.Doing("Downloading " + what)
 	start := time.Now()
-	err = p.Send(port, []xfer.Outgoing{{Name: f.Name, Size: f.Size, ModTime: f.Created, Data: r}})
+	err = p.Send(port, out)
 	t.Settle(time.Second)
 	t.Println("")
+	// a file was sent when the transfer ended well, or went on to the next
+	for i, r := range fs {
+		if err == nil || i+1 < len(fs) && begun[i+1] {
+			s.b.Downloaded(s.user, r.File)
+			s.b.Log.Printf("node %d: %s downloaded %q by %s (%d bytes)", s.n.Num, s.user.Name, r.File.Name,
+				p.Name, r.File.Size)
+			t.Println(t.C(Green, "Sent "+r.File.Name+"."))
+		}
+	}
 	if err != nil {
-		s.b.Log.Printf("node %d: %s: %s download of %q failed: %v", s.n.Num, s.user.Name, p.Name, f.Name, err)
+		s.b.Log.Printf("node %d: %s: %s download of %s failed: %v", s.n.Num, s.user.Name, p.Name, what, err)
 		t.Println(t.C(Red, "The transfer failed: "+err.Error()+"."))
 		return nil
 	}
-	s.b.Downloaded(s.user, f)
-	s.b.Log.Printf("node %d: %s downloaded %q by %s (%d bytes, %v)", s.n.Num, s.user.Name, f.Name,
-		p.Name, f.Size, time.Since(start).Round(time.Second))
-	t.Println(t.C(Green, "Sent "+f.Name+"."))
+	s.b.Log.Printf("node %d: %s: %s sent by %s, %d bytes in %v", s.n.Num, s.user.Name, what, p.Name,
+		size, time.Since(start).Round(time.Second))
 	return nil
 }
 

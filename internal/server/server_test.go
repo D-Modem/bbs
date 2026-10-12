@@ -682,7 +682,7 @@ func TestFileTransfers(t *testing.T) {
 
 	// upload by Kermit
 	kdata := bytes.Repeat([]byte{1, 2, 3, '#', 0x80, 0xff}, 5000)
-	d.expect("[U]pload, [Q]uit: ")
+	d.expect("[U]pload, [T]ag, [Q]uit: ")
 	d.send("U\r")
 	d.expect("Protocol, [Q]uit: ")
 	d.send("K")
@@ -712,7 +712,7 @@ func TestFileTransfers(t *testing.T) {
 
 	// download the ZMODEM one by YMODEM (files are listed by name: k.bin
 	// is 1, "z file.bin" 2)
-	d.expect("[U]pload, [Q]uit: ")
+	d.expect("[U]pload, [T]ag, [Q]uit: ")
 	d.send("2\r")
 	d.expect("[Q]uit: ")
 	d.send("D")
@@ -752,6 +752,44 @@ func TestFileTransfers(t *testing.T) {
 	f, _ := e.b.Store.FileByName(a.ID, "z file.bin")
 	if f.Downloads != 2 || f.Description != "By ZMODEM" {
 		t.Errorf("record %+v", f)
+	}
+
+	// both at once: tagged, then the batch by YMODEM
+	d.expect("[Q]uit: ")
+	d.send("Q")
+	d.expect("[T]ag, [Q]uit: ")
+	d.send("T\r")
+	d.expect("Tag which (numbers, as 1 3 5-7)? ")
+	d.send("1-2\r")
+	d.expect("Tagged z file.bin (2 in the batch).")
+	d.expect("[B]atch (2 tagged), [Q]uit: ")
+	d.send("B\r")
+	d.expect("2 files, ")
+	d.expect("[D]ownload all, [C]lear, [Q]uit: ")
+	d.send("D\r")
+	d.expect("Protocol, [Q]uit: ")
+	d.send("Y")
+	d.expect("YMODEM (batch) download now")
+	got = nil
+	if err := xfer.ReceiveYMODEM(d.c, func(name string, size int64) (xfer.Incoming, error) {
+		m := &memIn{name: name}
+		got = append(got, m)
+		return m, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 || got[0].name != "k.bin" || !bytes.Equal(got[1].buf.Bytes(), zdata) {
+		t.Fatalf("the batch: %d files", len(got))
+	}
+	d.got = nil
+	d.expect("Sent k.bin")
+	d.expect("Sent z file.bin")
+	d.expect("[Q]uit: ") // the batch is empty: back in the area
+	if f, _ := e.b.Store.FileByName(a.ID, "z file.bin"); f.Downloads != 3 {
+		t.Errorf("downloads %d", f.Downloads)
+	}
+	if u, _ := e.b.Store.UserByName("alice"); u.Downloads != 4 || u.Uploads != 2 {
+		t.Errorf("alice: %d downloads, %d uploads", u.Downloads, u.Uploads)
 	}
 }
 

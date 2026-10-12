@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // open is a fresh store: SQLite here, or the engine of BBS_TEST_DATABASE.
@@ -332,5 +333,54 @@ func TestScanAndSearch(t *testing.T) {
 		if got := strings.Join(find(c.areas, c.text), " "); got != c.want {
 			t.Errorf("%q in %v: %q", c.text, c.areas, got)
 		}
+	}
+}
+
+func TestFilesFound(t *testing.T) {
+	s := open(t)
+	u, _ := s.CreateUser("alice", "password1", "", false)
+	a, _ := s.CreateFileArea("Games", "", false)
+	b, _ := s.CreateFileArea("Hidden", "", false)
+	for _, f := range []*File{{AreaID: a.ID, Name: "doom.zip", Description: "Shooter", LongDesc: "DOOM\nby id 100%"},
+		{AreaID: a.ID, Name: "zork.zip", Description: "Adventure"},
+		{AreaID: b.ID, Name: "secret.zip", Description: "Shooter too"}} {
+		f.UploaderID, f.Uploader, f.SHA256, f.Size = u.ID, u.Name, "x", 1
+		if _, err := s.AddFile(f); err != nil {
+			t.Fatal(err)
+		}
+	}
+	names := func(fs []*File, err error) string {
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, f := range fs {
+			out = append(out, f.Name)
+		}
+		return strings.Join(out, " ")
+	}
+	if got := names(s.SearchFiles([]int64{a.ID}, "SHOOT", 10)); got != "doom.zip" {
+		t.Errorf("by description %q", got)
+	}
+	if got := names(s.SearchFiles([]int64{a.ID, b.ID}, "0%", 10)); got != "doom.zip" {
+		t.Errorf("by the long one %q", got)
+	}
+	if got := names(s.SearchFiles([]int64{a.ID}, "zork", 10)); got != "zork.zip" {
+		t.Errorf("by name %q", got)
+	}
+	if got := names(s.FilesSince([]int64{a.ID}, time.Now().Add(-time.Hour), 10)); got != "zork.zip doom.zip" {
+		t.Errorf("since %q", got)
+	}
+	if got := names(s.FilesSince([]int64{a.ID}, time.Now().Add(time.Hour), 10)); got != "" {
+		t.Errorf("since later %q", got)
+	}
+	s.CountUserDownload(u.ID)
+	s.CountUserDownload(u.ID)
+	if u, _ = s.UserByID(u.ID); u.Uploads != 3 || u.Downloads != 2 || u.DownloadsToday() != 2 {
+		t.Errorf("counts %d %d %d", u.Uploads, u.Downloads, u.DownloadsToday())
+	}
+	f, _ := s.FileByName(a.ID, "doom.zip")
+	if f.LongDesc != "DOOM\nby id 100%" {
+		t.Errorf("long %q", f.LongDesc)
 	}
 }

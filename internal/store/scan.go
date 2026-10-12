@@ -66,15 +66,10 @@ func (s *Store) SearchMessages(areas []int64, text string, limit int) ([]*Messag
 	if len(areas) == 0 {
 		return nil, nil
 	}
-	args := []any{}
-	marks := make([]string, len(areas))
-	for i, a := range areas {
-		marks[i] = "?"
-		args = append(args, a)
-	}
+	in, args := inList(areas)
 	p := likeEscape(text)
 	args = append(args, p, p, p, limit)
-	return s.messageList(`SELECT `+msgCols+` FROM messages WHERE area_id IN (`+strings.Join(marks, ", ")+`)
+	return s.messageList(`SELECT `+msgCols+` FROM messages WHERE area_id IN (`+in+`)
 		AND (LOWER(subject) LIKE ? ESCAPE '!' OR LOWER(body) LIKE ? ESCAPE '!' OR LOWER(from_name) LIKE ? ESCAPE '!')
 		ORDER BY id DESC LIMIT ?`, args...)
 }

@@ -22,11 +22,11 @@ func (u *ui) ShowScreen(name string, wait bool) (bool, error) { return u.screen(
 func (u *ui) Chat(room, note string) error { return u.chat(room, note) }
 
 // Doors are ANSI programs: none here.
-func (u *ui) Doors() []*door.Door                         { return nil }
-func (u *ui) OpenDoor(*door.Door) error                   { return nil }
-func (u *ui) Transfers() bool                             { return false }
-func (u *ui) Download(*store.FileArea, *store.File) error { return nil }
-func (u *ui) Upload(*store.FileArea) error                { return nil }
+func (u *ui) Doors() []*door.Door          { return nil }
+func (u *ui) OpenDoor(*door.Door) error    { return nil }
+func (u *ui) Transfers() bool              { return false }
+func (u *ui) Download([]app.FileRef) error { return nil }
+func (u *ui) Upload(*store.FileArea) error { return nil }
 
 // FileCommand runs an IND$FILE transfer typed on a file area's command line.
 func (u *ui) FileCommand(a *store.FileArea, cmd string) (string, error) {

@@ -212,3 +212,32 @@ func TestTimeLimit(t *testing.T) {
 	}
 	s.Leave()
 }
+
+func TestDownloadRatio(t *testing.T) {
+	b, ns := chatBBS(t)
+	l := AllowAll(20, "Member")
+	l.Ratio, l.RatioFree, l.Downloads = 2, 3, 10
+	b.Levels = []Level{l}
+	u := ns["alice"].Refresh()
+	u.Level = 20
+	if left, _ := b.DownloadsLeft(u); left != 3 {
+		t.Errorf("free %d", left)
+	}
+	u.Downloads, u.Uploads = 3, 0
+	left, why := b.DownloadsLeft(u)
+	if left != 0 || why == nil || !strings.Contains(why.Error(), "upload a file to download 2 more") {
+		t.Errorf("used up: %d %v", left, why)
+	}
+	u.Uploads = 4 // 3 + 2*4 - 3 downloaded
+	if left, _ := b.DownloadsLeft(u); left != 8 {
+		t.Errorf("ratio %d", left)
+	}
+	u.DLCount, u.DLDay = 9, store.Today()
+	if left, why := b.DownloadsLeft(u); left != 1 || !strings.Contains(why.Error(), "today") {
+		t.Errorf("daily %d %v", left, why)
+	}
+	u.Sysop = true
+	if left, _ := b.DownloadsLeft(u); left != -1 {
+		t.Errorf("sysop %d", left)
+	}
+}

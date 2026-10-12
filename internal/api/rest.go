@@ -49,6 +49,8 @@ func (s *Server) routes() map[string]route {
 		"GET /api/v1/fileareas/{id}/files":  {scope: "files", h: s.files},
 		"POST /api/v1/fileareas/{id}/files": {scope: "files", h: s.upload},
 		"GET /api/v1/files/{id}":            {scope: "files", h: s.file},
+		"GET /api/v1/files":                 {scope: "files", h: s.findFiles},
+		"GET /api/v1/files/{id}/listing":    {scope: "files", h: s.listing},
 		"GET /api/v1/files/{id}/content":    {scope: "files", h: s.download},
 
 		"GET /api/v1/chat/rooms":         {scope: "chat", h: s.rooms},
@@ -183,10 +185,11 @@ type fileJSON struct {
 	Uploader    string    `json:"uploader"`
 	Created     time.Time `json:"created"`
 	Downloads   int       `json:"downloads"`
+	LongDesc    string    `json:"long_description,omitempty"`
 }
 
 func fileOut(f *store.File) fileJSON {
-	return fileJSON{f.ID, f.AreaID, f.Name, f.Description, f.Size, f.SHA256, f.Uploader, f.Created, f.Downloads}
+	return fileJSON{f.ID, f.AreaID, f.Name, f.Description, f.Size, f.SHA256, f.Uploader, f.Created, f.Downloads, f.LongDesc}
 }
 
 // --- helpers
@@ -308,6 +311,13 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 		"validated": u.Sysop || u.Level >= s.B.ValidatedLevel}
 	if lvl.Downloads > 0 {
 		access["downloads_per_day"] = lvl.Downloads
+	}
+	if lvl.Ratio > 0 {
+		access["ratio"], access["ratio_free"] = lvl.Ratio, lvl.RatioFree
+	}
+	access["downloads"], access["uploads"] = u.Downloads, u.Uploads
+	if left, _ := s.B.DownloadsLeft(u); left >= 0 {
+		access["downloads_left"] = left
 	}
 	if lvl.Time > 0 {
 		access["minutes_per_day"] = int(lvl.Time.Minutes())
@@ -681,6 +691,78 @@ func (s *Server) fileAreas(w http.ResponseWriter, r *http.Request) {
 		out = append(out, map[string]any{"id": fa.ID, "name": fa.Name, "description": fa.Description,
 			"sysop_upload": fa.SysopUpload, "files": fa.Files,
 			"can_download": s.B.CanDownload(u, fa), "can_upload": s.B.CanUpload(u, fa)})
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// findFiles: files by words (?q=) or since a time (?since=), in the
+// areas the user may see, newest first.
+func (s *Server) findFiles(w http.ResponseWriter, r *http.Request) {
+	if s.noFiles(w) {
+		return
+	}
+	fas, _ := s.B.Store.FileAreas()
+	u := whoOf(r).user
+	var ids []int64
+	for _, fa := range fas {
+		if s.B.CanDownload(u, fa) || s.B.CanUpload(u, fa) {
+			ids = append(ids, fa.ID)
+		}
+	}
+	q, since := strings.TrimSpace(r.URL.Query().Get("q")), r.URL.Query().Get("since")
+	var fs []*store.File
+	var err error
+	switch {
+	case q != "":
+		if len([]rune(q)) < 2 {
+			fail(w, http.StatusBadRequest, "q is two characters or more")
+			return
+		}
+		fs, err = s.B.Store.SearchFiles(ids, q, 200)
+	case since != "":
+		t, perr := time.Parse(time.RFC3339, since)
+		if perr != nil {
+			fail(w, http.StatusBadRequest, "since is a time as 2006-01-02T15:04:05Z")
+			return
+		}
+		fs, err = s.B.Store.FilesSince(ids, t, 200)
+	default:
+		fail(w, http.StatusBadRequest, "give q (words) or since (a time)")
+		return
+	}
+	if err != nil {
+		fail(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	out := []fileJSON{}
+	for _, f := range fs {
+		out = append(out, fileOut(f))
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// listing: what is in a file that is an archive
+func (s *Server) listing(w http.ResponseWriter, r *http.Request) {
+	f := s.fileByPath(w, r)
+	if f == nil {
+		return
+	}
+	es, err := s.B.Files.Listing(f)
+	if errors.Is(err, files.ErrNotArchive) {
+		fail(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+	if err != nil {
+		fail(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	out := []map[string]any{}
+	for _, e := range es {
+		m := map[string]any{"name": e.Name, "size": e.Size, "dir": e.Dir}
+		if !e.Modified.IsZero() {
+			m["modified"] = e.Modified
+		}
+		out = append(out, m)
 	}
 	writeJSON(w, http.StatusOK, out)
 }

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"archive/zip"
 	"bytes"
 	"log"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
+	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/view"
 )
@@ -17,6 +19,7 @@ import (
 // what it was shown.
 type fake struct {
 	t      *testing.T
+	b      *bbs.BBS
 	script []any // a string (Menu, Message, Panel), view.Choice, map[string]string (Form), bool (Confirm), draft
 	shown  []string
 	said   []string
@@ -111,13 +114,19 @@ func (f *fake) Show(title string, ls []view.Line) error {
 	return nil
 }
 
-func (f *fake) Kind() string                                        { return Text }
-func (f *fake) ShowScreen(string, bool) (bool, error)               { return false, nil }
-func (f *fake) Chat(room, note string) error                        { return nil }
-func (f *fake) Doors() []*door.Door                                 { return nil }
-func (f *fake) OpenDoor(*door.Door) error                           { return nil }
-func (f *fake) Transfers() bool                                     { return true }
-func (f *fake) Download(*store.FileArea, *store.File) error         { return nil }
+func (f *fake) Kind() string                          { return Text }
+func (f *fake) ShowScreen(string, bool) (bool, error) { return false, nil }
+func (f *fake) Chat(room, note string) error          { return nil }
+func (f *fake) Doors() []*door.Door                   { return nil }
+func (f *fake) OpenDoor(*door.Door) error             { return nil }
+func (f *fake) Transfers() bool                       { return true }
+func (f *fake) Download(fs []FileRef) error {
+	for _, r := range fs {
+		f.b.Downloaded(nil, r.File)
+		f.said = append(f.said, "sent "+r.File.Name)
+	}
+	return nil
+}
 func (f *fake) Upload(*store.FileArea) error                        { return nil }
 func (f *fake) FileCommand(*store.FileArea, string) (string, error) { return "", nil }
 func (f *fake) Terminal() string                                    { return "test" }
@@ -160,7 +169,7 @@ func setup(t *testing.T) (*bbs.BBS, *bbs.Node, *bbs.Node) {
 
 func run(t *testing.T, b *bbs.BBS, n *bbs.Node, script ...any) *fake {
 	t.Helper()
-	f := &fake{t: t, script: script}
+	f := &fake{t: t, b: b, script: script}
 	if err := Run(b, n, f); err != ErrLogoff {
 		t.Fatalf("Run: %v; shown %q", err, f.shown)
 	}
@@ -241,6 +250,63 @@ func TestScanToYouFind(t *testing.T) {
 	}
 	if off, _ := b.Store.ScanOff(alice.User().ID); !off[other.ID] {
 		t.Errorf("off %v", off)
+	}
+}
+
+func TestFileBase(t *testing.T) {
+	b, alice, sysop := setup(t)
+	fs, err := files.Open(b.Store, t.TempDir(), 1<<20, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.Files = fs
+	area, _ := b.Store.CreateFileArea("Games", "Shareware", false)
+	var zb bytes.Buffer
+	z := zip.NewWriter(&zb)
+	w, _ := z.Create("FILE_ID.DIZ")
+	w.Write([]byte("DOOM shareware\nby id"))
+	w, _ = z.Create("doom.exe")
+	w.Write([]byte("MZ"))
+	z.Close()
+	sys := sysop.User()
+	for _, u := range []struct {
+		name string
+		data []byte
+	}{{"doom.zip", zb.Bytes()}, {"notes.txt", []byte("hi")}} {
+		name, data := u.name, u.data
+		up, err := fs.Upload(sys, area, name, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		up.Write(data)
+		if _, err := up.Commit(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f := run(t, b, alice,
+		"F",
+		// new files since alice's last call (never: the last 30 days)
+		view.Choice{Action: "new"}, view.Choice{Action: view.Pick, Row: 1}, // doom.zip: newest first, then by id
+		"view", view.Choice{Action: view.Back}, "tag", view.Back,
+		view.Choice{Action: view.Back},
+		// find by the DIZ's words
+		view.Choice{Action: "find"}, map[string]string{"text": "id"}, view.Choice{Action: view.Back},
+		// in the area: tag notes.txt too, and download the batch
+		view.Choice{Action: view.Pick, Row: 0}, view.Choice{Action: "tag"}, map[string]string{"n": "2 9"},
+		view.Choice{Action: "batch"}, view.Choice{Action: "download"},
+		view.Choice{Action: view.Back}, view.Choice{Action: view.Back})
+	has(t, "screens", f.shown, "table New files since")
+	has(t, "screens", f.shown, "panel doom.zip: Name:doom.zip;")
+	has(t, "screens", f.shown, "; DOOM shareware; by id;")
+	has(t, "screens", f.shown, "table In doom.zip: FILE_ID.DIZ|20 B|; doom.exe|2 B|")
+	has(t, "said", f.said, "Tagged doom.zip (1 in the batch).")
+	has(t, "screens", f.shown, "table Files: id: Games|doom.zip|")
+	has(t, "said", f.said, "No such file: 9.")
+	has(t, "said", f.said, "Tagged notes.txt (2 in the batch).")
+	has(t, "said", f.said, "sent doom.zip")
+	has(t, "said", f.said, "sent notes.txt")
+	if fl, _ := b.Store.FileByName(area.ID, "doom.zip"); fl.Downloads != 1 {
+		t.Errorf("downloads %d", fl.Downloads)
 	}
 }
 

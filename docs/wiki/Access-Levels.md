@@ -38,6 +38,8 @@ gets `[level 20]`'s.  A level under every `[level]` has no limits.  Each
 | `name` | `Level N` | shown in the profile and to the API |
 | `time` | `0` | minutes online a day; the caller is warned at 5 and 1 minutes left and hung up at the end (and gets at least a minute of a call, to read and log off).  A door's time limit is cut to what is left |
 | `downloads` | `0` | files a day, by any way (the BBS, FTP, 3270, the API) |
+| `ratio` | `0` | files a user may download for each they have uploaded (0: no ratio); the files uploaded are those still in the areas |
+| `ratio_free` | `0` | files a user may download before the ratio counts: with `ratio = 3` and `ratio_free = 10`, someone with 2 uploads may download 16 |
 | `post` | `yes` | post in message areas |
 | `mail` | `yes` | mail other users (and netmail); without it, only the sysop |
 | `chat` | `yes` | chat rooms (a page's private room is the page's) |

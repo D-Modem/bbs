@@ -222,6 +222,13 @@ func (up *Upload) Commit() (*store.File, error) {
 	f := &store.File{AreaID: up.area.ID, Name: up.name, Description: up.desc, Size: up.size,
 		SHA256:     hex.EncodeToString(up.hash.Sum(nil)),
 		UploaderID: up.user.ID, Uploader: up.user.Name}
+	// an archive describes itself: its FILE_ID.DIZ
+	if d := diz(tmp, up.name); d != "" {
+		f.LongDesc = d
+		if f.Description == "" {
+			f.Description = short(d)
+		}
+	}
 	id, err := up.s.DB.AddFile(f)
 	if errors.Is(err, store.ErrExists) {
 		return fail(ErrExists)

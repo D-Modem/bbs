@@ -46,7 +46,8 @@ type Frontend interface {
 	// Transfers: files go by a transfer protocol (Download and Upload);
 	// otherwise by the file area's command line (FileCommand).
 	Transfers() bool
-	Download(a *store.FileArea, f *store.File) error
+	// Download sends files, many at once where the protocol can.
+	Download(fs []FileRef) error
 	Upload(a *store.FileArea) error
 	// FileCommand runs what was typed on a file area's command line; what
 	// to tell the caller after.
@@ -62,18 +63,31 @@ type Frontend interface {
 	Logoff() (bool, error)
 }
 
+// FileRef is a file and its area.
+type FileRef struct {
+	Area *store.FileArea
+	File *store.File
+}
+
 // Session is a caller's time on the BBS after the login.
 type Session struct {
 	B    *bbs.BBS
 	N    *bbs.Node
 	UI   Frontend
 	User *store.User
+
+	since time.Time // the caller's last call: new files are since then
+	batch []FileRef // files tagged to download together
 }
 
 // Run is the session from the welcome to the logoff (ErrLogoff) or the
 // caller's going.
 func Run(b *bbs.BBS, n *bbs.Node, ui Frontend) error {
 	s := &Session{B: b, N: n, UI: ui, User: n.Refresh()}
+	s.since = s.User.LastLogin
+	if s.since.IsZero() {
+		s.since = time.Now().AddDate(0, 0, -30)
+	}
 	shown, err := ui.ShowScreen("welcome", ui.Kind() == TN3270)
 	if err != nil {
 		return err

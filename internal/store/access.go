@@ -29,7 +29,7 @@ func (s *Store) AddTime(id int64, secs int) error {
 func (s *Store) CountUserDownload(id int64) error {
 	day := Today()
 	return s.exec1(`UPDATE users SET dl_count = CASE WHEN dl_day = ? THEN dl_count + 1 ELSE 1 END,
-		dl_day = ? WHERE id = ?`, day, day, id)
+		dl_day = ?, downloads = downloads + 1 WHERE id = ?`, day, day, id)
 }
 
 // TimeToday is the user's time online today, in seconds.

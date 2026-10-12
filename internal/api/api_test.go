@@ -1,6 +1,7 @@
 package api
 
 import (
+	"archive/zip"
 	"bufio"
 	"bytes"
 	"context"
@@ -222,6 +223,34 @@ func TestREST(t *testing.T) {
 	resp.Body.Close()
 	if resp.StatusCode != 206 || string(got) != "world\n" {
 		t.Errorf("range download: %d %q", resp.StatusCode, got)
+	}
+	// an archive: its FILE_ID.DIZ, its listing; finding files
+	var zb bytes.Buffer
+	z := zip.NewWriter(&zb)
+	zw, _ := z.Create("FILE_ID.DIZ")
+	zw.Write([]byte("Zork I\nThe Great Underground Empire"))
+	z.Close()
+	if code, m, _ = s.do("POST", "/api/v1/fileareas/1/files?name=zork.zip", alice, zb.Bytes()); code != 201 ||
+		m["description"] != "Zork I" || m["long_description"] != "Zork I\nThe Great Underground Empire" {
+		t.Fatalf("zip upload: %d %v", code, m)
+	}
+	zid := int(m["id"].(float64))
+	if code, _, l := s.do("GET", fmt.Sprintf("/api/v1/files/%d/listing", zid), alice, nil); code != 200 || len(l) != 1 {
+		t.Errorf("listing: %d %v", code, l)
+	}
+	if code, _, _ := s.do("GET", "/api/v1/files/1/listing", alice, nil); code != 422 {
+		t.Errorf("listing a text file: %d", code)
+	}
+	if code, _, l := s.do("GET", "/api/v1/files?q=underground", alice, nil); code != 200 || len(l) != 1 {
+		t.Errorf("find: %d %v", code, l)
+	}
+	if code, _, l := s.do("GET", "/api/v1/files?since=2000-01-01T00:00:00Z", alice, nil); code != 200 || len(l) != 2 {
+		t.Errorf("since: %d %v", code, l)
+	}
+	for _, q := range []string{"", "?q=z", "?since=yesterday"} {
+		if code, _, _ := s.do("GET", "/api/v1/files"+q, alice, nil); code != 400 {
+			t.Errorf("files%s: %d", q, code)
+		}
 	}
 
 	// sysop

@@ -93,8 +93,13 @@ var (
 )
 
 // query is a statement in the engine's SQL: its placeholders ($1 ... for
-// PostgreSQL), INSERT OR IGNORE, upserts, {greatest}.
+// PostgreSQL), INSERT OR IGNORE, upserts, {greatest}, {plain} (after a
+// {name} column: its value with an ordinary collation, which LIKE needs
+// on PostgreSQL).
 func (d *dialect) query(q string) string {
+	if d.name != Postgres {
+		q = strings.ReplaceAll(q, "{plain}", "")
+	}
 	switch d.name {
 	case SQLite:
 		return strings.ReplaceAll(q, "{greatest}", "MAX")
@@ -108,6 +113,7 @@ func (d *dialect) query(q string) string {
 		return q
 	}
 	q = strings.ReplaceAll(q, "{greatest}", "GREATEST")
+	q = strings.ReplaceAll(q, "{plain}", ` COLLATE "C"`)
 	if strings.HasPrefix(q, "INSERT OR IGNORE INTO") {
 		q = "INSERT INTO" + strings.TrimPrefix(q, "INSERT OR IGNORE INTO") + " ON CONFLICT DO NOTHING"
 	}

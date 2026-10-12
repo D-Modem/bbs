@@ -1,6 +1,37 @@
-File areas hold files; callers browse them from the BBS (*F* in the text
-menu, *8* on a 3270) and move them with an FTP client, logging in with
-their BBS name and password: each area is a directory.
+File areas hold files; callers browse them from the BBS (*F* on the main
+menu) and move them with an FTP client, logging in with their BBS name
+and password: each area is a directory.
+
+## On the BBS
+
+| | key | PF | |
+|---|---|---|---|
+| an area | its number | `S` by it | its files, by name |
+| new files | `N` | PF5 | the files added since your last call (the last 30 days on a first call), in every area, newest first |
+| find | `F` | PF10 | files whose name or descriptions have the words (in any case) |
+| batch | `B` | | the files tagged, to download together (text terminals) |
+
+A file's details show its description and, for an archive, its longer
+description: an archive uploaded with a `FILE_ID.DIZ` (in the archive's
+top level) is described by it, the first line that says something
+becoming its description unless the uploader gave one (CP437 art is
+decoded, colors and control characters left out, at most 20 lines).
+From the details:
+
+| | key | PF | |
+|---|---|---|---|
+| download | `D` | | by a transfer protocol ([File transfers](File-Transfers)) |
+| tag | `T` | | into the batch, or out of it |
+| view | `V` | PF6 | what is in a ZIP, tar or tar.gz: names, sizes, dates |
+| describe, remove | `E`, `R` | PF5, PF9 | its uploader's or a sysop's |
+
+In an area, `T` tags by numbers (`1 3 5-7`); `*` marks those tagged.
+The batch goes by YMODEM, ZMODEM or Kermit (XMODEM sends one file), all
+at once; a file counts as downloaded once the protocol has gone on to
+the next or the transfer has ended well, and leaves the batch.  The day's
+downloads and the [ratio](Access-Levels) are checked for the whole batch
+before it starts.  On a 3270, files come and go by IND$FILE on the
+area's command line ([TN3270](TN3270)).
 
 ```
 ; bbs.conf

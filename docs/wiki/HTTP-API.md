@@ -78,6 +78,8 @@ Errors are `{"error": "...", "code": "..."}`.
 | `GET /fileareas`, `/fileareas/{id}/files`, `/files/{id}` | file areas and files | files |
 | `POST /fileareas/{id}/files?name=&description=` | upload: the body is the file | files |
 | `GET /files/{id}/content` | download (ranges work) | files |
+| `GET /files?q=` or `?since=` | files by words in their names and descriptions, or added since a time (RFC 3339), newest first | files |
+| `GET /files/{id}/listing` | what is in an archive (ZIP, tar, tar.gz); 422 for another file | files |
 | `GET /chat/rooms` | chat rooms in use | chat |
 | `POST /nodes/{n}/message`, `POST /page` | a line to a node; page the sysop (both need an open stream) | chat |
 | `GET /events` | server-sent events | chat or read |

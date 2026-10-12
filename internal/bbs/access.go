@@ -181,13 +181,16 @@ type Level struct {
 	Name      string
 	Time      time.Duration // online a day (0: no limit)
 	Downloads int           // files a day (0: no limit)
-	Post      bool          // in message areas
-	Mail      bool          // mail to users other than sysops
-	Chat      bool
-	Page      bool // the sysop
-	Download  bool
-	Upload    bool
-	Doors     bool
+	// Ratio is the files a user may download for each they have uploaded,
+	// once they have downloaded RatioFree (Ratio 0: no ratio)
+	Ratio, RatioFree int
+	Post             bool // in message areas
+	Mail             bool // mail to users other than sysops
+	Chat             bool
+	Page             bool // the sysop
+	Download         bool
+	Upload           bool
+	Doors            bool
 }
 
 // AllowAll is a level with no limits.
@@ -253,10 +256,30 @@ func (b *BBS) MayDownload(u *store.User, a *store.FileArea) error {
 	if !b.CanDownload(u, a) {
 		return ErrNotAllowed
 	}
-	if l := b.LevelOf(u); l.Downloads > 0 && u.DownloadsToday() >= l.Downloads {
-		return fmt.Errorf("that is your %d downloads for today", l.Downloads)
+	if left, why := b.DownloadsLeft(u); left == 0 {
+		return why
 	}
 	return nil
+}
+
+// DownloadsLeft is how many files u may download now (-1: no limit), and
+// if there is a limit, the reason as an error.
+func (b *BBS) DownloadsLeft(u *store.User) (int, error) {
+	l := b.LevelOf(u)
+	left, why := -1, error(nil)
+	if l.Downloads > 0 {
+		left = max(l.Downloads-u.DownloadsToday(), 0)
+		why = fmt.Errorf("that is your %d downloads for today", l.Downloads)
+	}
+	if l.Ratio > 0 {
+		r := max(l.RatioFree+l.Ratio*u.Uploads-u.Downloads, 0)
+		if left < 0 || r < left {
+			left = r
+			why = fmt.Errorf("you have downloaded %d files for %d uploads: upload a file to download %d more",
+				u.Downloads, u.Uploads, l.Ratio)
+		}
+	}
+	return left, why
 }
 
 // Downloaded counts a download of f by u (u nil: anonymous, as gopher's).
@@ -265,6 +288,7 @@ func (b *BBS) Downloaded(u *store.User, f *store.File) {
 	if u != nil && u.ID != 0 {
 		b.Store.CountUserDownload(u.ID)
 		u.DLCount, u.DLDay = u.DownloadsToday()+1, store.Today()
+		u.Downloads++
 	}
 }
 

@@ -57,6 +57,12 @@ func level(sec *config.Section) (bbs.Level, error) {
 	if l.Downloads, err = sec.Int("downloads", 0, 0, 100000); err != nil {
 		return l, err
 	}
+	if l.Ratio, err = sec.Int("ratio", 0, 0, 1000); err != nil {
+		return l, err
+	}
+	if l.RatioFree, err = sec.Int("ratio_free", 0, 0, 100000); err != nil {
+		return l, err
+	}
 	for _, b := range []struct {
 		key string
 		p   *bool
