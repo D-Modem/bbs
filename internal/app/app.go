@@ -15,6 +15,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
+	"github.com/Neo-Desktop/bbs-sec/internal/script"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/view"
 )
@@ -93,6 +94,12 @@ func Run(b *bbs.BBS, n *bbs.Node, ui Frontend) error {
 		return err
 	}
 	intro := s.welcome(shown)
+	// the sysop's logon script, before the menus
+	if b.ScriptsDir != "" && script.For(b.ScriptsDir).Has("logon") {
+		if err := s.runScript("logon"); err != nil {
+			return err
+		}
+	}
 	if m := b.Menus["main"]; m != nil {
 		return s.runMenu(m, 0, intro)
 	}
@@ -347,6 +354,8 @@ func (s *Session) do(it *bbs.MenuItem, depth int) error {
 			s.UI.Say(view.Plain, "There is nothing to show.")
 		}
 		return err
+	case "script":
+		return s.runScript(it.Arg)
 	case "area":
 		a, err := s.B.Store.AreaByName(it.Arg)
 		if err != nil || !s.B.CanRead(s.User, a) {
@@ -356,6 +365,17 @@ func (s *Session) do(it *bbs.MenuItem, depth int) error {
 		return s.area(a)
 	}
 	return nil
+}
+
+// runScript runs a script of the sysop's for the caller.
+func (s *Session) runScript(name string) error {
+	if s.B.ScriptsDir == "" {
+		s.UI.Say(view.Bad, "There are no scripts.")
+		return nil
+	}
+	err := script.For(s.B.ScriptsDir).Run(name, s.B, s.N, s.UI)
+	s.refresh()
+	return err
 }
 
 // doors: the list of doors, and into one

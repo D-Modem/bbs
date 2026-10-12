@@ -54,6 +54,13 @@ func (s *Store) MessagesTo(name string, limit int) ([]*Message, error) {
 		ORDER BY id DESC LIMIT ?`, name, limit)
 }
 
+// likePrefix makes text a LIKE pattern that matches what begins with it,
+// in its case.
+func likePrefix(text string) string {
+	r := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_")
+	return r.Replace(text) + "%"
+}
+
 // likeEscape makes text a LIKE pattern that matches it anywhere.
 func likeEscape(text string) string {
 	r := strings.NewReplacer("!", "!!", "%", "!%", "_", "!_")

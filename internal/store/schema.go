@@ -67,6 +67,13 @@ CREATE TABLE IF NOT EXISTS scan_off (
 	area_id {int} NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
 	PRIMARY KEY (user_id, area_id)
 )`, `
+CREATE TABLE IF NOT EXISTS script_data (
+	script  {key} NOT NULL,
+	user_id {int} NOT NULL DEFAULT 0,
+	name    {key} NOT NULL,
+	value   {text} NOT NULL,
+	PRIMARY KEY (script, user_id, name)
+)`, `
 CREATE TABLE IF NOT EXISTS mail (
 	id        {id},
 	from_id   {int} NOT NULL,

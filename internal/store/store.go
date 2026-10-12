@@ -293,7 +293,11 @@ func (s *Store) SetLocked(id int64, locked bool) error {
 
 // DeleteUser removes an account and its mail; its messages stay.
 func (s *Store) DeleteUser(id int64) error {
-	return s.exec1(`DELETE FROM users WHERE id = ?`, id)
+	if err := s.exec1(`DELETE FROM users WHERE id = ?`, id); err != nil {
+		return err
+	}
+	_, err := s.db.Exec(`DELETE FROM script_data WHERE user_id = ?`, id)
+	return err
 }
 
 // LoggedIn counts a login.

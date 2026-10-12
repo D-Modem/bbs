@@ -122,6 +122,8 @@ type BBS struct {
 	Screens *screens.Set
 	Menus   map[string]*Menu
 	Text    map[string]string
+	// ScriptsDir has the sysop's JavaScript ("": no scripts)
+	ScriptsDir string
 	// Stats count logins, posts and the like
 	Stats Stats
 

@@ -399,7 +399,7 @@ func (u *ui) Form(f *view.Form) (map[string]string, bool, error) {
 				break
 			}
 			scr = append(scr, u.text(row, 2, fmt.Sprintf("%-16s ===>", bbs.Trunc(fd.Label, 16)), go3270.Turquoise, false))
-			fs, next := u.field(row, 23, fd.Width, fd.Name, fd.Secret)
+			fs, next := u.field(row, 24, fd.Width, fd.Name, fd.Secret) // the label ends at 23
 			inputs = append(inputs, fs...)
 			row = next
 		}

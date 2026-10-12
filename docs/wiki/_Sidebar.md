@@ -7,6 +7,7 @@
 - [Configuration](Configuration)
 - [Databases](Databases)
 - [Customization](Customization)
+- [Scripting](Scripting)
 - [Access levels](Access-Levels)
 
 **Callers**

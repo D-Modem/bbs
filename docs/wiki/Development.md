@@ -6,6 +6,7 @@
 | `internal/server` | listeners, session headers, rlogin, SSH, telling 3270s from the rest |
 | `internal/telnet` | the server side of telnet: options, terminal type, window size, the handoff to go3270 |
 | `internal/view` | what the screens show, described once: menus, tables, messages, forms, panels, drafts |
+| `internal/script` | the sysop's JavaScript (goja): screens of internal/view, the BBS as the caller, data kept, the time a script may compute |
 | `internal/app` | the screens after the login, for every front end: menus, areas, mail, files, who's online, the profile, validation, paging the sysop |
 | `internal/textui` | the text front end: the login, line editing, ANSI detection, paging, RIP menus; the screens as prompts and keys; chat, doors, transfers |
 | `internal/ui3270` | the 3270 front end: the logon, the screens as fields and PF keys on go3270; chat, IND$FILE, its graphics |
@@ -132,7 +133,11 @@ The full-screen editor: its text (wrapping as typed and as given, a word
 too long for a line, joining lines by Backspace and Delete, moving over
 line ends, quoting, the line limit), and an SSH caller writing a post
 with the cursor keys, replying with lines from the quote window and
-`/S`, then choosing the line editor; the file base (FILE_ID.DIZ in CP437
+`/S`, then choosing the line editor; scripts (screens, data kept for all
+and for a user, posting with refusals caught, a runaway loop stopped and a
+slow caller not, failures told to the sysop alone, a hang-up the script
+cannot catch, exit, the sample poll, the configuration's checks, and the
+sample one-liners on a text terminal and on a 3270 by s3270); the file base (FILE_ID.DIZ in CP437
 with colors, a ZIP's and a tar.gz's listings, new files, finding by the
 DIZ's words, tagging by numbers, a batch of two by YMODEM, ratios and the day's limit together, the API's
 search and listings); the new scan's areas, messages to

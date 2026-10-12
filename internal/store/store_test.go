@@ -384,3 +384,39 @@ func TestFilesFound(t *testing.T) {
 		t.Errorf("long %q", f.LongDesc)
 	}
 }
+
+func TestScriptData(t *testing.T) {
+	s := open(t)
+	u, _ := s.CreateUser("alice", "password1", "", false)
+	if _, ok, err := s.ScriptGet("one", 0, "x"); ok || err != nil {
+		t.Fatalf("none: %v %v", ok, err)
+	}
+	for _, kv := range [][2]string{{"line_1", "a"}, {"line_2", "b"}, {"line%3", "c"}, {"other", "d"}, {"line_1", "A"}} {
+		if err := s.ScriptSet("one", 0, kv[0], kv[1]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s.ScriptSet("one", u.ID, "line_1", "mine")
+	s.ScriptSet("two", 0, "line_1", "theirs")
+	if v, ok, _ := s.ScriptGet("one", 0, "line_1"); !ok || v != "A" {
+		t.Errorf("get %q", v)
+	}
+	if v, _, _ := s.ScriptGet("one", u.ID, "line_1"); v != "mine" {
+		t.Errorf("the user's %q", v)
+	}
+	names, err := s.ScriptNames("one", 0, "line_", 10)
+	if err != nil || strings.Join(names, " ") != "line_1 line_2" {
+		t.Errorf("names %v %v", names, err)
+	}
+	if names, _ := s.ScriptNames("one", 0, "", 2); len(names) != 2 {
+		t.Errorf("limit %v", names)
+	}
+	s.ScriptDelete("one", 0, "other")
+	if n, _ := s.ScriptCount("one", 0); n != 3 {
+		t.Errorf("count %d", n)
+	}
+	s.DeleteUser(u.ID)
+	if n, _ := s.ScriptCount("one", u.ID); n != 0 {
+		t.Errorf("a deleted user's: %d", n)
+	}
+}

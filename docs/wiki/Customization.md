@@ -120,6 +120,7 @@ begin comments), then what it does:
 | `menu:NAME` | another menu |
 | `screen:NAME` | show a screen |
 | `area:NAME` | straight into a message area |
+| `script:NAME` | run a script of `scripts_dir` ([Scripting](Scripting)) |
 
 With `screen =`, a text terminal sees the screen (which shows the keys
 itself), and a 3270 the screen's `.3270` (or `.asc`, `.txt`) version if

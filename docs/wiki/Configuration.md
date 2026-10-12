@@ -27,6 +27,7 @@ whether terminals are asked what they are: [Terminal identification](Terminal-Id
 | `[fido]`, `[binkp]`, `[link NAME]` | FidoNet: our address, the binkp mailer, links | [FidoNet](FidoNet) |
 | `[door NAME]` | a door program | [Doors](Doors) |
 | `screens_dir` (in `[general]`), `[menu NAME]`, `[strings]` | the sysop's screens, menus and prompts | [Customization](Customization) |
+| `scripts_dir` (in `[general]`) | the sysop's JavaScript | [Scripting](Scripting) |
 | `[finger]`, `[gopher]` | the finger and gopher servers | [Finger and gopher](Finger-and-Gopher) |
 | `database` (in `[general]`) | SQLite's file, or a PostgreSQL, MySQL or MariaDB server | [Databases](Databases) |
 | `[level N]`, `new_user_level`, `validated_level` (in `[general]`) | access levels | [Access levels](Access-Levels) |

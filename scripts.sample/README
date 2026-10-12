@@ -1,0 +1,8 @@
+Sample scripts for scripts_dir: copy them there and give them menu items.
+
+  oneliners.js   the last lines callers left, and one of yours
+  poll.js        a poll: a vote each, the results as bars
+
+A logon.js there runs after every login, before the menus.
+
+See the wiki's Scripting page for what a script can do.

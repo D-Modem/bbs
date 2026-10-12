@@ -31,6 +31,9 @@ log = syslog
 ; those menus name; NAME.ans (ANSI, CP437), NAME.asc (text), NAME.3270.
 ; screens.sample has some to start from
 ;screens_dir = /etc/bbs/screens
+; the sysop's JavaScript: NAME.js runs from a menu's script:NAME, logon.js
+; after each login; scripts.sample has some to start from
+;scripts_dir = /etc/bbs/scripts
 ; a caller pages the sysop and no sysop is on: tell them this way ({user},
 ; {node} and {reason} filled in; no shell).  E.g. a push by ntfy.sh:
 ;page_command = curl -s -d "{user} on node {node}: {reason}" https://ntfy.sh/my-bbs-pages

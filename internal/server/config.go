@@ -46,6 +46,7 @@ type Config struct {
 	Doors      []*door.Door
 	Finger     *finger.Settings // nil: no finger server
 	Screens    *screens.Set     // nil: no screens of the sysop's
+	ScriptsDir string           // "": no scripts
 	Menus      map[string]*bbs.Menu
 	Text       map[string]string // [strings]
 	HTTP       *api.Settings     // nil: no HTTP API

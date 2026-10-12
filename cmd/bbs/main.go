@@ -53,6 +53,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
+	"github.com/Neo-Desktop/bbs-sec/internal/script"
 	"github.com/Neo-Desktop/bbs-sec/internal/server"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
@@ -163,6 +164,9 @@ func main() {
 		}
 		if cfg.Screens != nil {
 			fmt.Println("screens:", cfg.Screens.Dir)
+		}
+		if cfg.ScriptsDir != "" {
+			fmt.Printf("scripts: %s (%s)\n", cfg.ScriptsDir, strings.Join(script.For(cfg.ScriptsDir).Names(), ", "))
 		}
 		for _, m := range cfg.Menus {
 			keys := ""
@@ -278,7 +282,7 @@ func serve(cfg *server.Config) int {
 	b := bbs.New(cfg.Settings, st, lg)
 	b.News = cfg.News
 	b.Doors = cfg.Doors
-	b.Screens, b.Menus, b.Text = cfg.Screens, cfg.Menus, cfg.Text
+	b.Screens, b.Menus, b.Text, b.ScriptsDir = cfg.Screens, cfg.Menus, cfg.Text, cfg.ScriptsDir
 	if b.Files, err = files.Open(st, cfg.FilesDir, cfg.MaxFileSize, cfg.UploadQuota); err != nil {
 		lg.Printf("files: %v", err)
 		return 1

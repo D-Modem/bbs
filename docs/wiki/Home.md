@@ -93,6 +93,7 @@ What there is:
 | [Configuration](Configuration) | `bbs.conf`: its sections, listeners |
 | [Access levels](Access-Levels) | levels, flags, what areas, doors and menus require, daily limits, validation |
 | [Customization](Customization) | screens (ANSI art, 3270), menus, prompts |
+| [Scripting](Scripting) | the sysop's own screens in JavaScript, on every terminal |
 | [SSH](SSH) | the SSH listener, keys, host keys |
 | [Modem callers](Modem-Callers) | app_dmodem and modemmenu |
 | [TN3270](TN3270) | 3270 terminals, PF keys, 3270 graphics |

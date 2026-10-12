@@ -10,15 +10,30 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
+	"github.com/Neo-Desktop/bbs-sec/internal/script"
 )
 
-// customSections reads screens_dir, the [menu NAME]s and [strings].
+// customSections reads screens_dir, scripts_dir, the [menu NAME]s and
+// [strings].
 func (c *Config) customSections(cf *config.File) error {
 	if dir := cf.Get("general", "").String("screens_dir", ""); dir != "" {
 		if fi, err := os.Stat(dir); err != nil || !fi.IsDir() {
 			c.Warnings = append(c.Warnings, fmt.Sprintf("[general] screens_dir %s is not a directory: no screens", dir))
 		}
 		c.Screens = &screens.Set{Dir: dir}
+	}
+	if dir := cf.Get("general", "").String("scripts_dir", ""); dir != "" {
+		if fi, err := os.Stat(dir); err != nil || !fi.IsDir() {
+			return fmt.Errorf("[general] scripts_dir %s is not a directory", dir)
+		}
+		c.ScriptsDir = dir
+		// what is there compiles, so that a mistake shows now, not to a caller
+		e := script.For(dir)
+		for _, name := range e.Names() {
+			if err := e.Check(name); err != nil {
+				return fmt.Errorf("scripts_dir: %s.js: %v", name, err)
+			}
+		}
 	}
 	c.Menus = map[string]*bbs.Menu{}
 	for _, s := range cf.All("menu") {
@@ -50,6 +65,13 @@ func (c *Config) customSections(cf *config.File) error {
 			case "screen":
 				if c.Screens == nil {
 					return fmt.Errorf("[menu %s] %s: screen:%s, but no screens_dir", m.Name, it.Key, it.Arg)
+				}
+			case "script":
+				if c.ScriptsDir == "" {
+					return fmt.Errorf("[menu %s] %s: script:%s, but no scripts_dir", m.Name, it.Key, it.Arg)
+				}
+				if !script.For(c.ScriptsDir).Has(it.Arg) {
+					return fmt.Errorf("[menu %s] %s: there is no %s.js in %s", m.Name, it.Key, it.Arg, c.ScriptsDir)
 				}
 			}
 		}

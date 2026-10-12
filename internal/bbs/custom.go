@@ -163,9 +163,9 @@ func ParseMenuItem(key, value string) (MenuItem, error) {
 	if a, arg, ok := strings.Cut(action, ":"); ok {
 		switch a {
 		case "door", "menu", "area":
-		case "screen":
+		case "screen", "script":
 			if !screens.ValidName(arg) {
-				return MenuItem{}, fmt.Errorf("%s: a screen's name is lower case letters, digits, _ and -", action)
+				return MenuItem{}, fmt.Errorf("%s: a %s's name is lower case letters, digits, _ and -", action, a)
 			}
 		default:
 			return MenuItem{}, fmt.Errorf("%s: no such action", action)
