@@ -22,6 +22,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/api/pb"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/events"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
@@ -761,5 +762,29 @@ func TestCallersAndAbout(t *testing.T) {
 	}
 	if _, m, _ := s.do("GET", "/api/v1/users/alice", alice, nil); m["about"] != "I like [2Jterminals" {
 		t.Errorf("user: %v", m)
+	}
+}
+
+func TestEventsAndAvailable(t *testing.T) {
+	s := setup(t, Settings{})
+	s.b.Events = &events.Scheduler{Events: []*events.Event{{Name: "hello", Command: []string{"/bin/echo", "hi"}, Every: time.Hour}}}
+	sys := s.login("sysop", "sysoppass1")
+	code, m, _ := s.do("POST", "/api/v1/admin/events/hello/run", sys, nil)
+	if code != 200 || m["ok"] != true || m["output"] != "hi\n" || m["by"] != "sysop" {
+		t.Errorf("run: %d %v", code, m)
+	}
+	if code, _, _ := s.do("POST", "/api/v1/admin/events/nope/run", sys, nil); code != 404 {
+		t.Errorf("no such event: %d", code)
+	}
+	if code, _, l := s.do("GET", "/api/v1/admin/events", sys, nil); code != 200 || len(l) != 1 ||
+		l[0].(map[string]any)["last"].(map[string]any)["ok"] != true {
+		t.Errorf("events: %d %v", code, l)
+	}
+	if code, m, _ := s.do("PUT", "/api/v1/admin/available", sys, map[string]any{"available": false}); code != 200 ||
+		m["available"] != false || s.b.SysopAvailable() {
+		t.Errorf("away: %d %v", code, m)
+	}
+	if code, _, _ := s.do("PUT", "/api/v1/admin/available", sys, map[string]any{}); code != 400 {
+		t.Errorf("nothing said: %d", code)
 	}
 }

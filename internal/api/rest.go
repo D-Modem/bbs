@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/events"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
@@ -72,6 +73,9 @@ func (s *Server) routes() map[string]route {
 		"GET /api/v1/admin/bans":                 {scope: "sysop", h: s.bans},
 		"DELETE /api/v1/admin/bans/{ip}":         {scope: "sysop", h: s.unban},
 		"GET /api/v1/admin/hacklog":              {scope: "sysop", h: s.hackLog},
+		"GET /api/v1/admin/events":               {scope: "sysop", h: s.scheduled},
+		"POST /api/v1/admin/events/{name}/run":   {scope: "sysop", h: s.runEvent},
+		"PUT /api/v1/admin/available":            {scope: "sysop", h: s.setAvailable},
 		"GET /api/v1/admin/fido":                 {scope: "sysop", h: s.fido},
 		"POST /api/v1/admin/fido/poll":           {scope: "sysop", h: s.fidoPoll},
 		"GET /api/v1/admin/news":                 {scope: "sysop", h: s.news},
@@ -1230,6 +1234,61 @@ func (s *Server) hackLog(w http.ResponseWriter, r *http.Request) {
 		lines = []string{}
 	}
 	writeJSON(w, http.StatusOK, lines)
+}
+
+func resultOut(r *events.Result) map[string]any {
+	m := map[string]any{"start": r.Start, "seconds": r.Took.Seconds(), "ok": r.Err == "", "output": r.Output, "by": r.By}
+	if r.Err != "" {
+		m["error"] = r.Err
+	}
+	return m
+}
+
+// scheduled: the scheduled events
+func (s *Server) scheduled(w http.ResponseWriter, r *http.Request) {
+	out := []map[string]any{}
+	if s.B.Events != nil {
+		for _, e := range s.B.Events.Status() {
+			m := map[string]any{"name": e.Name, "command": e.Command, "schedule": e.Schedule(), "next": e.Next,
+				"running": e.Running}
+			if e.Last != nil {
+				m["last"] = resultOut(e.Last)
+			}
+			out = append(out, m)
+		}
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+func (s *Server) runEvent(w http.ResponseWriter, r *http.Request) {
+	if s.B.Events == nil {
+		fail(w, http.StatusNotFound, "there are no events")
+		return
+	}
+	res, err := s.B.Events.RunNow(r.Context(), r.PathValue("name"), whoOf(r).user.Name)
+	switch {
+	case errors.Is(err, events.ErrRunning):
+		fail(w, http.StatusConflict, "it is running already")
+	case err != nil:
+		fail(w, http.StatusNotFound, err.Error())
+	default:
+		writeJSON(w, http.StatusOK, resultOut(res))
+	}
+}
+
+func (s *Server) setAvailable(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Available *bool `json:"available"`
+	}
+	if !s.decode(w, r, &req) {
+		return
+	}
+	if req.Available == nil {
+		fail(w, http.StatusBadRequest, `give {"available": true} or false`)
+		return
+	}
+	s.B.SetSysopAvailable(*req.Available)
+	writeJSON(w, http.StatusOK, map[string]any{"available": s.B.SysopAvailable()})
 }
 
 func (s *Server) fido(w http.ResponseWriter, r *http.Request) {

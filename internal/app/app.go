@@ -60,6 +60,9 @@ type Frontend interface {
 	TerminalAction(id string) error
 	// TerminalInfo shows all that is known of the terminal (a 3270's).
 	TerminalInfo() error
+	// Watch shows a sysop another node's screen as it is sent, until a
+	// key (a text terminal's).
+	Watch(node int) error
 	// Logoff says goodbye; false if the caller thought better of it.
 	Logoff() (bool, error)
 }
@@ -148,6 +151,9 @@ func (s *Session) welcome(shown bool) []view.Line {
 // mainMenu is the built-in main menu.
 func (s *Session) mainMenu(intro []view.Line) error {
 	for {
+		if err := s.summoned(); err != nil {
+			return err
+		}
 		u := s.refresh()
 		s.N.Doing("Main menu")
 		unread, _ := s.B.Store.UnreadMail(u.ID)
@@ -186,6 +192,9 @@ func (s *Session) mainMenu(intro []view.Line) error {
 		}
 		items = append(items, view.Item{Key: "L", Label: "Last callers"},
 			view.Item{Key: "K", Label: "Feedback to the sysop"})
+		if u.Sysop {
+			items = append(items, view.Item{Key: "*", Label: "Sysop tools"})
+		}
 		if s.UI.Kind() == TN3270 {
 			items = append(items, view.Item{Key: "T", Label: "Your terminal"})
 		}
@@ -202,6 +211,10 @@ func (s *Session) mainMenu(intro []view.Line) error {
 			err = s.mail()
 		case "L":
 			err = s.lastCallers()
+		case "*":
+			if u.Sysop {
+				err = s.sysopMenu()
+			}
 		case "K":
 			err = s.feedback()
 		case "W":
@@ -261,6 +274,9 @@ func (s *Session) logoff() error {
 func (s *Session) runMenu(full *bbs.Menu, depth int, intro []view.Line) error {
 	vars := s.N.Vars()
 	for {
+		if err := s.summoned(); err != nil {
+			return err
+		}
 		u := s.refresh()
 		m := s.B.MenuFor(full, u)
 		title := screens.String(m.Title, vars)
@@ -344,6 +360,12 @@ func (s *Session) do(it *bbs.MenuItem, depth int) error {
 		return s.UI.Chat("", "")
 	case "callers":
 		return s.lastCallers()
+	case "sysop":
+		if !s.User.Sysop {
+			s.UI.Say(view.Bad, "That is for the sysop.")
+			return nil
+		}
+		return s.sysopMenu()
 	case "feedback":
 		return s.feedback()
 	case "page":

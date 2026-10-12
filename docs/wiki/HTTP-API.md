@@ -82,6 +82,8 @@ Errors are `{"error": "...", "code": "..."}`.
 | `GET /files?q=` or `?since=` | files by words in their names and descriptions, or added since a time (RFC 3339), newest first | files |
 | `GET /admin/bans`, `DELETE /admin/bans/{ip}` | addresses banned for failed logins; lift a ban | sysop |
 | `GET /admin/hacklog?lines=` | the hack log's last lines | sysop |
+| `GET /admin/events`, `POST /admin/events/{name}/run` | the scheduled events; run one now | sysop |
+| `PUT /admin/available` | `{"available": false}`: pages reach no sysop | sysop |
 | `GET /files/{id}/listing` | what is in an archive (ZIP, tar, tar.gz); 422 for another file | files |
 | `GET /chat/rooms` | chat rooms in use | chat |
 | `POST /nodes/{n}/message`, `POST /page` | a line to a node; page the sysop (both need an open stream) | chat |

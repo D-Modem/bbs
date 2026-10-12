@@ -1,6 +1,7 @@
 package textui
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -181,4 +182,62 @@ func (s *session) switchTerminal(id string) error {
 		}
 	}
 	return nil
+}
+
+// Watch shows the sysop node num's screen as it is sent, until a key or
+// the caller goes.
+func (s *session) Watch(num int) error {
+	t := s.t
+	ch, stop, err := s.n.Watch(num)
+	if err != nil {
+		t.Println(t.C(Red, capital(err.Error())+"."))
+		return nil
+	}
+	defer stop()
+	t.Println(t.C(Cyan, fmt.Sprintf("Watching node %d: what you see is what is sent to it.  A key stops.", num)))
+	t.Flush()
+	since := time.Now()
+	for {
+		for more := true; more; {
+			select {
+			case p := <-ch:
+				if err := t.Raw(p); err != nil {
+					return err
+				}
+			default:
+				more = false
+			}
+		}
+		_, err := t.RawKey(200 * time.Millisecond)
+		if err == nil {
+			break
+		}
+		if !errors.Is(err, ErrIdle) {
+			return err
+		}
+		if time.Since(since) > time.Second {
+			since = time.Now()
+			if !s.online(num) {
+				t.Println("")
+				t.Println(t.C(Yellow, fmt.Sprintf("Node %d's caller is gone.", num)))
+				return nil
+			}
+		}
+	}
+	if t.ANSI {
+		t.Print("\x1b[0m")
+	}
+	t.Println("")
+	t.Println(t.C(Cyan, fmt.Sprintf("Watching node %d no more.", num)))
+	return nil
+}
+
+// online: a caller is on the node.
+func (s *session) online(num int) bool {
+	for _, n := range s.b.Nodes() {
+		if n.Num == num {
+			return true
+		}
+	}
+	return false
 }

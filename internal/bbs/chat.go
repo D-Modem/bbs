@@ -399,7 +399,7 @@ func (n *Node) PageSysop(reason string) (string, int, error) {
 	}
 	n.b.mu.Unlock()
 	for _, o := range sysops {
-		if !o.Busy() {
+		if !o.Busy() && n.b.SysopAvailable() {
 			o.deliver(e)
 			told++
 		}

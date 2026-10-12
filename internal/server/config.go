@@ -7,6 +7,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/api"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
+	"github.com/Neo-Desktop/bbs-sec/internal/events"
 	"github.com/Neo-Desktop/bbs-sec/internal/fido"
 	"github.com/Neo-Desktop/bbs-sec/internal/finger"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
@@ -58,6 +60,7 @@ type Config struct {
 	Listeners  []*Listener
 	Warnings   []string
 	Guard      *guard.Guard // [security]
+	Events     []*events.Event
 }
 
 // DefaultListeners are used when the file has no [listen] section: telnet
@@ -115,6 +118,18 @@ func Load(path string) (*Config, error) {
 	if err := c.securitySection(cf.Get("security", "")); err != nil {
 		return nil, fmt.Errorf("[security] %w", err)
 	}
+	for _, sec := range cf.All("event") {
+		e, err := c.event(sec)
+		if err != nil {
+			return nil, fmt.Errorf("[event %s] %w", sec.Name, err)
+		}
+		for _, o := range c.Events {
+			if o.Name == e.Name {
+				return nil, fmt.Errorf("[event %s] given twice", e.Name)
+			}
+		}
+		c.Events = append(c.Events, e)
+	}
 	names := map[string]bool{}
 	for _, sec := range cf.All("listen") {
 		l, err := listener(sec)
@@ -139,7 +154,7 @@ func Load(path string) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door", "finger", "gopher", "menu", "strings", "http", "level":
+		case "general", "security", "event", "listen", "ftp", "news", "nntp", "peer", "fido", "binkp", "link", "door", "finger", "gopher", "menu", "strings", "http", "level":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}
@@ -230,6 +245,45 @@ func (c *Config) general(g *config.Section) error {
 		}
 	}
 	return nil
+}
+
+// event reads an [event NAME]: a program run daily at a time, or every so
+// many minutes.
+func (c *Config) event(sec *config.Section) (*events.Event, error) {
+	if sec.Name == "" {
+		return nil, errors.New("an event needs a name: [event backup]")
+	}
+	e := &events.Event{Name: strings.ToLower(sec.Name), At: sec.String("at", "")}
+	cmd, err := events.Split(sec.String("command", ""))
+	if err != nil {
+		return nil, fmt.Errorf("command: %v", err)
+	}
+	if len(cmd) == 0 {
+		return nil, errors.New("command: none given (a program and its arguments; no shell)")
+	}
+	if _, err := exec.LookPath(cmd[0]); err != nil {
+		c.Warnings = append(c.Warnings, fmt.Sprintf("[event %s] command: %v", e.Name, err))
+	}
+	e.Command = cmd
+	mins, err := sec.Int("every", 0, 0, 7*24*60)
+	if err != nil {
+		return nil, err
+	}
+	e.Every = events.Minutes(mins)
+	switch {
+	case e.At != "" && e.Every > 0:
+		return nil, errors.New("at or every, not both")
+	case e.At != "":
+		if err := events.ParseAt(e.At); err != nil {
+			return nil, fmt.Errorf("at: %v", err)
+		}
+	case e.Every <= 0:
+		return nil, errors.New("at = HH:MM (daily) or every = MINUTES")
+	}
+	if e.Timeout, err = sec.Seconds("timeout", 600, 1, 24*3600); err != nil {
+		return nil, err
+	}
+	return e, nil
 }
 
 // securitySection reads [security]: the deny files, the hack log, bans.

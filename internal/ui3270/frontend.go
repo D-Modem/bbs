@@ -52,6 +52,12 @@ func (u *ui) TerminalActions() []view.Action { return nil }
 func (u *ui) TerminalAction(string) error    { return nil }
 func (u *ui) TerminalInfo() error            { return u.terminal() }
 
+// Watch: a 3270 shows a node's screen no more than it shows a door's.
+func (u *ui) Watch(int) error {
+	u.Say(view.Bad, "Watching a node is for text terminals.")
+	return nil
+}
+
 // Logoff: the goodbye screen.
 func (u *ui) Logoff() (bool, error) {
 	u.bye()

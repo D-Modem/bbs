@@ -7,6 +7,8 @@
 | `internal/telnet` | the server side of telnet: options, terminal type, window size, the handoff to go3270 |
 | `internal/view` | what the screens show, described once: menus, tables, messages, forms, panels, drafts |
 | `internal/script` | the sysop's JavaScript (goja): screens of internal/view, the BBS as the caller, data kept, the time a script may compute |
+| `internal/guard` | deny lists, bans, the name filter, the hack log |
+| `internal/events` | the sysop's scheduled events |
 | `internal/app` | the screens after the login, for every front end: menus, areas, mail, files, who's online, the profile, validation, paging the sysop |
 | `internal/textui` | the text front end: the login, line editing, ANSI detection, paging, RIP menus; the screens as prompts and keys; chat, doors, transfers |
 | `internal/ui3270` | the 3270 front end: the logon, the screens as fields and PF keys on go3270; chat, IND$FILE, its graphics |
@@ -133,7 +135,11 @@ The full-screen editor: its text (wrapping as typed and as given, a word
 too long for a line, joining lines by Backspace and Delete, moving over
 line ends, quoting, the line limit), and an SSH caller writing a post
 with the cursor keys, replying with lines from the quote window and
-`/S`, then choosing the line editor; the last callers, feedback to the
+`/S`, then choosing the line editor; the sysop's tools (a sysop watching
+a caller's screen as it is sent, calling them into chat at their next
+menu, being away when they page; the user editor, statistics, bans, the
+hack log and events through internal/app; events run, failing, timed
+out and not run twice; their configuration and the API); the last callers, feedback to the
 sysop, a user's details (more of them to a sysop) and mail from there, a
 line about oneself, expert menus and `?` on a text terminal; keeping callers out (the deny file
 read again as it changes, networks and IPv6, bans after the throttle and

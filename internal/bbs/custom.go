@@ -55,6 +55,7 @@ var MenuActions = map[string]string{
 	"page":     "page the sysop",
 	"callers":  "the last callers",
 	"feedback": "mail to the sysop",
+	"sysop":    "the sysop's tools (sysops only)",
 	"terminal": "a 3270's terminal details (nothing elsewhere)",
 	"back":     "back to the menu before",
 	"logoff":   "log off",

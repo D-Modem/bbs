@@ -4,6 +4,7 @@
 - [Building](Building)
 - [Running](Running)
 - [Administration](Administration)
+- [Sysop tools](Sysop-Tools)
 - [Configuration](Configuration)
 - [Databases](Databases)
 - [Customization](Customization)

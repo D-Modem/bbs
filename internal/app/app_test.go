@@ -3,14 +3,18 @@ package app
 import (
 	"archive/zip"
 	"bytes"
+	"fmt"
 	"log"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
+	"github.com/Neo-Desktop/bbs-sec/internal/events"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
+	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/view"
 )
@@ -114,7 +118,11 @@ func (f *fake) Confirm(q string, def bool) (bool, error) {
 }
 func (f *fake) Say(tn view.Tone, msg string) { f.said = append(f.said, msg) }
 func (f *fake) Show(title string, ls []view.Line) error {
-	f.shown = append(f.shown, "show "+title)
+	var out []string
+	for _, l := range ls {
+		out = append(out, l.Label+l.Text)
+	}
+	f.shown = append(f.shown, "show "+title+": "+strings.Join(out, "; "))
 	return nil
 }
 
@@ -137,7 +145,11 @@ func (f *fake) Terminal() string                                    { return "te
 func (f *fake) TerminalActions() []view.Action                      { return nil }
 func (f *fake) TerminalAction(string) error                         { return nil }
 func (f *fake) TerminalInfo() error                                 { return nil }
-func (f *fake) Logoff() (bool, error)                               { return true, nil }
+func (f *fake) Watch(n int) error {
+	f.shown = append(f.shown, fmt.Sprintf("watch %d", n))
+	return nil
+}
+func (f *fake) Logoff() (bool, error) { return true, nil }
 
 // setup is a BBS with an area, and nodes for alice and the sysop.
 func setup(t *testing.T) (*bbs.BBS, *bbs.Node, *bbs.Node) {
@@ -345,6 +357,47 @@ func TestUserFeatures(t *testing.T) {
 	// the sysop sees more of a user
 	f = run(t, b, sysop, "U", view.Choice{Action: view.Pick, Row: 0}, view.Back, view.Choice{Action: view.Back})
 	has(t, "screens", f.shown, "About:Calls from a C64; Access:level 20 (Level 20)")
+}
+
+func TestSysopTools(t *testing.T) {
+	b, alice, sysop := setup(t)
+	dir := t.TempDir()
+	b.Guard = &guard.Guard{HackLog: filepath.Join(dir, "hack.log"), BanTime: time.Hour}
+	b.Guard.Ban("192.0.2.9", "too many failed logins")
+	b.Events = &events.Scheduler{Events: []*events.Event{{Name: "hello", Command: []string{"/bin/echo", "hi"}, Every: time.Hour}}}
+	aliceID := alice.User().ID
+	f := run(t, b, sysop,
+		"*",
+		// alice's level and flags, locked and unlocked
+		"U", view.Choice{Action: view.Pick, Row: 0}, "level", map[string]string{"level": "300"},
+		"level", map[string]string{"level": "40"}, "flags", map[string]string{"flags": "+AB"}, "lock", "lock", view.Back,
+		view.Choice{Action: view.Back},
+		"S",
+		"H", view.Choice{Action: view.Pick, Row: 0}, view.Choice{Action: "log"}, view.Choice{Action: view.Back},
+		"E", view.Choice{Action: view.Pick, Row: 0}, "run", view.Choice{Action: view.Back},
+		"W", view.Choice{Action: view.Pick, Row: -1, Num: "1"},
+		"A", "Q")
+	has(t, "said", f.said, "That is not a level.")
+	if u, _ := b.Store.UserByID(aliceID); u.Level != 40 || u.Flags != "AB" || u.Locked {
+		t.Errorf("alice: %+v", u)
+	}
+	has(t, "screens", f.shown, "show Statistics:")
+	has(t, "said", f.said, "The ban on 192.0.2.9 is lifted.")
+	has(t, "screens", f.shown, "ban lifted by sysop")
+	has(t, "said", f.said, "hello: done.")
+	has(t, "screens", f.shown, "table Scheduled events: hello|every 1h0m0s|")
+	has(t, "screens", f.shown, "watch 1")
+	has(t, "screens", f.shown, "menu Sysop tools")
+	if b.SysopAvailable() {
+		t.Error("still available")
+	}
+	// alice has no sysop tools
+	f = run(t, b, alice, "*")
+	for _, s := range f.shown {
+		if strings.Contains(s, "Sysop tools") {
+			t.Errorf("alice got them: %q", f.shown)
+		}
+	}
 }
 
 func TestMailAndWho(t *testing.T) {

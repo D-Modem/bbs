@@ -45,6 +45,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/api"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/events"
 	"github.com/Neo-Desktop/bbs-sec/internal/fido"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/finger"
@@ -284,6 +285,9 @@ func serve(cfg *server.Config) int {
 	b.Doors = cfg.Doors
 	b.Screens, b.Menus, b.Text, b.ScriptsDir = cfg.Screens, cfg.Menus, cfg.Text, cfg.ScriptsDir
 	b.Guard = cfg.Guard
+	if len(cfg.Events) > 0 {
+		b.Events = &events.Scheduler{Events: cfg.Events, Log: b.Log}
+	}
 	if b.Files, err = files.Open(st, cfg.FilesDir, cfg.MaxFileSize, cfg.UploadQuota); err != nil {
 		lg.Printf("files: %v", err)
 		return 1
@@ -342,6 +346,9 @@ func serve(cfg *server.Config) int {
 			}()
 		}
 		go fd.Run(ctx)
+	}
+	if b.Events != nil {
+		go b.Events.Run(ctx)
 	}
 	srv := server.New(b, cfg.Listeners)
 	srv.Graphics = cfg.Graphics

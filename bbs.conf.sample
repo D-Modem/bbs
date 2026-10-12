@@ -125,6 +125,13 @@ throttle_time = 600
 ;hack_log = /var/log/bbs/hack.log
 ;ban_minutes = 60
 
+; scheduled events: a program (no shell), daily at a time or every N
+; minutes; see the wiki's Sysop tools
+;[event backup]
+;command = /usr/local/bin/bbs-backup --to /var/backups/bbs
+;at = 03:30
+;timeout = 600
+
 ; telnet and TN3270, for everyone (port 23 needs root or
 ; CAP_NET_BIND_SERVICE)
 [listen telnet]

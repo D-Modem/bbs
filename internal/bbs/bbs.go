@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
+	"github.com/Neo-Desktop/bbs-sec/internal/events"
 	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
 	"log"
@@ -15,6 +16,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
@@ -128,8 +130,12 @@ type BBS struct {
 	ScriptsDir string
 	// Guard keeps addresses and names out, and the hack log (nil: none)
 	Guard *guard.Guard
+	// Events are the sysop's scheduled events (nil: none)
+	Events *events.Scheduler
 	// Stats count logins, posts and the like
 	Stats Stats
+	// sysopAway: the sysop is not to be paged (pages leave a message)
+	sysopAway atomic.Bool
 
 	mu       sync.Mutex
 	nodes    map[int]*Node
@@ -160,6 +166,7 @@ type Node struct {
 	chatOnce sync.Once
 	cs       *chatState
 	clock    *clock // the day's time limit, for a caller logged in
+	sysopTap tap    // sysops watching the node
 }
 
 // ErrBusy: every node is taken.

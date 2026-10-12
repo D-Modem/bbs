@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -82,6 +83,7 @@ type Term struct {
 	// PausePrompt is Pause's ("": "[Press a key]")
 	PausePrompt string
 
+	echo     *echoConn  // what is sent, for a sysop watching
 	xl       translator // under w: PETSCII, DEC, VT52
 	latin1   bool       // a DEC terminal's 8-bit characters are Latin-1
 	sinceKey int        // lines printed since a key was read
@@ -152,8 +154,35 @@ func (t *Term) Raw(b []byte) error {
 
 // NewTerm makes a terminal on c, 80x24 plain ASCII until told otherwise.
 func NewTerm(c Conn) *Term {
-	return &Term{c: c, r: bufio.NewReaderSize(c, 1024), w: bufio.NewWriterSize(c, 4096),
+	ec := &echoConn{Conn: c}
+	return &Term{c: ec, echo: ec, r: bufio.NewReaderSize(c, 1024), w: bufio.NewWriterSize(ec, 4096),
 		Cols: 80, Rows: 24, Idle: 10 * time.Minute}
+}
+
+// echoConn gives what is written to the caller to Echo as well (for a
+// sysop watching).
+type echoConn struct {
+	Conn
+	mu   sync.Mutex
+	echo func([]byte)
+}
+
+func (c *echoConn) Write(p []byte) (int, error) {
+	n, err := c.Conn.Write(p)
+	c.mu.Lock()
+	echo := c.echo
+	c.mu.Unlock()
+	if echo != nil && n > 0 {
+		echo(p[:n])
+	}
+	return n, err
+}
+
+// SetEcho gives f a copy of everything the terminal sends from now on.
+func (t *Term) SetEcho(f func([]byte)) {
+	t.echo.mu.Lock()
+	t.echo.echo = f
+	t.echo.mu.Unlock()
 }
 
 // SetDeadline sets a limit for every key from now on (zero: none).

@@ -37,6 +37,8 @@ var errHangup = errors.New("logged off")
 // goodbye.  It returns when the caller logs off or goes away.
 func Run(b *bbs.BBS, n *bbs.Node, t *Term, o Options) error {
 	s := &session{b: b, n: n, t: t, c: n.Caller, o: o}
+	t.SetEcho(n.Echo)
+	n.SetEchoing()
 	t.Idle = b.IdleTimeout
 	err := s.run()
 	if errors.Is(err, errHangup) {
