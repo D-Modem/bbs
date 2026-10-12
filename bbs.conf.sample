@@ -84,8 +84,9 @@ throttle_time = 600
 ;                        they have them (device attributes); no.  auto for
 ;                        telnet, no for raw and rlogin (slow modem lines)
 ;   petscii = no         Commodore 64s and 128s: yes (every caller is one),
-;                        auto (a caller that is not ANSI is asked to press
-;                        DEL: a C64's makes it PETSCII), no
+;                        auto (a caller that is not ANSI is watched while it
+;                        logs in: a key only a C64 has, or DEL asked for
+;                        after a name in capitals, makes it PETSCII), no
 ;   vt = auto            ask terminals what they are (answerback, DA1, DA2,
 ;                        XTVERSION; ESC Z for a VT52): DEC line drawing for
 ;                        VTs without UTF-8, bold on monochrome VTs, a VT52's

@@ -469,15 +469,8 @@ func (s *Server) text(rw io.ReadWriter, c deadliner, l *Listener, node *bbs.Node
 		}
 	}
 	if !t.ANSI && !known && l.PETSCII == "auto" {
-		pet, err := askPETSCII(t)
-		if err != nil {
-			return err
-		}
-		if pet {
-			t.SetPETSCII(true, 40)
-			node.SetTerminal(node.Caller.Via, "petscii")
-			return s.run(t, l, node)
-		}
+		// perhaps a Commodore: its keys will tell (the login watches)
+		t.WatchPETSCII, t.Upper = true, true
 	}
 	switch l.UTF8 {
 	case "yes":
@@ -549,22 +542,6 @@ func petsciiTerm(tt string) bool {
 		}
 	}
 	return false
-}
-
-// askPETSCII asks a terminal that is not ANSI to press DEL: a Commodore's
-// is 0x14, anyone else's backspace 0x08 or 0x7F.  Upper case ASCII reads
-// the same on both.
-func askPETSCII(t *textui.Term) (bool, error) {
-	t.Print("\nPRESS DEL (OR BACKSPACE): ")
-	b, err := t.RawKey(30 * time.Second)
-	if errors.Is(err, textui.ErrIdle) {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	t.Print("\n")
-	return b == 0x14, nil
 }
 
 // rlogin: RFC 1282's start, then the text BBS

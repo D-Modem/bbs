@@ -53,6 +53,20 @@ func (s *session) run() error {
 	t := s.t
 	t.Clear()
 	t.PausePrompt = s.str("pause")
+	if err := s.logon(); err != nil {
+		return err
+	}
+	if err := s.login(); err != nil {
+		return err
+	}
+	s.welcome()
+	return s.mainMenu()
+}
+
+// logon is the screen before the login: the sysop's, or the system's
+// name, banner and how the caller came.
+func (s *session) logon() error {
+	t := s.t
 	if shown, err := s.screen("logon"); err != nil {
 		return err
 	} else if !shown {
@@ -70,17 +84,79 @@ func (s *session) run() error {
 		t.Println(t.C(Dim, via))
 		t.Println("")
 	}
+	return nil
+}
 
-	if err := s.login(); err != nil {
-		return err
+// becomePETSCII: the caller turned out to have a Commodore: the screen is
+// cleared (and what the questions left on it), and begun again.
+func (s *session) becomePETSCII() error {
+	t := s.t
+	t.WatchPETSCII, t.Upper = false, false
+	t.SetPETSCII(true, 40)
+	s.n.SetTerminal(s.c.Via, "petscii")
+	s.b.Log.Printf("node %d: a Commodore (PETSCII)", s.n.Num)
+	return s.logon()
+}
+
+// settleTerminal decides, from a name typed while it was not known whether
+// the terminal is a Commodore, what it is: a name in lower case is ASCII;
+// one all in capitals is what a Commodore's unshifted keys send, or ASCII
+// in capitals, and DEL tells which.  It returns the name as the caller
+// typed it.
+func (s *session) settleTerminal(name string) (string, error) {
+	t := s.t
+	t.WatchPETSCII = false
+	defer func() { t.Upper = false }()
+	if strings.ToUpper(name) != name || strings.ToLower(name) == name {
+		return name, nil // lower case, or no letters
 	}
-	s.welcome()
-	return s.mainMenu()
+	t.Print("PRESS DEL (OR BACKSPACE): ")
+	b, err := t.RawKey(30 * time.Second)
+	if err != nil && !errors.Is(err, ErrIdle) {
+		return "", err
+	}
+	t.Print("\n")
+	if b != 0x14 {
+		return name, nil
+	}
+	if err := s.becomePETSCII(); err != nil {
+		return "", err
+	}
+	// its unshifted letters are lower case
+	name = strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'A' && r <= 'Z':
+			return r + 'a' - 'A'
+		case r >= 'a' && r <= 'z':
+			return r - ('a' - 'A')
+		}
+		return r
+	}, name)
+	t.Println(s.namePrompt() + name)
+	return name, nil
+}
+
+// namePrompt is the login's first question.
+func (s *session) namePrompt() string {
+	t := s.t
+	p := "Name: "
+	if v, set := s.n.Str("name_prompt"); set {
+		p = v
+	}
+	if s.b.NewUsers {
+		p = "Name" + t.C(Dim, " (or NEW)") + ": "
+		if v, set := s.n.Str("new_name_prompt"); set {
+			p = v
+		}
+	}
+	return p
 }
 
 // login: as vouched for, with the credentials given, or by asking
 func (s *session) login() error {
 	t := s.t
+	// a terminal not known by the end is not a Commodore
+	defer func() { t.WatchPETSCII, t.Upper = false, false }()
 	if s.c.TrustedUser != "" {
 		u, err := s.n.LoginTrusted(s.c.TrustedUser, s.o.CreateTrusted)
 		if err == nil {
@@ -100,20 +176,17 @@ func (s *session) login() error {
 
 	t.SetDeadline(time.Now().Add(s.b.LoginTimeout))
 	defer t.SetDeadline(time.Time{})
-	namePrompt := "Name: "
-	if v, set := s.n.Str("name_prompt"); set {
-		namePrompt = v
-	}
-	if s.b.NewUsers {
-		namePrompt = "Name" + t.C(Dim, " (or NEW)") + ": "
-		if v, set := s.n.Str("new_name_prompt"); set {
-			namePrompt = v
-		}
-	}
 	for try := 0; try < s.b.Attempts; try++ {
-		t.Print(namePrompt)
+		t.Print(s.namePrompt())
 		l, err := t.ReadLine(LineOpts{Max: bbs.MaxNameLen, Initial: s.c.LoginUser})
 		s.c.LoginUser = ""
+		if errors.Is(err, ErrPETSCII) {
+			if err := s.becomePETSCII(); err != nil {
+				return err
+			}
+			try--
+			continue
+		}
 		if err != nil {
 			return err
 		}
@@ -121,6 +194,11 @@ func (s *session) login() error {
 		if name == "" {
 			try--
 			continue
+		}
+		if t.WatchPETSCII {
+			if name, err = s.settleTerminal(name); err != nil {
+				return err
+			}
 		}
 		if strings.EqualFold(name, "new") {
 			if !s.b.NewUsers {

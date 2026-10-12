@@ -143,6 +143,22 @@ func Decode(b byte) rune {
 	return utf8.RuneError
 }
 
+// Telltale reports a byte only a Commodore's keyboard sends: DEL, the
+// cursor keys (but down, which is XON), the function keys, CLR, and
+// shifted letters (a UTF-8 letter's first byte looks like one: see
+// whether a continuation byte follows).  HOME is XOFF, and not one.
+func Telltale(b byte) bool {
+	switch {
+	case b == Del, b == Up, b == Right, b == Left, b == Clear:
+		return true
+	case b >= 0x85 && b <= 0x8C:
+		return true
+	case b >= 0xC1 && b <= 0xDA:
+		return true
+	}
+	return false
+}
+
 // Writer translates the BBS's output to PETSCII.
 type Writer struct {
 	w     io.Writer

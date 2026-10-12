@@ -26,6 +26,9 @@ import (
 // ErrIdle: the caller typed nothing for too long.
 var ErrIdle = errors.New("idle timeout")
 
+// ErrPETSCII: while WatchPETSCII, a key only a Commodore sends.
+var ErrPETSCII = errors.New("a Commodore's key")
+
 // Conn is what a terminal runs on: a net.Conn, or a telnet.Conn.
 type Conn interface {
 	io.ReadWriter
@@ -52,6 +55,12 @@ type Term struct {
 	Mono bool
 	// Ident is what the terminal said it is (vt.Info's Name), if anything
 	Ident string
+	// WatchPETSCII: the terminal may be a Commodore's: a key only one
+	// sends ends a read with ErrPETSCII
+	WatchPETSCII bool
+	// Upper: ASCII letters printed in capitals (which a Commodore in its
+	// power-on set and anyone else both read)
+	Upper bool
 	// Clean8 is an 8-bit clean line (a modem, rlogin, telnet in binary
 	// mode): what X/Y/ZMODEM need
 	Clean8 bool
@@ -197,6 +206,9 @@ func (t *Term) Print(s string) {
 		default:
 			t.cur = append(t.cur, r)
 		}
+		if t.Upper && r >= 'a' && r <= 'z' {
+			r -= 'a' - 'A'
+		}
 		switch {
 		case r == '\n':
 			t.w.WriteString("\r\n")
@@ -338,6 +350,23 @@ func (t *Term) next() (rune, error) {
 		}
 		return petscii.Decode(b), nil
 	}
+	if t.WatchPETSCII && !t.UTF8 {
+		b, err := t.r.ReadByte()
+		if err != nil {
+			return 0, err
+		}
+		switch {
+		case !petscii.Telltale(b):
+		case b >= 0xC1 && b <= 0xDA && t.continuation():
+			t.r.ReadByte() // a UTF-8 letter, not a shifted one
+		default:
+			return 0, ErrPETSCII
+		}
+		if b >= 0x80 {
+			return utf8.RuneError, nil
+		}
+		return rune(b), nil
+	}
 	if t.UTF8 {
 		r, _, err := t.r.ReadRune()
 		return r, err
@@ -350,6 +379,17 @@ func (t *Term) next() (rune, error) {
 		return utf8.RuneError, err
 	}
 	return rune(b), err
+}
+
+// continuation: the next byte, if one comes at once, continues a UTF-8
+// character
+func (t *Term) continuation() bool {
+	if t.r.Buffered() == 0 {
+		t.c.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
+		defer t.c.SetReadDeadline(time.Time{})
+	}
+	b, err := t.r.Peek(1)
+	return err == nil && b[0] >= 0x80 && b[0] <= 0xBF
 }
 
 // skipEscape drops the rest of an escape sequence (ESC [ ... final, or

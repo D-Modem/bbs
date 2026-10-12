@@ -99,20 +99,63 @@ func TestPETSCII(t *testing.T) {
 	}
 }
 
-// TestPETSCIIAsk: a terminal that is not ANSI is asked for DEL: a
-// Commodore's makes it PETSCII, a backspace leaves it ASCII.
-func TestPETSCIIAsk(t *testing.T) {
+// TestPETSCIIFound: on a petscii = auto line a terminal that is not ANSI
+// is watched: a key only a Commodore sends makes it PETSCII at once; a
+// name all in capitals brings the DEL question; one in lower case is
+// ASCII, with nothing asked.
+func TestPETSCIIFound(t *testing.T) {
 	e := start(t, nil, &Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "auto", PETSCII: "auto", RIP: "auto"})
-	d := e.dial("modem.sock")
+	login := func(name string) *dialog {
+		d := e.dial("modem.sock")
+		d.expect("TEST BBS") // capitals while it is not known
+		d.expect("NAME (OR NEW): ")
+		if name != "" {
+			d.send(name)
+		}
+		return d
+	}
+
+	// DEL while typing the name
+	d := login("AL\x14")
+	d.expect(string(petscii.Start()))
+	d.expect(pet("Test BBS")) // the logon again, in PETSCII
+	d.expect(pet("Name"))
+	d.send(typed("alice\r"))
+	d.expect(pet("Password: "))
+	d.send(typed("alicepass1\r"))
+	d.expect(pet("Welcome"))
+	d.expect(pet("Command: "))
+
+	// a shifted letter
+	d = login("\xc1")
+	d.expect(string(petscii.Start()))
+
+	// a name in capitals: the question; DEL makes it a Commodore, and the
+	// name was lower case
+	d = login("ALICE\r")
 	d.expect("PRESS DEL (OR BACKSPACE): ")
 	d.send("\x14")
 	d.expect(string(petscii.Start()))
 	d.expect(pet("Name"))
+	d.expect(pet("alice"))
+	d.expect(pet("Password: "))
+	d.send(typed("alicepass1\r"))
+	d.expect(pet("Welcome"))
 
-	d = e.dial("modem.sock")
+	// in capitals, but a backspace: ASCII, and lower case from now on
+	d = login("ALICE\r")
 	d.expect("PRESS DEL (OR BACKSPACE): ")
 	d.send("\x7f")
-	d.expect("Name (or NEW): ")
+	d.expect("Password: ")
+	d.send("alicepass1\r")
+	d.expect("Welcome")
+
+	// lower case: ASCII, nothing asked; UTF-8 is not a shifted letter
+	d = login("caf\xc3\xa9 alice\r")
+	d.expect("Password: ")
+	if strings.Contains(string(d.got), "PRESS DEL") {
+		t.Errorf("asked: %q", d.got)
+	}
 }
 
 // TestRIP: a RIP terminal (it answers ESC [ !) gets its menus as buttons,

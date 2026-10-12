@@ -95,7 +95,7 @@ PETSCII: the translation (letters, colors, reverse, CR and LF, cursor
 movement, box drawing, accents, runes split across writes, wrapping) and
 the keys back; a Commodore logging in with DEL editing, its one column
 menus, a .seq screen as it is, the profile's width, no escape ever sent;
-the DEL question making a caller PETSCII or not.  RIP: MegaNums, the
+a Commodore found while logging in: by DEL typed in the name, by a shifted letter (and not by UTF-8), by a name in capitals and the DEL question (or not, with a backspace), and no question for a name in lower case.  RIP: MegaNums, the
 commands and their escaping, the menu scene; a RIP terminal found by its
 answer, given a .rip screen, menus as buttons, the scene cleared on a
 choice and a pause before the next; an ANSI terminal without RIP given

@@ -22,10 +22,28 @@ petscii = yes
 |---|---|
 | `no` (the default) | no Commodores here |
 | `yes` | every caller is one (a port, or a modem line, for C64s) |
-| `auto` | a caller whose terminal is not ANSI is asked to press DEL: a Commodore's DEL (0x14) makes it PETSCII, a backspace (0x08 or 0x7F) leaves it ASCII.  The question is upper case ASCII, which reads the same on both |
+| `auto` | a caller whose terminal is not ANSI (and not known by its type) is watched while it logs in: see below |
 
 A terminal type saying `petscii`, `c64`, `c128`, `commodore` or `cbm`
 (over telnet) is a Commodore on any listener.
+
+### How `auto` finds a Commodore
+
+A Commodore's terminal answers no question (a C64 has no status reports,
+attributes or answerback), so the BBS reads its keys instead.  Until it
+knows, the logon screen and the name prompt are in capitals, which a C64
+in its power-on set and any other terminal both read.  Then:
+
+| the caller | the BBS |
+|---|---|
+| presses a key only a Commodore has: DEL (0x14), a cursor key (not down, 0x11, which is XON), F1-F8 (0x85-0x8C), CLR (0x93), or types a shifted letter (0xC1-0xDA, unless a UTF-8 continuation byte follows it at once) | switches to PETSCII there and then: the screen cleared (and the questions' leftovers with it), the logon screen and the name prompt again |
+| types a name in lower case | knows it is not a Commodore (whose unshifted letters arrive as ASCII's capitals); nothing is asked |
+| types a name all in capitals | asks `PRESS DEL (OR BACKSPACE)`: a Commodore's DEL makes it PETSCII (and the name, which was typed in lower case, is taken so), anything else leaves it ASCII |
+
+Whatever is not settled by the end of the login (a caller logged in by
+an rlogin or a trusted header) is ASCII.  The questions sent to find an
+ANSI terminal or a VT52 before the name prompt show a few characters on a
+C64; switching to PETSCII clears them.
 
 What the caller gets:
 

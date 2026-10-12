@@ -92,3 +92,17 @@ func TestDecode(t *testing.T) {
 		}
 	}
 }
+
+func TestTelltale(t *testing.T) {
+	for _, b := range []byte{Del, Up, Right, Left, Clear, 0x85, 0x8C, 0xC1, 0xDA} {
+		if !Telltale(b) {
+			t.Errorf("%#x is a Commodore's", b)
+		}
+	}
+	// XON and XOFF (down and HOME), ASCII, backspace, ESC are anyone's
+	for _, b := range []byte{0x11, 0x13, 'a', 'A', '1', 0x08, 0x7f, 0x1b, '\r', 0xE9, 0xA9} {
+		if Telltale(b) {
+			t.Errorf("%#x is anyone's", b)
+		}
+	}
+}
