@@ -19,20 +19,6 @@ type SSHKey struct {
 	LastUsed    time.Time
 }
 
-const sshKeySchema = `
-CREATE TABLE IF NOT EXISTS ssh_keys (
-	id          INTEGER PRIMARY KEY,
-	user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-	type        TEXT NOT NULL,
-	fingerprint TEXT NOT NULL UNIQUE,
-	key         TEXT NOT NULL,
-	comment     TEXT NOT NULL DEFAULT '',
-	created     INTEGER NOT NULL,
-	last_used   INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS ssh_keys_user ON ssh_keys(user_id);
-`
-
 // ErrKeyTaken: the key is someone's already (a key logs in one user).
 var ErrKeyTaken = errors.New("that key is already in use")
 
@@ -45,15 +31,15 @@ func (s *Store) AddSSHKey(k *SSHKey) (int64, error) {
 	if n > 0 {
 		return 0, ErrKeyTaken
 	}
-	res, err := s.db.Exec(`INSERT INTO ssh_keys (user_id, type, fingerprint, key, comment, created)
+	id, err := s.db.insertID(`INSERT INTO ssh_keys (user_id, type, fingerprint, "key", comment, created)
 		VALUES (?, ?, ?, ?, ?, ?)`, k.UserID, k.Type, k.Fingerprint, k.Key, k.Comment, now())
 	if err != nil {
 		return 0, err
 	}
-	return res.LastInsertId()
+	return id, nil
 }
 
-const sshKeyCols = `k.id, k.user_id, u.name, k.type, k.fingerprint, k.key, k.comment, k.created, k.last_used`
+const sshKeyCols = `k.id, k.user_id, u.name, k.type, k.fingerprint, k."key", k.comment, k.created, k.last_used`
 
 func scanSSHKey(row interface{ Scan(...any) error }) (*SSHKey, error) {
 	var k SSHKey

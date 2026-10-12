@@ -67,6 +67,9 @@
   and revocable; rate limits per token and per address; JSON bodies
   limited and strict; one CORS origin at most, and WebSockets only from
   it and the API's own host.  Metrics are on an address of their own.
+- Databases: SQLite's file is made 0600; a server's password is never
+  logged (`bbs check` and the log show `xxxxx`); the configuration file
+  holding it should be 0640.  Every query takes its values as parameters.
 - Access levels: checked in the BBS's core, so the text BBS, 3270s, FTP,
   NNTP and the API keep them alike; an area a user may not read is not
   listed, opened, or found by a message's number or Message-ID; no user

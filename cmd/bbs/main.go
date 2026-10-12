@@ -82,6 +82,8 @@ func usage() {
                      [-expires DAYS] [-name NAME]   an API key (printed once)
   bbs [-config FILE] token list [USER]
   bbs [-config FILE] token revoke ID
+  bbs [-config FILE] db copy DATABASE              copy the database into a new one
+                     (a path, postgres://user:password@host/db, mysql://user:password@host/db)
   bbs [-config FILE] sshkey add USER FILE|-          SSH keys (authorized_keys lines) to log in with
   bbs [-config FILE] sshkey list [USER]
   bbs [-config FILE] sshkey del ID
@@ -133,7 +135,7 @@ func main() {
 				fmt.Printf("  host key %s: %s\n", k, server.HostKeyInfo(k))
 			}
 		}
-		fmt.Println("database:", cfg.Database)
+		fmt.Println("database:", store.Describe(cfg.Database))
 		fmt.Println("files:", cfg.FilesDir)
 		if cfg.FTP != nil {
 			fmt.Printf("ftp: %s, tls %s\n", cfg.FTP.Address, cfg.FTP.TLS)
@@ -203,7 +205,7 @@ func main() {
 				fatal(err)
 			}
 		}
-		fmt.Println("database ready:", cfg.Database)
+		fmt.Println("database ready:", store.Describe(cfg.Database))
 		fmt.Println("make the sysop's account with: bbs user add NAME -sysop")
 	case "user":
 		userCmd(cfg, args)
@@ -217,6 +219,8 @@ func main() {
 		tokenCmd(cfg, args)
 	case "sshkey":
 		sshKeyCmd(cfg, args)
+	case "db":
+		dbCmd(cfg, args)
 	case "filearea":
 		fileAreaCmd(cfg, args)
 	case "file":
@@ -270,6 +274,7 @@ func serve(cfg *server.Config) int {
 	}
 	st := open(cfg)
 	defer st.Close()
+	lg.Printf("database: %s (%s)", store.Describe(cfg.Database), st.Engine())
 	b := bbs.New(cfg.Settings, st, lg)
 	b.News = cfg.News
 	b.Doors = cfg.Doors
@@ -1097,4 +1102,23 @@ func requireArg(s string) string {
 		fatal(err)
 	}
 	return r.String()
+}
+
+func dbCmd(cfg *server.Config, args []string) {
+	if len(args) != 2 || args[0] != "copy" {
+		usage()
+	}
+	src := open(cfg)
+	defer src.Close()
+	dst, err := store.Open(args[1])
+	if err != nil {
+		fatal(err)
+	}
+	defer dst.Close()
+	fmt.Printf("copying %s (%s) into %s (%s)\n", store.Describe(cfg.Database), src.Engine(),
+		store.Describe(args[1]), dst.Engine())
+	if err := store.Copy(src, dst, func(table string, n int) { fmt.Printf("  %-12s %d\n", table, n) }); err != nil {
+		fatal(err)
+	}
+	fmt.Println("done: set database = in the configuration to the new one")
 }

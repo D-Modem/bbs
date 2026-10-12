@@ -62,7 +62,7 @@ func (s *Store) SetFileAreaRequire(id int64, download, upload string) error {
 // UsersBelow lists the users whose level is under level (and are not
 // sysops or locked): those waiting to be validated.
 func (s *Store) UsersBelow(level int) ([]*User, error) {
-	rows, err := s.db.Query(`SELECT `+userCols+` FROM users WHERE level < ? AND sysop = 0 AND locked = 0 ORDER BY id`, level)
+	rows, err := s.db.Query(`SELECT `+userCols+` FROM users WHERE level < ? AND sysop = FALSE AND locked = FALSE ORDER BY id`, level)
 	if err != nil {
 		return nil, err
 	}

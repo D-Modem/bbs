@@ -17,7 +17,7 @@ func nullString(s string) any {
 // SetEchoTag makes an area a FidoNet echo ("": not one any more).
 func (s *Store) SetEchoTag(area int64, tag string) error {
 	_, err := s.db.Exec(`UPDATE areas SET echotag = ? WHERE id = ?`, nullString(tag), area)
-	if err != nil && strings.Contains(err.Error(), "UNIQUE") {
+	if err != nil && isUnique(err) {
 		return ErrExists
 	}
 	return err
@@ -114,12 +114,12 @@ type Netmail struct {
 
 // QueueNetmail queues a netmail.
 func (s *Store) QueueNetmail(n *Netmail) (int64, error) {
-	res, err := s.db.Exec(`INSERT INTO netmail_out (from_id, from_name, to_name, to_addr, subject, body, msgid, reply, created)
+	id, err := s.db.insertID(`INSERT INTO netmail_out (from_id, from_name, to_name, to_addr, subject, body, msgid, reply, created)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, n.FromID, n.From, n.To, n.ToAddr, n.Subject, n.Body, n.MsgID, n.Reply, now())
 	if err != nil {
 		return 0, err
 	}
-	return res.LastInsertId()
+	return id, nil
 }
 
 // PendingNetmail lists netmail not yet packed.

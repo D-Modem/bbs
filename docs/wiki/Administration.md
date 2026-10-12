@@ -13,6 +13,14 @@ bbs user sysop NAME                 # and unsysop
 bbs user del NAME                   # their mail goes; their messages stay
 ```
 
+## The database
+
+```
+bbs db copy DATABASE                # into a new one: a path, postgres://..., mysql://...
+```
+
+See [Databases](Databases).
+
 ## Access
 
 ```

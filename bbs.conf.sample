@@ -11,8 +11,12 @@
 name = D-Modem BBS
 sysop = Sysop
 ;location = Somewhere, Earth
-; the database: users, messages, mail (made 0600)
+; the database: SQLite's file, or a PostgreSQL or MySQL server (whose
+; password then lives here: keep this file 0640).  bbs db copy moves one
+; into another.  See docs/wiki/Databases.md
 database = /var/lib/bbs/bbs.db
+;database = postgres://bbs:PASSWORD@db.example.org/bbs
+;database = mysql://bbs:PASSWORD@db.example.org:3306/bbs
 ; syslog (daemon facility), stderr, none, or a file
 log = syslog
 ; shown before the login (text, or a file)

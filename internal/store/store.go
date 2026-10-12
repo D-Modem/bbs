@@ -1,5 +1,6 @@
-// Package store keeps the BBS in an SQLite database: users, message
-// areas and their messages, private mail, and what each user has read.
+// Package store keeps the BBS in a database, SQLite, PostgreSQL or MySQL:
+// users, message areas and their messages, private mail, what each user
+// has read, files' records, FidoNet's and news' state, tokens and keys.
 package store
 
 import (
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	_ "modernc.org/sqlite"
 )
 
 // ErrNotFound: no such user, area, message or mail.
@@ -89,121 +89,78 @@ type Message struct {
 
 // Store is the database.
 type Store struct {
-	db *sql.DB
+	db   *db
+	drop func() // a test's database, dropped at Close
 	// a hash to check against for unknown users, so that they take as
 	// long as known ones
 	dummy []byte
 }
 
-const schema = `
-CREATE TABLE IF NOT EXISTS users (
-	id         INTEGER PRIMARY KEY,
-	name       TEXT NOT NULL UNIQUE COLLATE NOCASE,
-	password   TEXT NOT NULL,
-	location   TEXT NOT NULL DEFAULT '',
-	sysop      INTEGER NOT NULL DEFAULT 0,
-	locked     INTEGER NOT NULL DEFAULT 0,
-	created    INTEGER NOT NULL,
-	last_login INTEGER NOT NULL DEFAULT 0,
-	logins     INTEGER NOT NULL DEFAULT 0,
-	posts      INTEGER NOT NULL DEFAULT 0
-);
-CREATE TABLE IF NOT EXISTS areas (
-	id          INTEGER PRIMARY KEY,
-	name        TEXT NOT NULL UNIQUE COLLATE NOCASE,
-	description TEXT NOT NULL DEFAULT '',
-	sysop_only  INTEGER NOT NULL DEFAULT 0
-);
-CREATE TABLE IF NOT EXISTS messages (
-	id        INTEGER PRIMARY KEY,
-	area_id   INTEGER NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
-	from_id   INTEGER NOT NULL,
-	from_name TEXT NOT NULL,
-	to_name   TEXT NOT NULL DEFAULT 'All',
-	subject   TEXT NOT NULL,
-	body      TEXT NOT NULL,
-	reply_to  INTEGER NOT NULL DEFAULT 0,
-	created   INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS messages_area ON messages(area_id, id);
-CREATE TABLE IF NOT EXISTS lastread (
-	user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-	area_id    INTEGER NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
-	message_id INTEGER NOT NULL,
-	PRIMARY KEY (user_id, area_id)
-);
-CREATE TABLE IF NOT EXISTS mail (
-	id        INTEGER PRIMARY KEY,
-	from_id   INTEGER NOT NULL,
-	from_name TEXT NOT NULL,
-	to_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-	to_name   TEXT NOT NULL,
-	subject   TEXT NOT NULL,
-	body      TEXT NOT NULL,
-	reply_to  INTEGER NOT NULL DEFAULT 0,
-	created   INTEGER NOT NULL,
-	read      INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS mail_to ON mail(to_id, id);
-CREATE TABLE IF NOT EXISTS file_areas (
-	id           INTEGER PRIMARY KEY,
-	name         TEXT NOT NULL UNIQUE COLLATE NOCASE,
-	description  TEXT NOT NULL DEFAULT '',
-	sysop_upload INTEGER NOT NULL DEFAULT 0
-);
-CREATE TABLE IF NOT EXISTS files (
-	id          INTEGER PRIMARY KEY,
-	area_id     INTEGER NOT NULL REFERENCES file_areas(id),
-	name        TEXT NOT NULL COLLATE NOCASE,
-	description TEXT NOT NULL DEFAULT '',
-	size        INTEGER NOT NULL,
-	sha256      TEXT NOT NULL,
-	uploader_id INTEGER NOT NULL,
-	uploader    TEXT NOT NULL,
-	created     INTEGER NOT NULL,
-	downloads   INTEGER NOT NULL DEFAULT 0,
-	UNIQUE (area_id, name)
-);
-CREATE INDEX IF NOT EXISTS files_uploader ON files(uploader_id, created);
-`
-
-// Open opens (and creates, if need be) the database at path.
-func Open(path string) (*Store, error) {
-	// passwords and private mail: for the BBS's user alone (SQLite gives
-	// the -wal and -shm files the database's permissions)
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
+// Open opens (and makes, if need be) the database at addr: a file's path
+// (SQLite; "sqlite:" before it may say so), or a PostgreSQL or MySQL
+// server's address: postgres://user:password@host/bbs,
+// mysql://user:password@host:3306/bbs.
+func Open(addr string) (*Store, error) {
+	var drop func()
+	// (tests' plain paths only: "sqlite:" is SQLite whatever the test)
+	if IsFile(addr) && !strings.HasPrefix(addr, "sqlite:") {
+		test, d, err := testDatabase()
+		if err != nil {
+			return nil, err
+		}
+		if test != "" {
+			addr, drop = test, d
+		}
+	}
+	x, err := openDB(addr)
 	if err != nil {
 		return nil, err
 	}
-	f.Close()
-	dsn := "file:" + path + "?_pragma=busy_timeout(5000)" +
-		"&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)" +
-		"&_pragma=synchronous(NORMAL)"
-	db, err := sql.Open("sqlite", dsn)
-	if err != nil {
-		return nil, err
+	if x == nil {
+		path := strings.TrimPrefix(addr, "sqlite:")
+		// passwords and private mail: for the BBS's user alone (SQLite
+		// gives the -wal and -shm files the database's permissions)
+		f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
+		if err != nil {
+			return nil, err
+		}
+		f.Close()
+		dsn := "file:" + path + "?_pragma=busy_timeout(5000)" +
+			"&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)" +
+			"&_pragma=synchronous(NORMAL)"
+		sdb, err := sql.Open("sqlite", dsn)
+		if err != nil {
+			return nil, err
+		}
+		// one connection: SQLite takes one writer at a time anyway, and a
+		// BBS is not busy enough to want more
+		sdb.SetMaxOpenConns(1)
+		x = &db{DB: sdb, d: dialects[SQLite]}
 	}
-	// one connection: SQLite takes one writer at a time anyway, and a BBS
-	// is not busy enough to want more
-	db.SetMaxOpenConns(1)
-	if _, err := db.Exec(schema); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("%s: %w", path, err)
+	if err := x.Ping(); err != nil {
+		x.Close()
+		return nil, fmt.Errorf("%s: %w", Describe(addr), err)
 	}
-	if err := migrate(db); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("%s: %w", path, err)
+	if err := migrate(x); err != nil {
+		x.Close()
+		return nil, fmt.Errorf("%s: %w", Describe(addr), err)
 	}
 	dummy, err := bcrypt.GenerateFromPassword([]byte("not a password"), BcryptCost)
 	if err != nil {
-		db.Close()
+		x.Close()
 		return nil, err
 	}
-	return &Store{db: db, dummy: dummy}, nil
+	return &Store{db: x, dummy: dummy, drop: drop}, nil
 }
 
 // Close closes the database.
-func (s *Store) Close() error { return s.db.Close() }
+func (s *Store) Close() error {
+	err := s.db.Close()
+	if s.drop != nil {
+		s.drop()
+	}
+	return err
+}
 
 func now() int64 { return time.Now().Unix() }
 
@@ -251,15 +208,14 @@ func (s *Store) CreateUser(name, password, location string, sysop bool) (*User, 
 		}
 		hash = h
 	}
-	res, err := s.db.Exec(`INSERT INTO users (name, password, location, sysop, created)
+	id, err := s.db.insertID(`INSERT INTO users (name, password, location, sysop, created)
 		VALUES (?, ?, ?, ?, ?)`, name, hash, location, sysop, now())
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
+		if isUnique(err) {
 			return nil, ErrExists
 		}
 		return nil, err
 	}
-	id, _ := res.LastInsertId()
 	return s.UserByID(id)
 }
 
@@ -358,15 +314,14 @@ func (s *Store) exec1(q string, args ...any) error {
 
 // CreateArea adds a message area.
 func (s *Store) CreateArea(name, desc string, sysopOnly bool) (*Area, error) {
-	res, err := s.db.Exec(`INSERT INTO areas (name, description, sysop_only) VALUES (?, ?, ?)`,
+	id, err := s.db.insertID(`INSERT INTO areas (name, description, sysop_only) VALUES (?, ?, ?)`,
 		name, desc, sysopOnly)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
+		if isUnique(err) {
 			return nil, ErrExists
 		}
 		return nil, err
 	}
-	id, _ := res.LastInsertId()
 	return s.Area(id)
 }
 
@@ -446,12 +401,12 @@ func (s *Store) Post(m *Message) (int64, error) {
 	if m.MessageID != "" {
 		msgid = m.MessageID
 	}
-	res, err := tx.Exec(`INSERT INTO messages (area_id, from_id, from_name, to_name, subject, body, reply_to, created,
+	id, err := tx.insertID(`INSERT INTO messages (area_id, from_id, from_name, to_name, subject, body, reply_to, created,
 		message_id, origin, raw, ftn_msgid, ftn)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, m.AreaID, m.FromID, m.From, m.To, m.Subject, m.Body, m.ReplyTo, now(),
 		msgid, m.Origin, m.Raw, nullString(m.FTNMsgID), m.FTN)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
+		if isUnique(err) {
 			return 0, ErrExists
 		}
 		return 0, err
@@ -467,7 +422,6 @@ func (s *Store) Post(m *Message) (int64, error) {
 			return 0, err
 		}
 	}
-	id, _ := res.LastInsertId()
 	return id, tx.Commit()
 }
 
@@ -525,7 +479,7 @@ func (s *Store) LastRead(user, area int64) (int64, error) {
 // SetLastRead moves the user's last read message of an area forward to id.
 func (s *Store) SetLastRead(user, area, id int64) error {
 	_, err := s.db.Exec(`INSERT INTO lastread (user_id, area_id, message_id) VALUES (?, ?, ?)
-		ON CONFLICT (user_id, area_id) DO UPDATE SET message_id = MAX(message_id, excluded.message_id)`,
+		ON CONFLICT (user_id, area_id) DO UPDATE SET message_id = {greatest}(lastread.message_id, excluded.message_id)`,
 		user, area, id)
 	return err
 }
@@ -542,7 +496,7 @@ func (s *Store) NewCount(user, area int64) (int, error) {
 	return n, err
 }
 
-const mailCols = `id, from_id, from_name, to_id, to_name, subject, body, reply_to, created, read,
+const mailCols = `id, from_id, from_name, to_id, to_name, subject, body, reply_to, created, "read",
 	COALESCE(ftn_msgid, '')`
 
 func scanMail(row interface{ Scan(...any) error }) (*Message, error) {
@@ -559,14 +513,14 @@ func scanMail(row interface{ Scan(...any) error }) (*Message, error) {
 
 // SendMail delivers a private message.
 func (s *Store) SendMail(m *Message) (int64, error) {
-	res, err := s.db.Exec(`INSERT INTO mail (from_id, from_name, to_id, to_name, subject, body, reply_to, created,
+	id, err := s.db.insertID(`INSERT INTO mail (from_id, from_name, to_id, to_name, subject, body, reply_to, created,
 		ftn_msgid)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, m.FromID, m.From, m.ToID, m.To, m.Subject, m.Body, m.ReplyTo, now(),
 		nullString(m.FTNMsgID))
 	if err != nil {
 		return 0, err
 	}
-	return res.LastInsertId()
+	return id, nil
 }
 
 // Inbox lists a user's mail, oldest first.
@@ -594,7 +548,7 @@ func (s *Store) Mail(user, id int64) (*Message, error) {
 
 // MarkMailRead marks a mail of user's read.
 func (s *Store) MarkMailRead(user, id int64) error {
-	return s.exec1(`UPDATE mail SET read = 1 WHERE id = ? AND to_id = ?`, id, user)
+	return s.exec1(`UPDATE mail SET "read" = TRUE WHERE id = ? AND to_id = ?`, id, user)
 }
 
 // DeleteMail deletes a mail of user's.
@@ -605,7 +559,7 @@ func (s *Store) DeleteMail(user, id int64) error {
 // UnreadMail counts a user's unread mail.
 func (s *Store) UnreadMail(user int64) (int, error) {
 	var n int
-	err := s.db.QueryRow(`SELECT COUNT(*) FROM mail WHERE to_id = ? AND read = 0`, user).Scan(&n)
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM mail WHERE to_id = ? AND "read" = FALSE`, user).Scan(&n)
 	return n, err
 }
 
@@ -638,15 +592,14 @@ type File struct {
 
 // CreateFileArea adds a file area.
 func (s *Store) CreateFileArea(name, desc string, sysopUpload bool) (*FileArea, error) {
-	res, err := s.db.Exec(`INSERT INTO file_areas (name, description, sysop_upload) VALUES (?, ?, ?)`,
+	id, err := s.db.insertID(`INSERT INTO file_areas (name, description, sysop_upload) VALUES (?, ?, ?)`,
 		name, desc, sysopUpload)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
+		if isUnique(err) {
 			return nil, ErrExists
 		}
 		return nil, err
 	}
-	id, _ := res.LastInsertId()
 	return s.FileArea(id)
 }
 
@@ -720,16 +673,16 @@ func scanFile(row interface{ Scan(...any) error }) (*File, error) {
 
 // AddFile records a file; ErrExists if the area has one of that name.
 func (s *Store) AddFile(f *File) (int64, error) {
-	res, err := s.db.Exec(`INSERT INTO files (area_id, name, description, size, sha256, uploader_id, uploader, created)
+	id, err := s.db.insertID(`INSERT INTO files (area_id, name, description, size, sha256, uploader_id, uploader, created)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, f.AreaID, f.Name, f.Description, f.Size, f.SHA256,
 		f.UploaderID, f.Uploader, now())
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
+		if isUnique(err) {
 			return 0, ErrExists
 		}
 		return 0, err
 	}
-	return res.LastInsertId()
+	return id, nil
 }
 
 // Files lists an area's files by name.

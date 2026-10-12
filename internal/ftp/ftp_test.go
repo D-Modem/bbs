@@ -1,6 +1,7 @@
 package ftp
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/ecdsa"
@@ -104,6 +105,9 @@ func start(t *testing.T, tweak func(*Settings)) *env {
 	})
 	for i := 0; ; i++ {
 		if c, err := net.Dial("tcp", set.Address); err == nil {
+			// the greeting comes once the server has counted it
+			c.SetReadDeadline(time.Now().Add(5 * time.Second))
+			bufio.NewReader(c).ReadString('\n')
 			c.Close()
 			break
 		}
@@ -111,6 +115,20 @@ func start(t *testing.T, tweak func(*Settings)) *env {
 			t.Fatal("never listened")
 		}
 		time.Sleep(20 * time.Millisecond)
+	}
+	// the probe is counted against its address until the server sees it
+	// gone: wait, or a test of the limit finds it still there
+	for i := 0; ; i++ {
+		srv.mu.Lock()
+		n := srv.clients
+		srv.mu.Unlock()
+		if n == 0 {
+			break
+		}
+		if i > 100 {
+			t.Fatal("the probe connection never went")
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 	return &env{addr: set.Address, b: b, log: &logbuf}
 }

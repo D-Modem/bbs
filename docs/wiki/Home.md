@@ -72,7 +72,7 @@ What there is:
 - [customization](Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
 - [access levels](Access-Levels): levels and flags, areas, doors and menus that require them, time and download limits a day, new users validated by the sysop
 - new users sign themselves up (or not: `new_users = no`)
-- SQLite storage, one file
+- [SQLite, PostgreSQL or MySQL](Databases), and `bbs db copy` between them
 
 ## The pages
 
@@ -81,6 +81,7 @@ What there is:
 | [Building](Building) | Go, the go3270-sec fork, `make` |
 | [Running](Running) | first start, systemd, the defaults |
 | [Administration](Administration) | the `bbs` command: users, areas, files, mail exchange |
+| [Databases](Databases) | SQLite, PostgreSQL, MySQL; moving between them |
 | [Configuration](Configuration) | `bbs.conf`: its sections, listeners |
 | [Access levels](Access-Levels) | levels, flags, what areas, doors and menus require, daily limits, validation |
 | [Customization](Customization) | screens (ANSI art, 3270), menus, prompts |

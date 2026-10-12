@@ -21,33 +21,18 @@ type Token struct {
 	LastUsed time.Time
 }
 
-const tokenSchema = `
-CREATE TABLE IF NOT EXISTS api_tokens (
-	id        INTEGER PRIMARY KEY,
-	user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-	name      TEXT NOT NULL,
-	hash      TEXT NOT NULL UNIQUE,
-	scopes    TEXT NOT NULL,
-	session   INTEGER NOT NULL DEFAULT 0,
-	created   INTEGER NOT NULL,
-	expires   INTEGER NOT NULL DEFAULT 0,
-	last_used INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS api_tokens_user ON api_tokens(user_id);
-`
-
 // AddToken records a token.
 func (s *Store) AddToken(t *Token) (int64, error) {
 	exp := int64(0)
 	if !t.Expires.IsZero() {
 		exp = t.Expires.Unix()
 	}
-	res, err := s.db.Exec(`INSERT INTO api_tokens (user_id, name, hash, scopes, session, created, expires)
+	id, err := s.db.insertID(`INSERT INTO api_tokens (user_id, name, hash, scopes, session, created, expires)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`, t.UserID, t.Name, t.Hash, t.Scopes, t.Session, now(), exp)
 	if err != nil {
 		return 0, err
 	}
-	return res.LastInsertId()
+	return id, nil
 }
 
 const tokenCols = `t.id, t.user_id, u.name, t.name, t.hash, t.scopes, t.session, t.created, t.expires, t.last_used`

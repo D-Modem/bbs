@@ -3,87 +3,9 @@ package store
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 )
-
-// migrate brings an older database up to date: columns added since.
-func migrate(db *sql.DB) error {
-	add := []struct{ table, column, decl string }{
-		{"areas", "newsgroup", "TEXT"},
-		{"messages", "message_id", "TEXT"},
-		{"messages", "origin", "TEXT NOT NULL DEFAULT ''"},
-		{"messages", "raw", "BLOB"},
-		{"areas", "echotag", "TEXT"},
-		{"messages", "ftn_msgid", "TEXT"},
-		{"messages", "ftn", "BLOB"},
-		{"mail", "ftn_msgid", "TEXT"},
-		{"users", "level", "INTEGER NOT NULL DEFAULT 20"},
-		{"users", "flags", "TEXT NOT NULL DEFAULT ''"},
-		{"users", "time_day", "INTEGER NOT NULL DEFAULT 0"},
-		{"users", "time_used", "INTEGER NOT NULL DEFAULT 0"},
-		{"users", "dl_day", "INTEGER NOT NULL DEFAULT 0"},
-		{"users", "dl_count", "INTEGER NOT NULL DEFAULT 0"},
-		{"areas", "read_req", "TEXT NOT NULL DEFAULT ''"},
-		{"areas", "post_req", "TEXT NOT NULL DEFAULT ''"},
-		{"file_areas", "download_req", "TEXT NOT NULL DEFAULT ''"},
-		{"file_areas", "upload_req", "TEXT NOT NULL DEFAULT ''"},
-	}
-	for _, a := range add {
-		var n int
-		if err := db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?`,
-			a.table, a.column).Scan(&n); err != nil {
-			return err
-		}
-		if n == 0 {
-			if _, err := db.Exec(fmt.Sprintf(`ALTER TABLE %s ADD COLUMN %s %s`, a.table, a.column, a.decl)); err != nil {
-				return err
-			}
-		}
-	}
-	if _, err := db.Exec(tokenSchema); err != nil {
-		return err
-	}
-	if _, err := db.Exec(sshKeySchema); err != nil {
-		return err
-	}
-	_, err := db.Exec(`
-CREATE UNIQUE INDEX IF NOT EXISTS areas_newsgroup ON areas(newsgroup) WHERE newsgroup IS NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS messages_message_id ON messages(message_id) WHERE message_id IS NOT NULL;
-CREATE TABLE IF NOT EXISTS history (
-	message_id TEXT PRIMARY KEY,
-	seen       INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS peer_groups (
-	peer      TEXT NOT NULL,
-	newsgroup TEXT NOT NULL,
-	last      INTEGER NOT NULL,
-	PRIMARY KEY (peer, newsgroup)
-);
-CREATE TABLE IF NOT EXISTS peer_push (
-	peer    TEXT PRIMARY KEY,
-	last_id INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS messages_created ON messages(created);
-CREATE UNIQUE INDEX IF NOT EXISTS areas_echotag ON areas(echotag) WHERE echotag IS NOT NULL;
-CREATE INDEX IF NOT EXISTS messages_ftn_msgid ON messages(ftn_msgid) WHERE ftn_msgid IS NOT NULL;
-CREATE TABLE IF NOT EXISTS netmail_out (
-	id        INTEGER PRIMARY KEY,
-	from_id   INTEGER NOT NULL,
-	from_name TEXT NOT NULL,
-	to_name   TEXT NOT NULL,
-	to_addr   TEXT NOT NULL,
-	subject   TEXT NOT NULL,
-	body      TEXT NOT NULL,
-	msgid     TEXT NOT NULL,
-	reply     TEXT NOT NULL DEFAULT '',
-	created   INTEGER NOT NULL,
-	packed    INTEGER NOT NULL DEFAULT 0
-);
-`)
-	return err
-}
 
 // SetNewsgroup makes an area a newsgroup ("": not one any more).
 func (s *Store) SetNewsgroup(area int64, group string) error {
@@ -92,7 +14,7 @@ func (s *Store) SetNewsgroup(area int64, group string) error {
 		g = group
 	}
 	_, err := s.db.Exec(`UPDATE areas SET newsgroup = ? WHERE id = ?`, g, area)
-	if err != nil && strings.Contains(err.Error(), "UNIQUE") {
+	if err != nil && isUnique(err) {
 		return ErrExists
 	}
 	return err

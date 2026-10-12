@@ -9,7 +9,8 @@ bbs -config /etc/bbs/bbs.conf serve
 user, with the database in `/var/lib/bbs` and sockets in `/run/bbs`.
 
 Without `-config` it runs with the defaults: telnet and TN3270 on port
-2300, modem callers raw on 127.0.0.1:2323, the database `bbs.db` here.
+2300, modem callers raw on 127.0.0.1:2323, the database `bbs.db` here.  The database can as well
+be PostgreSQL or MySQL: see [Databases](Databases).
 
 Day to day: [Administration](Administration).
 

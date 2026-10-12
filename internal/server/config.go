@@ -21,6 +21,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/logo"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
+	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
 )
 
@@ -118,7 +119,7 @@ func Load(path string) (*Config, error) {
 		}
 		names[l.Name] = true
 		if l.Kind == "ssh" && len(l.HostKeys) == 0 {
-			l.HostKeys = DefaultHostKeys(filepath.Dir(c.Database))
+			l.HostKeys = DefaultHostKeys(c.DataDir())
 		}
 		c.Listeners = append(c.Listeners, l)
 		c.warn(l)
@@ -140,6 +141,15 @@ func Load(path string) (*Config, error) {
 		c.Warnings = append(c.Warnings, "unknown option "+u)
 	}
 	return c, nil
+}
+
+// DataDir is where the BBS keeps what it makes (host keys): beside an
+// SQLite database, or here for a server's.
+func (c *Config) DataDir() string {
+	if store.IsFile(c.Database) {
+		return filepath.Dir(strings.TrimPrefix(c.Database, "sqlite:"))
+	}
+	return "."
 }
 
 func (c *Config) general(g *config.Section) error {

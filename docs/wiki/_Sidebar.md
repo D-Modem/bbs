@@ -5,6 +5,7 @@
 - [Running](Running)
 - [Administration](Administration)
 - [Configuration](Configuration)
+- [Databases](Databases)
 - [Customization](Customization)
 - [Access levels](Access-Levels)
 
