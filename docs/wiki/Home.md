@@ -77,7 +77,8 @@ What there is:
 - [FidoNet](FidoNet) (or any FTN network): message areas that are echoes, netmail
   as private mail, and a binkp mailer to exchange packets with links
 - [doors](Doors): DOS door games in dosemu2 (in Docker), with a FOSSIL on COM1
-  and the usual drop files, or any Linux program, for text callers
+  and the usual drop files, or any Linux program, for text callers; doors
+  elsewhere by telnet or RLogin, and the door networks BBSLink and DoorParty
 - [chat](Chat-and-Paging): rooms, messages to a node, paging the sysop; the rooms are
   [IRC](IRC) channels too, for IRC clients
 - [finger and gopher](Finger-and-Gopher): who is on, and chosen areas in gopherspace

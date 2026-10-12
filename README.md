@@ -79,7 +79,8 @@ What there is:
 - [IRC](https://github.com/Neo-Desktop/bbs-sec/wiki/IRC): the chat rooms as IRC channels, built on parts of
   [ergo](https://github.com/ergochat/ergo); logins by SASL or the server password, TLS
 - [doors](https://github.com/Neo-Desktop/bbs-sec/wiki/Doors): DOS door games in dosemu2 (in Docker), with a FOSSIL on COM1
-  and the usual drop files, or any Linux program, for text callers
+  and the usual drop files, or any Linux program, for text callers; doors
+  elsewhere by telnet or RLogin, and the door networks BBSLink and DoorParty
 - [chat](https://github.com/Neo-Desktop/bbs-sec/wiki/Chat-and-Paging): rooms, messages to a node, paging the sysop
 - [finger and gopher](https://github.com/Neo-Desktop/bbs-sec/wiki/Finger-and-Gopher): who is on, and chosen areas in gopherspace
 - [a web terminal](https://github.com/Neo-Desktop/bbs-sec/wiki/HTTP-API#the-web-terminal): the BBS in a browser (xterm.js, built in)

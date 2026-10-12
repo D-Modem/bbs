@@ -60,4 +60,53 @@ which reads DOOR.SYS, writes CP437 and ANSI and echoes keys) through the
 whole BBS: the caller types, the door answers, the caller hangs up in it
 and the container goes.
 
+## Doors elsewhere
+
+A door can be on another system: the caller's line is joined to it over
+the network rather than to a program here. Such a door has a `type` and
+no command or drop files. It is shown and opened like any other, with
+the same time limit, idle time, `require`, `sysop_only` and character
+set (CP437 by default, translated for UTF-8 terminals).
+
+| `type` | | settings |
+|---|---|---|
+| `telnet` | a telnet door server | `address` (host:port) |
+| `rlogin` | an RLogin door server (RFC 1282) | `address`; `client_user`, `server_user` (default `{user}`, the caller's name), `terminal` (`ansi`) |
+| `bbslink` | [BBSLink](http://www.bbslink.net) | `syscode`, `authcode`, `schemecode` (the codes BBSLink gave you), `door` (a door's code); `address` (`games.bbslink.net:23`), `url` (`http://games.bbslink.net`) |
+| `doorparty` | [DoorParty](http://wiki.throwbackbbs.com/) | `ssh_user`, `ssh_password` (its SSH account), `tag` (your system tag), `door` (a door's code; none: its menu), `host_key`; `address` (`dp.throwbackbbs.com:2022`), `rlogin_address` (`dp.throwbackbbs.com:513`) |
+
+```ini
+[door bbslink-lord]
+description = LORD on BBSLink
+type = bbslink
+syscode = XXXXXX
+authcode = XXXXXX
+schemecode = XXXXXX
+door = lord
+
+[door doorparty]
+description = DoorParty
+type = doorparty
+ssh_user = myuser
+ssh_password = secret
+tag = XB
+host_key = SHA256:...
+```
+
+How each gets in:
+
+- **Telnet**: the server's negotiation is answered here: the BBS is a
+  binary ANSI terminal of the caller's size (`TERMINAL-TYPE`, `NAWS`), and
+  the server may echo. None of it reaches the caller.
+- **RLogin**: the client and server user names and the terminal (with the
+  line's speed), then the session.
+- **BBSLink**: a token from BBSLink's web server, which then authenticates
+  the caller with your codes (as MD5s with the token), then telnet. It
+  knows the caller by their user number.
+- **DoorParty**: an SSH tunnel with its account, no
+  doorparty-connector needed, then RLogin through it as `[TAG]name`, the
+  door's code as the terminal type. Without `host_key`, the server's key
+  isn't checked: `bbs check` warns, and each call logs the key's
+  fingerprint to put there.
+
 **See also:** [Security](Security), [Future work](https://github.com/Neo-Desktop/bbs-sec/blob/HEAD/TODO.md)

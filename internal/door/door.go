@@ -42,6 +42,9 @@ type Door struct {
 	PTY         bool     // run it on a pseudo-terminal, not pipes
 	Cleanup     []string // run after it (expanded), e.g. docker rm -f
 	CommType    int      // DOOR32.SYS's: 1 serial (a FOSSIL), 2 telnet
+	// Remote, if set, is a door elsewhere the caller is joined to (no
+	// Command, no drop files)
+	Remote *Remote
 
 	mu sync.Mutex
 }
@@ -155,6 +158,9 @@ func (d *Door) Run(line Line, in *Info, utf8Term bool, idle time.Duration, logf 
 	if in.Now.IsZero() {
 		in.Now = time.Now()
 	}
+	if d.Remote != nil {
+		return d.runRemote(line, in, utf8Term, limit, idle, logf)
+	}
 	dir := Expand(d.Dir, in, "")
 	if err := os.MkdirAll(dir, 0750); err != nil {
 		return res, err
@@ -243,6 +249,22 @@ func (d *Door) Run(line Line, in *Info, utf8Term bool, idle time.Duration, logf 
 		}
 	}
 
+	closeIn := func() {
+		if !d.PTY {
+			toDoor.Close() // a pty's master is its output too: closed after
+		}
+	}
+	res = d.bridge(line, toDoor, fromDoor, exited, stop, closeIn, utf8Term, limit, idle)
+	logf("door %s: ended (time up %v, hung up %v, idle %v, %v)", d.Name, res.TimeUp, res.HungUp, res.Idle, res.ExitErr)
+	return res, nil
+}
+
+// bridge joins the caller's line to the door until it ends (exited), the
+// time is up, the caller is idle too long or hangs up; stop ends the
+// door, closeIn closes its input.
+func (d *Door) bridge(line Line, toDoor io.Writer, fromDoor io.ReadCloser, exited chan error, stop, closeIn func(),
+	utf8Term bool, limit, idle time.Duration) Result {
+	var res Result
 	// the door's output to the caller
 	outDone := make(chan struct{})
 	go func() {
@@ -331,9 +353,7 @@ func (d *Door) Run(line Line, in *Info, utf8Term bool, idle time.Duration, logf 
 		}
 	}
 	line.SetReadDeadline(time.Time{})
-	if !d.PTY {
-		toDoor.Close() // a pty's master is its output too: closed after
-	}
+	closeIn()
 	if !finished {
 		res.ExitErr = <-exited
 	}
@@ -344,8 +364,7 @@ func (d *Door) Run(line Line, in *Info, utf8Term bool, idle time.Duration, logf 
 		fromDoor.Close()
 		<-outDone
 	}
-	logf("door %s: ended (time up %v, hung up %v, idle %v, %v)", d.Name, res.TimeUp, res.HungUp, res.Idle, res.ExitErr)
-	return res, nil
+	return res
 }
 
 // toCP437 turns UTF-8 typed by the caller into CP437; an incomplete

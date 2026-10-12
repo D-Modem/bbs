@@ -387,9 +387,34 @@ address = 127.0.0.1:2513
 ;charset = utf-8
 ;pty = yes
 ;door32_comm = local
+;
+; Doors elsewhere: the caller joined to another system's doors (no
+; command, no drop files).  See docs/wiki/Doors.md
+; a telnet door server
+;[door far]
+;type = telnet
+;address = doors.example.org:2323
+; an RLogin door server ({user}: the caller's name)
+;[door rlogin]
+;type = rlogin
+;address = doors.example.org:513
+;server_user = {user}
+; BBSLink (bbslink.net): the codes it gave you, and a door's code
+;[door bbslink-lord]
+;type = bbslink
+;syscode = XXXXXX
+;authcode = XXXXXX
+;schemecode = XXXXXX
+;door = lord
+; DoorParty: its SSH account, your system tag, a door's code ("": its menu)
+;[door doorparty]
+;type = doorparty
+;ssh_user = myuser
+;ssh_password = secret
+;tag = XB
+;door = lord
+;host_key = SHA256:...
 
-; finger: who is on ("finger @host"), and who a user is ("finger name@host").
-; Port 79 needs CAP_NET_BIND_SERVICE (bbs.service.sample)
 ; IRC: the chat rooms as channels (#main ...), for IRC clients.  Users log
 ; in with their BBS names and passwords (SASL PLAIN, or the server
 ; password as name:password).  See docs/wiki/IRC.md
@@ -406,6 +431,8 @@ address = 127.0.0.1:2513
 ; the services bot's nick: /msg BBSServ HELP (your account's settings)
 ;service = BBSServ
 
+; finger: who is on ("finger @host"), and who a user is ("finger name@host").
+; Port 79 needs CAP_NET_BIND_SERVICE (bbs.service.sample)
 ;[finger]
 ;address = :79
 ;online = yes

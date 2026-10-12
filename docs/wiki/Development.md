@@ -158,7 +158,11 @@ cannot catch, exit, the sample poll, the configuration's checks, and the
 sample one-liners on a text terminal and on a 3270 by s3270); the file base (FILE_ID.DIZ in CP437
 with colors, a ZIP's and a tar.gz's listings, new files, finding by the
 DIZ's words, tagging by numbers, a batch of two by YMODEM, ratios and the day's limit together, the API's
-search and listings); the IRC server (logins by PASS and SASL PLAIN, and refused; a nick
+search and listings); doors elsewhere (a telnet server's negotiation answered and kept from
+the caller, doubled IACs; RLogin's start and a refusal; BBSLink's token,
+its MD5s and a wrong code; DoorParty through an SSH server's tunnel, a
+wrong password and a wrong host key refused; a caller on the BBS going
+through one and back; their configuration); the IRC server (logins by PASS and SASL PLAIN, and refused; a nick
 made of a name with a space; lines both ways between an IRC client and
 a telnet caller, /me, node messages, the room's history with
 server-time, WHO, WHOIS, LIST, a page answered by joining its room,

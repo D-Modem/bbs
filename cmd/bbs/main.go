@@ -211,6 +211,10 @@ func main() {
 			fmt.Printf("gopher: %s as %s:%d, areas %q, files %v\n", g.Address, g.Host, g.Port, g.Areas, g.Files)
 		}
 		for _, d := range cfg.Doors {
+			if r := d.Remote; r != nil {
+				fmt.Printf("[door %s] %s at %s, %v\n", d.Name, r.Kind, r.Address, d.TimeLimit)
+				continue
+			}
 			fmt.Printf("[door %s] %q, drop files %s in %s, %v\n", d.Name, d.Command,
 				strings.Join(d.DropFiles, " "), d.Dir, d.TimeLimit)
 		}
