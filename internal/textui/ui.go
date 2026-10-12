@@ -944,12 +944,24 @@ func (s *session) profile() error {
 		t.Printf("  Member:    since %s, %d calls, %d posts\n", u.Created.Format("2006-01-02"), u.Logins, u.Posts)
 		onOff := map[bool]string{true: "on", false: "off"}
 		menu := "\n[L]ocation, [A]NSI on/off, [8]-bit UTF-8 on/off, [S]ixel on/off, [R]IP on/off, "
-		if t.PETSCII {
+		ident := ""
+		if t.Ident != "" {
+			ident = t.Ident + ", "
+		}
+		switch {
+		case t.PETSCII:
 			t.Printf("  Terminal:  Commodore, %dx%d\n", t.Cols, t.Rows)
 			menu = "\n[L]ocation, [W]idth 40/80, "
-		} else {
-			t.Printf("  Terminal:  %dx%d, ANSI %s, UTF-8 %s, sixel %s, RIP %s\n", t.Cols, t.Rows,
-				onOff[t.ANSI], onOff[t.UTF8], onOff[t.Sixel], onOff[t.RIP])
+		case t.VT52:
+			t.Printf("  Terminal:  VT52, %dx%d\n", t.Cols, t.Rows)
+			menu = "\n[L]ocation, "
+		default:
+			charset := ""
+			if t.DEC {
+				charset = ", DEC graphics"
+			}
+			t.Printf("  Terminal:  %s%dx%d, ANSI %s, UTF-8 %s%s, sixel %s, RIP %s\n", ident, t.Cols, t.Rows,
+				onOff[t.ANSI], onOff[t.UTF8], charset, onOff[t.Sixel], onOff[t.RIP])
 		}
 		if !u.External {
 			menu += "[P]assword, SSH [K]eys, "
@@ -970,7 +982,7 @@ func (s *session) profile() error {
 				return err
 			}
 		case 'A', '8', 'S', 'R':
-			if t.PETSCII {
+			if t.PETSCII || t.VT52 {
 				continue
 			}
 		case 'W':
@@ -986,6 +998,10 @@ func (s *session) profile() error {
 			}
 		case '8':
 			t.UTF8 = !t.UTF8
+			if t.UTF8 && t.DEC {
+				t.DEC = false
+				t.setTranslator(nil)
+			}
 		case 'R':
 			// on only where the terminal says it has it
 			if t.RIP {

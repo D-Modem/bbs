@@ -86,6 +86,10 @@ throttle_time = 600
 ;   petscii = no         Commodore 64s and 128s: yes (every caller is one),
 ;                        auto (a caller that is not ANSI is asked to press
 ;                        DEL: a C64's makes it PETSCII), no
+;   vt = auto            ask terminals what they are (answerback, DA1, DA2,
+;                        XTVERSION; ESC Z for a VT52): DEC line drawing for
+;                        VTs without UTF-8, bold on monochrome VTs, a VT52's
+;                        escapes; no: ask nothing
 ;   rip = auto           RIPscrip menus and screens for terminals that answer
 ;                        ESC [ ! (BBS terminals; modern ones are not asked),
 ;                        yes, no

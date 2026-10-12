@@ -109,6 +109,7 @@ type nodeJSON struct {
 	Via   string    `json:"via"`
 	Since time.Time `json:"since"`
 	Doing string    `json:"doing"`
+	Term  string    `json:"terminal,omitempty"`
 }
 
 type areaJSON struct {
@@ -269,7 +270,7 @@ func (s *Server) who(w http.ResponseWriter, r *http.Request) {
 		if n.User == "" {
 			continue
 		}
-		out = append(out, nodeJSON{n.Num, n.User, n.Via, n.Since, n.Activity})
+		out = append(out, nodeJSON{n.Num, n.User, n.Via, n.Since, n.Activity, n.Terminal})
 	}
 	writeJSON(w, http.StatusOK, out)
 }

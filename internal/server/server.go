@@ -56,6 +56,7 @@ type Listener struct {
 	Sixel         string // auto or yes (ask the terminal), no
 	PETSCII       string // yes (Commodores only), auto (ask a terminal that is not ANSI), no
 	RIP           string // auto (ask a BBS terminal program), yes, no
+	VT            string // auto: ask terminals what they are (DA1, DA2, ESC Z ...); no
 	Header        bool   // read a session header first
 	HeaderTimeout time.Duration
 	TrustUser     bool // the header's MODEM_USER (rlogin's server user) is logged in
@@ -347,7 +348,7 @@ func (s *Server) telnet(c net.Conn, l *Listener, node *bbs.Node) error {
 	if err != nil {
 		return err
 	}
-	node.Caller.Terminal = tt
+	node.SetTerminal(node.Caller.Via, tt)
 	if l.TN3270 && telnet.Is3270(tt) {
 		return s.tn3270(tc, l, node)
 	}
@@ -455,6 +456,18 @@ func (s *Server) text(rw io.ReadWriter, c deadliner, l *Listener, node *bbs.Node
 			t.ANSI = got
 		}
 	}
+	if !t.ANSI && !known && (l.VT == "auto" || l.VT == "yes") && l.ANSI != "no" {
+		is52, err := t.DetectVT52(time.Second)
+		if err != nil {
+			return err
+		}
+		if is52 {
+			t.SetVT52()
+			node.SetIdent("VT52")
+			s.B.Log.Printf("node %d: terminal VT52", node.Num)
+			return s.run(t, l, node)
+		}
+	}
 	if !t.ANSI && !known && l.PETSCII == "auto" {
 		pet, err := askPETSCII(t)
 		if err != nil {
@@ -481,7 +494,24 @@ func (s *Server) text(rw io.ReadWriter, c deadliner, l *Listener, node *bbs.Node
 		}
 		t.RIP = on || l.RIP == "yes"
 	}
-	if t.ANSI && !t.RIP && (l.Sixel == "auto" || l.Sixel == "yes") {
+	sixel := t.ANSI && !t.RIP && (l.Sixel == "auto" || l.Sixel == "yes")
+	if t.ANSI && (l.VT == "auto" || l.VT == "yes") {
+		in, err := t.Identify(1500 * time.Millisecond)
+		if err != nil {
+			return err
+		}
+		if in.Answered() {
+			node.SetIdent(in.Name())
+			s.B.Log.Printf("node %d: terminal %s (%s)", node.Num, in.Name(), in.Details())
+		}
+		t.Sixel = sixel && in.Sixel()
+		t.Mono = in.Mono()
+		// a VT without UTF-8 (not a PC's BBS terminal, which has CP437):
+		// its line drawing and Latin-1
+		if in.Level() > 0 && in.CTerm == "" && !t.UTF8 && !cp437Term(tt) {
+			t.SetDEC(in.Level() >= 2 && t.Clean8)
+		}
+	} else if sixel {
 		on, err := t.DetectSixel(1500 * time.Millisecond)
 		if err != nil {
 			return err
@@ -497,6 +527,18 @@ func (s *Server) run(t *textui.Term, l *Listener, node *bbs.Node) error {
 }
 
 type deadliner interface{ SetReadDeadline(time.Time) error }
+
+// cp437Term: a terminal type a PC's BBS terminal program says (CP437, not
+// a VT's character sets)
+func cp437Term(tt string) bool {
+	tt = strings.ToLower(tt)
+	for _, p := range []string{"ansi", "syncterm", "pcansi", "qansi", "netrunner", "cterm", "scoansi"} {
+		if strings.HasPrefix(tt, p) {
+			return true
+		}
+	}
+	return false
+}
 
 // petsciiTerm: a terminal type a Commodore's terminal program says
 func petsciiTerm(tt string) bool {
@@ -553,10 +595,10 @@ func (s *Server) rlogin(c net.Conn, l *Listener, node *bbs.Node) error {
 	}
 	tt, speed, _ := strings.Cut(term, "/")
 	caller := node.Caller
-	caller.Terminal = tt
+	node.SetTerminal(caller.Via, tt)
 	if caller.Rate == "" && speed != "" {
 		if n, err := strconv.Atoi(speed); err == nil && n > 0 {
-			caller.Rate = speed + "/" + speed
+			node.SetRate(speed + "/" + speed)
 		}
 	}
 	server = strings.TrimSpace(server)

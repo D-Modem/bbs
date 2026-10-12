@@ -53,6 +53,7 @@ What there is:
 - private mail: inbox, read, reply, delete
 - [SSH](https://github.com/Neo-Desktop/bbs-sec/wiki/SSH): logging in by password or key, the text BBS encrypted
 - [Commodore 64s and RIPscrip terminals](https://github.com/Neo-Desktop/bbs-sec/wiki/PETSCII-and-RIP): PETSCII at 40 columns; menus as RIP buttons
+- [VT terminals identified](https://github.com/Neo-Desktop/bbs-sec/wiki/Terminal-Identification) (answerback, DA1, DA2, XTVERSION, VT52): DEC line drawing and Latin-1, bold on monochrome VTs, VT52 escapes
 - who's online (and how each caller came: ssh, telnet, tn3270, rlogin, modem
   with its rate), the user list, system info
 - your profile: where you call from, your password, SSH keys, ANSI and UTF-8
@@ -106,6 +107,7 @@ The documentation is in the [wiki](https://github.com/Neo-Desktop/bbs-sec/wiki/)
 | [TN3270](https://github.com/Neo-Desktop/bbs-sec/wiki/TN3270) | 3270 terminals, PF keys, 3270 graphics |
 | [Sixel graphics](https://github.com/Neo-Desktop/bbs-sec/wiki/Sixel-Graphics) | the logo on sixel terminals |
 | [PETSCII and RIP](https://github.com/Neo-Desktop/bbs-sec/wiki/PETSCII-and-RIP) | Commodore 64s and 128s; RIPscrip graphics and buttons |
+| [Terminal identification](https://github.com/Neo-Desktop/bbs-sec/wiki/Terminal-Identification) | VT terminals asked what they are: DEC graphics, monochrome, VT52 |
 | [Files and FTP](https://github.com/Neo-Desktop/bbs-sec/wiki/Files-and-FTP) | file areas, the FTP (FTPS) server |
 | [File transfers](https://github.com/Neo-Desktop/bbs-sec/wiki/File-Transfers) | X/Y/ZMODEM, Kermit, IND$FILE |
 | [Doors](https://github.com/Neo-Desktop/bbs-sec/wiki/Doors) | DOS doors in dosemu2 (Docker), Linux doors |

@@ -61,9 +61,9 @@ type Config struct {
 func DefaultListeners() []*Listener {
 	return []*Listener{
 		{Name: "telnet", Kind: "telnet", Address: ":2300", Via: "telnet", TN3270: true,
-			ANSI: "auto", UTF8: "auto", Sixel: "auto", RIP: "auto", PETSCII: "no", MaxPerIP: 4},
+			ANSI: "auto", UTF8: "auto", Sixel: "auto", RIP: "auto", PETSCII: "no", VT: "auto", MaxPerIP: 4},
 		{Name: "modem", Kind: "raw", Address: "127.0.0.1:2323", Via: "modem",
-			ANSI: "auto", UTF8: "no", Sixel: "no", RIP: "auto", PETSCII: "no", HeaderTimeout: 10 * time.Second},
+			ANSI: "auto", UTF8: "no", Sixel: "no", RIP: "auto", PETSCII: "no", VT: "auto", HeaderTimeout: 10 * time.Second},
 	}
 }
 
@@ -249,7 +249,7 @@ func listener(sec *config.Section) (*Listener, error) {
 		def string
 	}{{"ansi", &l.ANSI, "auto"}, {"utf8", &l.UTF8, map[bool]string{true: "auto", false: "no"}[l.Kind == "telnet" || l.Kind == "ssh"]},
 		{"sixel", &l.Sixel, map[bool]string{true: "auto", false: "no"}[l.Kind == "telnet" || l.Kind == "ssh"]},
-		{"petscii", &l.PETSCII, "no"}, {"rip", &l.RIP, "auto"}} {
+		{"petscii", &l.PETSCII, "no"}, {"rip", &l.RIP, "auto"}, {"vt", &l.VT, "auto"}} {
 		*o.p = strings.ToLower(sec.String(o.key, o.def))
 		switch *o.p {
 		case "auto", "yes", "no":

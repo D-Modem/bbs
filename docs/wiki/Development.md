@@ -10,6 +10,7 @@
 | `internal/sixel` | the sixel encoder |
 | `internal/petscii` | the Commodore's character set: translating ANSI and UTF-8 out, keys in |
 | `internal/rip` | RIPscrip: MegaNums, commands, menu scenes |
+| `internal/vt` | terminal identification (DA1, DA2, XTVERSION, CTerm, answerback, VT52); DEC graphics and VT52 output |
 | `internal/files` | file areas' storage: names, uploads, limits |
 | `internal/ftp` | the FTP server: the file areas as a file system |
 | `internal/news` | articles: parsing, checking, making, decoding; wildmats |
@@ -98,6 +99,12 @@ the DEL question making a caller PETSCII or not.  RIP: MegaNums, the
 commands and their escaping, the menu scene; a RIP terminal found by its
 answer, given a .rip screen, menus as buttons, the scene cleared on a
 choice and a pause before the next; an ANSI terminal without RIP given
-none of it.
+none of it.  Terminal identification: the answers of DEC's terminals and
+of emulators (VT100 to VT525, xterm old and new, VTE, tmux, SyncTERM,
+PuTTY, the Linux console, a VT52) read into names, levels, sixel and
+monochrome; DEC Special Graphics and Latin-1 output, escapes passing
+through it; VT52 output; a VT220 given DEC graphics, Latin-1 and bold,
+shown as a VT220; a VT52 given its escapes and its cursor keys ignored;
+a terminal answering nothing left plain.
 
 **See also:** [Building](Building)

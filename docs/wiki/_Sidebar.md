@@ -13,6 +13,7 @@
 - [TN3270](TN3270)
 - [Sixel graphics](Sixel-Graphics)
 - [PETSCII and RIP](PETSCII-and-RIP)
+- [Terminal identification](Terminal-Identification)
 
 **Features**
 - [Files and FTP](Files-and-FTP)

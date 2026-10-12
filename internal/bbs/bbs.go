@@ -65,6 +65,7 @@ type Caller struct {
 	Remote   string // the peer's address, or the caller ID
 	Source   string // what throttling counts failures against
 	Terminal string // terminal type, if told
+	Ident    string // what the terminal said it is (a VT's identification)
 	Rate     string // modem: tx/rx bit/s
 	CallerID string // modem: the caller's number
 	Dialed   string // modem: the number dialed
@@ -199,6 +200,20 @@ func (n *Node) SetTerminal(via, terminal string) {
 	n.b.mu.Unlock()
 }
 
+// SetRate records the caller's line rate ("tx/rx") once known.
+func (n *Node) SetRate(rate string) {
+	n.b.mu.Lock()
+	n.Caller.Rate = rate
+	n.b.mu.Unlock()
+}
+
+// SetIdent records what the caller's terminal said it is.
+func (n *Node) SetIdent(ident string) {
+	n.b.mu.Lock()
+	n.Caller.Ident = ident
+	n.b.mu.Unlock()
+}
+
 // Doing sets what the caller is doing, for who's online.
 func (n *Node) Doing(what string) {
 	n.b.mu.Lock()
@@ -213,6 +228,7 @@ type NodeInfo struct {
 	Via      string
 	Since    time.Time
 	Activity string
+	Terminal string // its identification, else its terminal type
 }
 
 // Nodes lists the callers online.
@@ -225,7 +241,11 @@ func (b *BBS) Nodes() []NodeInfo {
 		if n.user != nil {
 			name = n.user.Name
 		}
-		out = append(out, NodeInfo{n.Num, name, n.Caller.Describe(), n.Since, n.activity})
+		term := n.Caller.Ident
+		if term == "" {
+			term = n.Caller.Terminal
+		}
+		out = append(out, NodeInfo{n.Num, name, n.Caller.Describe(), n.Since, n.activity, term})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Num < out[j].Num })
 	return out

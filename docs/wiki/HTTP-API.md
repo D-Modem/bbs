@@ -61,7 +61,7 @@ Errors are `{"error": "...", "code": "..."}`.
 |---|---|---|
 | `POST /login`, `POST /logout` | a session token; ending it | (none), any |
 | `GET /system` | the name, sysop, counts, features | anonymous |
-| `GET /who` | who is online | anonymous |
+| `GET /who` | who is online (with each `terminal`, as it said what it is) | anonymous |
 | `GET`, `PATCH /me` | your account; change your location or password | read |
 | `GET /me/tokens`, `DELETE /me/tokens/{id}` | your tokens; revoke one | any |
 | `GET /me/keys` | your SSH keys | read |

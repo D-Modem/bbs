@@ -13,7 +13,8 @@ each `[listen NAME]` is a port or unix socket:
 `socket_group`).  Any listener may read a session header first (`header =
 yes`), and with `trust_user = yes` take the caller as logged in already: see
 [Modem callers](Modem-Callers) (not `ssh`, which logs its callers in itself).  `petscii` and `rip` say whether
-its callers may be Commodores or RIPscrip terminals: [PETSCII and RIP](PETSCII-and-RIP).
+its callers may be Commodores or RIPscrip terminals: [PETSCII and RIP](PETSCII-and-RIP); `vt`
+whether terminals are asked what they are: [Terminal identification](Terminal-Identification).
 
 ## The sections
 

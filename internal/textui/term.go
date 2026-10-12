@@ -20,6 +20,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/petscii"
 	"github.com/Neo-Desktop/bbs-sec/internal/rip"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
+	"github.com/Neo-Desktop/bbs-sec/internal/vt"
 )
 
 // ErrIdle: the caller typed nothing for too long.
@@ -43,6 +44,14 @@ type Term struct {
 	PETSCII bool
 	// RIP: an ANSI terminal with RIPscrip graphics (RIPterm, SyncTERM)
 	RIP bool
+	// DEC: a VT without UTF-8 (SetDEC): DEC Special Graphics, Latin-1
+	DEC bool
+	// VT52: a VT52 (SetVT52): its escapes, no attributes
+	VT52 bool
+	// Mono: a terminal without color: bold for colors
+	Mono bool
+	// Ident is what the terminal said it is (vt.Info's Name), if anything
+	Ident string
 	// Clean8 is an 8-bit clean line (a modem, rlogin, telnet in binary
 	// mode): what X/Y/ZMODEM need
 	Clean8 bool
@@ -64,25 +73,57 @@ type Term struct {
 	// PausePrompt is Pause's ("": "[Press a key]")
 	PausePrompt string
 
-	pet      *petscii.Writer // under w, for a PETSCII terminal
-	sinceKey int             // lines printed since a key was read
-	ripScene bool            // a RIP scene is on the screen
+	xl       translator // under w: PETSCII, DEC, VT52
+	latin1   bool       // a DEC terminal's 8-bit characters are Latin-1
+	sinceKey int        // lines printed since a key was read
+	ripScene bool       // a RIP scene is on the screen
+}
+
+// translator turns what the BBS writes (UTF-8, ANSI) into a terminal's.
+type translator interface {
+	io.Writer
+	Settle() error      // before waiting for a key
+	Raw(b []byte) error // bytes as they are
+}
+
+func (t *Term) setTranslator(x translator) {
+	t.Flush()
+	t.xl = x
+	if x == nil {
+		t.w = bufio.NewWriterSize(t.c, 4096)
+	} else {
+		t.w = bufio.NewWriterSize(x, 4096)
+	}
+}
+
+// SetDEC makes the terminal a VT without UTF-8: line drawing in DEC
+// Special Graphics, Latin-1 if latin1 (a VT220's or later, on an 8-bit
+// line).
+func (t *Term) SetDEC(latin1 bool) {
+	t.DEC, t.UTF8, t.latin1 = true, false, latin1
+	t.setTranslator(vt.NewDECWriter(t.c, latin1))
+}
+
+// SetVT52 makes the terminal a VT52: no ANSI, its own escapes.
+func (t *Term) SetVT52() {
+	t.VT52, t.ANSI, t.UTF8, t.Sixel, t.RIP, t.Mono = true, false, false, false, false, true
+	t.Cols, t.Rows = 80, 24
+	t.setTranslator(vt.NewVT52Writer(t.c))
 }
 
 // SetPETSCII makes the terminal a Commodore's (width 40, or a C128's 80)
 // or no longer one.
 func (t *Term) SetPETSCII(on bool, width int) {
-	t.Flush()
 	if !on {
-		t.PETSCII, t.pet = false, nil
-		t.w = bufio.NewWriterSize(t.c, 4096)
+		t.PETSCII = false
+		t.setTranslator(nil)
 		return
 	}
 	t.PETSCII, t.ANSI, t.UTF8, t.Sixel, t.RIP = true, false, false, false, false
 	t.Cols, t.Rows = width, 25
-	t.pet = petscii.NewWriter(t.c, width)
-	t.w = bufio.NewWriterSize(t.pet, 4096)
-	t.pet.Raw(petscii.Start())
+	pet := petscii.NewWriter(t.c, width)
+	t.setTranslator(pet)
+	pet.Raw(petscii.Start())
 	t.cur = t.cur[:0]
 }
 
@@ -93,8 +134,8 @@ func (t *Term) Raw(b []byte) error {
 		return err
 	}
 	t.cur = t.cur[:0]
-	if t.pet != nil {
-		return t.pet.Raw(b)
+	if t.xl != nil {
+		return t.xl.Raw(b)
 	}
 	_, err := t.c.Write(b)
 	return err
@@ -125,7 +166,14 @@ const (
 
 // C wraps s in a color, on an ANSI terminal.
 func (t *Term) C(color, s string) string {
-	if !t.ANSI && !t.PETSCII {
+	switch {
+	case t.VT52 || !t.ANSI && !t.PETSCII:
+		return s
+	case t.Mono:
+		// bright colors bold, the rest plain
+		if strings.HasPrefix(color, "1") {
+			return "\x1b[1m" + s + "\x1b[0m"
+		}
 		return s
 	}
 	return "\x1b[" + color + "m" + s + "\x1b[0m"
@@ -154,7 +202,7 @@ func (t *Term) Print(s string) {
 			t.w.WriteString("\r\n")
 		case r < 0x80:
 			t.w.WriteByte(byte(r))
-		case (t.UTF8 || t.PETSCII) && r != utf8.RuneError:
+		case (t.UTF8 || t.xl != nil) && r != utf8.RuneError:
 			t.w.WriteRune(r)
 		default:
 			t.w.WriteByte('?')
@@ -173,8 +221,8 @@ func (t *Term) Flush() error {
 	if err := t.w.Flush(); err != nil {
 		return err
 	}
-	if t.pet != nil {
-		return t.pet.Settle()
+	if t.xl != nil {
+		return t.xl.Settle()
 	}
 	return nil
 }
@@ -182,7 +230,7 @@ func (t *Term) Flush() error {
 // Clear clears the screen (a blank line on a plain terminal).
 func (t *Term) Clear() {
 	t.cur = t.cur[:0]
-	if t.ANSI || t.PETSCII {
+	if t.ANSI || t.PETSCII || t.VT52 {
 		t.w.WriteString("\x1b[2J\x1b[H")
 	} else {
 		t.w.WriteString("\r\n")
@@ -296,6 +344,9 @@ func (t *Term) next() (rune, error) {
 	}
 	b, err := t.r.ReadByte()
 	if b >= 0x80 {
+		if t.latin1 && b >= 0xa0 {
+			return rune(b), err
+		}
 		return utf8.RuneError, err
 	}
 	return rune(b), err
@@ -326,6 +377,16 @@ func (t *Term) skipEscape() error {
 		}
 	case 'O':
 		t.r.ReadByte()
+	case 'A', 'B', 'C', 'D':
+		if !t.VT52 {
+			t.r.UnreadByte()
+		} // a VT52's cursor keys
+	case '?':
+		if t.VT52 {
+			t.r.ReadByte() // its keypad
+		} else {
+			t.r.UnreadByte()
+		}
 	default:
 		t.r.UnreadByte()
 	}
@@ -504,7 +565,7 @@ func (t *Term) Pause() error {
 // UTF-8 terminal, CP437 to any other; \n as CR LF.
 func (t *Term) Art(s string) {
 	s = strings.ReplaceAll(s, "\n", "\r\n")
-	if t.UTF8 || t.PETSCII {
+	if t.UTF8 || t.xl != nil {
 		t.w.WriteString(s)
 	} else {
 		t.w.Write(screens.EncodeCP437(s))
@@ -646,6 +707,66 @@ func (t *Term) RawKey(d time.Duration) (byte, error) {
 		return 0, ErrIdle
 	}
 	return b, err
+}
+
+// Identify asks an ANSI terminal what it is (vt.Query): its answers, and
+// its character cell (for sixel) if it says.
+func (t *Term) Identify(timeout time.Duration) (vt.Info, error) {
+	t.w.WriteString(vt.Query)
+	if err := t.Flush(); err != nil {
+		return vt.Info{}, err
+	}
+	got, err := t.collect(timeout, 1024, vt.Done)
+	if err != nil {
+		return vt.Info{}, err
+	}
+	in := vt.Parse(got)
+	if in.CellW > 0 {
+		t.CellW, t.CellH = in.CellW, in.CellH
+	}
+	t.Ident = in.Name()
+	return in, nil
+}
+
+// DetectVT52 asks a terminal that is not ANSI whether it is a VT52 (ESC
+// Z); any other shows a Z, which is wiped.
+func (t *Term) DetectVT52(timeout time.Duration) (bool, error) {
+	t.w.WriteString(vt.QueryVT52)
+	if err := t.Flush(); err != nil {
+		return false, err
+	}
+	got, err := t.collect(timeout, 16, func(b []byte) bool { return vt.Parse(b).VT52 })
+	if err != nil {
+		return false, err
+	}
+	if vt.Parse(got).VT52 {
+		t.Ident = "VT52"
+		return true, nil
+	}
+	t.w.WriteString("\r \r")
+	return false, nil
+}
+
+// collect reads what comes until done says so, max bytes, or timeout.
+func (t *Term) collect(timeout time.Duration, max int, done func([]byte) bool) ([]byte, error) {
+	var got []byte
+	end := time.Now().Add(timeout)
+	for time.Now().Before(end) && len(got) < max {
+		t.c.SetReadDeadline(end)
+		b, err := t.r.ReadByte()
+		t.c.SetReadDeadline(time.Time{})
+		if err != nil {
+			if errors.Is(err, os.ErrDeadlineExceeded) {
+				break
+			}
+			return nil, err
+		}
+		got = append(got, b)
+		if done(got) {
+			break
+		}
+	}
+	return got, nil
 }
 
 // Narrow is a screen too narrow for the usual columns (a C64's 40).
