@@ -6,9 +6,12 @@
 //	NAME.asc    plain text (UTF-8 or ASCII), paged
 //	NAME.txt    the same
 //	NAME.3270   text for 3270s, with {color} tags
+//	NAME.rip    RIPscrip (graphics, and ANSI), in CP437, for RIP terminals
+//	NAME.seq    PETSCII, sent to a Commodore as it is (no @-codes)
 //
-// An ANSI terminal gets .ans, else .asc, else .txt; a plain one .asc or
-// .txt; a 3270 .3270, .asc or .txt.
+// An ANSI terminal gets .ans, else .asc, else .txt; a RIP terminal .rip
+// before those; a plain one .asc or .txt; a 3270 .3270, .asc or .txt; a
+// Commodore .seq, .asc or .txt.
 package screens
 
 import (
@@ -31,6 +34,8 @@ const (
 	Plain Kind = iota
 	ANSI
 	TN3270
+	RIP
+	PETSCII
 )
 
 // Format is a display file's.
@@ -41,6 +46,7 @@ const (
 	Text  Format = iota // .asc, .txt
 	Art                 // .ans
 	Color               // .3270
+	Raw                 // .seq: Bytes, as they are
 )
 
 // MaxSize is the largest display file read.
@@ -59,6 +65,8 @@ type Screen struct {
 	Name   string
 	Format Format
 	Text   string // as UTF-8 (an .ans decoded from CP437)
+	Bytes  []byte // Raw's
+	Ext    string // the file's: .ans, .rip, ...
 }
 
 // Find reads the screen of that name for the terminal; false if there is
@@ -75,17 +83,24 @@ func (s *Set) Find(name string, kind Kind) (*Screen, bool) {
 		tries = []string{".asc", ".txt"}
 	case TN3270:
 		tries = []string{".3270", ".asc", ".txt"}
+	case RIP:
+		tries = []string{".rip", ".ans", ".asc", ".txt"}
+	case PETSCII:
+		tries = []string{".seq", ".asc", ".txt"}
 	}
 	for _, ext := range tries {
 		b, err := readFile(filepath.Join(s.Dir, name+ext))
 		if err != nil {
 			continue
 		}
-		sc := &Screen{Name: name}
+		sc := &Screen{Name: name, Ext: ext}
 		switch ext {
-		case ".ans":
+		case ".ans", ".rip":
 			sc.Format = Art
 			sc.Text = decodeCP437(stripSAUCE(b))
+		case ".seq":
+			sc.Format, sc.Bytes = Raw, b
+			return sc, true
 		case ".3270":
 			sc.Format = Color
 			sc.Text = strings.ToValidUTF8(string(b), "?")

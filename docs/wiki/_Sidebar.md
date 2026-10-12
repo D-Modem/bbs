@@ -12,6 +12,7 @@
 - [Modem callers](Modem-Callers)
 - [TN3270](TN3270)
 - [Sixel graphics](Sixel-Graphics)
+- [PETSCII and RIP](PETSCII-and-RIP)
 
 **Features**
 - [Files and FTP](Files-and-FTP)

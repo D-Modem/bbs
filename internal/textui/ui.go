@@ -258,19 +258,14 @@ func (s *session) mainMenu() error {
 		if unread > 0 {
 			mail += fmt.Sprintf(" (%d new)", unread)
 		}
-		t.Println("")
-		t.Println(t.C(Cyan, "Main menu"))
-		item := func(k, label string) string {
-			return t.C(Yellow, "["+k+"]") + " " + bbs.Fit(label, 22)
-		}
-		items := []string{item("M", "Message areas"), item("E", mail),
-			item("W", "Who's online"), item("U", "User list"),
-			item("P", "Your profile"), item("I", "System info")}
+		items := []choice{{"M", "Message areas"}, {"E", mail},
+			{"W", "Who's online"}, {"U", "User list"},
+			{"P", "Your profile"}, {"I", "System info"}}
 		if s.b.Files != nil {
-			items = append(items, item("F", "File areas"))
+			items = append(items, choice{"F", "File areas"})
 		}
 		if len(s.doorsFor()) > 0 {
-			items = append(items, item("D", "Doors"))
+			items = append(items, choice{"D", "Doors"})
 		}
 		chat := "Chat"
 		if u.Sysop {
@@ -278,20 +273,11 @@ func (s *session) mainMenu() error {
 				chat += fmt.Sprintf(" (%d paging)", len(ps))
 			}
 		}
-		items = append(items, item("C", chat), item("S", "Page the sysop"))
-		items = append(items, item("G", "Goodbye"))
-		for i := 0; i < len(items); i += 2 {
-			t.Println("  " + strings.Join(items[i:min(i+2, len(items))], ""))
-		}
-		t.Print("\n" + s.str("command_prompt"))
-		k, err := t.Key()
+		items = append(items, choice{"C", chat}, choice{"S", "Page the sysop"})
+		items = append(items, choice{"G", "Goodbye"})
+		k, err := s.menu("Main menu", items, "\n"+s.str("command_prompt"), true)
 		if err != nil {
 			return err
-		}
-		if k != '\r' {
-			t.Println(string(k))
-		} else {
-			t.Println("")
 		}
 		switch k {
 		case 'M':
@@ -350,6 +336,11 @@ func (s *session) areas() error {
 			newMark := ""
 			if a.New > 0 {
 				newMark = t.C(Green, fmt.Sprintf(" %d new", a.New))
+			}
+			if t.Narrow() {
+				lines = append(lines, fmt.Sprintf("%s %s %4d%s", t.C(Yellow, fmt.Sprintf("%3d", i+1)),
+					bbs.Fit(a.Name, 22), a.Messages, newMark))
+				continue
 			}
 			lines = append(lines, fmt.Sprintf("%s %s %s%s", t.C(Yellow, fmt.Sprintf("%3d", i+1)),
 				bbs.Fit(a.Name, 20), t.C(Dim, bbs.Fit(bbs.Trunc(a.Description, 36), 36)),
@@ -518,10 +509,19 @@ func (s *session) list(a *store.Area) error {
 			t.Println("No more messages.")
 			return nil
 		}
-		t.Println(t.C(Dim, fmt.Sprintf("%6s %-16s %-36s %s", "#", "From", "Subject", "Date")))
+		if t.Narrow() {
+			t.Println(t.C(Dim, fmt.Sprintf("%5s %-10s %s", "#", "From", "Subject")))
+		} else {
+			t.Println(t.C(Dim, fmt.Sprintf("%6s %-16s %-36s %s", "#", "From", "Subject", "Date")))
+		}
 		for _, m := range ms {
-			t.Printf("%s %s %s %s\n", t.C(Yellow, fmt.Sprintf("%6d", m.ID)), bbs.Fit(m.From, 16),
-				bbs.Fit(m.Subject, 36), m.Created.Format("01-02 15:04"))
+			if t.Narrow() {
+				t.Printf("%s %s %s\n", t.C(Yellow, fmt.Sprintf("%5d", m.ID)), bbs.Fit(m.From, 10),
+					bbs.Trunc(m.Subject, t.Cols-18))
+			} else {
+				t.Printf("%s %s %s %s\n", t.C(Yellow, fmt.Sprintf("%6d", m.ID)), bbs.Fit(m.From, 16),
+					bbs.Fit(m.Subject, 36), m.Created.Format("01-02 15:04"))
+			}
 			after = m.ID
 		}
 		cmd, err := t.Input("Number to read, Enter for more, [Q]uit: ", 10)
@@ -802,6 +802,11 @@ func (s *session) mail() error {
 			if !m.Read {
 				flag = t.C(Green, "N")
 			}
+			if t.Narrow() {
+				lines = append(lines, fmt.Sprintf("%s %s %s %s", t.C(Yellow, fmt.Sprintf("%3d", i+1)), flag,
+					bbs.Fit(m.From, 12), bbs.Trunc(m.Subject, t.Cols-20)))
+				continue
+			}
 			lines = append(lines, fmt.Sprintf("%s %s %s %s %s", t.C(Yellow, fmt.Sprintf("%3d", i+1)), flag,
 				bbs.Fit(m.From, 16), bbs.Fit(m.Subject, 40), m.Created.Format("01-02 15:04")))
 		}
@@ -870,13 +875,21 @@ func (s *session) who() error {
 	t := s.t
 	t.Println("")
 	t.Println(t.C(Cyan, "Who's online"))
-	t.Println(t.C(Dim, fmt.Sprintf("%4s  %-20s %-16s %-6s %s", "Node", "User", "Via", "Time", "Doing")))
+	if t.Narrow() {
+		t.Println(t.C(Dim, fmt.Sprintf("%4s  %-16s %-8s %s", "Node", "User", "Via", "Time")))
+	} else {
+		t.Println(t.C(Dim, fmt.Sprintf("%4s  %-20s %-16s %-6s %s", "Node", "User", "Via", "Time", "Doing")))
+	}
 	for _, n := range s.b.Nodes() {
 		name := n.User
 		if name == "" {
 			name = "(logging in)"
 		}
 		mins := int(time.Since(n.Since).Minutes())
+		if t.Narrow() {
+			t.Printf("%4d  %s %s %s\n", n.Num, bbs.Fit(name, 16), bbs.Fit(n.Via, 8), fmt.Sprintf("%dm", mins))
+			continue
+		}
 		t.Printf("%4d  %s %s %-6s %s\n", n.Num, bbs.Fit(name, 20), bbs.Fit(n.Via, 16),
 			fmt.Sprintf("%dm", mins), bbs.Trunc(n.Activity, t.Cols-52))
 	}
@@ -891,14 +904,24 @@ func (s *session) users() error {
 	}
 	t.Println("")
 	lines := []string{t.C(Dim, fmt.Sprintf("%-24s %-26s %6s  %s", "User", "From", "Posts", "Last call"))}
+	if t.Narrow() {
+		lines = []string{t.C(Dim, fmt.Sprintf("%-20s %-12s %5s", "User", "From", "Posts"))}
+	}
 	for _, u := range us {
 		last := "never"
 		if !u.LastLogin.IsZero() {
 			last = u.LastLogin.Format("2006-01-02")
 		}
 		name := bbs.Fit(u.Name, 24)
+		if t.Narrow() {
+			name = bbs.Fit(u.Name, 20)
+		}
 		if u.Sysop {
 			name = t.C(Yellow, name)
+		}
+		if t.Narrow() {
+			lines = append(lines, fmt.Sprintf("%s %s %5d", name, bbs.Fit(u.Location, 12), u.Posts))
+			continue
 		}
 		lines = append(lines, fmt.Sprintf("%s %s %6d  %s", name, bbs.Fit(u.Location, 26), u.Posts, last))
 	}
@@ -920,9 +943,14 @@ func (s *session) profile() error {
 		t.Printf("  From:      %s\n", u.Location)
 		t.Printf("  Member:    since %s, %d calls, %d posts\n", u.Created.Format("2006-01-02"), u.Logins, u.Posts)
 		onOff := map[bool]string{true: "on", false: "off"}
-		t.Printf("  Terminal:  %dx%d, ANSI %s, UTF-8 %s, sixel %s\n", t.Cols, t.Rows,
-			onOff[t.ANSI], onOff[t.UTF8], onOff[t.Sixel])
-		menu := "\n[L]ocation, [A]NSI on/off, [8]-bit UTF-8 on/off, [S]ixel on/off, "
+		menu := "\n[L]ocation, [A]NSI on/off, [8]-bit UTF-8 on/off, [S]ixel on/off, [R]IP on/off, "
+		if t.PETSCII {
+			t.Printf("  Terminal:  Commodore, %dx%d\n", t.Cols, t.Rows)
+			menu = "\n[L]ocation, [W]idth 40/80, "
+		} else {
+			t.Printf("  Terminal:  %dx%d, ANSI %s, UTF-8 %s, sixel %s, RIP %s\n", t.Cols, t.Rows,
+				onOff[t.ANSI], onOff[t.UTF8], onOff[t.Sixel], onOff[t.RIP])
+		}
 		if !u.External {
 			menu += "[P]assword, SSH [K]eys, "
 		}
@@ -941,10 +969,37 @@ func (s *session) profile() error {
 			if err := s.b.Store.SetLocation(u.ID, bbs.Clean(loc, bbs.MaxLocationLen)); err != nil {
 				return err
 			}
+		case 'A', '8', 'S', 'R':
+			if t.PETSCII {
+				continue
+			}
+		case 'W':
+			if t.PETSCII {
+				t.SetPETSCII(true, map[int]int{40: 80, 80: 40}[t.Cols])
+			}
+		}
+		switch k {
 		case 'A':
 			t.ANSI = !t.ANSI
+			if !t.ANSI {
+				t.RIP = false
+			}
 		case '8':
 			t.UTF8 = !t.UTF8
+		case 'R':
+			// on only where the terminal says it has it
+			if t.RIP {
+				t.RIP = false
+			} else if t.ANSI {
+				on, err := t.DetectRIP(2 * time.Second)
+				if err != nil {
+					return err
+				}
+				t.RIP = on
+				if !on {
+					t.Println(t.C(Red, "Your terminal does not say it has RIPscrip."))
+				}
+			}
 		case 'S':
 			// on only where the terminal can: sixel bytes are noise elsewhere
 			if t.Sixel {
@@ -1085,6 +1140,6 @@ func (s *session) info() error {
 	t.Printf("  Users:     %d\n", len(us))
 	t.Printf("  Messages:  %d in %d areas\n", msgs, len(areas))
 	t.Printf("  Nodes:     %d of %d in use\n", len(b.Nodes()), b.MaxNodes)
-	t.Println("  Software:  bbs-sec, with telnet, TN3270, rlogin and modem callers")
+	t.Println("  Software:  bbs-sec: telnet, SSH, TN3270, rlogin, modems; ANSI, RIP, PETSCII")
 	return t.Pause()
 }

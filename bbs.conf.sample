@@ -72,6 +72,7 @@ throttle_time = 600
 ;          raw           the caller's bytes as they come, no protocol:
 ;                        app_dmodem's mode = tcp, modemmenu tcp/unix items
 ;          rlogin        RFC 1282, as modemmenu's rlogin items speak it
+;          ssh           SSH: passwords or users' keys (host_keys, legacy)
 ;   address = host:port  or a unix socket's path (/run/bbs/bbs.sock)
 ;   via = ...            how its callers came, in who's online
 ;                        (telnet, modem, rlogin by type)
@@ -82,6 +83,12 @@ throttle_time = 600
 ;   sixel = auto         the logo as sixel graphics on terminals that say
 ;                        they have them (device attributes); no.  auto for
 ;                        telnet, no for raw and rlogin (slow modem lines)
+;   petscii = no         Commodore 64s and 128s: yes (every caller is one),
+;                        auto (a caller that is not ANSI is asked to press
+;                        DEL: a C64's makes it PETSCII), no
+;   rip = auto           RIPscrip menus and screens for terminals that answer
+;                        ESC [ ! (BBS terminals; modern ones are not asked),
+;                        yes, no
 ;   max_per_ip = 4       connections at once from one address (loopback
 ;                        and unix sockets: no limit, they are modem servers)
 ;   header = no          yes: a session header comes first, NAME=value lines

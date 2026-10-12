@@ -20,9 +20,12 @@ more files for different terminals:
 | `NAME.asc` | plain text (UTF-8 or ASCII), a page at a time | any text terminal; 3270s when there is no `.3270` |
 | `NAME.txt` | the same as `.asc` | the same |
 | `NAME.3270` | text with color tags (below) | 3270s |
+| `NAME.rip` | RIPscrip (graphics and ANSI) in CP437; its buttons send keys to the menu showing it | [RIP terminals](PETSCII-and-RIP) |
+| `NAME.seq` | PETSCII, as C64 editors save it, sent as it is (no @-codes) | [Commodores](PETSCII-and-RIP) |
 
-An ANSI terminal gets `.ans`, else `.asc`, else `.txt`; a plain one `.asc`
-or `.txt`; a 3270 `.3270`, `.asc` or `.txt`.  ANSI art goes to a UTF-8
+An ANSI terminal gets `.ans`, else `.asc`, else `.txt`; a RIP terminal
+`.rip` before those; a plain one `.asc` or `.txt`; a Commodore `.seq`,
+else `.asc` or `.txt` (translated); a 3270 `.3270`, `.asc` or `.txt`.  ANSI art goes to a UTF-8
 terminal as UTF-8, and to any other as the CP437 bytes it is (what
 SyncTERM, NetRunner and DOS terminal programs want).  Files are read
 each time they are shown, so they can be changed while the BBS runs; the

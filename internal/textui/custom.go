@@ -13,12 +13,20 @@ import (
 func (s *session) screen(name string) (bool, error) {
 	t := s.t
 	kind := screens.Plain
-	if t.ANSI {
+	switch {
+	case t.PETSCII:
+		kind = screens.PETSCII
+	case t.RIP:
+		kind = screens.RIP
+	case t.ANSI:
 		kind = screens.ANSI
 	}
 	sc, ok := s.b.Screens.Find(name, kind)
 	if !ok {
 		return false, nil
+	}
+	if sc.Format == screens.Raw {
+		return true, t.Raw(sc.Bytes)
 	}
 	for _, p := range screens.Expand(sc.Text, s.n.Vars()) {
 		switch {
@@ -30,6 +38,9 @@ func (s *session) screen(name string) (bool, error) {
 			}
 		case sc.Format == screens.Art:
 			t.Art(p.Text)
+			if sc.Ext == ".rip" {
+				t.ripScene, t.sinceKey = true, 0 // its buttons go when a key is chosen
+			}
 		default:
 			lines := strings.Split(strings.TrimSuffix(p.Text, "\n"), "\n")
 			for i, l := range lines {
@@ -67,7 +78,6 @@ func (s *session) logoff() error {
 // runMenu runs a menu of the sysop's until it is left (back) or the
 // caller logs off.
 func (s *session) runMenu(m *bbs.Menu, depth int) error {
-	t := s.t
 	vars := s.n.Vars()
 	for {
 		s.user = s.n.Refresh()
@@ -80,31 +90,21 @@ func (s *session) runMenu(m *bbs.Menu, depth int) error {
 				return err
 			}
 		}
-		if !shown {
-			t.Println("")
-			t.Println(t.C(Cyan, title))
-			var items []string
-			for _, it := range m.Items {
-				items = append(items, t.C(Yellow, "["+it.Key+"]")+" "+bbs.Fit(screens.String(it.Label, vars), 22))
-			}
-			for i := 0; i < len(items); i += 2 {
-				t.Println("  " + strings.Join(items[i:min(i+2, len(items))], ""))
-			}
+		var items []choice
+		for _, it := range m.Items {
+			items = append(items, choice{it.Key, screens.String(it.Label, vars)})
 		}
 		prompt := s.str("command_prompt")
 		if m.Prompt != "" {
 			prompt = screens.String(m.Prompt, vars)
 		}
-		t.Print("\n" + prompt)
-		k, err := t.Key()
+		k, err := s.menu(title, items, "\n"+prompt, !shown)
 		if err != nil {
 			return err
 		}
 		if k == '\r' {
-			t.Println("")
 			continue
 		}
-		t.Println(string(k))
 		it := m.Item(string(k))
 		if it == nil {
 			continue

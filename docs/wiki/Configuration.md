@@ -12,7 +12,8 @@ each `[listen NAME]` is a port or unix socket:
 `address` is `host:port`, or a path for a unix socket (`socket_mode`,
 `socket_group`).  Any listener may read a session header first (`header =
 yes`), and with `trust_user = yes` take the caller as logged in already: see
-[Modem callers](Modem-Callers) (not `ssh`, which logs its callers in itself).
+[Modem callers](Modem-Callers) (not `ssh`, which logs its callers in itself).  `petscii` and `rip` say whether
+its callers may be Commodores or RIPscrip terminals: [PETSCII and RIP](PETSCII-and-RIP).
 
 ## The sections
 

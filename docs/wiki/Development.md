@@ -8,6 +8,8 @@
 | `internal/textui` | the text BBS: line editing, ANSI detection, paging, the menus |
 | `internal/ui3270` | the 3270 BBS: screens and PF keys on go3270, and its graphics |
 | `internal/sixel` | the sixel encoder |
+| `internal/petscii` | the Commodore's character set: translating ANSI and UTF-8 out, keys in |
+| `internal/rip` | RIPscrip: MegaNums, commands, menu scenes |
 | `internal/files` | file areas' storage: names, uploads, limits |
 | `internal/ftp` | the FTP server: the file areas as a file system |
 | `internal/news` | articles: parsing, checking, making, decoding; wildmats |
@@ -88,5 +90,14 @@ type and size, refused commands, SFTP and forwarding, a user adding and
 deleting a key in their profile, host keys made and kept (ed25519, RSA,
 ECDSA) and refused when readable, the configuration, legacy ciphers only
 when asked for, and the OpenSSH client logging in by key with a pty.
+PETSCII: the translation (letters, colors, reverse, CR and LF, cursor
+movement, box drawing, accents, runes split across writes, wrapping) and
+the keys back; a Commodore logging in with DEL editing, its one column
+menus, a .seq screen as it is, the profile's width, no escape ever sent;
+the DEL question making a caller PETSCII or not.  RIP: MegaNums, the
+commands and their escaping, the menu scene; a RIP terminal found by its
+answer, given a .rip screen, menus as buttons, the scene cleared on a
+choice and a pause before the next; an ANSI terminal without RIP given
+none of it.
 
 **See also:** [Building](Building)

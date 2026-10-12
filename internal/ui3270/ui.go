@@ -1051,7 +1051,7 @@ func (u *ui) info() error {
 		fmt.Sprintf("Users:     %d", len(us)),
 		fmt.Sprintf("Messages:  %d in %d areas", msgs, len(areas)),
 		fmt.Sprintf("Nodes:     %d of %d in use", len(b.Nodes()), b.MaxNodes),
-		"Software:  bbs-sec, with telnet, TN3270, rlogin and modem callers")
+		"Software:  bbs-sec: telnet, SSH, TN3270, rlogin, modems; ANSI, RIP, PETSCII")
 	if len(areas) > 0 {
 		lines = append(lines, "", "Messages by area:")
 		most := 0

@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/Neo-Desktop/bbs-sec/internal/screens"
 	"io"
 	"os"
 	"regexp"
@@ -17,6 +16,10 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/Neo-Desktop/bbs-sec/internal/petscii"
+	"github.com/Neo-Desktop/bbs-sec/internal/rip"
+	"github.com/Neo-Desktop/bbs-sec/internal/screens"
 )
 
 // ErrIdle: the caller typed nothing for too long.
@@ -36,6 +39,10 @@ type Term struct {
 	ANSI  bool // color and cursor movement
 	UTF8  bool // UTF-8 both ways; otherwise 7-bit ASCII
 	Sixel bool // sixel graphics
+	// PETSCII: a Commodore 64 or 128 (SetPETSCII); colors, but not ANSI
+	PETSCII bool
+	// RIP: an ANSI terminal with RIPscrip graphics (RIPterm, SyncTERM)
+	RIP bool
 	// Clean8 is an 8-bit clean line (a modem, rlogin, telnet in binary
 	// mode): what X/Y/ZMODEM need
 	Clean8 bool
@@ -56,6 +63,41 @@ type Term struct {
 
 	// PausePrompt is Pause's ("": "[Press a key]")
 	PausePrompt string
+
+	pet      *petscii.Writer // under w, for a PETSCII terminal
+	sinceKey int             // lines printed since a key was read
+	ripScene bool            // a RIP scene is on the screen
+}
+
+// SetPETSCII makes the terminal a Commodore's (width 40, or a C128's 80)
+// or no longer one.
+func (t *Term) SetPETSCII(on bool, width int) {
+	t.Flush()
+	if !on {
+		t.PETSCII, t.pet = false, nil
+		t.w = bufio.NewWriterSize(t.c, 4096)
+		return
+	}
+	t.PETSCII, t.ANSI, t.UTF8, t.Sixel, t.RIP = true, false, false, false, false
+	t.Cols, t.Rows = width, 25
+	t.pet = petscii.NewWriter(t.c, width)
+	t.w = bufio.NewWriterSize(t.pet, 4096)
+	t.pet.Raw(petscii.Start())
+	t.cur = t.cur[:0]
+}
+
+// Raw writes bytes as they are, past any translation (a .seq screen to a
+// Commodore).
+func (t *Term) Raw(b []byte) error {
+	if err := t.Flush(); err != nil {
+		return err
+	}
+	t.cur = t.cur[:0]
+	if t.pet != nil {
+		return t.pet.Raw(b)
+	}
+	_, err := t.c.Write(b)
+	return err
 }
 
 // NewTerm makes a terminal on c, 80x24 plain ASCII until told otherwise.
@@ -83,7 +125,7 @@ const (
 
 // C wraps s in a color, on an ANSI terminal.
 func (t *Term) C(color, s string) string {
-	if !t.ANSI {
+	if !t.ANSI && !t.PETSCII {
 		return s
 	}
 	return "\x1b[" + color + "m" + s + "\x1b[0m"
@@ -99,6 +141,7 @@ func (t *Term) Print(s string) {
 		switch r {
 		case '\n':
 			t.cur = t.cur[:0]
+			t.sinceKey++
 		case '\b':
 			if len(t.cur) > 0 {
 				t.cur = t.cur[:len(t.cur)-1]
@@ -111,7 +154,7 @@ func (t *Term) Print(s string) {
 			t.w.WriteString("\r\n")
 		case r < 0x80:
 			t.w.WriteByte(byte(r))
-		case t.UTF8 && r != utf8.RuneError:
+		case (t.UTF8 || t.PETSCII) && r != utf8.RuneError:
 			t.w.WriteRune(r)
 		default:
 			t.w.WriteByte('?')
@@ -126,12 +169,20 @@ func (t *Term) Printf(format string, a ...any) { t.Print(fmt.Sprintf(format, a..
 func (t *Term) Println(s string) { t.Print(s + "\n") }
 
 // Flush sends what is printed.
-func (t *Term) Flush() error { return t.w.Flush() }
+func (t *Term) Flush() error {
+	if err := t.w.Flush(); err != nil {
+		return err
+	}
+	if t.pet != nil {
+		return t.pet.Settle()
+	}
+	return nil
+}
 
 // Clear clears the screen (a blank line on a plain terminal).
 func (t *Term) Clear() {
 	t.cur = t.cur[:0]
-	if t.ANSI {
+	if t.ANSI || t.PETSCII {
 		t.w.WriteString("\x1b[2J\x1b[H")
 	} else {
 		t.w.WriteString("\r\n")
@@ -174,6 +225,7 @@ func (t *Term) readRune() (rune, error) {
 			}
 			continue
 		}
+		t.sinceKey = 0
 		return r, nil
 	}
 }
@@ -231,6 +283,13 @@ func (t *Term) notices() {
 }
 
 func (t *Term) next() (rune, error) {
+	if t.PETSCII {
+		b, err := t.r.ReadByte()
+		if err != nil {
+			return 0, err
+		}
+		return petscii.Decode(b), nil
+	}
 	if t.UTF8 {
 		r, _, err := t.r.ReadRune()
 		return r, err
@@ -334,6 +393,7 @@ func (t *Term) ReadLine(o LineOpts) (Line, error) {
 		switch {
 		case r == '\r' || r == '\n':
 			t.Print("\n")
+			t.sinceKey = 0
 			return Line{Text: string(buf)}, nil
 		case r == 8 || r == 0x7f:
 			if len(buf) > 0 {
@@ -444,7 +504,7 @@ func (t *Term) Pause() error {
 // UTF-8 terminal, CP437 to any other; \n as CR LF.
 func (t *Term) Art(s string) {
 	s = strings.ReplaceAll(s, "\n", "\r\n")
-	if t.UTF8 {
+	if t.UTF8 || t.PETSCII {
 		t.w.WriteString(s)
 	} else {
 		t.w.Write(screens.EncodeCP437(s))
@@ -571,6 +631,70 @@ func (t *Term) Picture(data []byte) {
 	}
 	t.w.Write(data)
 	t.w.WriteString("\r\n")
+}
+
+// RawKey reads one byte as it comes (no decoding), waiting up to d
+// (ErrIdle after).
+func (t *Term) RawKey(d time.Duration) (byte, error) {
+	if err := t.Flush(); err != nil {
+		return 0, err
+	}
+	t.c.SetReadDeadline(time.Now().Add(d))
+	b, err := t.r.ReadByte()
+	t.c.SetReadDeadline(time.Time{})
+	if errors.Is(err, os.ErrDeadlineExceeded) {
+		return 0, ErrIdle
+	}
+	return b, err
+}
+
+// Narrow is a screen too narrow for the usual columns (a C64's 40).
+func (t *Term) Narrow() bool { return t.Cols < 60 }
+
+// DetectRIP asks an ANSI terminal whether it has RIPscrip, with the
+// position report every ANSI terminal answers after it: a RIP terminal's
+// answer comes first.
+func (t *Term) DetectRIP(timeout time.Duration) (bool, error) {
+	t.w.WriteString(rip.Query + "\x1b[6n")
+	if err := t.Flush(); err != nil {
+		return false, err
+	}
+	var got []byte
+	end := time.Now().Add(timeout)
+	for time.Now().Before(end) && len(got) < 128 {
+		t.c.SetReadDeadline(end)
+		b, err := t.r.ReadByte()
+		t.c.SetReadDeadline(time.Time{})
+		if err != nil {
+			if errors.Is(err, os.ErrDeadlineExceeded) {
+				break
+			}
+			return false, err
+		}
+		got = append(got, b)
+		if cprPattern.Match(got) {
+			break
+		}
+	}
+	return rip.Version.Match(got), nil
+}
+
+// RIPScene draws a RIP scene (rip.Menu's), from the first column.
+func (t *Term) RIPScene(scene string) {
+	t.w.WriteString("\r\n" + scene)
+	t.cur = t.cur[:0]
+	t.ripScene, t.sinceKey = true, 0
+}
+
+// RIPClear takes a RIP scene off the screen: graphics, buttons, the text
+// window as it was.
+func (t *Term) RIPClear() {
+	if !t.ripScene {
+		return
+	}
+	t.w.WriteString("\r\n" + (&rip.Script{}).KillMouseFields().Reset().String() + "\x1b[2J\x1b[H")
+	t.cur = t.cur[:0]
+	t.ripScene, t.sinceKey = false, 0
 }
 
 // port is the terminal as a line for file transfers: the same buffered

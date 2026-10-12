@@ -65,7 +65,15 @@ func (s *session) fileArea(a *store.FileArea) error {
 		t.Println("")
 		t.Println(t.C(Cyan, a.Name) + t.C(Dim, "  "+a.Description))
 		lines := []string{t.C(Dim, fmt.Sprintf("%4s %-28s %9s %-10s %s", "#", "Name", "Size", "Date", "Description"))}
+		if t.Narrow() {
+			lines = []string{t.C(Dim, fmt.Sprintf("%3s %-24s %9s", "#", "Name", "Size"))}
+		}
 		for i, f := range list {
+			if t.Narrow() {
+				lines = append(lines, fmt.Sprintf("%s %s %9s", t.C(Yellow, fmt.Sprintf("%3d", i+1)),
+					bbs.Fit(f.Name, 24), files.Size(f.Size)))
+				continue
+			}
 			lines = append(lines, fmt.Sprintf("%s %s %9s %s %s", t.C(Yellow, fmt.Sprintf("%4d", i+1)),
 				bbs.Fit(f.Name, 28), files.Size(f.Size), f.Created.Format("2006-01-02"),
 				bbs.Trunc(f.Description, max(10, t.Cols-56))))

@@ -14,6 +14,9 @@ import (
 // doorsFor are the doors a user may open.
 func (s *session) doorsFor() []*door.Door {
 	var out []*door.Door
+	if s.t.PETSCII {
+		return nil // doors are ANSI programs
+	}
 	for _, d := range s.b.Doors {
 		if !d.SysopOnly || s.user.Sysop {
 			out = append(out, d)

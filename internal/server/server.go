@@ -54,6 +54,8 @@ type Listener struct {
 	ANSI          string // auto, yes, no: the terminal's ANSI, if not told
 	UTF8          string // auto, yes, no
 	Sixel         string // auto or yes (ask the terminal), no
+	PETSCII       string // yes (Commodores only), auto (ask a terminal that is not ANSI), no
+	RIP           string // auto (ask a BBS terminal program), yes, no
 	Header        bool   // read a session header first
 	HeaderTimeout time.Duration
 	TrustUser     bool // the header's MODEM_USER (rlogin's server user) is logged in
@@ -430,6 +432,12 @@ func (s *Server) text(rw io.ReadWriter, c deadliner, l *Listener, node *bbs.Node
 		// a telnet client that spoke telnet but refused binary mode
 		t.Clean8 = tc.Binary() || !tc.Spoke()
 	}
+	if l.PETSCII == "yes" || petsciiTerm(tt) {
+		// a Commodore: nothing ANSI's is asked of it
+		t.SetPETSCII(true, 40)
+		node.SetTerminal(node.Caller.Via, "petscii")
+		return s.run(t, l, node)
+	}
 	ansi, known := ansiTerm(tt)
 	switch l.ANSI {
 	case "yes":
@@ -447,6 +455,17 @@ func (s *Server) text(rw io.ReadWriter, c deadliner, l *Listener, node *bbs.Node
 			t.ANSI = got
 		}
 	}
+	if !t.ANSI && !known && l.PETSCII == "auto" {
+		pet, err := askPETSCII(t)
+		if err != nil {
+			return err
+		}
+		if pet {
+			t.SetPETSCII(true, 40)
+			node.SetTerminal(node.Caller.Via, "petscii")
+			return s.run(t, l, node)
+		}
+	}
 	switch l.UTF8 {
 	case "yes":
 		t.UTF8 = true
@@ -455,18 +474,56 @@ func (s *Server) text(rw io.ReadWriter, c deadliner, l *Listener, node *bbs.Node
 	default:
 		t.UTF8 = utf8Term(tt)
 	}
-	if t.ANSI && (l.Sixel == "auto" || l.Sixel == "yes") {
+	if t.ANSI && (l.RIP == "yes" || l.RIP == "auto" && !utf8Term(tt)) {
+		on, err := t.DetectRIP(1500 * time.Millisecond)
+		if err != nil {
+			return err
+		}
+		t.RIP = on || l.RIP == "yes"
+	}
+	if t.ANSI && !t.RIP && (l.Sixel == "auto" || l.Sixel == "yes") {
 		on, err := t.DetectSixel(1500 * time.Millisecond)
 		if err != nil {
 			return err
 		}
 		t.Sixel = on
 	}
+	return s.run(t, l, node)
+}
+
+func (s *Server) run(t *textui.Term, l *Listener, node *bbs.Node) error {
 	return textui.Run(s.B, node, t, textui.Options{CreateTrusted: l.CreateUsers,
 		LogoFile: s.LogoFile})
 }
 
 type deadliner interface{ SetReadDeadline(time.Time) error }
+
+// petsciiTerm: a terminal type a Commodore's terminal program says
+func petsciiTerm(tt string) bool {
+	tt = strings.ToLower(tt)
+	for _, p := range []string{"petscii", "c64", "c128", "commodore", "cbm"} {
+		if strings.HasPrefix(tt, p) {
+			return true
+		}
+	}
+	return false
+}
+
+// askPETSCII asks a terminal that is not ANSI to press DEL: a Commodore's
+// is 0x14, anyone else's backspace 0x08 or 0x7F.  Upper case ASCII reads
+// the same on both.
+func askPETSCII(t *textui.Term) (bool, error) {
+	t.Print("\nPRESS DEL (OR BACKSPACE): ")
+	b, err := t.RawKey(30 * time.Second)
+	if errors.Is(err, textui.ErrIdle) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	t.Print("\n")
+	return b == 0x14, nil
+}
 
 // rlogin: RFC 1282's start, then the text BBS
 func (s *Server) rlogin(c net.Conn, l *Listener, node *bbs.Node) error {
