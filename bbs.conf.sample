@@ -431,6 +431,21 @@ address = 127.0.0.1:2513
 ; the services bot's nick: /msg BBSServ HELP (your account's settings)
 ;service = BBSServ
 
+; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
+; beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike.
+; See docs/wiki/MRC.md
+;[mrc]
+;address = mrc.bottomlessabyss.net:5000
+; or TLS, on 5001
+;address = mrc.bottomlessabyss.net:5001
+;tls = yes
+;prefix = mrc-
+;system_name = |11My |03BBS
+;web = https://bbs.example.org/
+;telnet = bbs.example.org:23
+;ssh = bbs.example.org:22
+;require = 20
+
 ; finger: who is on ("finger @host"), and who a user is ("finger name@host").
 ; Port 79 needs CAP_NET_BIND_SERVICE (bbs.service.sample)
 ;[finger]

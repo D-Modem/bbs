@@ -27,6 +27,7 @@ or with nothing typed) or PF5.
 
 A caller may say 8 lines in 10 seconds; more is refused ("slow down").
 
+Rooms beginning `mrc-` are [MRC](MRC)'s, shared with other BBSes.
 The rooms are channels on the BBS's [IRC](IRC) server too: `#main` and
 the rest, with IRC clients in them alongside the callers.
 

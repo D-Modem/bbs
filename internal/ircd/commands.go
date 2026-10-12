@@ -474,6 +474,10 @@ func (c *client) events() {
 
 // sourceOf is how one on a node is named.
 func (c *client) sourceOf(name string, node int) string {
+	if _, site, ok := strings.Cut(name, "@"); ok && node == 0 {
+		// someone on another system, come by a chat network (MRC)
+		return fmt.Sprintf("%s!mrc@%s", Nick(name), strings.ToLower(Nick(site)))
+	}
 	via := "bbs"
 	for _, n := range c.s.B.Nodes() {
 		if n.Num == node {
@@ -514,6 +518,12 @@ func (c *client) event(e bbs.Event) {
 			text += ": " + e.Text
 		}
 		c.send(tags, "", "NOTICE", c.nick, text+fmt.Sprintf(" (/join #sysop-%d to answer)", e.Node))
+	case bbs.Notice:
+		if e.Room != "" && c.n.InRoom(e.Room) {
+			c.send(tags, "", "NOTICE", "#"+e.Room, e.Text) // the room's, from a chat network
+			return
+		}
+		c.send(tags, "", "NOTICE", c.nick, e.String())
 	default:
 		c.send(tags, "", "NOTICE", c.nick, e.String())
 	}

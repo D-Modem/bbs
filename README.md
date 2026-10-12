@@ -78,6 +78,7 @@ What there is:
   as private mail, and a binkp mailer to exchange packets with links
 - [IRC](https://github.com/Neo-Desktop/bbs-sec/wiki/IRC): the chat rooms as IRC channels, built on parts of
   [ergo](https://github.com/ergochat/ergo); logins by SASL or the server password, TLS
+- [MRC](https://github.com/Neo-Desktop/bbs-sec/wiki/MRC): Multi Relay Chat, the BBSes' chat network, its rooms as chat rooms here
 - [doors](https://github.com/Neo-Desktop/bbs-sec/wiki/Doors): DOS door games in dosemu2 (in Docker), with a FOSSIL on COM1
   and the usual drop files, or any Linux program, for text callers; doors
   elsewhere by telnet or RLogin, and the door networks BBSLink and DoorParty
@@ -132,6 +133,7 @@ The documentation is in the [wiki](https://github.com/Neo-Desktop/bbs-sec/wiki/)
 | [Newsgroups and NNTP](https://github.com/Neo-Desktop/bbs-sec/wiki/Newsgroups-and-NNTP) | the NNTP server, news peers |
 | [FidoNet](https://github.com/Neo-Desktop/bbs-sec/wiki/FidoNet) | echomail, netmail, binkp |
 | [IRC](https://github.com/Neo-Desktop/bbs-sec/wiki/IRC) | the IRC server: the chat rooms as channels |
+| [MRC](https://github.com/Neo-Desktop/bbs-sec/wiki/MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Offline mail](https://github.com/Neo-Desktop/bbs-sec/wiki/Offline-Mail) | QWK packets, REP replies, QWK networks |
 | [Chat and paging](https://github.com/Neo-Desktop/bbs-sec/wiki/Chat-and-Paging) | chat rooms, node messages, paging the sysop |
 | [Finger and gopher](https://github.com/Neo-Desktop/bbs-sec/wiki/Finger-and-Gopher) | who is on, and the BBS in gopherspace |

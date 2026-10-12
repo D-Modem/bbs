@@ -30,6 +30,7 @@
 - [FidoNet](FidoNet)
 - [Chat and paging](Chat-and-Paging)
 - [IRC](IRC)
+- [MRC](MRC)
 - [Finger and gopher](Finger-and-Gopher)
 - [HTTP API](HTTP-API)
 

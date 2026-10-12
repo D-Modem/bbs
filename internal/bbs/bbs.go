@@ -143,6 +143,7 @@ type BBS struct {
 	failures map[string][]time.Time
 	hubOnce  sync.Once
 	chat     *hub
+	relay    Relay // a chat network's rooms (MRC)
 }
 
 // New makes the BBS of the settings and store.

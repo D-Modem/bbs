@@ -24,6 +24,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 	"github.com/Neo-Desktop/bbs-sec/internal/ircd"
 	"github.com/Neo-Desktop/bbs-sec/internal/logo"
+	"github.com/Neo-Desktop/bbs-sec/internal/mrc"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
 	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
 	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
@@ -54,6 +55,7 @@ type Config struct {
 	Doors      []*door.Door
 	Finger     *finger.Settings // nil: no finger server
 	IRC        *ircd.Settings   // nil: no IRC server
+	MRC        *mrc.Settings    // nil: not on Multi Relay Chat
 	Screens    *screens.Set     // nil: no screens of the sysop's
 	ScriptsDir string           // "": no scripts
 	Menus      map[string]*bbs.Menu
@@ -106,6 +108,9 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 	if err := c.ircSection(cf); err != nil {
+		return nil, err
+	}
+	if err := c.mrcSection(cf); err != nil {
 		return nil, err
 	}
 	if err := c.infoSections(cf); err != nil {
@@ -165,7 +170,7 @@ func Load(path string) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "menu", "strings", "http", "level":
+		case "general", "security", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "mrc", "menu", "strings", "http", "level":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}

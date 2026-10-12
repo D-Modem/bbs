@@ -426,3 +426,18 @@ func TestBadNick(t *testing.T) {
 	c.send("PASS alice:password1", "NICK alice", "USER u 0 * :x")
 	c.expect(" 001 alice ")
 }
+
+// lines from a chat network (MRC) in a channel
+func TestRelayedLines(t *testing.T) {
+	e := start(t)
+	c := e.dial(t)
+	c.login("alice", "alice")
+	c.send("JOIN #mrc-lobby")
+	c.expect("366 alice #mrc-lobby")
+	e.b.RelayEvent(bbs.Event{Kind: bbs.Said, Room: "mrc-lobby", From: "carol@Far_BBS", Text: "hi all"})
+	c.expect(":carol_Far_BBS!mrc@far_bbs PRIVMSG #mrc-lobby :hi all")
+	e.b.RelayEvent(bbs.Event{Kind: bbs.Emoted, Room: "mrc-lobby", From: "carol@Far_BBS", Text: "dances"})
+	c.expect(":carol_Far_BBS!mrc@far_bbs PRIVMSG #mrc-lobby :\x01ACTION dances\x01")
+	e.b.RelayEvent(bbs.Event{Kind: bbs.Notice, Room: "mrc-lobby", Text: "- dave has arrived."})
+	c.expect(":irc.test NOTICE #mrc-lobby :- dave has arrived.")
+}

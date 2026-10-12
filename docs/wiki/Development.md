@@ -21,6 +21,7 @@
 | `internal/news` | articles: parsing, checking, making, decoding; wildmats |
 | `internal/nntp` | the NNTP server and the peers' client |
 | `internal/ircd` | the IRC server: channels as chat rooms; ergo's irc-go, numerics and ISUPPORT list |
+| `internal/mrc` | Multi Relay Chat: the BBS as its own connector, MRC's rooms as chat rooms |
 | `internal/qwknet` | a QWK network's node: calling the hub by FTP, REPs up, packets down |
 | `internal/qwk` | QWK packets and REPs: MESSAGES.DAT's blocks, CONTROL.DAT, indexes (MBF floats), QWKE kludges, CP437 |
 | `internal/ftn` | FidoNet's formats: addresses, Type 2+ packets, messages, kludges, character sets |
@@ -158,7 +159,12 @@ cannot catch, exit, the sample poll, the configuration's checks, and the
 sample one-liners on a text terminal and on a 3270 by s3270); the file base (FILE_ID.DIZ in CP437
 with colors, a ZIP's and a tar.gz's listings, new files, finding by the
 DIZ's words, tagging by numbers, a batch of two by YMODEM, ratios and the day's limit together, the API's
-search and listings); doors elsewhere (a telnet server's negotiation answered and kept from
+search and listings); MRC (a fake MRC server: the handshake, arrivals, NEWROOM, lines and
+actions both ways, colors taken out, our own lines not shown twice,
+private messages and server answers to one user, PING and IAMHERE,
+!commands and !!, a user in two rooms, LOGOFF, the line dropped and
+those here put back, rooms not MRC's not sent, require; on IRC, an MRC
+user's hostmask and the room's notices); doors elsewhere (a telnet server's negotiation answered and kept from
 the caller, doubled IACs; RLogin's start and a refusal; BBSLink's token,
 its MD5s and a wrong code; DoorParty through an SSH server's tunnel, a
 wrong password and a wrong host key refused; a caller on the BBS going

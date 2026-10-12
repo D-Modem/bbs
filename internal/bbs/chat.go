@@ -197,6 +197,9 @@ func (n *Node) mayJoin(name string) (string, error) {
 	if name != pageRoom(n.Num) && !n.b.LevelOf(u).Chat {
 		return "", ErrNotAllowed
 	}
+	if r := n.b.relayFor(name); r != nil && !r.Allows(name, u) {
+		return "", ErrNotAllowed
+	}
 	return name, nil
 }
 
@@ -315,6 +318,9 @@ func (n *Node) enter(name string) []Event {
 	for _, o := range others {
 		o.deliver(e)
 	}
+	if r := n.b.relayFor(name); r != nil {
+		r.Joined(name, n.name())
+	}
 	return hist
 }
 
@@ -356,6 +362,9 @@ func (n *Node) exit(name string) {
 	for _, o := range others {
 		o.deliver(e)
 	}
+	if r := n.b.relayFor(name); r != nil {
+		r.Left(name, n.name())
+	}
 }
 
 // flood reports whether the node has sent too much lately.
@@ -396,6 +405,18 @@ func (n *Node) SayIn(name, text string, emote bool) error {
 	if !n.InRoom(name) {
 		return ErrNotInRoom
 	}
+	relay := n.b.relayFor(name)
+	if relay != nil && len(text) > 1 && text[0] == '!' && text[1] != ' ' && text[1] != '!' {
+		// !COMMAND: for the network's server, not the room
+		if n.flood() {
+			return ErrFlood
+		}
+		relay.Command(name, n.name(), text[1:])
+		return nil
+	}
+	if relay != nil && strings.HasPrefix(text, "!!") {
+		text = text[1:] // !!: a line that begins with !
+	}
 	if n.flood() {
 		return ErrFlood
 	}
@@ -418,6 +439,9 @@ func (n *Node) SayIn(name, text string, emote bool) error {
 	h.mu.Unlock()
 	for _, m := range members {
 		m.deliver(e)
+	}
+	if relay != nil {
+		relay.Said(name, n.name(), text, emote)
 	}
 	return nil
 }

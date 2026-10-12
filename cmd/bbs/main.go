@@ -60,6 +60,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
 	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
 	"github.com/Neo-Desktop/bbs-sec/internal/ircd"
+	"github.com/Neo-Desktop/bbs-sec/internal/mrc"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
 	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
@@ -201,6 +202,9 @@ func main() {
 			}
 			fmt.Println()
 		}
+		if m := cfg.MRC; m != nil {
+			fmt.Printf("mrc: %s (TLS %v), rooms %s*\n", m.Address, m.TLS, m.Prefix)
+		}
 		if i := cfg.IRC; i != nil {
 			fmt.Printf("irc: %q, TLS %q\n", i.Address, i.TLSAddress)
 		}
@@ -338,6 +342,15 @@ func serve(cfg *server.Config) int {
 		}()
 	}
 	svc.RunPeers(ctx, cfg.Peers)
+	if cfg.MRC != nil {
+		mc, err := mrc.New(b, *cfg.MRC)
+		if err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+		b.SetRelay(mc)
+		go mc.Run(ctx)
+	}
 	if cfg.IRC != nil {
 		is, err := ircd.New(b, *cfg.IRC)
 		if err != nil {
