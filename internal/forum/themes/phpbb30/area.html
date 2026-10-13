@@ -1,0 +1,38 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<h2><a href="/forum/area/{{$b.Area.ID}}">{{$b.Area.Name}}</a></h2>
+{{if $b.Area.Description}}<p class="forumdesc">{{$b.Area.Description}}</p>{{end}}
+<div class="topic-actions">
+  <div class="buttons">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="pbutton" title="Post a new topic">New Topic <span class="star">&#10033;</span></a>{{end}}</div>
+  <div class="pagination">{{plural $b.Count "topic" "topics"}} &bull; {{template "pages" $b.Pages}} {{template "pagecount" $b.Pages}}</div>
+</div>
+<div class="forumbg rounded">
+  <ul class="topiclist">
+    <li class="header"><dl class="icon"><dt>Topics</dt><dd class="posts">Replies</dd><dd class="lastpost"><span>Last post</span></dd></dl></li>
+  </ul>
+  <ul class="topiclist topics">
+    {{range $i, $t := $b.Topics}}
+    <li class="row {{if odd $i}}bg2{{else}}bg1{{end}}">
+      <dl class="icon">
+        <dt><span class="ticon{{if $t.Unread}} unread{{end}}{{if ge $t.Replies 15}} hot{{end}}" title="{{if $t.Unread}}Unread posts{{else}}No unread posts{{end}}"></span>
+          {{if $t.Unread}}<a href="/forum/post/{{$t.Last.ID}}" class="newest" title="View the first unread post"></a> {{end}}<a href="/forum/topic/{{$t.Root.ID}}" class="topictitle">{{$t.Root.Subject}}</a>
+          {{if gt $t.Pages 1}}<strong class="pagination"><span>{{$root := $t.Root.ID}}{{range (seq $t.Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a>{{end}}</span></strong>{{end}}
+          <br>by <strong>{{$t.Root.From}}</strong> &raquo; {{subtime $t.Root.Created}}</dt>
+        <dd class="posts">{{num $t.Replies}} <dfn>Replies</dfn></dd>
+        <dd class="lastpost"><span><dfn>Last post </dfn>by <strong>{{$t.Last.From}}</strong> <a href="/forum/post/{{$t.Last.ID}}" class="latest" title="View the latest post"></a><br>{{subtime $t.Last.Created}}</span></dd>
+      </dl>
+    </li>
+    {{else}}
+    <li class="row bg1"><div class="none"><strong>There are no topics or posts in this forum.</strong></div></li>
+    {{end}}
+  </ul>
+</div>
+<div class="topic-actions">
+  <div class="buttons">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="pbutton" title="Post a new topic">New Topic <span class="star">&#10033;</span></a>{{end}}</div>
+  <div class="pagination">{{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark topics read</button></form> &bull; {{end}}{{plural $b.Count "topic" "topics"}} &bull; {{template "pages" $b.Pages}} {{template "pagecount" $b.Pages}}</div>
+</div>
+<p class="jumpbox-return"><a href="/forum/" class="left-box">Return to Board index</a></p>
+<h3>Forum permissions</h3>
+<p>You <strong>{{if $b.CanPost}}can{{else}}cannot{{end}}</strong> post new topics in this forum<br>
+You <strong>{{if $b.CanPost}}can{{else}}cannot{{end}}</strong> reply to topics in this forum</p>
+{{template "foot" .}}{{end}}

@@ -1,0 +1,62 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.BBS}} &bull; {{if eq .Title .BBS}}Index page{{else}}{{.Title}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/phpbb30.css">
+</head>
+<body id="phpbb">
+<div id="wrap">
+<a id="top"></a>
+<div id="page-header">
+  <div class="headerbar rounded">
+    <div id="site-description">
+      <a href="/forum/" id="logo" title="Board index"><span class="logo-name">{{.BBS}}</span><span class="logo-sub">bulletin board</span></a>
+      <h1>{{.BBS}}</h1>
+      <p>The forums of a bulletin board system</p>
+    </div>
+    <form action="/forum/search" method="get" id="search-box">
+      <input name="q" type="search" class="inputbox search" placeholder="Search…" aria-label="Search for keywords">
+      <button class="button2">Search</button><br>
+      <a href="/forum/search">Advanced search</a>
+    </form>
+  </div>
+  <div class="navbar rounded">
+    <ul class="linklist navlinks">
+      <li class="icon-home"><a href="/forum/">Board index</a>{{range .Crumbs}}{{if .URL}} <strong>&#8249;</strong> <a href="{{.URL}}">{{.Name}}</a>{{end}}{{end}}</li>
+      {{if .Terminal}}<li class="rightside"><a href="/terminal" class="icon-terminal">Terminal</a></li>{{end}}
+    </ul>
+    <ul class="linklist bottomrow">
+      {{if .User}}<li class="icon-ucp"><a href="/forum/user/{{path .User.Name}}">Profile</a> &bull; <a href="/forum/search">Search posts</a></li>{{end}}
+      <li class="rightside">
+        <a href="/forum/online" class="icon-members">Who is online ({{.Online}})</a>
+        {{if and (not .User) .Register}}<a href="/forum/register" class="icon-register">Register</a>{{end}}
+        {{if .User}}<form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish icon-logout">Logout [ {{.User.Name}} ]</button></form>{{else}}<a href="/forum/login" class="icon-logout">Login</a>{{end}}
+      </li>
+    </ul>
+  </div>
+</div>
+<div id="page-body">
+{{if eq .Notice "welcome"}}<div class="panel rounded notice"><strong>Thank you for registering.</strong> Your account is made, and you are logged in.</div>{{end}}
+{{end}}
+
+{{define "foot"}}
+</div>
+<div id="page-footer">
+  <div class="navbar rounded">
+    <ul class="linklist">
+      <li class="icon-home"><a href="/forum/">Board index</a></li>
+      <li class="rightside">{{template "themepicker" .}}</li>
+    </ul>
+  </div>
+  <div class="copyright">Powered by bbs-sec &middot; {{.BBS}}<br>All times are server time</div>
+</div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}<span class="pagelinks">{{if gt .Cur 1}}<a href="{{.URL .Prev}}" rel="prev">Previous</a> {{end}}{{$cur := .Cur}}{{$p := .}}{{range .Shown}}{{if eq . 0}}<span class="page-sep">…</span>{{else if eq . $cur}}<strong>{{.}}</strong>{{else}}<a href="{{$p.URL .}}">{{.}}</a>{{end}}{{end}}{{if .Next}} <a href="{{.URL .Next}}" rel="next">Next</a>{{end}}</span>{{end}}{{end}}
+
+{{define "pagecount"}}Page <strong>{{.Cur}}</strong> of <strong>{{.Total}}</strong>{{end}}

@@ -54,6 +54,7 @@ var Themes = []Theme{
 	{"ikon", "Grey (Ikonboard style)"},
 	{"phpbb1", "Dark (phpBB 1 style)"},
 	{"phpbb2", "Silver (phpBB 2 style)"},
+	{"phpbb30", "prosilver (phpBB 3.0 style)"},
 }
 
 // KnownTheme says whether there is a theme of the name.

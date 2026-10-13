@@ -1,0 +1,46 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<p class="right">{{if .User}}Last visit was: {{subtime .User.LastLogin}}<br>{{end}}It is currently {{subtime .Now}}</p>
+<ul class="linklist"><li><a href="/forum/search">Search the posts</a>{{if .User}} &bull; <a href="/forum/user/{{path .User.Name}}">View your posts</a>{{end}}</li></ul>
+{{range .Body.Categories}}
+<div class="forabg rounded">
+  <ul class="topiclist">
+    <li class="header"><dl class="icon"><dt>{{.Name}}</dt><dd class="topics">Topics</dd><dd class="posts">Posts</dd><dd class="lastpost"><span>Last post</span></dd></dl></li>
+  </ul>
+  <ul class="topiclist forums">
+    {{range $f := .Forums}}
+    <li class="row">
+      <dl class="icon">
+        <dt><span class="ficon{{if $f.Unread}} unread{{end}}" title="{{if $f.Unread}}Unread posts{{else}}No unread posts{{end}}"></span>
+          <a href="/forum/area/{{$f.Area.ID}}" class="forumtitle">{{$f.Area.Name}}</a><br>{{$f.Area.Description}}</dt>
+        <dd class="topics">{{num $f.Topics}} <dfn>Topics</dfn></dd>
+        <dd class="posts">{{num $f.Area.Messages}} <dfn>Posts</dfn></dd>
+        <dd class="lastpost"><span>{{with $f.Last}}<dfn>Last post</dfn> by <strong>{{.From}}</strong> <a href="/forum/post/{{.ID}}" class="latest" title="View the latest post"></a><br>{{subtime .Created}}{{else}}No posts<br>&nbsp;{{end}}</span></dd>
+      </dl>
+    </li>
+    {{end}}
+  </ul>
+</div>
+{{else}}
+<div class="panel rounded"><strong>There are no forums open to you yet.</strong></div>
+{{end}}
+
+{{if not .User}}
+<form method="post" action="/forum/login" class="headerspace">
+  <input type="hidden" name="back" value="/forum/">
+  <h3><a href="/forum/login">Login</a>{{if .Register}} &nbsp;&bull;&nbsp; <a href="/forum/register">Register</a>{{end}}</h3>
+  <fieldset class="quick-login">
+    <label>Username: <input type="text" name="name" size="10" class="inputbox" autocomplete="username"></label>
+    <label>Password: <input type="password" name="password" size="10" class="inputbox" autocomplete="current-password"></label>
+    <button class="button2">Login</button>
+  </fieldset>
+</form>
+{{end}}
+
+<h3><a href="/forum/online">Who is online</a></h3>
+<p>In total there {{if eq (len .Body.Online) 1}}is <strong>1</strong> user{{else}}are <strong>{{len .Body.Online}}</strong> users{{end}} online on the BBS, by any line.<br>
+Registered users: {{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a>{{else}}No registered users{{end}}</p>
+
+<h3>Statistics</h3>
+<p>Total posts <strong>{{num $st.Posts}}</strong> &bull; Total topics <strong>{{num $st.Topics}}</strong> &bull; Total members <strong>{{num $st.Members}}</strong>{{with $st.Newest}} &bull; Our newest member <strong><a href="/forum/user/{{path .Name}}">{{.Name}}</a></strong>{{end}}</p>
+{{template "foot" .}}{{end}}
