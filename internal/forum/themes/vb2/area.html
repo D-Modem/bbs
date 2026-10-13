@@ -1,0 +1,27 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<table class="bar"><tr>
+  <td class="top">{{template "navbar" .}}<span class="small">{{$b.Area.Description}}</span></td>
+  <td class="right bottom">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="bigbtn"><span class="bi" aria-hidden="true"></span>new thread</a>{{end}}</td>
+</tr></table>
+<div class="tborder"><table class="tbl">
+  <tr class="thead"><td colspan="2">Thread</td><td class="nowrap">Thread Starter</td><td>Replies</td><td class="nowrap">Last Post</td></tr>
+  {{range $b.Topics}}
+  <tr class="center">
+    <td class="alt1"><span class="folder{{if .Unread}} new{{end}}{{if ge .Replies 15}} hot{{end}}" title="{{if .Unread}}New posts{{else}}No new posts{{end}}" aria-hidden="true"></span></td>
+    <td class="alt1 left wide normal">{{if .Unread}}<a href="/forum/post/{{.Last.ID}}" class="firstnew" title="Go to first new post" aria-label="Go to first new post"></a> {{end}}<a href="/forum/topic/{{.Root.ID}}">{{.Root.Subject}}</a>{{if gt .Pages 1}} <span class="small">( <span class="multipage" aria-hidden="true"></span>{{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a> {{end}})</span>{{end}}</td>
+    <td class="alt2 normal nowrap">{{.Root.From}}</td>
+    <td class="alt1 normal">{{num .Replies}}</td>
+    <td class="alt2 small lastpost"><span>{{vbdate .Last.Created}} <span class="time">{{vbtime .Last.Created}}</span><br>by <b>{{.Last.From}}</b></span> <a href="/forum/post/{{.Last.ID}}" class="golast" title="Go to last post" aria-label="Go to last post"></a></td>
+  </tr>
+  {{else}}
+  <tr><td class="alt1 center normal" colspan="5">There are no threads in this forum yet.</td></tr>
+  {{end}}
+  <tr class="cat"><td colspan="5" class="center small">Showing {{plural $b.Count "thread" "threads"}}{{if .User}} &middot; <form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark this forum read</button></form>{{end}}</td></tr>
+</table></div>
+<table class="bar"><tr><td class="small">{{template "pages" $b.Pages}}</td><td class="right small">All times are server time.</td></tr></table>
+<div class="iconkey small">
+  <span class="folder new" aria-hidden="true"></span> <b>New posts</b> &nbsp; ( <span class="folder new hot" aria-hidden="true"></span> <b>More than 15 replies</b> ) &nbsp;&nbsp;
+  <span class="folder" aria-hidden="true"></span> <b>No new posts</b> &nbsp; ( <span class="folder hot" aria-hidden="true"></span> <b>More than 15 replies</b> )
+</div>
+{{template "foot" .}}{{end}}

@@ -1,0 +1,38 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}} - powered by bbs-sec{{else}}{{.BBS}} - {{.Title}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/vb2.css">
+</head>
+<body id="all">
+<div class="page">
+<div class="logobar">
+  <a href="/forum/" class="logo" title="{{.BBS}}"><span class="logo-plate"><span class="logo-mark" aria-hidden="true">v</span><span class="logo-name">{{.BBS}}</span></span><span class="logo-sub">&#9656; instant community</span></a>
+  <div class="toplinks">
+    {{if .User}}<a href="/forum/user/{{path .User.Name}}" class="tl">user cp</a>{{else if .Register}}<a href="/forum/register" class="tl">register</a>{{end}}
+    <a href="/forum/online" class="tl">members</a>
+    <a href="/forum/search" class="tl">search</a>
+    {{if .Terminal}}<a href="/terminal" class="tl">terminal</a>{{end}}
+    <a href="/forum/" class="tl">home</a>
+    {{if .User}}<form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="tl">log out</button></form>{{else}}<a href="/forum/login" class="tl">log in</a>{{end}}
+  </div>
+</div>
+<div class="content">
+{{if and (eq .Notice "welcome") .User}}<p class="notice"><b>Thank you for registering, {{.User.Name}}.</b> You are now logged in.</p>{{end}}
+{{end}}
+
+{{define "navbar"}}<div class="navbar"><span class="bullet" aria-hidden="true">v</span> <b><a href="/forum/">{{.BBS}}</a>{{range .Crumbs}} &gt; {{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}{{end}}</b></div>{{end}}
+
+{{define "foot"}}
+</div>
+</div>
+<div class="footlinks"><b>&lt; <a href="/forum/online">Who's Online</a>{{if .Terminal}} - <a href="/terminal">Web Terminal</a>{{end}} - <a href="/forum/">{{.BBS}}</a> &gt;</b></div>
+<div class="themerow">{{template "themepicker" .}}</div>
+<div class="copyright">Powered by: bbs-sec<br>{{.BBS}}</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}<span class="pagenav">Pages ({{.Total}}): {{$cur := .Cur}}{{$p := .}}{{if gt .Cur 1}}<a href="{{.URL .Prev}}" rel="prev">&laquo; First</a> {{end}}{{range .Shown}}{{if eq . 0}}… {{else if eq . $cur}}<b>[{{.}}]</b> {{else}}<a href="{{$p.URL .}}">{{.}}</a> {{end}}{{end}}{{if .Next}}<a href="{{.URL .Next}}" rel="next">Last &raquo;</a>{{end}}</span>{{end}}{{end}}

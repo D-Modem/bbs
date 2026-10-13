@@ -1,0 +1,194 @@
+/*
+ * The forum's lavender theme: laid out in the manner of the PHP boards of
+ * 2000 (vBulletin Lite 1.0's default style and its kind): a plain white
+ * page, a chrome italic logo, five little picture links, tables of
+ * lavender cells on white lines under navy headings, yellow and grey
+ * bulbs, italic "new thread" and "post reply" buttons, Arial and
+ * Verdana.  Written for this BBS; it takes no code or images from any
+ * board.
+ */
+
+:root {
+	--head: #113274;
+	--head-text: #ffffff;
+	--alt1: #c3c3eb;
+	--alt2: #aaaae6;
+	--cat: #cfd9ff;
+	--link: #333399;
+	--hover: #ff0000;
+	--time: #800080;
+	--large: #003399;
+}
+
+body { margin: 8px; background: #fff; color: #000; font: 13px Arial, Helvetica, sans-serif; }
+a:link, a:visited, a:active { color: var(--link); }
+a:hover { color: var(--hover); }
+p { margin: 10px 0; }
+form { margin: 0; }
+.small { font: 10px Verdana, Arial, Helvetica, sans-serif; }
+.normal { font: 13px Arial, Helvetica, sans-serif; }
+.large { color: var(--large); font: bold 16px Arial, Helvetica, sans-serif; }
+.desc { font-size: 10px; }
+.time { color: var(--time); }
+.center { text-align: center; }
+.right { text-align: right; }
+.left { text-align: left !important; }
+.top { vertical-align: top !important; }
+.bottom { vertical-align: bottom !important; }
+.nowrap { white-space: nowrap; }
+.wide { width: 100%; }
+.inline-form { display: inline; }
+.linkish { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: var(--link); text-decoration: underline; cursor: pointer; }
+.linkish:hover { color: var(--hover); }
+
+/* --- the top: a chrome logo and five links */
+
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.logo { display: inline-block; padding: 4px 14px 8px 6px; text-decoration: none !important; }
+.logo-name {
+	display: inline-block; max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+	font: italic bold 46px/1.1 "Trebuchet MS", "Arial Black", Arial, sans-serif; letter-spacing: -1px;
+	background: linear-gradient(to bottom, #e9eef8 0%, #9fb2d6 38%, #2f4c86 52%, #8ea5d0 74%, #dfe7f6 100%);
+	-webkit-background-clip: text; background-clip: text; color: transparent;
+	-webkit-text-stroke: 1px #1a2c58;
+	filter: drop-shadow(2px 3px 1px rgba(0,0,40,0.35));
+}
+.fivelinks { flex: 1; display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 14px; font: 13px Arial, sans-serif; }
+.fivelinks a, .fivelinks .linkish { display: inline-flex; align-items: center; gap: 3px; color: #000; text-decoration: none; }
+.fivelinks a:hover, .fivelinks .linkish:hover { color: var(--hover); }
+.ic { display: inline-block; width: 18px; height: 18px; position: relative; flex: none; }
+.ic.profile { background: linear-gradient(#8a1a1a, #8a1a1a) 1px 3px / 16px 3px no-repeat, linear-gradient(#333, #333) 1px 8px / 16px 2px no-repeat, linear-gradient(#333, #333) 1px 12px / 10px 2px no-repeat, #fff; border: 1px solid #555; width: 16px; height: 16px; }
+.ic.register { border-radius: 50%; background: #1f3fbf; }
+.ic.register::after { content: "i"; position: absolute; inset: 0; color: #fff; font: bold italic 13px/18px Georgia, serif; text-align: center; }
+.ic.faq::after { content: "?"; position: absolute; inset: 0; color: #1f3fbf; font: bold 20px/18px Georgia, serif; text-align: center; }
+.ic.search { border-radius: 50%; background: radial-gradient(circle at 40% 40%, #7fd0ff, #1b78c8 60%, #0b4a87); box-shadow: inset -2px -2px 0 rgba(0,0,0,0.2); }
+.ic.search::after { content: ""; position: absolute; right: -2px; bottom: -2px; width: 7px; height: 3px; background: #8a5a20; transform: rotate(45deg); }
+.ic.home { background: linear-gradient(#8a5a20, #8a5a20) 5px 10px / 8px 8px no-repeat; }
+.ic.home::before { content: ""; position: absolute; left: 1px; top: 1px; border: 8px solid transparent; border-bottom: 8px solid #333; border-top: 0; }
+.ic.home::after { content: ""; position: absolute; left: 7px; top: 12px; width: 4px; height: 6px; background: #fff; }
+.ic.login, .ic.logout { border: 1px solid #555; border-radius: 2px; background: linear-gradient(to right, #ffd34a 0 6px, #fff 6px); width: 14px; height: 16px; }
+.ic.find { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #1b78c8; background: #fff; box-sizing: border-box; }
+
+/* --- tables: lavender cells on white lines, navy heads */
+
+.tbl { width: 100%; border-collapse: separate; border-spacing: 1px; margin: 0 0 4px; }
+.tbl td { padding: 4px; vertical-align: middle; }
+.thead td { background: var(--head); color: var(--head-text); font: bold 10px Verdana, Arial, sans-serif; text-align: center; }
+.thead a:link, .thead a:visited { color: var(--head-text); }
+.cat td { background: var(--cat); color: #000; }
+.cat a:link, .cat a:visited { color: #000; text-decoration: none; }
+td.alt1 { background: var(--alt1); }
+td.alt2 { background: var(--alt2); }
+.bar { width: 100%; border-collapse: collapse; margin: 4px 0; }
+.bar td { padding: 2px; }
+.headrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.headrow .grow { flex: 1; }
+.narrowtbl { max-width: 720px; margin-left: auto; margin-right: auto; }
+td.key { width: 30%; font-weight: bold; }
+.legend { margin: 10px 0; text-align: center; }
+.legend .bulb, .legend .folder { vertical-align: middle; margin-left: 6px; }
+
+/* the forum bulbs: yellow for new, grey for none */
+.bulb { display: inline-block; width: 18px; height: 18px; border-radius: 50%; vertical-align: middle; background: radial-gradient(circle at 35% 30%, #fff 0 10%, #a8a8a8 40%, #5e5e5e 100%); border: 1px solid #333; }
+.bulb.on { background: radial-gradient(circle at 35% 30%, #fff 0 10%, #ffe14d 40%, #b08a00 100%); }
+
+/* topic folders: little cards, yellow when new, red-marked when hot */
+.folder { display: inline-block; position: relative; width: 16px; height: 11px; vertical-align: middle; border: 1px solid #333; background: linear-gradient(#ffffff, #c9c9e8); }
+.folder.new { background: linear-gradient(#fff6a8, #f0c400); }
+.folder.hot::after { content: ""; position: absolute; right: -4px; top: -4px; width: 7px; height: 7px; border-radius: 50%; background: #e02020; border: 1px solid #600; }
+.multipage { display: inline-block; width: 8px; height: 10px; margin-right: 2px; border: 1px solid #555; background: #fff; vertical-align: -1px; }
+
+/* the italic buttons: navy words outlined in white on a lilac band */
+.vbtn:link, .vbtn:visited {
+	display: inline-block; padding: 1px 10px 2px; border-radius: 9px;
+	background: linear-gradient(#c4c4f0, #5c5ca8);
+	color: #fff; font: italic 900 14px/1.2 "Arial Black", Arial, sans-serif; letter-spacing: 0; text-decoration: none; white-space: nowrap;
+	text-shadow: 1px 1px 0 #11226a, -1px -1px 0 #11226a, 1px -1px 0 #11226a, -1px 1px 0 #11226a;
+	box-shadow: 1px 1px 0 #000;
+}
+.vbtn:hover { color: #ffe680; }
+
+/* --- posts */
+.posts td.author { width: 175px; }
+.posts .author p { margin: 4px 0 8px; }
+.posthead { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.message { margin: 10px 0; line-height: 1.35; overflow-wrap: anywhere; }
+.tools { display: flex; gap: 6px; flex-wrap: wrap; }
+.ibtn, a.ibtn:link, a.ibtn:visited, button.ibtn { display: inline-flex; align-items: center; gap: 3px; padding: 0 4px; border: 1px solid #555; background: #fff; color: #000; font: 10px Verdana, sans-serif; text-decoration: none; cursor: pointer; }
+.ibtn .ic.find { width: 10px; height: 10px; border-width: 1px; }
+
+/* quotes, as the boards of the day: "quote:" between two rules */
+.citation { margin: 8px 20px 0; font: 10px Verdana, sans-serif; }
+.citation::before { content: "quote: "; }
+blockquote.quote { margin: 2px 20px 10px; padding: 4px 0; border-top: 1px solid #000; border-bottom: 1px solid #000; font: 12px Arial, sans-serif; }
+blockquote.quote:not(.citation + blockquote.quote)::before { content: "quote:"; display: block; font: 10px Verdana, sans-serif; margin-bottom: 4px; }
+.bbc_url:link, .bbc_url:visited { color: var(--link); }
+
+/* polls */
+td.barcell { width: 50%; }
+meter { width: 100%; height: 12px; }
+meter::-webkit-meter-bar { background: #fff; border: 1px solid #333; border-radius: 0; }
+meter::-webkit-meter-optimum-value { background: linear-gradient(#5a6fd0, #113274); }
+meter::-moz-meter-bar { background: #113274; }
+.pollform { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+
+/* --- forms */
+textarea, input, select { font: 13px Arial, sans-serif; }
+textarea { width: 100%; box-sizing: border-box; }
+button, .button, a.button:link, a.button:visited { font: 13px Arial, sans-serif; color: #000; background: #e0e0e0; border: 2px outset #eee; padding: 1px 8px; cursor: pointer; text-decoration: none; }
+button.linkish { border: 0; background: none; padding: 0; }
+.quicklogin { margin: 6px 0; }
+
+/* the default theme's pages that this one shows as they are */
+.box { margin: 0 0 6px; }
+.box > h2.maintitle { display: flex; gap: 8px; margin: 0 0 1px; padding: 4px; background: var(--head); color: var(--head-text); font: bold 10px Verdana, sans-serif; }
+.box .count { margin-left: auto; font-weight: normal; }
+.box-body { padding: 8px; background: var(--alt1); }
+.box.narrow { max-width: 520px; margin-left: auto; margin-right: auto; }
+.field { display: grid; grid-template-columns: 35% 1fr; align-items: center; gap: 6px; padding: 3px 0; font-weight: bold; }
+.field input, .field textarea { font-weight: normal; }
+.editor .field { grid-template-columns: 1fr; }
+.editor-foot { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.button.important { font-weight: bold; }
+.signin .desc { margin-bottom: 6px; }
+.poll-maker { margin: 8px 0; }
+.poll-maker summary { cursor: pointer; font-weight: bold; }
+.searchform { display: flex; gap: 6px; }
+.searchform input { flex: 1; }
+.message.error { color: #c00; font-weight: bold; }
+p.message { padding: 6px; background: var(--cat); }
+table.board { width: 100%; border-collapse: separate; border-spacing: 1px; }
+table.board th { padding: 4px; background: var(--head); color: var(--head-text); font: bold 10px Verdana, sans-serif; text-align: left; }
+table.board td { padding: 4px; background: var(--alt1); vertical-align: top; }
+table.board tr:nth-child(even) td { background: var(--alt2); }
+table.board h3 { margin: 0; font-size: 13px; }
+.snippet { font-size: 10px; }
+td.none { text-align: center; }
+
+/* letter pictures for those without one */
+.avatar { display: inline-flex; align-items: center; justify-content: center; color: #fff; font: bold 14px Arial, sans-serif; border: 1px solid #000; vertical-align: middle; }
+.avatar.tiny { width: 16px; height: 16px; font-size: 10px; }
+.avatar.mini { width: 24px; height: 24px; font-size: 12px; }
+.avatar.large { width: 60px; height: 60px; font-size: 30px; }
+.avatar.huge { width: 90px; height: 90px; font-size: 44px; }
+.av0 { background: #4f7bb0; } .av1 { background: #b0574f; } .av2 { background: #4f9a6b; }
+.av3 { background: #8a5fb0; } .av4 { background: #c0862d; } .av5 { background: #3e8f9e; }
+.av6 { background: #a24f86; } .av7 { background: #6b7a3c; } .av8 { background: #c06a3e; }
+.av9 { background: #546478; } .av10 { background: #2f7f5f; } .av11 { background: #9b4545; }
+
+/* --- the foot */
+.themerow { display: flex; justify-content: center; margin: 6px 0; font-size: 11px; }
+.themepicker { display: flex; align-items: center; gap: 4px; }
+.themepicker .button { font-size: 11px; }
+
+/* --- narrow screens */
+@media (max-width: 760px) {
+	.logo-name { font-size: 30px; max-width: 280px; }
+	.tbl td:nth-child(5), .tbl tr.thead td:nth-child(5) { display: none; }
+	.posts, .posts tbody, .posts tr, .posts td { display: block; width: auto !important; }
+	.posts tr.thead td.author { display: none; }
+	.posts td.author p, .posts td.author .tools { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; margin: 2px 8px 2px 0; }
+	.posts td.author p br { display: none; }
+	.posts td.author p i { margin-right: 4px; }
+	.field { grid-template-columns: 1fr; }
+}

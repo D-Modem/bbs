@@ -1,0 +1,31 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}} - powered by bbs-sec{{else}}{{.BBS}} - {{.Title}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/vblite.css">
+</head>
+<body id="all">
+<div class="topbar">
+  <a href="/forum/" class="logo" title="{{.BBS}}"><span class="logo-name">{{.BBS}}</span></a>
+  <div class="fivelinks">
+    {{if .User}}<a href="/forum/user/{{path .User.Name}}"><span class="ic profile" aria-hidden="true"></span>profile</a>{{else if .Register}}<a href="/forum/register"><span class="ic register" aria-hidden="true"></span>register</a>{{end}}
+    <a href="/forum/online"><span class="ic faq" aria-hidden="true"></span>who's on</a>
+    <a href="/forum/search"><span class="ic search" aria-hidden="true"></span>search</a>
+    <a href="/forum/"><span class="ic home" aria-hidden="true"></span>home</a>
+    {{if .User}}<form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish"><span class="ic logout" aria-hidden="true"></span>logout</button></form>{{else}}<a href="/forum/login"><span class="ic login" aria-hidden="true"></span>login</a>{{end}}
+  </div>
+</div>
+{{if and (eq .Notice "welcome") .User}}<p class="normal"><b>Thank you for registering, {{.User.Name}}.</b></p>{{end}}
+{{end}}
+
+{{define "foot"}}
+<p class="center normal"><b>&lt; <a href="/forum/online">Who's Online</a> - <a href="/forum/">{{.BBS}}</a>{{if .Terminal}} - <a href="/terminal">Web Terminal</a>{{end}} &gt;</b></p>
+<div class="themerow">{{template "themepicker" .}}</div>
+<p class="center small">Powered by: bbs-sec</p>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}<span class="pagenav"><b>Pages ({{.Total}}):</b> {{$cur := .Cur}}{{$p := .}}{{range .Shown}}{{if eq . 0}}… {{else if eq . $cur}}[{{.}}] {{else}}<a href="{{$p.URL .}}">{{.}}</a> {{end}}{{end}}</span>{{end}}{{end}}

@@ -1,0 +1,33 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<table class="bar"><tr>
+  <td><span class="bullet" aria-hidden="true">v</span> <b class="normal">{{.BBS}}</b></td>
+  <td class="right small">{{if .User}}Welcome back, <b>{{.User.Name}}</b>.{{else}}Welcome, guest.{{end}}</td>
+</tr></table>
+<table class="bar"><tr>
+  <td class="small">Registered Members: <b>{{num $st.Members}}</b><br>Total Threads: <b>{{num $st.Topics}}</b> | Total Posts: <b>{{num $st.Posts}}</b><br>{{with $st.Newest}}Welcome to our newest member, <a href="/forum/user/{{path .Name}}"><b>{{.Name}}</b></a>{{end}}</td>
+  <td class="right small">The time now is {{vbtime .Now}}.{{if .User}}<br>You last visited: {{vbdate .User.LastLogin}} at {{vbtime .User.LastLogin}}.{{end}}</td>
+</tr></table>
+<div class="tborder"><table class="tbl">
+  <tr class="thead"><td>&nbsp;</td><td class="wide left">Forum</td><td>Posts</td><td>Threads</td><td class="nowrap">Last Post</td></tr>
+  {{range .Body.Categories}}
+  <tr class="cat"><td colspan="5"><b>{{.Name}}</b></td></tr>
+  {{range $f := .Forums}}
+  <tr class="center">
+    <td class="alt2 top"><span class="onoff{{if $f.Unread}} on{{end}}" title="{{if $f.Unread}}New posts{{else}}No new posts{{end}}" aria-hidden="true">v</span></td>
+    <td class="alt1 left"><a href="/forum/area/{{$f.Area.ID}}"><b class="normal">{{$f.Area.Name}}</b></a>{{if $f.Area.Description}}<br><span class="small">{{$f.Area.Description}}</span>{{end}}</td>
+    <td class="alt2 normal">{{num $f.Area.Messages}}</td>
+    <td class="alt1 normal">{{num $f.Topics}}</td>
+    <td class="alt2 small lastpost">{{with $f.Last}}<span>{{vbdate .Created}} <span class="time">{{vbtime .Created}}</span><br>by <a href="/forum/post/{{.ID}}"><b>{{.From}}</b></a></span> <a href="/forum/post/{{.ID}}" class="golast" title="Go to last post" aria-label="Go to last post"></a>{{else}}Never{{end}}</td>
+  </tr>
+  {{end}}
+  {{end}}
+  <tr class="cat"><td colspan="5"><b><a href="/forum/online">Currently Active Users</a>: {{len .Body.Online}}</b></td></tr>
+  <tr><td class="alt2 center top"><span class="onoff" aria-hidden="true">v</span></td><td class="alt1 small" colspan="4">There {{if eq (len .Body.Online) 1}}is <b>1</b> member{{else}}are <b>{{len .Body.Online}}</b> members{{end}} on the BBS:<br>{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a>{{else}}<i>none</i>{{end}}</td></tr>
+</table></div>
+<table class="bar"><tr>
+  <td class="small">All times are server time.</td>
+  <td class="right">{{if not .User}}<form method="post" action="/forum/login" class="quicklogin"><input type="hidden" name="back" value="/forum/"><span class="small"><b>Not logged in?</b><br>Login with username and password:</span><br><input type="text" name="name" size="7" class="bginput" aria-label="Username" autocomplete="username"> <input type="password" name="password" size="7" class="bginput" aria-label="Password" autocomplete="current-password"> <button class="bginput">Login!</button></form>{{end}}</td>
+</tr></table>
+<div class="iconkey small"><span class="onoff on" aria-hidden="true">v</span> <b>New posts</b> &nbsp;&nbsp; <span class="onoff" aria-hidden="true">v</span> <b>No new posts</b></div>
+{{template "foot" .}}{{end}}

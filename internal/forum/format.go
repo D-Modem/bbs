@@ -23,6 +23,8 @@ var funcs = template.FuncMap{
 	"longdate":  longDate,
 	"odd":       func(n int) bool { return n%2 == 1 },
 	"ago":       ago,
+	"vbdate":    func(t time.Time) string { return t.Format("01-02-2006") },
+	"vbtime":    func(t time.Time) string { return t.Format("03:04 PM") },
 	"mod5":      func(n int) int { return n % 5 },
 	"shortdate": func(t time.Time) string { return t.Format("Jan. 02, 2006") },
 	"clock":     func(t time.Time) string { return t.Format("03:04 PM") },

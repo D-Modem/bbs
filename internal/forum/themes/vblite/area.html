@@ -1,0 +1,24 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<p class="normal"><b><a href="/forum/">{{.BBS}}</a> &gt; {{$b.Area.Name}}</b></p>
+<table class="tbl">
+  <tr class="thead">
+    <td colspan="2"><div class="headrow">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="vbtn">new thread</a>{{end}}<span class="grow">Thread</span></div></td>
+    <td class="nowrap">Thread Starter</td><td>Replies</td><td>Last Post</td>
+  </tr>
+  {{range $b.Topics}}
+  <tr>
+    <td class="alt1 center"><span class="folder{{if .Unread}} new{{end}}{{if ge .Replies 15}} hot{{end}}" title="{{if .Unread}}New posts{{else}}No new posts{{end}}" aria-hidden="true"></span></td>
+    <td class="alt1 wide normal"><a href="/forum/topic/{{.Root.ID}}">{{.Root.Subject}}</a>{{if gt .Pages 1}} <span class="small">( <span class="multipage" aria-hidden="true"></span>{{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a> {{end}})</span>{{end}}</td>
+    <td class="alt2 center nowrap normal">{{.Root.From}}</td>
+    <td class="alt1 center normal">{{num .Replies}}</td>
+    <td class="alt1 nowrap normal"><a href="/forum/post/{{.Last.ID}}">{{vbdate .Last.Created}}</a> <span class="time">{{vbtime .Last.Created}}</span></td>
+  </tr>
+  {{else}}
+  <tr><td class="alt1 center normal" colspan="5">There are no threads in this forum yet.</td></tr>
+  {{end}}
+  <tr class="thead"><td colspan="5"><div class="headrow">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="vbtn">new thread</a>{{end}}<span class="grow right">All times are server time. All dates are in Month-Day-Year format.</span></div></td></tr>
+</table>
+<table class="bar"><tr><td class="small">{{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark this forum read</button></form>{{end}}</td><td class="right small">{{template "pages" $b.Pages}}</td></tr></table>
+<div class="legend small"><span class="folder new" aria-hidden="true"></span> <b>New Posts</b> &nbsp; <span class="folder" aria-hidden="true"></span> <b>No New Posts</b> &nbsp; <span class="folder new hot" aria-hidden="true"></span> <b>Hot thread with new posts</b> &nbsp; <span class="folder hot" aria-hidden="true"></span> <b>Hot thread with no new posts</b></div>
+{{template "foot" .}}{{end}}
