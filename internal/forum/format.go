@@ -24,6 +24,8 @@ var funcs = template.FuncMap{
 	"odd":       func(n int) bool { return n%2 == 1 },
 	"shortdate": func(t time.Time) string { return t.Format("Jan. 02, 2006") },
 	"clock":     func(t time.Time) string { return t.Format("03:04 PM") },
+	"stamp":     func(t time.Time) string { return t.Format("2006-01-02 15:04") },
+	"monthyear": func(t time.Time) string { return t.Format("Jan 2006") },
 	"initial":   initial,
 	"avatar":    avatarClass,
 	"group":     groupTitle,

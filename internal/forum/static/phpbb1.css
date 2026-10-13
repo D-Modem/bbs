@@ -1,0 +1,215 @@
+/*
+ * The forum's dark theme: laid out in the manner of the PHP boards of
+ * 2001 (phpBB 1's default look and its kind): a black page, white
+ * sans-serif text and teal links, a glowing italic logo, bracketed
+ * menu links, tables with near-black lines and cells in alternating
+ * grey and navy, small folder icons, posts between rules with little
+ * labelled links beneath.  Written for this BBS; it takes no code or
+ * images from any board.
+ */
+
+:root {
+	--bg: #000000;
+	--text: #ffffff;
+	--color1: #6c706d;
+	--color2: #2e4460;
+	--line: #001100;
+	--link: #11c6bd;
+}
+
+body {
+	margin: 0;
+	padding: 8px 0 16px;
+	background: var(--bg);
+	color: var(--text);
+	font: 13px Arial, Helvetica, sans-serif;
+}
+a:link, a:visited, a:active { color: var(--link); }
+a:hover { color: #7ff0ea; }
+p { margin: 0; }
+form { margin: 0; }
+hr { border: 0; border-top: 1px solid #a8a8a8; border-bottom: 1px solid #3a3a3a; margin: 6px 0; }
+.small { font-size: 10px; }
+.desc { font-size: 11px; }
+.center { text-align: center; }
+
+#wrap { width: 95%; margin: 0 auto; }
+
+.inline-form { display: inline; }
+.linkish { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: var(--link); text-decoration: underline; cursor: pointer; }
+
+/* --- the header: a glowing logo, the title or the big buttons, the menu */
+
+.header { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 4px 10px; padding: 5px 0; }
+.logo {
+	display: flex; flex-direction: column; align-items: flex-start; justify-self: center;
+	padding: 16px 30px 12px 18px;
+	background: radial-gradient(ellipse 60% 26% at 45% 46%, rgba(255,255,255,0.55), rgba(255,255,255,0.12) 55%, transparent 75%);
+	text-decoration: none !important;
+}
+.logo-name { color: #fff; font: italic 40px/1 "Times New Roman", Georgia, serif; text-shadow: 0 0 6px rgba(255,255,255,0.6); white-space: nowrap; }
+.logo-sub { margin: 6px 0 0 26px; color: #fff; font: bold 13px "Courier New", monospace; letter-spacing: 1px; }
+.headright { text-align: center; }
+.headtop { margin-bottom: 8px; }
+.sitename { font-size: 22px; }
+.posting { font-weight: bold; font-size: 14px; }
+.menu { font-size: 11px; line-height: 1.6; }
+
+/* the big buttons: bold condensed white on a soft glow */
+.glow:link, .glow:visited {
+	display: inline-block; margin: 0 6px; padding: 8px 26px;
+	background: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255,255,255,0.35), rgba(255,255,255,0.08) 60%, transparent 80%);
+	color: #fff; font: 26px/1 Impact, "Arial Narrow", "Helvetica Condensed", sans-serif; letter-spacing: 0; text-decoration: none;
+	text-shadow: 0 0 4px rgba(255,255,255,0.5);
+}
+.glow:hover { color: #e8fffe; text-shadow: 0 0 8px rgba(17,198,189,0.9); }
+
+.statsblock { margin: 0 0 8px; text-align: right; font-size: 11px; line-height: 1.4; }
+.crumbs { margin: 4px 0 8px; font-size: 11px; }
+.crumbs .fname { font-size: 13px; }
+.notice { margin: 6px 0; font-size: 12px; text-align: center; font-weight: bold; }
+.pagebar { margin: 4px 0 6px; font-size: 14px; }
+.gotopage { font-size: 13px; }
+
+/* --- tables with near-black lines */
+
+.tbl { margin: 0 0 6px; background: var(--line); padding: 1px; }
+.tbl table { width: 100%; border-collapse: separate; border-spacing: 1px; }
+.tbl td { padding: 3px; vertical-align: top; }
+td.c1, tr.c1row > td { background: var(--color1); }
+td.c2, tr.c2row > td { background: var(--color2); }
+tr.head td { font-size: 11px; font-weight: bold; vertical-align: middle; }
+td.cat { font-size: 13px; }
+td.icon { width: 3%; text-align: center; vertical-align: middle; }
+td.num { width: 7%; text-align: center; vertical-align: middle; }
+td.last { width: 17%; text-align: center; vertical-align: middle; }
+.narrowtbl { max-width: 560px; margin-left: auto; margin-right: auto; }
+td.key { width: 30%; font-weight: bold; }
+
+/* a folder: yellow, pink when new, with dots when hot */
+.folder {
+	display: inline-block; position: relative; width: 11px; height: 9px; margin-top: 4px; vertical-align: middle;
+	border: 1px solid #5a4700; border-radius: 0 1px 1px 1px;
+	background: linear-gradient(#ffe680, #d9a600);
+}
+.folder::before { content: ""; position: absolute; left: -1px; top: -4px; width: 5px; height: 3px; border: 1px solid #5a4700; border-bottom: 0; background: #ffe680; }
+.folder.new { border-color: #6b1010; background: linear-gradient(#ffb0b0, #e04848); }
+.folder.new::before { border-color: #6b1010; background: #ffb0b0; }
+.folder.hot::after { content: ""; position: absolute; left: 2px; top: 3px; width: 2px; height: 2px; background: #000; box-shadow: 3px 0 0 #000, 6px 0 0 #000; }
+
+.legend { font-size: 11px; line-height: 1.8; }
+.legendrow { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.legendrow .right { text-align: right; font-size: 13px; }
+
+/* --- a topic's posts */
+
+td.author { width: 20%; }
+td.said { min-width: 0; }
+.posticon { display: inline-block; width: 12px; height: 9px; margin-right: 4px; vertical-align: -1px; border: 1px solid #ccc; background: linear-gradient(#fff, #9ab); }
+.postbody { font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.likes { margin-top: 6px; }
+.pbtns { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.pbtn:link, .pbtn:visited, button.pbtn {
+	display: inline-flex; align-items: center; gap: 3px;
+	background: none; border: 0; padding: 0; cursor: pointer;
+	color: #fff; font: 10px Verdana, Arial, sans-serif; text-decoration: none;
+}
+.pbtn:hover { color: var(--link); }
+.ico { display: inline-block; width: 12px; height: 11px; border: 1px solid #ddd; background: #fff; }
+.ico.profile { background: linear-gradient(to bottom, #2a4fa8 0 3px, #fff 3px); }
+.ico.like { border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 15%, #f07a7a 45%, #b01010); border-color: #b01010; }
+.ico.edit { background: linear-gradient(45deg, transparent 40%, #e8b400 40% 60%, transparent 60%), #fff; }
+.ico.quote { background: linear-gradient(to bottom, #ffd34a, #c79300); border-color: #fff; }
+.pbtns .div { display: inline-block; width: 1px; height: 14px; background: #fff; }
+
+/* quotes, as boards of the day showed them: "quote:" and a rule above and below */
+.citation { margin: 6px 0 0 20px; font-size: 11px; }
+.citation::before { content: "quote: "; }
+blockquote.quote { margin: 2px 20px 8px; padding: 3px 0; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; font-size: 12px; }
+blockquote.quote:not(.citation + blockquote.quote)::before { content: "quote:"; display: block; font-size: 11px; margin-bottom: 2px; }
+
+/* polls */
+td.poll { padding: 8px !important; }
+.pollresults { border-collapse: collapse; margin: 0 0 6px; }
+.pollresults td { padding: 2px 8px 2px 0 !important; background: none !important; }
+.pollresults td.bar { width: 200px; }
+meter { width: 100%; height: 10px; }
+meter::-webkit-meter-bar { background: #000; border: 1px solid #ccc; border-radius: 0; }
+meter::-webkit-meter-optimum-value { background: linear-gradient(#7ff0ea, #0b8a84); }
+meter::-moz-meter-bar { background: linear-gradient(#7ff0ea, #0b8a84); }
+.poll-form { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+
+/* --- forms */
+
+input[type=text], input[type=password], input[type=search], textarea, select {
+	font: 13px Arial, sans-serif; color: #000; background: #fff; border: 2px inset #ddd; padding: 2px;
+}
+textarea { width: 100%; box-sizing: border-box; }
+.button, button.button, a.button:link, a.button:visited {
+	display: inline-block; padding: 2px 8px; margin: 4px 2px;
+	font: 13px Arial, sans-serif; color: #000; text-decoration: none; cursor: pointer;
+	background: #d4d0c8; border: 2px outset #eee;
+}
+.button:active { border-style: inset; }
+.button.important { font-weight: bold; }
+.button.danger { color: #900; }
+
+/* the default theme's pages that this one shows as they are */
+.box { margin: 0 0 8px; background: var(--line); padding: 1px; }
+.box > h2.maintitle { margin: 0 0 1px; padding: 3px; background: var(--color1); font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; }
+.box .count { margin-left: auto; font-weight: normal; font-size: 11px; }
+.box-body { padding: 8px; background: var(--color2); }
+.box.narrow { max-width: 480px; margin-left: auto; margin-right: auto; }
+.field { display: grid; grid-template-columns: 35% 1fr; align-items: center; gap: 6px; padding: 3px 0; font-weight: bold; }
+.field input, .field textarea { font-weight: normal; }
+.editor .field { grid-template-columns: 1fr; }
+.editor-foot { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.signin .desc { margin-bottom: 6px; }
+.poll-maker { margin: 8px 0; }
+.poll-maker summary { cursor: pointer; color: var(--link); }
+.searchform { display: flex; gap: 6px; }
+.searchform input { flex: 1; }
+.message { margin: 0 0 8px; padding: 4px; text-align: center; font-weight: bold; }
+.message.error { color: #ff7070; }
+table.board { width: 100%; border-collapse: separate; border-spacing: 1px; }
+table.board th { padding: 3px; background: var(--color1); font-size: 11px; text-align: left; }
+table.board td { padding: 3px; background: var(--color2); vertical-align: top; }
+table.board tr:nth-child(even) td { background: var(--color1); }
+table.board h3 { margin: 0; font-size: 13px; }
+.snippet { font-size: 11px; }
+td.none { text-align: center; }
+
+/* letter pictures for those without one */
+.avatar {
+	display: inline-flex; align-items: center; justify-content: center;
+	color: #fff; font: bold 14px Arial, sans-serif;
+	border: 1px solid #fff;
+	vertical-align: middle;
+}
+.avatar.tiny { width: 16px; height: 16px; font-size: 10px; }
+.avatar.mini { width: 22px; height: 22px; font-size: 12px; }
+.avatar.large { width: 50px; height: 50px; font-size: 26px; }
+.avatar.huge { width: 80px; height: 80px; font-size: 40px; }
+.av0 { background: #4f7bb0; } .av1 { background: #b0574f; } .av2 { background: #4f9a6b; }
+.av3 { background: #8a5fb0; } .av4 { background: #c0862d; } .av5 { background: #3e8f9e; }
+.av6 { background: #a24f86; } .av7 { background: #6b7a3c; } .av8 { background: #c06a3e; }
+.av9 { background: #546478; } .av10 { background: #2f7f5f; } .av11 { background: #9b4545; }
+
+/* --- the foot */
+
+.footbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; margin: 12px 0 6px; font-size: 11px; }
+.themepicker, .quicksearch { display: flex; align-items: center; gap: 4px; }
+.themepicker select, .quicksearch input { font-size: 11px; }
+.themepicker .button, .quicksearch .button { margin: 0; font-size: 11px; }
+.tail { text-align: center; font-size: 13px; line-height: 1.5; }
+
+/* --- narrow screens */
+
+@media (max-width: 760px) {
+	.header { grid-template-columns: 1fr; }
+	.logo-name { font-size: 30px; }
+	.glow:link, .glow:visited { font-size: 20px; padding: 6px 12px; }
+	.statsblock { text-align: left; }
+	td.last, td.num:nth-child(3) { display: none; }
+	td.author { width: 26%; }
+}

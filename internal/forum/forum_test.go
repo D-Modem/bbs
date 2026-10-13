@@ -414,10 +414,11 @@ func TestThemes(t *testing.T) {
 		has(t, th.Name+" topic", body, "Remember these?", "I do.", `class="quote"`, `name="answer"`)
 		// each laid out its own way
 		own := map[string][2][]string{
-			"ipb3": {{"Signed in as", "Reply to this topic"}, {"Board Statistics", "Create Account"}},
-			"ipb2": {{"Logged in as:", "Fast Reply", "Member No.:", `class="postsep"`}, {"Welcome Guest", "Last Post Info", `id="gfooter"`}},
-			"ipb1": {{"Logged in as:", "Posted on", `class="postlinksbar"`, `class="activeuserstrip"`}, {"Welcome Guest", "Last Post Info", `class="pformstrip"`}},
-			"ikon": {{"Log out</button>", "Total Posts:", "Post a reply", `class="bottomline"`}, {"Guest: ", "Forum Info", "welcomes its newest member", "You must be logged in to view the post markers"}},
+			"ipb3":   {{"Signed in as", "Reply to this topic"}, {"Board Statistics", "Create Account"}},
+			"ipb2":   {{"Logged in as:", "Fast Reply", "Member No.:", `class="postsep"`}, {"Welcome Guest", "Last Post Info", `id="gfooter"`}},
+			"ipb1":   {{"Logged in as:", "Posted on", `class="postlinksbar"`, `class="activeuserstrip"`}, {"Welcome Guest", "Last Post Info", `class="pformstrip"`}},
+			"phpbb1": {{"Author</td>", "Posted:", "Reply to:", "Logout</button></form>]"}, {"Our users have posted a total of", "You are not logged in.", "= New Posts since your last visit."}},
+			"ikon":   {{"Log out</button>", "Total Posts:", "Post a reply", `class="bottomline"`}, {"Guest: ", "Forum Info", "welcomes its newest member", "You must be logged in to view the post markers"}},
 		}[th.Name]
 		has(t, th.Name+" own topic", body, own[0]...)
 		_, _, body = guest.get("/forum/")

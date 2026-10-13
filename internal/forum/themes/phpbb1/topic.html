@@ -1,0 +1,68 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+{{if gt $b.Pages.Total 1}}<div class="pagebar">{{template "pages" $b.Pages}}</div>{{end}}
+<div class="tbl"><table>
+  <tr class="head"><td class="c1 author">Author</td><td class="c1">{{$b.Root.Subject}}</td></tr>
+  {{with $b.Poll}}
+  <tr class="c2row"><td class="poll" colspan="2">
+    <b>Poll</b>
+    <hr>
+    {{if or .Voted (not $me)}}
+    <table class="pollresults">{{range .Answers}}<tr><td>{{.Text}}{{if .Mine}} *{{end}}</td><td class="bar"><meter min="0" max="100" value="{{.Pct}}"></meter></td><td class="small">{{.Pct}}% [ {{.Count}} ]</td></tr>{{end}}</table>
+    <p class="small">Total Votes: {{.Total}}{{if not $me}} &middot; <a href="/forum/login">Login</a> to vote{{end}}</p>
+    {{end}}
+    {{if $me}}
+    <form method="post" action="/forum/post/{{.ID}}/answer" class="poll-form">
+      <input type="hidden" name="csrf" value="{{$csrf}}">
+      {{range .Answers}}<label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label>{{end}}
+      <div><button class="button">{{if .Voted}}Change vote{{else}}Submit vote{{end}}</button></div>
+    </form>
+    {{end}}
+  </td></tr>
+  {{end}}
+  {{range $b.Posts}}
+  <tr class="{{if odd .Num}}c2row{{else}}c1row{{end}}" id="entry{{.M.ID}}">
+    <td class="author">
+      <b>{{.M.From}}</b>
+      {{if .Author}}<br><span class="small">{{if .Author.Sysop}}Administrator{{else}}{{group .Author}}{{end}}</span>
+      <br><br><span class="small">Joined: {{monthyear .Author.Created}}<br>Posts: {{num .Author.Posts}}{{if .Author.Location}}<br>From: {{.Author.Location}}{{end}}</span>
+      {{else if .Where}}<br><span class="small">From: {{.Where}}</span>{{end}}
+    </td>
+    <td class="said">
+      <span class="small"><span class="posticon" aria-hidden="true"></span>Posted: {{stamp .M.Created}}{{if and .M.To (ne .M.To "All")}} &nbsp; To: {{.M.To}}{{end}} &nbsp; <a href="/forum/post/{{.M.ID}}">#{{.Num}}</a></span>
+      <hr>
+      <div class="postbody">{{body .M.Body}}</div>
+      {{if .Likes}}<p class="small likes">{{plural .Likes "user likes" "users like"}} this post</p>{{end}}
+      <hr>
+      <div class="pbtns">
+        {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="pbtn"><span class="ico profile" aria-hidden="true"></span>profile</a>{{end}}
+        {{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="pbtn"><span class="ico like" aria-hidden="true"></span>{{if .Liked}}unlike{{else}}like{{end}}</button></form>{{end}}
+        <span class="div" aria-hidden="true"></span>
+        {{if .CanDelete}}<form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="pbtn"><span class="ico edit" aria-hidden="true"></span>delete</button></form>{{end}}
+        {{if $b.CanPost}}<a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#reply" class="pbtn"><span class="ico quote" aria-hidden="true"></span>quote</a>{{end}}
+      </div>
+    </td>
+  </tr>
+  {{end}}
+</table></div>
+<div class="legendrow">
+  <div>{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="glow">New Topic</a> <a href="#reply" class="glow">Reply</a>{{end}}</div>
+  <div class="right">{{template "pages" $b.Pages}}</div>
+</div>
+
+{{if $b.CanPost}}
+<div class="tbl" id="reply"><table>
+  <tr class="head"><td class="c1" colspan="2"><b>Reply to: {{$b.Root.Subject}}</b></td></tr>
+  <tr class="c2row"><td class="author"><b>Message Body:</b><br><br><span class="small">Quote with &gt; at the start of a line.<br>Links are made links.</span></td>
+    <td><form method="post" action="/forum/topic/{{$b.Root.ID}}/reply">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      {{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+      <textarea name="body" rows="10" required aria-label="Message body">{{$b.Quote}}</textarea>
+      {{if $b.Aliases}}<br><label><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label>{{end}}
+      <div class="center"><button class="button">Submit</button></div>
+    </form></td></tr>
+</table></div>
+{{else if not .User}}
+<p class="notice">You must be logged in to reply. <a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">Login</a>{{if .Register}} or <a href="/forum/register">Register</a>{{end}}.</p>
+{{end}}
+{{template "foot" .}}{{end}}

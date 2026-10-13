@@ -52,6 +52,7 @@ var Themes = []Theme{
 	{"ipb2", "Classic (IPB 2 style)"},
 	{"ipb1", "Retro (IPB 1 style)"},
 	{"ikon", "Grey (Ikonboard style)"},
+	{"phpbb1", "Dark (phpBB 1 style)"},
 }
 
 // KnownTheme says whether there is a theme of the name.
@@ -264,6 +265,7 @@ type page struct {
 	Theme    string  // the theme in use
 	Themes   []Theme // to choose from
 	Path     string  // this page's, to come back to
+	Page     string  // which page it is (its template's name), for layouts that differ by page
 	Body     any     // the page's own
 }
 
@@ -275,7 +277,7 @@ type crumb struct {
 func (q *req) render(status int, name, title string, crumbs []crumb, body any) {
 	p := page{Title: title, BBS: q.s.B.Name, User: q.user, CSRF: q.csrf(), Crumbs: crumbs, Terminal: q.s.Terminal,
 		Register: q.user == nil && q.s.B.NewUsers, Now: time.Now(), Body: body, Notice: q.r.URL.Query().Get("notice"),
-		Theme: q.theme(), Themes: Themes, Path: q.r.URL.RequestURI()}
+		Theme: q.theme(), Themes: Themes, Path: q.r.URL.RequestURI(), Page: name}
 	switch {
 	case strings.HasPrefix(name, "online"):
 		p.Tab = "online"

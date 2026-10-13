@@ -1,0 +1,41 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.BBS}} Forums - {{.Title}}</title>
+<link rel="stylesheet" href="/forum/static/phpbb1.css">
+</head>
+<body id="top">
+<div id="wrap">
+<div class="header">
+  <a href="/forum/" class="logo"><span class="logo-name">{{.BBS}}</span><span class="logo-sub">The forums of a BBS</span></a>
+  <div class="headright">
+    <div class="headtop">
+    {{if eq .Page "area.html"}}{{if .Body.CanPost}}<a href="/forum/area/{{.Body.Area.ID}}/new" class="glow">New Topic</a>{{else}}<span class="sitename">{{.Body.Area.Name}}</span>{{end}}
+    {{else if eq .Page "topic.html"}}{{if .Body.CanPost}}<a href="/forum/area/{{.Body.Area.ID}}/new" class="glow">New Topic</a> <a href="#reply" class="glow">Reply</a>{{else}}<span class="sitename">{{.Body.Root.Subject}}</span>{{end}}
+    {{else if eq .Page "post.html"}}<span class="posting">Post New Topic in:<br><a href="/forum/area/{{.Body.Area.ID}}">{{.Body.Area.Name}}</a></span>
+    {{else}}<span class="sitename">{{.BBS}} Forums</span>{{end}}
+    </div>
+    <div class="menu">
+      {{if not .User}}{{if .Register}}[<a href="/forum/register">Register</a>]&nbsp; {{end}}{{else}}[<a href="/forum/user/{{path .User.Name}}">Profile</a>]&nbsp; {{end}}[<a href="/forum/search">Search</a>]&nbsp; [<a href="/forum/online">Who's Online</a>]<br>
+      {{if .Terminal}}[<a href="/terminal">Terminal</a>]&nbsp; {{end}}[{{if .User}}<form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Logout</button></form>{{else}}<a href="/forum/login">Login</a>{{end}}]
+    </div>
+  </div>
+</div>
+{{if eq .Notice "welcome"}}<p class="notice">Welcome! Your account is made, and you are logged in.</p>{{end}}
+{{if .Crumbs}}<div class="crumbs">{{if eq .Page "area.html"}}<b class="fname">{{.Body.Area.Name}}</b><br>{{if .Body.Area.Description}}{{.Body.Area.Description}}<br>{{end}}{{end}}<a href="/forum/">{{.BBS}} Forum Index</a>{{range .Crumbs}} <b>&raquo;</b> {{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}{{end}}</div>{{end}}
+{{end}}
+
+{{define "foot"}}
+<div class="footbar">
+  {{template "themepicker" .}}
+  <form action="/forum/search" method="get" class="quicksearch"><input type="search" name="q" aria-label="Search"> <button class="button">Search</button></form>
+</div>
+<div class="tail">{{.BBS}} Forums &middot; Powered by bbs-sec<br>{{longdate .Now}}</div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}<span class="gotopage">Goto page ( {{if gt .Cur 1}}<a href="{{.URL .Prev}}" rel="prev">Previous Page</a> {{end}}{{$cur := .Cur}}{{$p := .}}{{range .Shown}}{{if eq . 0}}&hellip; {{else if eq . $cur}}<b>{{.}}</b> {{else}}<a href="{{$p.URL .}}">{{.}}</a> {{end}}{{end}}{{if .Next}}<a href="{{.URL .Next}}" rel="next">Next Page</a> {{end}})</span>{{end}}{{end}}

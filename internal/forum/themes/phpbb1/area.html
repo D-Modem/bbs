@@ -1,0 +1,25 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+{{if gt $b.Pages.Total 1}}<div class="pagebar">{{template "pages" $b.Pages}}</div>{{end}}
+<div class="tbl"><table>
+  <tr class="head"><td class="c1 icon">&nbsp;</td><td class="c1">&nbsp;Topic</td><td class="c1 num">Replies</td><td class="c1 num">&nbsp;Poster</td><td class="c1 last">Date</td></tr>
+  {{range $b.Topics}}
+  <tr>
+    <td class="c1 icon"><span class="folder{{if .Unread}} new{{end}}{{if ge .Replies 15}} hot{{end}}" title="{{if .Unread}}New posts{{else}}No new posts{{end}}"></span></td>
+    <td class="c2">&nbsp;<a href="/forum/topic/{{.Root.ID}}">{{.Root.Subject}}</a>{{if gt .Pages 1}} <span class="small">(Goto page: {{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a> {{end}})</span>{{end}}</td>
+    <td class="c1 num">{{num .Replies}}</td>
+    <td class="c2 num">{{.Root.From}}</td>
+    <td class="c1 last small"><a href="/forum/post/{{.Last.ID}}">{{stamp .Last.Created}}</a><br>by {{.Last.From}}</td>
+  </tr>
+  {{else}}
+  <tr><td colspan="5" class="c1 center">There are no topics for this forum. {{if $b.CanPost}}You can post one <a href="/forum/area/{{$b.Area.ID}}/new">here</a>.{{end}}</td></tr>
+  {{end}}
+</table></div>
+<div class="legendrow">
+  <div class="legend">
+    <span class="folder new"></span> = New Posts since your last visit (<span class="folder new hot"></span> = More than 15 posts)<br>
+    <span class="folder"></span> = No New Posts since your last visit (<span class="folder hot"></span> = More than 15 posts)
+  </div>
+  <div class="right">{{template "pages" $b.Pages}}{{if .User}}<br><form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark all topics read</button></form>{{end}}</div>
+</div>
+{{template "foot" .}}{{end}}

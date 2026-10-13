@@ -1,0 +1,31 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<div class="statsblock">
+  Our users have posted a total of -{{num $st.Posts}}- messages.<br>
+  We have -{{num $st.Members}}- Registered Users.<br>
+  {{with $st.Newest}}The newest Registered User is -<a href="/forum/user/{{path .Name}}">{{.Name}}</a>-.<br>{{end}}
+  -{{len .Body.Online}}- {{if eq (len .Body.Online) 1}}user is{{else}}users are{{end}} <a href="/forum/online">currently browsing</a> the BBS.<br>
+  <b>{{if .User}}You are logged in as {{.User.Name}}. <form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Logout.</button></form>{{else}}You are not logged in. <a href="/forum/login">Login.</a>{{end}}</b>
+</div>
+<div class="tbl"><table>
+  <tr class="head"><td class="c1 icon">&nbsp;</td><td class="c1">Forum</td><td class="c1 num">Topics</td><td class="c1 num">Posts</td><td class="c1 last">Last Post</td></tr>
+  {{range .Body.Categories}}
+  <tr><td colspan="5" class="c1 cat"><b>{{.Name}}</b></td></tr>
+  {{range $f := .Forums}}
+  <tr>
+    <td class="c1 icon"><span class="folder{{if $f.Unread}} new{{end}}" title="{{if $f.Unread}}New posts{{else}}No new posts{{end}}"></span></td>
+    <td class="c2"><a href="/forum/area/{{$f.Area.ID}}">{{$f.Area.Name}}</a>{{if $f.Area.Description}}<br><span class="desc">{{$f.Area.Description}}</span>{{end}}</td>
+    <td class="c1 num">{{num $f.Topics}}</td>
+    <td class="c2 num">{{num $f.Area.Messages}}</td>
+    <td class="c1 last small">{{with $f.Last}}<a href="/forum/post/{{.ID}}">{{stamp .Created}}</a><br>by {{.From}}{{else}}No Posts{{end}}</td>
+  </tr>
+  {{end}}
+  {{else}}
+  <tr><td colspan="5" class="c2">There are no forums open to you yet.{{if not .User}} <a href="/forum/login">Login</a> to see more.{{end}}</td></tr>
+  {{end}}
+</table></div>
+<div class="legend">
+  <span class="folder new"></span> = New Posts since your last visit.<br>
+  <span class="folder"></span> = No New Posts since your last visit.
+</div>
+{{template "foot" .}}{{end}}

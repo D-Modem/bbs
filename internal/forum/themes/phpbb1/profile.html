@@ -1,0 +1,21 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="tbl narrowtbl"><table>
+  <tr class="head"><td class="c1" colspan="2"><b>{{$u.Name}}'s Profile</b></td></tr>
+  <tr><td class="c1 key">User Name:</td><td class="c2">{{template "avatar" (av $u.Name "mini")}} {{$u.Name}}</td></tr>
+  <tr><td class="c1 key">Rank:</td><td class="c2">{{if $u.Sysop}}Administrator{{else}}{{group $u}}{{end}}</td></tr>
+  <tr><td class="c1 key">Joined:</td><td class="c2">{{monthyear $u.Created}}</td></tr>
+  <tr><td class="c1 key">Last visit:</td><td class="c2">{{stamp $u.LastLogin}}</td></tr>
+  <tr><td class="c1 key">Posts:</td><td class="c2">{{num $u.Posts}}</td></tr>
+  <tr><td class="c1 key">Calls:</td><td class="c2">{{num $u.Logins}}</td></tr>
+  <tr><td class="c1 key">Location:</td><td class="c2">{{$u.Location}}</td></tr>
+  <tr><td class="c1 key">Interests:</td><td class="c2">{{$u.About}}</td></tr>
+  <tr><td class="c1 key">Online:</td><td class="c2">{{range .Body.On}}Node {{.Num}} by {{.Via}}: {{.Activity}}<br>{{else}}No{{end}}</td></tr>
+</table></div>
+<div class="tbl"><table>
+  <tr class="head"><td class="c1">Topic</td><td class="c1 last">Date</td></tr>
+  {{range .Body.Recent}}
+  <tr><td class="c2"><a href="/forum/post/{{.ID}}">{{.Subject}}</a><br><span class="small">{{snippet .Body 140}}</span></td><td class="c1 last small">{{stamp .Created}}</td></tr>
+  {{else}}<tr><td class="c2" colspan="2">No posts to show.</td></tr>{{end}}
+</table></div>
+{{template "foot" .}}{{end}}
