@@ -84,7 +84,7 @@ What there is:
   elsewhere by telnet or RLogin, and the door networks BBSLink and DoorParty
 - [chat](https://github.com/Neo-Desktop/bbs-sec/wiki/Chat-and-Paging): rooms, messages to a node, paging the sysop
 - [finger and gopher](https://github.com/Neo-Desktop/bbs-sec/wiki/Finger-and-Gopher): who is on, and chosen areas in gopherspace
-- [a web forum](https://github.com/Neo-Desktop/bbs-sec/wiki/Web-Forum): the message areas as a bulletin board in the browser, in the manner of Invision Power Board 3, or of IPB 5, 4, 2 or 1, Ikonboard, vBulletin 3, 2 or Lite, or phpBB 3.3 back to 1 (themes)
+- [a web forum](https://github.com/Neo-Desktop/bbs-sec/wiki/Web-Forum): the message areas as a bulletin board in the browser, in the manner of Invision Power Board 3, or of IPB 5, 4, 2 or 1, Ikonboard, vBulletin 4, 3, 2 or Lite, or phpBB 3.3 back to 1 (themes)
 - [a web terminal](https://github.com/Neo-Desktop/bbs-sec/wiki/HTTP-API#the-web-terminal): the BBS in a browser (xterm.js, built in)
 - [an HTTP API](https://github.com/Neo-Desktop/bbs-sec/wiki/HTTP-API): REST, server-sent events, and WebSockets (JSON or protobuf) where web clients chat with terminal callers; Prometheus metrics
 - [customization](https://github.com/Neo-Desktop/bbs-sec/wiki/Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words

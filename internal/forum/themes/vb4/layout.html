@@ -1,0 +1,83 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.Title}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/vb4.css">
+</head>
+<body id="top">
+<div class="above_body">
+  <div id="header" class="floatcontainer">
+    <a href="/forum/" class="logo" title="{{.BBS}}"><span class="logo-mark" aria-hidden="true"><span></span></span><span class="logo-name">{{.BBS}}</span></a>
+    <div id="toplinks" class="toplinks">
+      {{if .User}}
+      <ul class="isuser">
+        <li class="welcomelink">Welcome, <a href="/forum/user/{{path .User.Name}}">{{.User.Name}}</a></li>
+        <li><a href="/forum/user/{{path .User.Name}}">My Profile</a></li>
+        <li><form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Log Out</button></form></li>
+      </ul>
+      {{else}}
+      <form method="post" action="/forum/login" class="navlogin" id="navbar_loginform">
+        <input type="hidden" name="back" value="{{.Path}}">
+        <input type="text" name="name" id="navbar_username" class="textbox" placeholder="User Name" aria-label="User Name" autocomplete="username">
+        <input type="password" name="password" class="textbox" placeholder="Password" aria-label="Password" autocomplete="current-password">
+        <button class="loginbutton">Log in</button>
+        {{if .Register}}<a href="/forum/register" class="registerlink">Register</a>{{end}}
+      </form>
+      {{end}}
+    </div>
+  </div>
+  <div id="navbar" class="navbar">
+    <ul id="navtabs" class="navtabs floatcontainer">
+      <li{{if and (ne .Tab "online") (ne .Page "search.html")}} class="selected"{{end}}><a class="navtab" href="/forum/">Forum</a>
+        <ul class="floatcontainer">
+          <li><a href="/forum/search">New Posts</a></li>
+          <li><a href="/forum/online">Who's Online</a></li>
+          {{if .User}}<li><a href="/forum/user/{{path .User.Name}}">My Profile</a></li>{{end}}
+          {{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}
+        </ul>
+      </li>
+      <li{{if eq .Page "search.html"}} class="selected"{{end}}><a class="navtab" href="/forum/search">What's New?</a>
+        <ul class="floatcontainer"><li><a href="/forum/search">Search the forum</a></li><li><a href="/forum/online">Who's Online</a></li></ul>
+      </li>
+      <li{{if eq .Tab "online"}} class="selected"{{end}}><a class="navtab" href="/forum/online">Community</a>
+        <ul class="floatcontainer"><li><a href="/forum/online">Who's Online</a></li>{{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}</ul>
+      </li>
+    </ul>
+    <form action="/forum/search" method="get" id="globalsearch" class="globalsearch"><input type="search" name="q" class="textbox" placeholder="Search" aria-label="Search"><button class="searchbutton" aria-label="Search"><span class="ic-search" aria-hidden="true"></span></button></form>
+  </div>
+</div>
+<div class="body_wrapper">
+<div id="breadcrumb" class="breadcrumb">
+  <ul class="floatcontainer">
+    <li class="navbithome"><a href="/forum/" title="Home"><span class="ic-home" aria-hidden="true"></span></a></li>
+    <li class="navbit"><a href="/forum/">{{.BBS}}</a></li>
+    {{range .Crumbs}}{{if .URL}}<li class="navbit"><a href="{{.URL}}">{{.Name}}</a></li>{{end}}{{end}}
+    {{range .Crumbs}}{{if not .URL}}<li class="navbit lastnavbit"><span>{{.Name}}</span></li>{{end}}{{end}}
+  </ul>
+  <hr>
+</div>
+{{if and (eq .Notice "welcome") .User}}<div class="blockrow restore">Thank you for registering, {{.User.Name}}. You are now logged in.</div>{{end}}
+{{end}}
+
+{{define "foot"}}
+<div id="footer" class="floatcontainer footer">
+  <div class="footer_select">{{template "themepicker" .}}</div>
+  <ul id="footer_links" class="footer_links">
+    <li><a href="/forum/online">Who's Online</a></li>
+    {{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}
+    <li><a href="/forum/">{{.BBS}}</a></li>
+    <li><a href="#top">Top</a></li>
+  </ul>
+</div>
+</div>
+<div class="below_body">
+  <div id="footer_time" class="shade footer_time">All times are server time. The time now is <span class="time">{{vbtime .Now}}</span>.</div>
+  <div id="footer_copyright" class="shade footer_copyright">Powered by bbs-sec<br>{{.BBS}}</div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}{{$cur := .Cur}}{{$p := .}}<div class="pagination"><span class="pagelabel">Page {{.Cur}} of {{.Total}}</span>{{if gt .Cur 1}}<a href="{{.URL .Prev}}" rel="prev" class="prev_next" title="Prev Page">&lt;</a>{{end}}{{range .Shown}}{{if eq . 0}}<span class="separator">…</span>{{else if eq . $cur}}<span class="selected"><a>{{.}}</a></span>{{else}}<a href="{{$p.URL .}}">{{.}}</a>{{end}}{{end}}{{if .Next}}<a href="{{.URL .Next}}" rel="next" class="prev_next" title="Next Page">&gt;</a>{{end}}</div>{{end}}{{end}}

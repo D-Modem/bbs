@@ -1,0 +1,33 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="member_profile floatcontainer">
+  <div id="sidebar_container" class="member_summary">
+    <div class="block mainblock">
+      <h1 class="blocksubhead prof_blocksubhead"><span class="member_username">{{$u.Name}}</span><span class="member_status">{{if .Body.On}}<span class="onlinestatus on" aria-hidden="true"></span> online{{else}}<span class="onlinestatus" aria-hidden="true"></span> offline{{end}}</span><span class="usertitle">{{if $u.Sysop}}Administrator{{else}}{{group $u}}{{end}}</span></h1>
+      <div class="blockbody avatarcontent">{{template "avatar" (av $u.Name "huge")}}</div>
+    </div>
+    <div class="block">
+      <h5 class="blocksubhead smaller">Mini Statistics</h5>
+      <div class="blockbody">
+        <dl class="stats"><dt>Join Date</dt><dd>{{vbdate $u.Created}}</dd><dt>Last Activity</dt><dd>{{vbdate $u.LastLogin}} <span class="time">{{vbtime $u.LastLogin}}</span></dd><dt>Posts</dt><dd>{{num $u.Posts}}</dd></dl>
+      </div>
+    </div>
+  </div>
+  <div class="member_content userprof">
+    <div class="tabslight"><span class="selected">About Me</span></div>
+    <div class="profile_content">
+      <h3 class="subsectionhead-understate">About {{$u.Name}}</h3>
+      <dl class="stats"><dt>Calls</dt><dd>{{num $u.Logins}}</dd>
+        {{if $u.Location}}<dt>Location</dt><dd>{{$u.Location}}</dd>{{end}}
+        {{if $u.About}}<dt>Interests</dt><dd>{{$u.About}}</dd>{{end}}
+        {{range .Body.On}}<dt>Now</dt><dd>node {{.Num}} by {{.Via}}: {{.Activity}}</dd>{{end}}</dl>
+      <h3 class="subsectionhead-understate">Recent Posts</h3>
+      <ol class="activitylist">
+        {{range .Body.Recent}}
+        <li><div class="title"><a href="/forum/post/{{.ID}}">{{.Subject}}</a></div><div class="datetime">{{vbdate .Created}}, <span class="time">{{vbtime .Created}}</span></div><div class="excerpt">{{snippet .Body 200}}</div></li>
+        {{else}}<li class="none">{{$u.Name}} has not posted yet.</li>{{end}}
+      </ol>
+    </div>
+  </div>
+</div>
+{{template "foot" .}}{{end}}

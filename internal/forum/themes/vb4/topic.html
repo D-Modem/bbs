@@ -1,0 +1,99 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<div id="pagetitle" class="pagetitle">
+  <h1>Thread: <span class="threadtitle"><a href="/forum/topic/{{$b.Root.ID}}">{{$b.Root.Subject}}</a></span></h1>
+</div>
+<div id="above_postlist" class="above_postlist">
+  {{if $b.CanPost}}<a href="#quick_reply" class="newcontent_textcontrol"><span aria-hidden="true">+</span> Reply to Thread</a>{{end}}
+  <div id="pagination_top" class="pagination_top">{{template "pages" $b.Pages}}<div class="postpagestats">{{plural $b.Count "post" "posts"}}</div></div>
+</div>
+
+{{with $b.Poll}}
+<div class="blockhead pollhead">Poll: <span class="normal">{{$b.Root.Subject}}</span></div>
+<div class="blockbody pollbody">
+  {{if or .Voted (not $me)}}
+  <ol class="pollresults">
+    {{range $i, $a := .Answers}}<li><div class="optiontitle">{{$a.Text}}{{if $a.Mine}} <em>(your vote)</em>{{end}}</div><div class="pollbar"><meter min="0" max="100" value="{{$a.Pct}}" class="pollbar{{add (mod5 $i) 1}}"></meter><span class="pollnumbers">{{$a.Count}} &middot; {{$a.Pct}}%</span></div></li>{{end}}
+  </ol>
+  <p class="pollfoot">Voters: {{.Total}}.{{if not $me}} You may not vote on this poll until you <a href="/forum/login">log in</a>.{{end}}</p>
+  {{end}}
+  {{if $me}}
+  <form method="post" action="/forum/post/{{.ID}}/answer" class="pollform">
+    <input type="hidden" name="csrf" value="{{$csrf}}">
+    {{range .Answers}}<label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label>{{end}}
+    <button class="button">Vote Now</button>
+  </form>
+  {{end}}
+</div>
+{{end}}
+
+<div id="postlist" class="postlist">
+<ol id="posts" class="posts">
+  {{range $b.Posts}}
+  <li class="postbitlegacy postbitim postcontainer" id="entry{{.M.ID}}">
+    <div class="posthead">
+      <span class="postdate{{if eq .Num 1}} new{{else}} old{{end}}"><span class="date">{{vbdate .M.Created}},&nbsp;<span class="time">{{vbtime .M.Created}}</span></span></span>
+      <span class="nodecontrols"><a href="/forum/post/{{.M.ID}}" class="postcounter">#{{.Num}}</a></span>
+    </div>
+    <div class="postdetails">
+      <div class="userinfo">
+        <div class="username_container">
+          {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username{{if .Author.Sysop}} admin{{end}}"><strong>{{.M.From}}</strong></a> <span class="onlinestatus" aria-hidden="true"></span>{{else}}<strong class="username">{{.M.From}}</strong>{{end}}
+        </div>
+        <span class="usertitle">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Senior Member{{else if ge .Author.Posts 30}}Member{{else}}Junior Member{{end}}{{else}}Guest{{end}}</span>
+        <a class="postuseravatar" {{if .Author}}href="/forum/user/{{path .Author.Name}}"{{end}}>{{template "avatar" (av .M.From "large")}}</a>
+        <hr>
+        <dl class="userinfo_extra">
+          {{if .Author}}<dt>Join Date</dt><dd>{{monthyear .Author.Created}}</dd>
+          {{if .Author.Location}}<dt>Location</dt><dd>{{.Author.Location}}</dd>{{end}}
+          <dt>Posts</dt><dd>{{num .Author.Posts}}</dd>{{else if .Where}}<dt>Location</dt><dd>{{.Where}}</dd>{{end}}
+        </dl>
+      </div>
+      <div class="postbody">
+        <div class="postrow">
+          <h2 class="title icon"><span class="posticon" aria-hidden="true"></span>{{.M.Subject}}</h2>
+          <div class="content"><blockquote class="postcontent">{{body .M.Body}}</blockquote></div>
+        </div>
+        {{if .Likes}}<div class="after_content"><div class="likes"><span class="likeicon" aria-hidden="true"></span>{{plural .Likes "member likes" "members like"}} this post.</div></div>{{end}}
+        <div class="cleardiv"></div>
+      </div>
+    </div>
+    <div class="postfoot">
+      <div class="textcontrols floatcontainer">
+        <span class="postcontrols">
+          {{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="textcontrol"><span class="ic ic-like" aria-hidden="true"></span>{{if .Liked}}Unlike{{else}}Like{{end}}</button></form>{{end}}
+          {{if .CanDelete}}<form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="textcontrol"><span class="ic ic-edit" aria-hidden="true"></span>Delete</button></form>{{end}}
+          {{if $b.CanPost}}<a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#quick_reply" class="textcontrol quote"><span class="ic ic-quote" aria-hidden="true"></span>Reply With Quote</a>{{end}}
+        </span>
+        <span class="postlinking">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="textcontrol"><span class="ic ic-profile" aria-hidden="true"></span>Profile</a>{{end}}</span>
+      </div>
+    </div>
+  </li>
+  {{end}}
+</ol>
+</div>
+
+<div id="below_postlist" class="below_postlist">
+  {{if $b.CanPost}}<a href="#quick_reply" class="newcontent_textcontrol"><span aria-hidden="true">+</span> Reply to Thread</a>{{end}}
+  <div class="pagination_btm">{{template "pages" $b.Pages}}</div>
+</div>
+<div class="navlinks"><a href="/forum/area/{{$b.Area.ID}}">&laquo; {{$b.Area.Name}}</a>{{if $b.CanPost}} | <a href="/forum/area/{{$b.Area.ID}}/new">Post New Thread</a>{{end}}</div>
+
+{{if $b.CanPost}}
+<form method="post" action="/forum/topic/{{$b.Root.ID}}/reply" id="quick_reply" class="quick_reply">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+{{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+<h2 class="blockhead">Quick Reply</h2>
+<div class="wysiwyg_block blockbody">
+  <div class="blockrow">
+    <label class="qrlabel" for="qr_body">Message:</label> <span class="description">Quote with &gt; at the start of a line.</span>
+    <textarea name="body" id="qr_body" rows="10" required>{{$b.Quote}}</textarea>
+    {{if $b.Aliases}}<label class="description"><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label>{{end}}
+  </div>
+  <div class="blockfoot actionbuttons"><button class="button">Post Quick Reply</button></div>
+</div>
+</form>
+{{else if not .User}}
+<p class="navlinks">You may not post replies until you <a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">log in</a>.</p>
+{{end}}
+{{template "foot" .}}{{end}}

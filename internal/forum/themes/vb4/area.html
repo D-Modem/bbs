@@ -1,0 +1,58 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div id="pagetitle" class="pagetitle">
+  <h1>Forum: <span class="forumtitle">{{$b.Area.Name}}</span></h1>
+  {{if $b.Area.Description}}<p class="description">{{$b.Area.Description}}</p>{{end}}
+</div>
+<div class="above_threadlist">
+  {{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="newcontent_textcontrol"><span aria-hidden="true">+</span> Post New Thread</a>{{end}}
+  <div class="threadpagenav">{{template "pages" $b.Pages}}<div class="threadcount">{{plural $b.Count "thread" "threads"}}</div></div>
+</div>
+<div id="threadlist" class="threadlist">
+  <div class="threadlisthead table">
+    <span class="threadinfo">Title / Thread Starter</span>
+    <span class="threadstats">Replies</span>
+    <span class="threadlastpost">Last Post By</span>
+  </div>
+  <ol id="threads" class="threads">
+    {{range $b.Topics}}
+    <li class="threadbit{{if .Unread}} new{{else}} old{{end}}{{if ge .Replies 15}} hot{{end}}">
+      <div class="rating0 nonsticky">
+        <div class="threadinfo">
+          <span class="threadstatus" title="{{if .Unread}}New posts{{else}}No new posts{{end}}" aria-hidden="true"></span>
+          <div class="inner">
+            <h3 class="threadtitle">{{if .Unread}}<a href="/forum/post/{{.Last.ID}}" class="gotonew" title="Go to first new post" aria-label="Go to first new post"></a>{{end}}<a href="/forum/topic/{{.Root.ID}}" class="title">{{.Root.Subject}}</a></h3>
+            <div class="threadmeta"><div class="author">Started by <a href="/forum/user/{{path .Root.From}}" class="username understate">{{.Root.From}}</a>, {{vbdate .Root.Created}} <span class="time">{{vbtime .Root.Created}}</span>{{if gt .Pages 1}}<dl class="pagination"><dt class="label">{{.Pages}} Pages</dt><dd>{{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a>{{end}}</dd></dl>{{end}}</div></div>
+          </div>
+        </div>
+        <ul class="threadstats">
+          <li>Replies: <a href="/forum/topic/{{.Root.ID}}">{{num .Replies}}</a></li>
+        </ul>
+        <dl class="threadlastpost">
+          <dd><a href="/forum/user/{{path .Last.From}}" class="username"><strong>{{.Last.From}}</strong></a></dd>
+          <dd>{{vbdate .Last.Created}}, <span class="time">{{vbtime .Last.Created}}</span> <a href="/forum/post/{{.Last.ID}}" class="lastpostlink" title="Go to last post" aria-label="Go to last post"></a></dd>
+        </dl>
+      </div>
+    </li>
+    {{else}}
+    <li class="threadbit none">There are no threads in this forum.</li>
+    {{end}}
+  </ol>
+</div>
+<div class="below_threadlist">
+  {{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="newcontent_textcontrol"><span aria-hidden="true">+</span> Post New Thread</a>{{end}}
+  <div class="threadpagenav">{{template "pages" $b.Pages}}</div>
+</div>
+<div class="forum_info_block block">
+  <h5 class="blockhead">Forum Information and Options</h5>
+  <div class="blockbody blockrow floatcontainer">
+    <dl class="icon_legends">
+      <dt><span class="threadstatus new" aria-hidden="true"></span></dt><dd>New posts</dd>
+      <dt><span class="threadstatus" aria-hidden="true"></span></dt><dd>No new posts</dd>
+      <dt><span class="threadstatus new hot" aria-hidden="true"></span></dt><dd>Hot thread with new posts</dd>
+      <dt><span class="threadstatus hot" aria-hidden="true"></span></dt><dd>Hot thread with no new posts</dd>
+    </dl>
+    {{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="markread"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark This Forum Read</button></form>{{end}}
+  </div>
+</div>
+{{template "foot" .}}{{end}}

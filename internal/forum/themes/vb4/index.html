@@ -1,0 +1,68 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<div id="pagetitle"><h1>Forum</h1></div>
+<ol id="forums" class="floatcontainer">
+  {{range .Body.Categories}}
+  <li class="forumbit_nopost">
+    <div class="forumhead">
+      <h2><span class="forumtitle">{{.Name}}</span><span class="forumlastpost">Last Post</span><span class="forumthreadpost">Threads / Posts</span></h2>
+    </div>
+    <ol class="childforum">
+      {{range $f := .Forums}}
+      <li class="forumbit_post{{if $f.Unread}} new{{else}} old{{end}}">
+        <div class="forumrow">
+          <div class="foruminfo">
+            <span class="forumicon{{if $f.Unread}} new{{end}}" title="{{if $f.Unread}}Forum contains new posts{{else}}Forum contains no new posts{{end}}" aria-hidden="true"></span>
+            <div class="forumdata">
+              <h2 class="forumtitle"><a href="/forum/area/{{$f.Area.ID}}">{{$f.Area.Name}}</a></h2>
+              {{if $f.Area.Description}}<p class="forumdescription">{{$f.Area.Description}}</p>{{end}}
+            </div>
+          </div>
+          <ul class="forumstats">
+            <li>Threads: {{num $f.Topics}}</li>
+            <li>Posts: {{num $f.Area.Messages}}</li>
+          </ul>
+          <div class="forumlastpost">
+            {{with $f.Last}}
+            <p class="lastposttitle"><span class="threadicon" aria-hidden="true"></span><a href="/forum/topic/{{$f.LastTopic.ID}}" class="threadtitle" title="{{$f.LastTopic.Subject}}">{{truncate $f.LastTopic.Subject 30}}</a></p>
+            <div class="lastpostby">by <a href="/forum/user/{{path .From}}" class="username">{{.From}}</a></div>
+            <p class="lastpostdate">{{vbdate .Created}}, <span class="time">{{vbtime .Created}}</span> <a href="/forum/post/{{.ID}}" class="lastpostlink" title="Go to last post" aria-label="Go to last post"></a></p>
+            {{else}}<p class="lastpostdate">Never</p>{{end}}
+          </div>
+        </div>
+      </li>
+      {{end}}
+    </ol>
+  </li>
+  {{end}}
+</ol>
+
+<div id="wgo" class="collapse wgo_block block">
+  <h2 class="blockhead">What's Going On?</h2>
+  <div class="blockbody formcontrols floatcontainer">
+    <div id="wgo_onlineusers" class="wgo_subblock section">
+      <h3 class="blocksubhead"><span class="ic ic-users" aria-hidden="true"></span><a href="/forum/online">{{len .Body.Online}} {{if eq (len .Body.Online) 1}}user is{{else}}users are{{end}} on the BBS</a></h3>
+      <div class="blockrow">
+        <ol class="commalist">{{range $i, $n := .Body.Online}}<li><a href="/forum/user/{{path $n.User}}" class="username">{{$n.User}}</a></li>{{else}}<li class="none">No one is on the BBS just now.</li>{{end}}</ol>
+      </div>
+    </div>
+    <div id="wgo_stats" class="wgo_subblock section">
+      <h3 class="blocksubhead"><span class="ic ic-stats" aria-hidden="true"></span>{{.BBS}} Statistics</h3>
+      <div class="blockrow">
+        <dl><dt>Threads</dt><dd>{{num $st.Topics}}</dd><dt>Posts</dt><dd>{{num $st.Posts}}</dd><dt>Members</dt><dd>{{num $st.Members}}</dd></dl>
+        {{with $st.Newest}}<p>Welcome to our newest member, <a href="/forum/user/{{path .Name}}" class="username">{{.Name}}</a></p>{{end}}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="forum_icon_legend" class="forum_info_block block">
+  <h5 class="collapse blockhead options_correct">Icon Legend</h5>
+  <div class="blockbody blockrow">
+    <dl class="icon_legends">
+      <dt><span class="forumicon new" aria-hidden="true"></span></dt><dd>Contains unread posts</dd>
+      <dt><span class="forumicon" aria-hidden="true"></span></dt><dd>Contains no unread posts</dd>
+    </dl>
+  </div>
+</div>
+{{template "foot" .}}{{end}}
