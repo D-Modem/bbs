@@ -18,7 +18,6 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
-	"github.com/Neo-Desktop/bbs-sec/internal/news"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -38,17 +37,22 @@ type Settings struct {
 
 // Link is a system we exchange mail with.
 type Link struct {
-	Name        string
-	Addr        ftn.Addr
-	Host        string       // host:port to call it ("": it calls us)
-	Password    string       // binkp session password
-	PlainOK     bool         // the password may be sent in the clear (no CRAM-MD5)
-	PktPassword string       // packets' password ("": not checked, none sent)
-	Echoes      string       // wildmat of the echo tags exchanged
-	Route       bool         // netmail for nodes that are not links goes here
-	Packer      archive.Kind // bundles' format (ARCmail): ZIP, ARC, ARJ, LHA ("": bare packets)
-	Poll        time.Duration
-	AKA         ftn.Addr // ours to use with it (zero: by its zone)
+	Name            string
+	Addr            ftn.Addr
+	Host            string       // host:port to call it ("": it calls us)
+	Password        string       // binkp session password
+	PlainOK         bool         // the password may be sent in the clear (no CRAM-MD5)
+	PktPassword     string       // packets' password ("": not checked, none sent)
+	Echoes          string       // wildmat of the echo tags exchanged
+	FileEchoes      string       // wildmat of the file echoes exchanged (TIC; "": none)
+	AreaFix         bool         // it manages its echoes and file echoes here, by AreaFix and FileFix
+	AreafixPassword string       // between us for AreaFix and FileFix, its to ours and ours to its
+	TicPassword     string       // the TIC files' password ("": not checked, none sent)
+	Create          bool         // echoes (and file echoes) it sends that are not here are made
+	Route           bool         // netmail for nodes that are not links goes here
+	Packer          archive.Kind // bundles' format (ARCmail): ZIP, ARC, ARJ, LHA ("": bare packets)
+	Poll            time.Duration
+	AKA             ftn.Addr // ours to use with it (zero: by its zone)
 }
 
 // Fido is the BBS on FidoNet.
@@ -191,11 +195,6 @@ func (f *Fido) linkByAddr(a ftn.Addr) *Link {
 		}
 	}
 	return nil
-}
-
-// carries reports whether a link exchanges an echo.
-func (l *Link) carries(tag string) bool {
-	return news.Wildmat(strings.ToUpper(l.Echoes), strings.ToUpper(tag))
 }
 
 // origin is how messages from a link are marked in the store.

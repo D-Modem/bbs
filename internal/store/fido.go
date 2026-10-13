@@ -149,3 +149,94 @@ func (s *Store) NetmailPacked(id int64) error {
 	_, err := s.db.Exec(`UPDATE netmail_out SET packed = ? WHERE id = ?`, now(), id)
 	return err
 }
+
+// FidoSubs lists what a link has subscribed to, by AreaFix ("echo") or
+// FileFix ("file"), by tag.
+func (s *Store) FidoSubs(link, kind string) ([]string, error) {
+	rows, err := s.db.Query(`SELECT tag FROM fido_subs WHERE link = ? AND kind = ? ORDER BY tag`, link, kind)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var t string
+		if err := rows.Scan(&t); err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
+// FidoSubscribed reports whether a link has subscribed to a tag.
+func (s *Store) FidoSubscribed(link, kind, tag string) (bool, error) {
+	var n int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM fido_subs WHERE link = ? AND kind = ? AND tag = ?`, link, kind, tag).Scan(&n)
+	return n > 0, err
+}
+
+// SetFidoSub subscribes a link to a tag (or no more).
+func (s *Store) SetFidoSub(link, kind, tag string, on bool) error {
+	if !on {
+		_, err := s.db.Exec(`DELETE FROM fido_subs WHERE link = ? AND kind = ? AND tag = ?`, link, kind, tag)
+		return err
+	}
+	_, err := s.db.Exec(`INSERT OR IGNORE INTO fido_subs (link, kind, tag) VALUES (?, ?, ?)`, link, kind, tag)
+	return err
+}
+
+// SetFileEcho makes a file area a FidoNet file echo ("": not one any more).
+func (s *Store) SetFileEcho(area int64, tag string) error {
+	_, err := s.db.Exec(`UPDATE file_areas SET fileecho = ? WHERE id = ?`, nullString(tag), area)
+	if err != nil && isUnique(err) {
+		return ErrExists
+	}
+	return err
+}
+
+// FileAreaByEcho finds a file area by its file echo's tag.
+func (s *Store) FileAreaByEcho(tag string) (*FileArea, error) {
+	return scanFileArea(s.db.QueryRow(fileAreaQuery+` WHERE a.fileecho = ?`, tag))
+}
+
+// FileEchoAreas lists the file areas that are file echoes, by tag.
+func (s *Store) FileEchoAreas() ([]*FileArea, error) {
+	rows, err := s.db.Query(fileAreaQuery + ` WHERE a.fileecho IS NOT NULL ORDER BY a.fileecho`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*FileArea
+	for rows.Next() {
+		a, err := scanFileArea(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+// FilesToHatch lists files after id in the given areas that were added
+// here (not by a file echo), for sending out.
+func (s *Store) FilesToHatch(after int64, areas []int64, limit int) ([]*File, error) {
+	if len(areas) == 0 {
+		return nil, nil
+	}
+	q := `SELECT ` + fileCols + ` FROM files WHERE id > ? AND origin = ''
+		AND area_id IN (?` + strings.Repeat(",?", len(areas)-1) + `) ORDER BY id LIMIT ?`
+	args := []any{after}
+	for _, a := range areas {
+		args = append(args, a)
+	}
+	args = append(args, limit)
+	return s.fileList(q, args...)
+}
+
+// MaxFileID is the newest file's id (0: none).
+func (s *Store) MaxFileID() (int64, error) {
+	var n sql.NullInt64
+	err := s.db.QueryRow(`SELECT MAX(id) FROM files`).Scan(&n)
+	return n.Int64, err
+}

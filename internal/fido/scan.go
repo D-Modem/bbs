@@ -67,7 +67,7 @@ func (f *Fido) scan(l *Link) (int, error) {
 	var ids []int64
 	byID := map[int64]*store.Area{}
 	for _, a := range areas {
-		if l.carries(a.EchoTag) {
+		if f.carries(l, Echoes, a.EchoTag) {
 			ids = append(ids, a.ID)
 			byID[a.ID] = a
 		}
@@ -190,7 +190,7 @@ func (f *Fido) echomail(l *Link, a *store.Area, m *store.Message) (*ftn.Message,
 		seen := append([]ftn.Net2D{}, em.SeenBy...)
 		seen = append(seen, ftn.Net2D{Net: me.Net, Node: me.Node})
 		for _, o := range f.S.Links {
-			if o.Addr.Point == 0 && o.Addr.Zone == me.Zone && o.carries(a.EchoTag) {
+			if o.Addr.Point == 0 && o.Addr.Zone == me.Zone && f.carries(o, Echoes, a.EchoTag) {
 				seen = append(seen, ftn.Net2D{Net: o.Addr.Net, Node: o.Addr.Node})
 			}
 		}

@@ -30,6 +30,15 @@ route = yes
 poll = 3600
 [link other]
 address = 2:5020/1
+packer = arj
+host = nodelist
+fileechoes = FSX*
+areafix = yes
+areafix_password = FIXME
+tic_password = TIC
+create = yes
+[link third]
+address = 2:5020/3
 packer = none
 `)
 	if err != nil {
@@ -43,11 +52,18 @@ packer = none
 	if hub.Host != "hub.example:24554" || hub.Packer != archive.ZIP || !hub.Route || hub.Poll != time.Hour || hub.PktPassword != "PKT" {
 		t.Fatalf("%+v", hub)
 	}
-	if f.Links[1].Packer != "" || !strings.Contains(strings.Join(c.Warnings, "\n"), "[link other] has no password") {
-		t.Fatalf("%+v %v", f.Links[1], c.Warnings)
+	o := f.Links[1]
+	if o.Packer != archive.ARJ || o.Host != "nodelist" || o.FileEchoes != "FSX*" || !o.AreaFix || o.AreafixPassword != "FIXME" ||
+		o.TicPassword != "TIC" || !o.Create || hub.AreaFix || hub.Create || hub.FileEchoes != "" {
+		t.Fatalf("%+v", o)
+	}
+	if f.Links[2].Packer != "" || !strings.Contains(strings.Join(c.Warnings, "\n"), "[link other] has no password") {
+		t.Fatalf("%+v %v", f.Links[2], c.Warnings)
 	}
 	for body, want := range map[string]string{
-		"[fido]\n":                                             "[fido] address",
+		"[fido]\n": "[fido] address",
+		"[fido]\naddress = 1:1/1\n[link x]\naddress = 1:1/2\nareafix = yes\n": "needs an areafix_password",
+		"[fido]\naddress = 1:1/1\n[link x]\naddress = 1:1/2\npacker = rar\n":  "packer",
 		"[fido]\naddress = 21:1\n":                             "not an FTN address",
 		"[link x]\naddress = 1:1/1\n":                          "need a [fido] section",
 		"[fido]\naddress = 1:1/1\n[link x]\n":                  "address",

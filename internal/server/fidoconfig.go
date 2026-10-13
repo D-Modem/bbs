@@ -148,6 +148,21 @@ func link(s *config.Section) (*fido.Link, error) {
 		return nil, errors.New("packet_password: 8 characters at most")
 	}
 	l.Echoes = s.String("echoes", "*")
+	l.FileEchoes = s.String("fileechoes", "")
+	if l.AreaFix, err = s.Bool("areafix", false); err != nil {
+		return nil, err
+	}
+	l.AreafixPassword = s.String("areafix_password", "")
+	if l.AreaFix && l.AreafixPassword == "" {
+		return nil, errors.New("areafix = yes needs an areafix_password")
+	}
+	if strings.ContainsAny(l.AreafixPassword, " \t") {
+		return nil, errors.New("areafix_password: one word")
+	}
+	l.TicPassword = s.String("tic_password", "")
+	if l.Create, err = s.Bool("create", false); err != nil {
+		return nil, err
+	}
 	if l.Route, err = s.Bool("route", false); err != nil {
 		return nil, err
 	}

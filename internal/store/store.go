@@ -646,6 +646,7 @@ type FileArea struct {
 	SysopUpload bool   // only sysops upload
 	DownloadReq string // the access requirement to download ("": anyone)
 	UploadReq   string // and to upload
+	FileEcho    string // its FidoNet file echo's tag ("": not one)
 	Files       int
 	Bytes       int64
 }
@@ -664,6 +665,7 @@ type File struct {
 	Created     time.Time
 	Downloads   int
 	LongDesc    string // more lines of description (a FILE_ID.DIZ's)
+	Origin      string // where it came from ("ftn:LINK" by a file echo; "": here)
 }
 
 // CreateFileArea adds a file area.
@@ -691,14 +693,14 @@ func (s *Store) DeleteFileArea(id int64) error {
 	return s.exec1(`DELETE FROM file_areas WHERE id = ?`, id)
 }
 
-const fileAreaQuery = `SELECT a.id, a.name, a.description, a.sysop_upload, a.download_req, a.upload_req,
+const fileAreaQuery = `SELECT a.id, a.name, a.description, a.sysop_upload, a.download_req, a.upload_req, COALESCE(a.fileecho, ''),
 	(SELECT COUNT(*) FROM files f WHERE f.area_id = a.id),
 	(SELECT COALESCE(SUM(f.size), 0) FROM files f WHERE f.area_id = a.id)
 	FROM file_areas a`
 
 func scanFileArea(row interface{ Scan(...any) error }) (*FileArea, error) {
 	var a FileArea
-	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopUpload, &a.DownloadReq, &a.UploadReq, &a.Files, &a.Bytes)
+	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopUpload, &a.DownloadReq, &a.UploadReq, &a.FileEcho, &a.Files, &a.Bytes)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -734,13 +736,13 @@ func (s *Store) FileAreaByName(name string) (*FileArea, error) {
 }
 
 const fileCols = `id, area_id, name, description, size, sha256, uploader_id, uploader, created, downloads,
-	COALESCE(long_desc, '')`
+	COALESCE(long_desc, ''), origin`
 
 func scanFile(row interface{ Scan(...any) error }) (*File, error) {
 	var f File
 	var created int64
 	err := row.Scan(&f.ID, &f.AreaID, &f.Name, &f.Description, &f.Size, &f.SHA256,
-		&f.UploaderID, &f.Uploader, &created, &f.Downloads, &f.LongDesc)
+		&f.UploaderID, &f.Uploader, &created, &f.Downloads, &f.LongDesc, &f.Origin)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -750,9 +752,9 @@ func scanFile(row interface{ Scan(...any) error }) (*File, error) {
 
 // AddFile records a file; ErrExists if the area has one of that name.
 func (s *Store) AddFile(f *File) (int64, error) {
-	id, err := s.db.insertID(`INSERT INTO files (area_id, name, description, size, sha256, uploader_id, uploader, created, long_desc)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, f.AreaID, f.Name, f.Description, f.Size, f.SHA256,
-		f.UploaderID, f.Uploader, now(), f.LongDesc)
+	id, err := s.db.insertID(`INSERT INTO files (area_id, name, description, size, sha256, uploader_id, uploader, created, long_desc, origin)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, f.AreaID, f.Name, f.Description, f.Size, f.SHA256,
+		f.UploaderID, f.Uploader, now(), f.LongDesc, f.Origin)
 	if err != nil {
 		if isUnique(err) {
 			return 0, ErrExists

@@ -19,6 +19,8 @@
 //	bbs [-config FILE] area purge
 //	bbs [-config FILE] fido poll|scan|toss [LINK]
 //	bbs [-config FILE] fido node ADDRESS | nodes WORDS...
+//	bbs [-config FILE] fido areafix|filefix LINK COMMAND...
+//	bbs [-config FILE] fido subs LINK | link|unlink|filelink|fileunlink LINK TAG...
 //	bbs [-config FILE] user qwknode|unqwknode NAME
 //	bbs [-config FILE] qwknet call [NET]
 //	bbs [-config FILE] room list|add|del|topic [ROOM] [TOPIC]
@@ -96,6 +98,9 @@ func usage() {
   bbs [-config FILE] fido poll [LINK]               call links (with a host) now
   bbs [-config FILE] fido scan|toss [LINK]          pack new mail, or take in what came
   bbs [-config FILE] fido node ADDRESS              a system in the nodelist
+  bbs [-config FILE] fido areafix|filefix LINK CMD...  a request to a link's AreaFix (FileFix)
+  bbs [-config FILE] fido subs LINK                 the echoes and file echoes a link has
+  bbs [-config FILE] fido link|unlink LINK TAG...   link it to echoes (filelink, fileunlink)
   bbs [-config FILE] fido nodes WORDS...            systems found by name, place, sysop
   bbs [-config FILE] user qwknode|unqwknode NAME     an account for another BBS, a QWK network node
   bbs [-config FILE] qwknet call [NET]               call QWK networks' hubs now
@@ -1061,8 +1066,12 @@ func fidoCmd(cfg *server.Config, args []string) {
 		usage()
 	}
 	switch words[0] {
-	case "node", "nodes":
+	case "node", "nodes", "subs":
 		if len(words) < 2 {
+			usage()
+		}
+	case "areafix", "filefix", "link", "unlink", "filelink", "fileunlink":
+		if len(words) < 3 {
 			usage()
 		}
 	default:
@@ -1085,6 +1094,9 @@ func fidoCmd(cfg *server.Config, args []string) {
 	switch words[0] {
 	case "node", "nodes":
 		nodelistCmd(fd, words)
+		return
+	case "areafix", "filefix", "link", "unlink", "filelink", "fileunlink", "subs":
+		fixCmd(fd, words)
 		return
 	}
 	var links []*fido.Link
@@ -1133,6 +1145,48 @@ func fidoCmd(cfg *server.Config, args []string) {
 	}
 	if failed {
 		os.Exit(1)
+	}
+}
+
+// fixCmd: requests to a link's AreaFix or FileFix; a link's echoes and
+// file echoes, linked and unlinked by hand.
+func fixCmd(fd *fido.Fido, words []string) {
+	l := fd.Link(words[1])
+	if l == nil {
+		fatal(fmt.Errorf("no link %s", words[1]))
+	}
+	kind := fido.Echoes
+	if strings.HasPrefix(words[0], "file") {
+		kind = fido.FileEchos
+	}
+	switch words[0] {
+	case "areafix", "filefix":
+		if err := fd.FixRequest(l, kind, words[2:]); err != nil {
+			fatal(err)
+		}
+		fmt.Printf("queued for %s at %s: sent at the next call\n", map[string]string{fido.Echoes: "AreaFix", fido.FileEchos: "FileFix"}[kind], l.Addr)
+	case "subs":
+		for _, k := range []string{fido.Echoes, fido.FileEchos} {
+			tags, err := fd.Carried(l, k)
+			if err != nil {
+				fatal(err)
+			}
+			fmt.Printf("%s %ss (%d): %s\n", l.Name, k, len(tags), strings.Join(tags, " "))
+		}
+		if !l.AreaFix {
+			fmt.Println("(by its echoes and fileechoes: areafix = no)")
+		}
+	default:
+		if !l.AreaFix {
+			fatal(fmt.Errorf("%s has areafix = no: its echoes and fileechoes say what it has", l.Name))
+		}
+		out, err := fd.Subscribe(l, kind, !strings.Contains(words[0], "unlink"), words[2:])
+		for _, o := range out {
+			fmt.Println(o)
+		}
+		if err != nil {
+			fatal(err)
+		}
 	}
 }
 

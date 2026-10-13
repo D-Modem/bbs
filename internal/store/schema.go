@@ -153,7 +153,8 @@ CREATE TABLE IF NOT EXISTS file_areas (
 	description  {str} NOT NULL DEFAULT '',
 	sysop_upload {bool} NOT NULL DEFAULT FALSE,
 	download_req {str} NOT NULL DEFAULT '',
-	upload_req   {str} NOT NULL DEFAULT ''
+	upload_req   {str} NOT NULL DEFAULT '',
+	fileecho     {key}
 )`, `
 CREATE TABLE IF NOT EXISTS files (
 	id          {id},
@@ -167,6 +168,7 @@ CREATE TABLE IF NOT EXISTS files (
 	created     {int} NOT NULL,
 	downloads   {int} NOT NULL DEFAULT 0,
 	long_desc   {text},
+	origin      {str} NOT NULL DEFAULT '',
 	UNIQUE (area_id, name)
 )`, `
 CREATE TABLE IF NOT EXISTS history (
@@ -207,6 +209,12 @@ CREATE TABLE IF NOT EXISTS api_tokens (
 	expires   {int} NOT NULL DEFAULT 0,
 	last_used {int} NOT NULL DEFAULT 0
 )`, `
+CREATE TABLE IF NOT EXISTS fido_subs (
+	link {key} NOT NULL,
+	kind {key} NOT NULL,
+	tag  {key} NOT NULL,
+	PRIMARY KEY (link, kind, tag)
+)`, `
 CREATE TABLE IF NOT EXISTS ssh_keys (
 	id          {id},
 	user_id     {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -240,6 +248,7 @@ var indexes = []struct {
 	{"ssh_keys_user", "ssh_keys", "user_id", false},
 	{"qwk_msgs_message", "qwk_msgs", "message_id", false},
 	{"messages_thread", "messages", "thread", false},
+	{"file_areas_fileecho", "file_areas", "fileecho", true},
 }
 
 // added are the columns added since the first schema: an older database
@@ -275,6 +284,8 @@ var added = []struct{ table, column, decl string }{
 	{"areas", "max_days", "{int} NOT NULL DEFAULT 0"},
 	{"users", "qwk_node", "{bool} NOT NULL DEFAULT FALSE"},
 	{"messages", "thread", "{int} NOT NULL DEFAULT 0"},
+	{"file_areas", "fileecho", "{key}"},
+	{"files", "origin", "{str} NOT NULL DEFAULT ''"},
 }
 
 // migrate makes the schema, or brings an older database up to it.

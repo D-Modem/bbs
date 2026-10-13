@@ -206,7 +206,10 @@ func text(m *ftn.Message, dec func(string) string) string {
 
 func (f *Fido) tossEcho(l *Link, h *ftn.Header, m *ftn.Message, st *TossStats) error {
 	area, err := f.B.Store.AreaByEchoTag(m.Area)
-	if errors.Is(err, store.ErrNotFound) || err == nil && !l.carries(m.Area) {
+	if errors.Is(err, store.ErrNotFound) && l.Create && l.allows(Echoes, m.Area) {
+		area, err = f.createEcho(l, m.Area)
+	}
+	if errors.Is(err, store.ErrNotFound) || err == nil && !f.carries(l, Echoes, m.Area) {
 		f.B.Log.Printf("fido: %s sent echomail in %s, which is not exchanged with it: dropped", l.Name, m.Area)
 		st.Bad++
 		return nil
@@ -387,6 +390,15 @@ func (f *Fido) tossNetmail(l *Link, h *ftn.Header, m *ftn.Message, st *TossStats
 	}
 	dec := m.Decoder()
 	to := strings.TrimSpace(dec(m.To))
+	if fixKind(to) != "" {
+		// a request for AreaFix or FileFix: answered, not delivered
+		if err := f.fixRequest(orig, dec(m.From), to, dec(m.Subject), strings.Split(text(m, dec), "\n"), msgid); err != nil {
+			return err
+		}
+		f.B.Store.Remember(mid)
+		st.Netmail++
+		return nil
+	}
 	rcpt, err := f.B.Store.UserByName(to)
 	if errors.Is(err, store.ErrNotFound) {
 		rcpt, err = f.sysop()
@@ -431,4 +443,32 @@ func (f *Fido) sysop() (*store.User, error) {
 		}
 	}
 	return nil, store.ErrNotFound
+}
+
+// validTag is an echo's or file echo's tag as FTN software makes them.
+var validTag = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.!&+-]{0,39}$`)
+
+// createEcho makes a message area for an echo a link sent that is not
+// here (create = yes), named after it; a link that manages its echoes by
+// AreaFix is linked to it.
+func (f *Fido) createEcho(l *Link, tag string) (*store.Area, error) {
+	tag = strings.ToUpper(tag)
+	if !validTag.MatchString(tag) {
+		return nil, store.ErrNotFound
+	}
+	a, err := f.B.Store.CreateArea(tag, "FidoNet echo "+tag, false)
+	if errors.Is(err, store.ErrExists) {
+		return nil, fmt.Errorf("an area is called %s but is not its echo: make it the echo (bbs area echo) or rename it", tag)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := f.B.Store.SetEchoTag(a.ID, tag); err != nil {
+		return nil, err
+	}
+	if l.AreaFix {
+		f.B.Store.SetFidoSub(l.Name, Echoes, tag, true)
+	}
+	f.B.Log.Printf("fido: made the area %s for the echo %s, which %s sent", tag, tag, l.Name)
+	return f.B.Store.AreaByEchoTag(tag)
 }
