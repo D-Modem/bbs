@@ -213,8 +213,9 @@ address = 127.0.0.1:2513
 ;forum_guests = yes
 ; the forum's theme until a caller chooses (at the foot of each page):
 ; ipb3 (in the manner of Invision Power Board 3), ipb2 (classic, as IPB 2)
-; ipb1 (retro, as IPB 1), ikon (grey, as Ikonboard 2), phpbb30 (prosilver,
-; as phpBB 3.0), phpbb2 (silver, as phpBB 2) or phpbb1 (dark, as phpBB 1)
+; ipb1 (retro, as IPB 1), ikon (grey, as Ikonboard 2), phpbb33, phpbb32,
+; phpbb31 and phpbb30 (prosilver, as phpBB 3.3, 3.2, 3.1 and 3.0), phpbb2
+; (silver, as phpBB 2) or phpbb1 (dark, as phpBB 1)
 ;forum_theme = ipb3
 
 ; Access levels: a user's level (0-255) gets what the [level] at or

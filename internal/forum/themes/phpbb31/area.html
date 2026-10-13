@@ -1,0 +1,49 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<h2 class="forum-title"><a href="/forum/area/{{$b.Area.ID}}">{{$b.Area.Name}}</a></h2>
+{{if $b.Area.Description}}<div><p>{{$b.Area.Description}}</p></div>{{end}}
+<div class="action-bar bar-top">
+  {{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="button" title="Post a new topic"><span>New Topic</span> <i class="icon i-pencil" aria-hidden="true"></i></a>{{end}}
+  <form action="/forum/search" method="get" class="search-box">
+    <input type="search" name="q" class="inputbox search tiny" placeholder="Search this forum…" aria-label="Search this forum">
+    <button class="button button-search" title="Search"><i class="icon i-search" aria-hidden="true"></i><span class="sr-only">Search</span></button>
+    <a href="/forum/search" class="button button-search-end" title="Advanced search"><i class="icon i-cog" aria-hidden="true"></i><span class="sr-only">Advanced search</span></a>
+  </form>
+  <div class="pagination">{{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish mark">Mark topics read</button></form> &bull; {{end}}{{plural $b.Count "topic" "topics"}} {{template "pages" $b.Pages}}</div>
+</div>
+<div class="forumbg">
+  <div class="inner">
+  <ul class="topiclist">
+    <li class="header"><dl class="row-item"><dt><div class="list-inner">Topics</div></dt><dd class="posts">Replies</dd><dd class="lastpost"><span>Last post</span></dd></dl></li>
+  </ul>
+  <ul class="topiclist topics">
+    {{range $i, $t := $b.Topics}}
+    <li class="row {{if odd $i}}bg2{{else}}bg1{{end}}">
+      <dl class="row-item {{if $t.Unread}}topic_unread{{else}}topic_read{{end}}{{if ge $t.Replies 15}}_hot{{end}}">
+        <dt title="{{if $t.Unread}}Unread posts{{else}}No unread posts{{end}}"><div class="list-inner">
+          {{if $t.Unread}}<a href="/forum/post/{{$t.Last.ID}}" title="View the first unread post"><i class="icon i-newest" aria-hidden="true"></i><span class="sr-only">View the first unread post</span></a> {{end}}<a href="/forum/topic/{{$t.Root.ID}}" class="topictitle">{{$t.Root.Subject}}</a><br>
+          <div class="topic-poster">by <strong class="username">{{$t.Root.From}}</strong> &raquo; {{subtime $t.Root.Created}}</div>
+          {{if gt $t.Pages 1}}<div class="pagination"><ul class="pagelist">{{$root := $t.Root.ID}}{{range (seq $t.Pages)}}<li><a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}" class="button">{{.}}</a></li>{{end}}</ul></div>{{end}}
+        </div></dt>
+        <dd class="posts">{{num $t.Replies}} <dfn>Replies</dfn></dd>
+        <dd class="lastpost"><span><dfn>Last post </dfn>by <strong class="username">{{$t.Last.From}}</strong>
+          <a href="/forum/post/{{$t.Last.ID}}" title="Go to last post"><i class="icon i-latest" aria-hidden="true"></i><span class="sr-only">Go to last post</span></a>
+          <br>{{subtime $t.Last.Created}}</span></dd>
+      </dl>
+    </li>
+    {{else}}
+    <li class="row bg1"><div class="none"><strong>There are no topics or posts in this forum.</strong></div></li>
+    {{end}}
+  </ul>
+  </div>
+</div>
+<div class="action-bar bar-bottom">
+  {{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="button" title="Post a new topic"><span>New Topic</span> <i class="icon i-pencil" aria-hidden="true"></i></a>{{end}}
+  <div class="pagination">{{plural $b.Count "topic" "topics"}} {{template "pages" $b.Pages}}</div>
+</div>
+<div class="action-bar actions-jump"><p class="jumpbox-return"><a href="/forum/" class="left-box arrow-left"><i class="icon i-left" aria-hidden="true"></i><span>Return to Board index</span></a></p></div>
+<div class="stat-block permissions">
+  <h3>Forum permissions</h3>
+  <p>You <strong>{{if $b.CanPost}}can{{else}}cannot{{end}}</strong> post new topics in this forum<br>You <strong>{{if $b.CanPost}}can{{else}}cannot{{end}}</strong> reply to topics in this forum</p>
+</div>
+{{template "foot" .}}{{end}}

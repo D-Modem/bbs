@@ -1,0 +1,104 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<h2 class="topic-title"><a href="/forum/topic/{{$b.Root.ID}}">{{$b.Root.Subject}}</a></h2>
+<div class="action-bar bar-top">
+  {{if $b.CanPost}}<a href="#qr_postform" class="button" title="Post a reply"><span>Post Reply</span> <i class="icon i-reply" aria-hidden="true"></i></a>{{end}}
+  <form action="/forum/search" method="get" class="search-box">
+    <input type="search" name="q" class="inputbox search tiny" placeholder="Search this topic…" aria-label="Search this topic">
+    <button class="button button-search" title="Search"><i class="icon i-search" aria-hidden="true"></i><span class="sr-only">Search</span></button>
+    <a href="/forum/search" class="button button-search-end" title="Advanced search"><i class="icon i-cog" aria-hidden="true"></i><span class="sr-only">Advanced search</span></a>
+  </form>
+  <div class="pagination">{{plural $b.Count "post" "posts"}} {{template "pages" $b.Pages}}</div>
+</div>
+
+{{with $b.Poll}}
+<div class="panel">
+  <div class="inner">
+  <div class="content">
+    <h2 class="poll-title">{{$b.Root.Subject}}</h2>
+    <fieldset class="polls">
+    {{if or .Voted (not $me)}}
+    {{range $i, $a := .Answers}}
+      <dl class="{{if $a.Mine}}voted{{end}}">
+        <dt>{{$a.Text}}</dt>
+        <dd class="resultbar"><span class="pollbar{{add (mod5 $i) 1}}"><meter min="0" max="100" value="{{$a.Pct}}"></meter></span></dd>
+        <dd class="poll_option_percent">{{$a.Count}} <span>({{$a.Pct}}%)</span></dd>
+      </dl>
+    {{end}}
+      <dl><dt>&nbsp;</dt><dd class="resultbar poll_total_votes">Total votes: <span class="poll_total_vote_cnt">{{.Total}}</span></dd></dl>
+    {{end}}
+    {{if $me}}
+    </fieldset>
+    <form method="post" action="/forum/post/{{.ID}}/answer">
+      <input type="hidden" name="csrf" value="{{$csrf}}">
+      <fieldset class="polls">
+      {{range .Answers}}<dl><dt><label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label></dt></dl>{{end}}
+      <dl><dt>&nbsp;</dt><dd class="resultbar"><button class="button1">{{if .Voted}}Change vote{{else}}Submit vote{{end}}</button></dd></dl>
+      </fieldset>
+    </form>
+    {{else}}
+      <dl><dt>&nbsp;</dt><dd class="resultbar">You must <a href="/forum/login">login</a> to vote in this poll.</dd></dl>
+    </fieldset>
+    {{end}}
+  </div>
+  </div>
+</div>
+{{end}}
+
+{{range $b.Posts}}
+<div id="entry{{.M.ID}}" class="post has-profile {{if odd .Num}}bg2{{else}}bg1{{end}}">
+  <div class="inner">
+  <dl class="postprofile">
+    <dt class="has-avatar">
+      <div class="avatar-container">{{template "avatar" (av .M.From "large")}}</div>
+      {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{else}}<strong class="username">{{.M.From}}</strong>{{end}}
+    </dt>
+    {{if .Author}}<dd class="profile-rank">{{if .Author.Sysop}}Site Admin{{else}}{{group .Author}}{{end}}</dd>
+    <dd class="profile-posts"><strong>Posts:</strong> {{num .Author.Posts}}</dd>
+    <dd class="profile-joined"><strong>Joined:</strong> {{subtime .Author.Created}}</dd>
+    {{if .Author.Location}}<dd class="profile-location"><strong>Location:</strong> {{.Author.Location}}</dd>{{end}}
+    {{else if .Where}}<dd class="profile-location"><strong>Location:</strong> {{.Where}}</dd>{{end}}
+  </dl>
+  <div class="postbody">
+    <h3{{if eq .Num 1}} class="first"{{end}}><a href="/forum/post/{{.M.ID}}">{{.M.Subject}}</a></h3>
+    <ul class="post-buttons">
+      {{if .CanDelete}}<li><form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="button button-icon-only" title="Delete post"><i class="icon i-times" aria-hidden="true"></i><span class="sr-only">Delete</span></button></form></li>{{end}}
+      {{if .CanLike}}<li><form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="button button-icon-only{{if .Liked}} liked{{end}}" title="{{if .Liked}}Unlike{{else}}Like{{end}} this post"><i class="icon i-heart" aria-hidden="true"></i><span class="sr-only">{{if .Liked}}Unlike{{else}}Like{{end}}</span></button></form></li>{{end}}
+      {{if $b.CanPost}}<li><a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#qr_postform" class="button button-icon-only" title="Reply with quote"><i class="icon i-quote" aria-hidden="true"></i><span class="sr-only">Quote</span></a></li>{{end}}
+    </ul>
+    <p class="author"><a href="/forum/post/{{.M.ID}}" title="Post"><i class="icon i-file" aria-hidden="true"></i><span class="sr-only">Post</span></a><span class="responsive-hide">by <strong>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</strong> &raquo; </span>{{subtime .M.Created}}{{if and .M.To (ne .M.To "All")}} &bull; to {{.M.To}}{{end}}</p>
+    <div class="content">{{body .M.Body}}</div>
+    {{if .Likes}}<div class="signature">{{plural .Likes "member likes" "members like"}} this post</div>{{end}}
+  </div>
+  <div class="back2top"><a href="#top" class="top" title="Top"><i class="icon i-up" aria-hidden="true"></i><span class="sr-only">Top</span></a></div>
+  </div>
+</div>
+<hr class="divider">
+{{end}}
+
+<div class="action-bar bar-bottom">
+  {{if $b.CanPost}}<a href="#qr_postform" class="button" title="Post a reply"><span>Post Reply</span> <i class="icon i-reply" aria-hidden="true"></i></a>{{end}}
+  <div class="pagination">{{plural $b.Count "post" "posts"}} {{template "pages" $b.Pages}}</div>
+</div>
+
+{{if $b.CanPost}}
+<form method="post" action="/forum/topic/{{$b.Root.ID}}/reply" id="qr_postform">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+{{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+<div class="panel">
+  <div class="inner">
+  <h2 class="quickreply-title">Quick Reply</h2>
+  <fieldset class="fields1">
+    <dl><dt><label>Subject:</label></dt><dd><input type="text" class="inputbox" value="Re: {{$b.Root.Subject}}" disabled aria-label="Subject"></dd></dl>
+    <div id="message-box"><textarea name="body" rows="7" class="inputbox" required aria-label="Message body">{{$b.Quote}}</textarea></div>
+    {{if $b.Aliases}}<label class="alias"><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label>{{end}}
+  </fieldset>
+  <fieldset class="submit-buttons"><button class="button1">Submit</button></fieldset>
+  </div>
+</div>
+</form>
+{{else if not .User}}
+<div class="panel"><div class="inner"><p>You must <a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">login</a>{{if .Register}} or <a href="/forum/register">register</a>{{end}} to reply to this topic.</p></div></div>
+{{end}}
+<div class="action-bar actions-jump"><p class="jumpbox-return"><a href="/forum/area/{{$b.Area.ID}}" class="left-box arrow-left"><i class="icon i-left" aria-hidden="true"></i><span>Return to “{{$b.Area.Name}}”</span></a></p></div>
+{{template "foot" .}}{{end}}

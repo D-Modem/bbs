@@ -74,6 +74,9 @@ On a post:
 | theme | |
 |---|---|
 | `ipb3` | the default: a board of the early 2010s in the manner of Invision Power Board 3: a dark user bar, a navy header with tabs, rounded blue category bars, posts with their author's column on the left |
+| `phpbb33` | prosilver as phpBB 3.3 kept it: the 3.2 look, its list headings a little taller (3.3 changed little else) |
+| `phpbb32` | prosilver of 2016-2020 in the manner of phpBB 3.2: the 3.1 layout with its pictures turned to icon-font glyphs in grey and the links' blue (drawn by the BBS: no icon font is loaded), names in the lists in normal weight |
+| `phpbb31` | prosilver of 2014-2016 in the manner of phpBB 3.1: prosilver made responsive, in a white frame on a pale page; the header's search box with icon buttons, *Quick links* and the user's own menu (opened without script), breadcrumbs, white gradient buttons with red words (*Post Reply*, *New Topic*), icon-only post buttons, the last post's subject in the forum list, small coloured icons |
 | `phpbb30` | prosilver: a board of 2007-2014 in the manner of phpBB 3.0's prosilver: a rounded blue gradient header with the board's name and a search box, a pale blue navigation bar with *Board index*, forums in rounded blue boxes with uppercase headings and pale gradient rows, round folder icons, white *NEW TOPIC* and *POST REPLY* buttons, posts in rounded panels with the poster on the right, *Who is online* and *Statistics*, a quick reply |
 | `phpbb2` | silver: a PHP board of 2002-2008 in the manner of phpBB 2's subSilver: a grey page round a white panel, a rounded logo beside the board's title and a menu of little icons, tables in a thick blue border with blue gradient headings in orange, silver category bars fading to white, rows in three silvers, *new topic* and *post reply* pill buttons, *Posted / Post subject* above each post and *Back to top* beneath, *Who is Online* and a login box on the index |
 | `phpbb1` | dark: a PHP board of 2001 in the manner of phpBB 1: a black page with white text and teal links, a glowing italic logo, glowing *New Topic* and *Reply* buttons, [bracketed] menu links, the *-N-* statistics block, near-black table lines with cells in alternating grey and navy, small folder icons, posts between rules with little labelled links beneath |
@@ -81,12 +84,12 @@ On a post:
 | `ipb1` | retro: a board of the early 2000s in the manner of Invision Power Board 1: tables outlined in slate blue with white lines between their cells, bright title bars, a flat menu box, round forum badges and envelope topic icons, rounded glossy buttons, *Posted on* and a post links bar |
 | `ipb2` | classic: a board of the mid-2000s in the manner of Invision Power Board 2: a white page, boxes outlined in navy, blue gradient title bars, pale blue rows, small Verdana; *Logged in as* and *Welcome Guest* bars, *Last Post Info*, *Fast Reply*, big blue buttons |
 
-Both are this BBS's own CSS and templates, drawn to look like the boards
+All are this BBS's own CSS and templates, drawn to look like the boards
 they recall; no code or images are taken from them. `forum_theme` is the
 forum's; anyone (guests too) may choose another at the foot of every page,
 kept in a cookie (`bbs_forum_theme`) for a year. A theme lays out the
 board, topic lists, topics and profiles its own way, and shows the rest
-(posting, searching, signing in) in its colors.
+(posting, searching, signing in) in its colors. A theme may build on another's templates (the phpBB 3.2 and 3.3 themes wear 3.1's, with stylesheets of their own).
 
 ## Logins
 

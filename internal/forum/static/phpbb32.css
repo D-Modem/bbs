@@ -1,0 +1,51 @@
+/*
+ * The forum's prosilver theme of phpBB 3.2's day (2016-2020): the 3.1
+ * look with its pictures turned to icon-font glyphs (bars, a house, a
+ * reply arrow, a power switch...) in grey and the links' blue, names in
+ * the lists no longer bold.  Written for this BBS; it takes no code or
+ * images from any board.
+ */
+
+@import url("phpbb31.css");
+
+/* glyphs, one colour: the text's, grey in buttons */
+.icon::before, .icon::after { color: inherit; }
+.i-bars::before, .i-home::before, .i-cog::before, .i-pencil::before, .i-register::before,
+.i-reply::before, .i-quote::before, .i-times::before, .i-heart::before, .i-latest::before,
+.i-caret::before { color: currentColor; }
+.i-home::before { font-size: 14px; }
+.i-bars::before { font-size: 13px; }
+.i-register::before { content: "\270D"; }
+.i-quote::before { content: "\201C"; font: bold 18px/18px Georgia, serif; height: 12px; }
+.i-times::before { font-size: 11px; }
+.i-latest::before { content: "\2197"; font-weight: bold; color: #8f8f8f; }
+.i-newest::before { content: "\2197"; font-weight: bold; }
+.i-terminal::before { color: currentColor; background: none; border: 1px solid currentColor; box-sizing: border-box; font-size: 7px; line-height: 10px; }
+.i-search::before { border-color: currentColor; }
+.i-search::after { background: currentColor; }
+.i-power::before { border-color: currentColor; border-top-color: transparent; }
+.i-power::after { background: currentColor; }
+.i-user::before, .i-users::before, .i-user::after, .i-users::after { background: currentColor; }
+.i-users::before { box-shadow: -4px 2px 0 -1px currentColor; }
+.i-file::before { border-color: #c7c3bf; background: #c7c3bf; }
+.i-file.red::before { border-color: #d31141; background: #d31141; }
+.i-up::before { content: "\25B2"; }
+
+.navbar .icon { color: var(--link); }
+.navbar a:hover .icon, .navbar summary:hover .icon { color: var(--hover); }
+.button .icon { color: var(--icon); }
+.button:hover .icon { color: #0a8ed0; }
+.button:hover .icon::before { color: inherit; }
+ul.post-buttons .button .icon { color: #8f8f8f; }
+ul.post-buttons .button:hover .icon { color: #0a8ed0; }
+ul.post-buttons .liked .icon::before { color: #bc2a4d; }
+p.author .icon { color: #c7c3bf; }
+.search-header .button .icon { color: #8f8f8f; }
+
+/* 3.2 set the names in the lists in normal weight */
+li.row strong { font-weight: normal; color: #000; }
+li.row strong.username { font-weight: normal; }
+
+/* back to top: a grey circle with a chevron */
+a.top { width: 13px; height: 13px; background: #8f8f8f; }
+a.top .icon { color: #fff; }

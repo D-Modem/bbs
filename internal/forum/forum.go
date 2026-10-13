@@ -40,21 +40,42 @@ type Sessions interface {
 
 // Theme is a look the forum can wear: its own stylesheet, and templates
 // of its own in themes/<Name>/ for the pages it lays out differently
-// (the rest are the default's).
+// (the rest are its parent's, else the default's).
 type Theme struct {
-	Name  string // as in bbs.conf's forum_theme
-	Title string // as the theme chooser shows it
+	Name   string // as in bbs.conf's forum_theme
+	Title  string // as the theme chooser shows it
+	Parent string // a theme whose templates this one wears too, under its own ("": none)
 }
 
 // Themes are the forum's looks; the first is the default.
 var Themes = []Theme{
-	{"ipb3", "Default (IPB 3 style)"},
-	{"ipb2", "Classic (IPB 2 style)"},
-	{"ipb1", "Retro (IPB 1 style)"},
-	{"ikon", "Grey (Ikonboard style)"},
-	{"phpbb1", "Dark (phpBB 1 style)"},
-	{"phpbb2", "Silver (phpBB 2 style)"},
-	{"phpbb30", "prosilver (phpBB 3.0 style)"},
+	{"ipb3", "Default (IPB 3 style)", ""},
+	{"ipb2", "Classic (IPB 2 style)", ""},
+	{"ipb1", "Retro (IPB 1 style)", ""},
+	{"ikon", "Grey (Ikonboard style)", ""},
+	{"phpbb1", "Dark (phpBB 1 style)", ""},
+	{"phpbb2", "Silver (phpBB 2 style)", ""},
+	{"phpbb30", "prosilver (phpBB 3.0 style)", ""},
+	{"phpbb31", "prosilver (phpBB 3.1 style)", ""},
+	{"phpbb32", "prosilver (phpBB 3.2 style)", "phpbb31"},
+	{"phpbb33", "prosilver (phpBB 3.3 style)", "phpbb32"},
+}
+
+// lineage is a theme's ancestors and itself, the eldest first: the order
+// their templates are laid one over another.
+func lineage(th Theme) []string {
+	names := []string{th.Name}
+	for p := th.Parent; p != ""; {
+		names = append([]string{p}, names...)
+		next := ""
+		for _, t := range Themes {
+			if t.Name == p {
+				next = t.Parent
+			}
+		}
+		p = next
+	}
+	return names
 }
 
 // KnownTheme says whether there is a theme of the name.
@@ -103,9 +124,11 @@ func (s *Server) Handler() (http.Handler, error) {
 			if err != nil {
 				return nil, err
 			}
-			if own, _ := fs.Glob(content, "themes/"+th.Name+"/*.html"); len(own) > 0 {
-				if t, err = t.ParseFS(content, own...); err != nil {
-					return nil, fmt.Errorf("theme %s: %w", th.Name, err)
+			for _, name := range lineage(th) {
+				if own, _ := fs.Glob(content, "themes/"+name+"/*.html"); len(own) > 0 {
+					if t, err = t.ParseFS(content, own...); err != nil {
+						return nil, fmt.Errorf("theme %s: %w", name, err)
+					}
 				}
 			}
 			s.tmpl[th.Name] = t

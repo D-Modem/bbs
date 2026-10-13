@@ -1,0 +1,40 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<h2 class="memberlist-title">Viewing profile - {{$u.Name}}</h2>
+<div class="panel bg1">
+  <div class="inner profile-inner">
+    <dl class="left-box">
+      <dt class="profile-avatar">{{template "avatar" (av $u.Name "huge")}}</dt>
+      <dd class="profile-rank">{{if $u.Sysop}}Site Admin{{else}}{{group $u}}{{end}}</dd>
+    </dl>
+    <dl class="left-box details profile-details">
+      <dt>Username:</dt><dd><span class="username{{if $u.Sysop}} admin{{end}}">{{$u.Name}}</span>{{if .Body.On}} <span class="online">Online</span>{{end}}</dd>
+      {{if $u.Location}}<dt>Location:</dt><dd>{{$u.Location}}</dd>{{end}}
+      {{if $u.About}}<dt>Interests:</dt><dd>{{$u.About}}</dd>{{end}}
+      <dt>Groups:</dt><dd>{{group $u}}</dd>
+    </dl>
+  </div>
+</div>
+<div class="panel bg2">
+  <div class="inner">
+    <h3>User statistics</h3>
+    <dl class="details">
+      <dt>Joined:</dt><dd>{{subtime $u.Created}}</dd>
+      <dt>Last active:</dt><dd>{{subtime $u.LastLogin}}</dd>
+      <dt>Total posts:</dt><dd>{{num $u.Posts}}</dd>
+      <dt>Calls:</dt><dd>{{num $u.Logins}}</dd>
+      {{range .Body.On}}<dt>Now:</dt><dd>node {{.Num}} by {{.Via}}: {{.Activity}}</dd>{{end}}
+    </dl>
+  </div>
+</div>
+<div class="forumbg">
+  <div class="inner">
+  <ul class="topiclist"><li class="header"><dl class="row-item"><dt><div class="list-inner">Recent posts</div></dt><dd class="lastpost"><span>Posted</span></dd></dl></li></ul>
+  <ul class="topiclist topics">
+    {{range $i, $m := .Body.Recent}}
+    <li class="row {{if odd $i}}bg2{{else}}bg1{{end}}"><dl class="row-item topic_read"><dt><div class="list-inner"><a href="/forum/post/{{$m.ID}}" class="topictitle">{{$m.Subject}}</a><br>{{snippet $m.Body 140}}</div></dt><dd class="lastpost"><span>{{subtime $m.Created}}</span></dd></dl></li>
+    {{else}}<li class="row bg1"><div class="none">No posts to show.</div></li>{{end}}
+  </ul>
+  </div>
+</div>
+{{template "foot" .}}{{end}}

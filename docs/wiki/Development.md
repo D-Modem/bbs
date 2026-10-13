@@ -30,7 +30,7 @@
 | `doors/dosemu2` | the Docker image DOS doors run in: dosemu2, its FOSSIL on COM1 |
 | `internal/finger` | the finger server |
 | `internal/gopher` | the gopher server |
-| `internal/forum` | the web forum: its pages (html/template; `themes/NAME/` a theme's own, over `templates/`), the themes' CSS (`static/`), sessions by the API's tokens |
+| `internal/forum` | the web forum: its pages (html/template; `themes/NAME/` a theme's own, over its parent's and `templates/`), the themes' CSS (`static/`), sessions by the API's tokens |
 | `internal/api` | the HTTP API: REST, server-sent events, WebSockets, metrics, OpenAPI; the web terminal page (`web/`: xterm.js, the page) |
 | `proto` | the WebSocket protocol, `bbs.v1` (`make proto` regenerates `internal/api/pb`) |
 | `internal/tcpserv` | what finger and gopher share: limits, timeouts |

@@ -1,0 +1,10 @@
+/*
+ * The forum's prosilver theme of phpBB 3.3's day (2020-): the 3.2 look,
+ * which 3.3 kept nearly as it was; its list headings stand taller.
+ * Written for this BBS; it takes no code or images from any board.
+ */
+
+@import url("phpbb32.css");
+
+li.header dt, li.header dd { line-height: 1.6em; padding-top: 2px; padding-bottom: 0; }
+.avatar-container { max-width: 100%; }

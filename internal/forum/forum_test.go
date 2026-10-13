@@ -440,3 +440,16 @@ func TestThemes(t *testing.T) {
 	_, _, body = guest.get("/forum/")
 	has(t, "guest's own", body, "/forum/static/ipb3.css")
 }
+
+func TestThemeLineage(t *testing.T) {
+	for _, th := range Themes {
+		if th.Parent != "" && !KnownTheme(th.Parent) {
+			t.Errorf("%s: no parent %s", th.Name, th.Parent)
+		}
+		if th.Name == "phpbb33" {
+			if got := strings.Join(lineage(th), " "); got != "phpbb31 phpbb32 phpbb33" {
+				t.Errorf("phpbb33's lineage: %s", got)
+			}
+		}
+	}
+}
