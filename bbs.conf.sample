@@ -495,34 +495,35 @@ address = 127.0.0.1:2513
 ; and tags ({yellow}, {bright}, {reset} ...: docs/wiki/Customization.md).
 ; screen = NAME shows that display file instead of the list of items
 ;[menu main]
-;title = @BBS@
+;title = {cyan}{bright}@BBS@{reset}
 ;screen = mainmenu
 ;m = areas Message areas
-;e = mail E-mail (@NEWMAIL@ new)
+;e = mail E-mail ({yellow}@NEWMAIL@{default} new)
 ;f = files File areas
 ;d = doors Doors
 ;c = chat Chat
 ;s = page Page the sysop
 ;w = who Who's online
-;b = screen:bulletins Bulletins
+;b = screen:bulletins {green}Bulletins{reset}
 ;x = menu:extras Extras
-;g = logoff Goodbye
+;g = logoff {red}Goodbye{reset}
 ;
 ;[menu extras]
-;title = Extras
-;prompt = "Extras> "
+;title = {cyan}Extras{reset}
+;prompt = "{cyan}Extras{default}> "
 ;u = users User list
 ;p = profile Your profile
 ;i = info System info
 ;t = terminal Your terminal (3270)
 ;q = back Back
 
-; The prompts and messages, with @-codes:
+; The prompts and messages, with @-codes and tags (on 3270s, and in the
+; welcome, tags are dropped):
 ;[strings]
-;name_prompt = "Name: "
-;new_name_prompt = "Name (or NEW): "
-;password_prompt = "Password: "
-;command_prompt = "Command: "
-;pause = "[Press a key]"
-;logoff_confirm = "Log off?"
+;name_prompt = "{cyan}Name:{default} "
+;new_name_prompt = "{cyan}Name{default} (or NEW): "
+;password_prompt = "{cyan}Password:{default} "
+;command_prompt = "{yellow}@USER@{default} @ {cyan}@BBS@{default} > "
+;pause = "{blue}[Press a key]{reset}"
+;logoff_confirm = "{red}Log off?{reset}"
 ;welcome = "Welcome, @USER@."

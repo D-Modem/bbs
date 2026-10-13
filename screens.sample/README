@@ -8,7 +8,8 @@ bbs.conf.sample uses mainmenu and bulletins.
 
 Tags in a .asc ({clear}, {pause}, {red}, {on blue}, {bright}, {reset}...)
 are ANSI on an ANSI terminal, colors on a Commodore and a 3270, and
-nothing on a plain terminal: bulletins.asc has a few.
+nothing on a plain terminal: every .asc here has some, as do the sample
+menus and strings in bbs.conf.sample.
 
 logon, newuser, welcome and goodbye are shown by themselves; others by
 the menus that name them.  See the wiki's Customization page.
