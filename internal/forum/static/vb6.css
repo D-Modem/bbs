@@ -1,0 +1,153 @@
+/*
+ * The forum's clean theme: laid out in the manner of vBulletin 6's
+ * default style, which restyled vBulletin 5 Connect: the same pages
+ * (this theme wears the vb5 theme's templates) under a white header
+ * with tabs underlined in blue, rounded cards with soft shadows on a
+ * cool grey page, blue buttons in place of orange, larger type in the
+ * system's own face, and a dark scheme for those whose device asks for
+ * one.  Written for this BBS; it takes no code or images from any board.
+ */
+@import url("vb5.css");
+
+:root {
+	--header: #ffffff;
+	--header-2: #f1f4f8;
+	--tab-hover: #f1f4f8;
+	--body: #f3f5f8;
+	--panel: #ffffff;
+	--border: #dfe4ea;
+	--line: #eceff3;
+	--soft: #f8fafc;
+	--head-row: #f5f7fa;
+	--link: #1f6feb;
+	--hover: #1558c0;
+	--text: #1e2733;
+	--muted: #6b7684;
+	--accent: #1f6feb;
+	--accent-2: #1558c0;
+	--ink: #111a26;
+	--radius: 10px;
+	--shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 2px 8px rgba(16, 24, 40, 0.04);
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--header: #161b22;
+		--header-2: #21262d;
+		--tab-hover: #21262d;
+		--body: #0d1117;
+		--panel: #161b22;
+		--border: #30363d;
+		--line: #262c34;
+		--soft: #1b2129;
+		--head-row: #1b2129;
+		--link: #58a6ff;
+		--hover: #79b8ff;
+		--text: #d6dde6;
+		--muted: #8b949e;
+		--accent: #2f81f7;
+		--accent-2: #1f6feb;
+		--ink: #f0f3f6;
+		--shadow: none;
+	}
+}
+
+body { font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+a:hover { text-decoration: none; }
+
+/* the header: white, a bottom rule, tabs with a blue underline */
+.b-top-menu { color: var(--ink); border-bottom: 1px solid var(--border); }
+.header-top { min-height: 64px; }
+.site-logo, .site-logo:hover { color: var(--ink); }
+.site-logo__name { font: 700 23px system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: -0.02em; }
+.site-logo__mark { border-radius: 10px; background: linear-gradient(135deg, #4c8dff, var(--accent-2)); }
+.b-top-menu__item, a.b-top-menu__item:hover { color: var(--ink); }
+.b-top-menu__item--user summary:hover, .b-top-menu__item--user[open] summary { background: var(--header-2); }
+.b-top-menu__sub { background: var(--panel); border-radius: 8px; }
+.b-top-menu__sub li a, .b-top-menu__sub .linkish { color: var(--text); }
+.channel-tabbar { align-items: center; }
+.channel-tabbar li a { padding: 12px 14px 11px; border-radius: 0; border-bottom: 3px solid transparent; color: var(--muted); font-weight: 600; }
+.channel-tabbar li a:hover { background: none; color: var(--ink); }
+.channel-tabbar li.current a { background: none; color: var(--ink); border-bottom-color: var(--accent); }
+.searchbox { margin: 0; }
+.searchbox input { height: 34px; border: 1px solid var(--border); border-right: 0; border-radius: 8px 0 0 8px; background: var(--soft); color: var(--text); font-size: 14px; }
+.searchbox button { height: 34px; border: 1px solid var(--border); border-radius: 0 8px 8px 0; background: var(--soft); color: var(--muted); }
+.subnavbar { background: var(--body); border-bottom: 0; }
+.subnavbar li a { padding: 10px 12px 2px; color: var(--muted); font-size: 13px; }
+.subnavbar li a:hover { color: var(--link); }
+
+/* cards */
+.main-content { padding-top: 10px; }
+.breadcrumbs { font-size: 13px; }
+.canvas-widget { border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.widget-header { padding: 16px 20px; }
+.widget-header__title { color: var(--ink); font: 700 18px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.widget-header--channel h1.widget-header__title { font-size: 26px; letter-spacing: -0.01em; }
+.forum-list-header th, .topic-list-header th { padding: 9px 20px; background: var(--head-row); border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
+.category-header td { padding: 12px 20px; border-top: 1px solid var(--line); }
+.category { color: var(--ink); font-size: 15px; }
+.forum-item td, .topic-item td { padding: 14px 20px; }
+.forum-item:hover td, .topic-item:hover td { background: var(--soft); }
+.forum-title { font-size: 16px; font-weight: 600; }
+.forum-icon { width: 42px; height: 42px; border-radius: 10px; background: var(--head-row); }
+.forum-icon::before { left: 11px; top: 12px; width: 20px; height: 14px; background: var(--muted); opacity: 0.5; }
+.forum-icon::after { left: 14px; top: 25px; border-top-color: var(--muted); border-left-color: var(--muted); opacity: 0.5; }
+.forum-icon.new { background: linear-gradient(135deg, #4c8dff, var(--accent-2)); }
+.forum-icon.new::before { background: #fff; opacity: 1; }
+.forum-icon.new::after { border-top-color: #fff; border-left-color: #fff; opacity: 1; }
+.lastpost-title { font-weight: 600; }
+.go-to-first-unread { background: var(--accent); }
+.topic-hot { background: rgba(234, 88, 12, 0.14); color: #ea580c; border-radius: 999px; }
+.conversation-toolbar { padding: 10px 20px; }
+.toolbar-filter .filter.current { color: var(--ink); }
+.stat-value { color: var(--ink); font-size: 24px; }
+
+/* buttons: blue and rounded */
+.b-button, a.b-button, button.b-button { border-radius: 8px; font: 600 14px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.b-button--primary, a.b-button--primary, .b-button--special, a.b-button--special, .button.important {
+	background: var(--accent); border-color: var(--accent); color: #fff; text-shadow: none;
+}
+.b-button--primary:hover, .b-button--special:hover, .button.important:hover { background: var(--accent-2); color: #fff; }
+.b-button--secondary, a.b-button--secondary, .button, button.button, a.button { background: var(--panel); border-color: var(--border); color: var(--text); }
+.b-button--secondary:hover, .button:hover { border-color: var(--muted); color: var(--ink); }
+.b-button--on { background: rgba(46, 160, 67, 0.12); border-color: rgba(46, 160, 67, 0.4); color: #2ea043; }
+.b-button--small, a.b-button--small, button.b-button--small { padding: 4px 11px; font-size: 13px; font-weight: 500; }
+.pagenav a, .pagenav .gap { border-radius: 8px; background: var(--panel); color: var(--text); }
+.pagenav a.current { background: var(--accent); border-color: var(--accent); }
+
+/* posts as cards within the conversation */
+.b-userinfo { width: 210px; background: var(--panel); }
+.b-userinfo .author { font-size: 15px; }
+.b-userinfo__rank { border-radius: 999px; background: var(--accent); }
+.b-post__body { padding: 16px 22px; }
+.b-post__title { color: var(--ink); font-size: 16px; }
+.b-post__content { color: var(--text); font-size: 15.5px; line-height: 1.65; }
+.citation { background: var(--head-row); border-color: var(--border); border-left: 3px solid var(--accent); border-radius: 6px 6px 0 0; }
+blockquote.quote { background: var(--soft); border-color: var(--border); border-left: 3px solid var(--accent); border-radius: 0 0 6px 6px; }
+blockquote.quote:not(.citation + blockquote.quote) { border-radius: 6px; }
+.b-poll { border-radius: 8px; background: var(--soft); }
+.b-poll__title { color: var(--ink); }
+.pollbar1::-webkit-meter-optimum-value, .pollbar4::-webkit-meter-optimum-value { background: var(--accent); }
+.pollbar2::-webkit-meter-optimum-value, .pollbar5::-webkit-meter-optimum-value { background: #e3a008; }
+.pollbar1::-moz-meter-bar, .pollbar4::-moz-meter-bar { background: var(--accent); }
+.pollbar2::-moz-meter-bar, .pollbar5::-moz-meter-bar { background: #e3a008; }
+meter::-webkit-meter-bar { border-radius: 999px; }
+.b-editor textarea, input[type=text], input[type=password], input[type=email], select, textarea { border-radius: 8px; background: var(--panel); color: var(--text); border-color: var(--border); font-family: inherit; }
+.b-editor textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.2); }
+.notice, p.message { background: rgba(31, 111, 235, 0.08); border-color: rgba(31, 111, 235, 0.3); border-radius: 8px; color: var(--text); }
+
+/* profile */
+.profile-name { color: var(--ink); font-size: 22px; }
+.profile-tabs { background: var(--panel); }
+.profile-tabs span { border-bottom: 3px solid transparent; }
+.profile-tabs .current { background: none; border: 0; border-bottom: 3px solid var(--accent); border-radius: 0; color: var(--ink); }
+.section-title { color: var(--ink); }
+
+/* the default theme's pages */
+.box { border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; background: var(--panel); }
+.box > h2.maintitle { color: var(--ink); font: 700 18px system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+/* the foot: white like the head */
+.footer { background: var(--panel); color: var(--muted); border-top: 1px solid var(--border); margin-top: 10px; }
+.footer a, .footer .time { color: var(--text); }
+.footer a:hover { color: var(--link); }
+.footer__top { border-bottom-color: var(--line); }
