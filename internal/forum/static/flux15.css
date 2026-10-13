@@ -1,0 +1,97 @@
+/*
+ * The forum's air theme: laid out in the manner of FluxBB 1.4 and 1.5's
+ * default Air style, which redressed PunBB 1.2's pages (this theme wears
+ * the pun12 theme's templates and builds on its stylesheet): a soft blue
+ * page round a white frame with rounded corners, the board's name large
+ * in Trebuchet, a slate-blue menu of tabs that turn red when touched,
+ * section names in teal over pale boxes, column heads in pale blue,
+ * posts in pale boxes with a light head and the poster on the left,
+ * pale yellow quote boxes, Arial.  Colors follow FluxBB's Air; the CSS
+ * is our own and no images are taken.
+ */
+@import url("pun12.css");
+
+:root {
+	--blue: #44699c;
+	--teal: #357082;
+	--page: #f6f9fc;
+	--box-line: #b9c5ce;
+	--box-line2: #d9e1e7;
+	--cell-line: #dfe6ee;
+	--head-bg: #ebf1f5;
+	--cell: #fcfdfe;
+	--link: #2365b0;
+	--hover: #b50000;
+	--text: #333;
+}
+
+body { background: var(--page); }
+#punwrap { max-width: 1400px; margin: 12px auto; padding: 18px; background: #fff; border: 1px solid #cad7e1; border-radius: 10px; }
+.pun { color: #566579; font: 13px/1.462 Arial, Helvetica, sans-serif; }
+
+/* the head: a big name, a slate menu of tabs */
+#brdheader .box { border: 0; background: none; }
+#brdtitle { padding: 0 0 12px; background: none; }
+#brdtitle h1 { font: 28px/1 "Trebuchet MS", Arial, Helvetica, sans-serif; }
+#brdtitle h1 a:link, #brdtitle h1 a:visited { color: var(--text); }
+#brddesc { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--box-line); font-size: 13px; }
+#brdmenu { padding: 0; background: var(--blue); border-radius: 0; }
+#brdmenu ul { gap: 0; }
+#brdmenu li a, #brdmenu li .linkish { display: block; min-width: 60px; padding: 12px 16px 6px 8px; border-right: 1px solid #fff; background: var(--blue); color: #d4dae2 !important; white-space: nowrap; }
+#brdmenu li a:hover, #brdmenu li .linkish:hover { background: var(--hover); color: #fff !important; text-decoration: none; }
+#brdmenu .isactive a { color: #fff !important; font-weight: bold; }
+#brdwelcome { padding: 10px 0; background: none; border-bottom: 1px solid var(--box-line); }
+
+/* sections: teal names over pale boxes */
+.pun h2 { padding: 7px 0; background: none; color: var(--teal); font: 19px/1 "Trebuchet MS", Arial, Helvetica, sans-serif; }
+.pun h2 a:link, .pun h2 a:visited { color: var(--teal); }
+.box { border: 1px solid; border-color: var(--box-line) var(--box-line2); background: var(--cell); }
+.blocktable .box { border-top: 1px solid var(--box-line); }
+.blocktable h2 { position: relative; padding: 7px 0 7px 0; font: bold 13px/1.462 Arial, Helvetica, sans-serif; }
+.blocktable th { padding: 4px 8px; background: var(--head-bg); border-color: #cad7e1; color: var(--teal); font-weight: bold; }
+.blocktable td { padding: 8px; background: var(--cell); border-color: var(--cell-line); }
+.blocktable td.tc2, .blocktable td.tc3 { background: var(--cell); }
+.tclcon h3 { font-size: 14px; }
+.byuser { color: #566579; }
+.icon { width: 18px; height: 18px; border-width: 6px; border-color: #e8ecf1 #d4d9dd #dfe3e8 #e8ecf1; }
+.icon.inew { border-color: #91b3d9 #87a8d1 #6c85bb #7292c3; }
+.crumbs { font-size: 13px; }
+.pagepost { padding: 4px 0; border-top: 1px solid var(--box-line); }
+.linkst .pagepost { border-top: 0; border-bottom: 1px solid var(--box-line); }
+#brdstats .box, #brdfooter .box { background: #fff; border-width: 1px 0 0; }
+#onlinelist { border-top-color: var(--box-line); }
+
+/* posts: pale boxes, a light head */
+.blockpost { border: 1px solid; border-color: var(--box-line) var(--box-line2); background: var(--page); }
+.blockpost h2 { padding: 6px 8px; background: var(--head-bg); border-bottom: 1px solid #cad7e1; color: var(--teal); font: 13px/1.462 Arial, Helvetica, sans-serif; }
+.blockpost h2 a:link, .blockpost h2 a:visited { color: var(--teal); }
+.blockpost h2 .conr { color: var(--teal); font-weight: bold; }
+.blockpost .box { border: 0; background: none; }
+.postleft, .postfootleft { width: 15em; padding: 10px; background: none; }
+.postleft dt { font-size: 14px; }
+.postright, .postfootright { padding: 10px; background: var(--cell); border-left: 1px solid var(--cell-line); }
+.postfootleft, .postfootright { padding-top: 4px; padding-bottom: 6px; }
+.postmsg { color: var(--text); font-size: 13px; }
+.postsignature hr { background: var(--box-line); }
+
+/* quotes: pale yellow with a teal citation */
+.postmsg .citation { padding: 6px 10px 0; border: 1px solid #7aadbd; border-bottom: 0; background: #f8f9f0; color: var(--teal); font-style: italic; font-weight: bold; }
+blockquote.quote { padding: 6px 10px; border: 1px solid #7aadbd; background: #f8f9f0; color: #566579; }
+.citation + blockquote.quote { border-top: 0; }
+
+/* forms */
+.blockform .box, #viewprofile .box { background: var(--head-bg); }
+.inform fieldset, .pollvote fieldset { border-color: var(--cell-line); background: var(--page); }
+.inform legend, .pollvote legend { color: var(--teal); font-weight: bold; }
+#viewprofile dd { background: #fff; border-bottom: 1px solid var(--cell-line); }
+#viewprofile dt { color: var(--teal); }
+.pun input[type=text], .pun input[type=password], .pun input[type=email], .pun input[type=search], .pun select, .pun textarea { border-color: #b9c5ce; font-family: Arial, Helvetica, sans-serif; font-size: 13px; }
+meter::-webkit-meter-optimum-value { background: var(--blue); }
+meter::-moz-meter-bar { background: var(--blue); }
+
+@media (max-width: 760px) {
+	#punwrap { margin: 0; padding: 8px; border-radius: 0; }
+	#brdtitle h1 { font-size: 20px; }
+	#brdmenu li a, #brdmenu li .linkish { min-width: 0; padding: 8px 10px 4px 8px; }
+	.postleft, .postfootleft { width: auto; }
+}

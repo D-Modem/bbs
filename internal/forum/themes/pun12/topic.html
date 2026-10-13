@@ -1,0 +1,94 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<div class="linkst"><div class="inbox crumbsplus">
+  {{template "crumbs" .}}
+  <div class="pagepost">{{template "pages" $b.Pages}}{{if $b.CanPost}}<p class="postlink conr"><a href="#quickpost">Post reply</a></p>{{end}}</div>
+  <div class="clearer"></div>
+</div></div>
+
+{{with $b.Poll}}
+<div class="block pollbox">
+  <h2><span>Poll: {{$b.Root.Subject}}</span></h2>
+  <div class="box"><div class="inbox">
+  {{if or .Voted (not $me)}}
+    <table class="pollresults">
+      {{range $i, $a := .Answers}}<tr><th scope="row">{{$a.Text}}{{if $a.Mine}} *{{end}}</th><td class="pollbar"><meter min="0" max="100" value="{{$a.Pct}}"></meter></td><td class="pollnum">{{$a.Pct}}% [{{$a.Count}}]</td></tr>{{end}}
+    </table>
+    <p class="pollnote">Total votes: {{.Total}}{{if not $me}} &middot; <a href="/forum/login">Login</a> to vote{{end}}</p>
+  {{end}}
+  {{if $me}}
+    <form method="post" action="/forum/post/{{.ID}}/answer" class="pollvote">
+      <input type="hidden" name="csrf" value="{{$csrf}}">
+      <fieldset><legend>{{if .Voted}}Change your vote{{else}}Cast your vote{{end}}</legend><div class="infldset">
+      {{range .Answers}}<label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label>{{end}}
+      </div></fieldset>
+      <p class="buttons"><button>Vote</button></p>
+    </form>
+  {{end}}
+  </div></div>
+</div>
+{{end}}
+
+{{range $b.Posts}}
+<div id="entry{{.M.ID}}" class="blockpost {{if odd .Num}}rowodd{{else}}roweven{{end}}{{if eq .Num 1}} firstpost{{end}}">
+  <h2><span><span class="conr">#{{.Num}}&#160;</span><a href="/forum/post/{{.M.ID}}">{{stamp .M.Created}}</a></span></h2>
+  <div class="box"><div class="inbox">
+    <div class="postbody">
+      <div class="postleft">
+        <dl>
+          <dt><strong>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</strong></dt>
+          <dd class="usertitle"><strong>{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 50}}Member{{else}}New member{{end}}{{else}}Guest{{end}}</strong></dd>
+          <dd class="postavatar">{{template "avatar" (av .M.From "large")}}</dd>
+          {{if .Author}}{{if .Author.Location}}<dd><span>From: {{.Author.Location}}</span></dd>{{end}}
+          <dd><span>Registered: {{ymd .Author.Created}}</span></dd>
+          <dd><span>Posts: {{num .Author.Posts}}</span></dd>{{else if .Where}}<dd><span>From: {{.Where}}</span></dd>{{end}}
+        </dl>
+      </div>
+      <div class="postright">
+        <h3>{{if ne .Num 1}}Re: {{end}}{{$b.Root.Subject}}</h3>
+        <div class="postmsg">{{body .M.Body}}</div>
+        {{if .Likes}}<div class="postsignature postmsg"><hr><span class="likes">{{plural .Likes "member likes" "members like"}} this post.</span></div>{{end}}
+      </div>
+    </div>
+  </div>
+  <div class="inbox">
+    <div class="postfoot clearb">
+      <div class="postfootleft"><p><span>{{if .Author}}Offline{{else}}Guest{{end}}</span></p></div>
+      <div class="postfootright"><ul>
+        {{if .CanLike}}<li class="postlike"><form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="linkish">{{if .Liked}}Unlike{{else}}Like{{end}}</button></form></li>{{end}}
+        {{if .CanDelete}}<li class="postdelete"><form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="linkish">Delete</button></form></li>{{end}}
+        {{if $b.CanPost}}<li class="postquote"><a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#quickpost">Quote</a></li>{{end}}
+      </ul></div>
+    </div>
+  </div></div>
+</div>
+{{end}}
+
+<div class="postlinksb"><div class="inbox crumbsplus">
+  <div class="pagepost">{{template "pages" $b.Pages}}{{if $b.CanPost}}<p class="postlink conr"><a href="#quickpost">Post reply</a></p>{{end}}</div>
+  {{template "crumbs" .}}
+  <div class="clearer"></div>
+</div></div>
+
+{{if $b.CanPost}}
+<div id="quickpost" class="blockform">
+  <h2><span>Quick post</span></h2>
+  <div class="box">
+    <form method="post" action="/forum/topic/{{$b.Root.ID}}/reply">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      {{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+      <div class="inform"><fieldset>
+        <legend>Write your message and submit</legend>
+        <div class="infldset txtarea">
+          <textarea name="body" rows="7" required aria-label="Message">{{$b.Quote}}</textarea>
+          <ul class="bblinks"><li><span>Quote with &gt; at the start of a line.</span></li>{{if $b.Aliases}}<li><label><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label></li>{{end}}</ul>
+        </div>
+      </fieldset></div>
+      <p class="buttons"><button>Submit</button></p>
+    </form>
+  </div>
+</div>
+{{else if not .User}}
+<div class="block"><div class="box"><div class="inbox"><p>You must <a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">login</a> to post a reply.</p></div></div></div>
+{{end}}
+{{template "foot" .}}{{end}}

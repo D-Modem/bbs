@@ -219,11 +219,12 @@ address = 127.0.0.1:2513
 ; 4), vb3 (blue, as vBulletin 3), vb2 (purple, as vBulletin 2), vblite
 ; (lavender, as vBulletin Lite), xf23 (light, as XenForo 2.3), xf2 (xen, as
 ; XenForo 2), xf1 (classic, as XenForo 1), mybb18 (flat, as MyBB 1.8),
-; mybb16 (classic, as MyBB 1.6), mybb12 (original, as MyBB 1.2), smf30
-; (natural, as Simple Machines Forum 3.0), smf21 (simple, as SMF 2.1), smf20
-; (curve, as SMF 2.0), smf1 (core, as SMF 1), phpbb33, phpbb32, phpbb31 and
-; phpbb30 (prosilver, as phpBB 3.3, 3.2, 3.1 and 3.0), phpbb2 (silver, as
-; phpBB 2) or phpbb1 (dark, as phpBB 1)
+; mybb16 (classic, as MyBB 1.6), mybb12 (original, as MyBB 1.2), pun14
+; (oxygen 2, as PunBB 1.4), flux15 (air, as FluxBB 1.5), pun12 (oxygen, as
+; PunBB 1.2), smf30 (natural, as Simple Machines Forum 3.0), smf21 (simple,
+; as SMF 2.1), smf20 (curve, as SMF 2.0), smf1 (core, as SMF 1), phpbb33,
+; phpbb32, phpbb31 and phpbb30 (prosilver, as phpBB 3.3, 3.2, 3.1 and 3.0),
+; phpbb2 (silver, as phpBB 2) or phpbb1 (dark, as phpBB 1)
 ;forum_theme = ipb3
 
 ; Access levels: a user's level (0-255) gets what the [level] at or

@@ -1,0 +1,35 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="main-head"><h2 class="hn"><span>{{$u.Name}}'s profile</span></h2></div>
+<div class="main-content main-frm">
+  <div class="profile ct-group data-group vcard">
+    <div class="ct-set data-set set1">
+      <div class="ct-box data-box">
+        <h3 class="ct-legend hn"><span>About {{$u.Name}}</span></h3>
+        <div class="profile-ident">{{template "avatar" (av $u.Name "huge")}}</div>
+        <ul class="data-list">
+          <li><span>Username: <strong class="fn nickname">{{$u.Name}}</strong></span></li>
+          <li><span>Title: <strong>{{if $u.Sysop}}Administrator{{else}}{{group $u}}{{end}}</strong></span></li>
+          <li><span>From: <strong>{{if $u.Location}}{{$u.Location}}{{else}}(Unknown){{end}}</strong></span></li>
+          <li><span>Registered: <strong>{{ymd $u.Created}}</strong></span></li>
+          <li><span>Last visit: <strong>{{stamp $u.LastLogin}}</strong></span></li>
+          <li><span>Posts: <strong>{{num $u.Posts}}</strong></span></li>
+          <li><span>Calls: <strong>{{num $u.Logins}}</strong></span></li>
+          <li><span>Status: <strong>{{if .Body.On}}Online{{range .Body.On}} (node {{.Num}} by {{.Via}}: {{.Activity}}){{end}}{{else}}Offline{{end}}</strong></span></li>
+        </ul>
+      </div>
+    </div>
+    {{if $u.About}}<div class="ct-set data-set set2"><div class="ct-box data-box"><h3 class="ct-legend hn"><span>Interests</span></h3><p>{{$u.About}}</p></div></div>{{end}}
+  </div>
+</div>
+<div class="main-subhead"><h2 class="hn"><span>Recent posts</span></h2></div>
+<div class="main-content main-forum">
+  {{range $i, $r := .Body.Recent}}
+  <div class="main-item {{if odd (add $i 1)}}odd{{else}}even{{end}}">
+    <span class="icon"><!-- --></span>
+    <div class="item-subject"><h3 class="hn"><a href="/forum/post/{{$r.ID}}">{{$r.Subject}}</a></h3><p>{{snippet $r.Body 160}}</p></div>
+    <ul class="item-info"><li class="info-lastpost"><span class="label">Posted</span> <strong>{{stamp $r.Created}}</strong></li></ul>
+  </div>
+  {{else}}<div class="main-item empty"><div class="item-subject"><p>No posts yet.</p></div></div>{{end}}
+</div>
+{{template "foot" .}}{{end}}

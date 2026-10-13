@@ -1,0 +1,73 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.BBS}} / {{.Title}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/{{.Theme}}.css">
+</head>
+<body>
+<div id="punwrap">
+<div id="pun{{if eq .Page "index.html"}}index{{else if eq .Page "area.html"}}viewforum{{else if eq .Page "topic.html"}}viewtopic{{else}}misc{{end}}" class="pun">
+
+<div id="brdheader" class="block">
+  <div class="box">
+    <div id="brdtitle" class="inbox">
+      <h1><a href="/forum/"><span>{{.BBS}}</span></a></h1>
+      <div id="brddesc"><p>Dial in, log on, say hello.</p></div>
+    </div>
+    <div id="brdmenu" class="inbox">
+      <ul>
+        <li id="navindex"{{if and (ne .Tab "online") (ne .Page "search.html") (ne .Page "profile.html")}} class="isactive"{{end}}><a href="/forum/">Index</a></li>
+        <li id="navuserlist"{{if eq .Tab "online"}} class="isactive"{{end}}><a href="/forum/online">User list</a></li>
+        <li id="navsearch"{{if eq .Page "search.html"}} class="isactive"{{end}}><a href="/forum/search">Search</a></li>
+        {{if .Terminal}}<li id="navterminal"><a href="/terminal">Terminal</a></li>{{end}}
+        {{if .User}}<li id="navprofile"{{if eq .Page "profile.html"}} class="isactive"{{end}}><a href="/forum/user/{{path .User.Name}}">Profile</a></li>
+        <li id="navlogout"><form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Logout</button></form></li>
+        {{else}}{{if .Register}}<li id="navregister"><a href="/forum/register">Register</a></li>{{end}}
+        <li id="navlogin"><a href="/forum/login">Login</a></li>{{end}}
+      </ul>
+    </div>
+    <div id="brdwelcome" class="inbox">
+      {{if .User}}
+      <ul class="conl">
+        <li><span>Logged in as <strong>{{.User.Name}}</strong></span></li>
+        <li><span>Last visit: {{stamp .User.LastLogin}}</span></li>
+      </ul>
+      <ul class="conr"><li><a href="/forum/search">Show new posts since last visit</a></li></ul>
+      {{else}}
+      <p class="conl">You are not logged in.</p>
+      <ul class="conr"><li><a href="/forum/search">Show recent posts</a></li></ul>
+      {{end}}
+      <div class="clearer"></div>
+    </div>
+  </div>
+</div>
+{{if and (eq .Notice "welcome") .User}}<div id="announce" class="block"><h2><span>Announcement</span></h2><div class="box"><div class="inbox"><div>Thank you for registering, {{.User.Name}}. You are now logged in.</div></div></div></div>{{end}}
+<div id="brdmain">
+{{end}}
+
+{{define "crumbs"}}<ul class="crumbs"><li><a href="/forum/">Index</a></li>{{range .Crumbs}}<li><span>&raquo;&#160;</span>{{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}<strong>{{.Name}}</strong>{{end}}</li>{{end}}</ul>{{end}}
+
+{{define "foot"}}
+</div>
+<div id="brdfooter" class="block">
+  <h2><span>Board footer</span></h2>
+  <div class="box">
+    <div class="inbox">
+      <div class="conl">{{template "themepicker" .}}</div>
+      <div class="conr">
+        <p id="feedlinks"><span class="rss"><a href="/forum/online">Who's online</a></span>{{if .Terminal}} &middot; <a href="/terminal">Web terminal</a>{{end}}</p>
+        <p id="poweredby">Powered by <strong>bbs-sec</strong></p>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}<p class="pagelink conl"><span class="pages-label">Pages: </span>{{$cur := .Cur}}{{$p := .}}{{if gt .Total 1}}{{range .Shown}}{{if eq . 0}}<span class="spacer">&#8230;</span> {{else if eq . $cur}}<strong class="item1">{{.}}</strong> {{else}}<a href="{{$p.URL .}}">{{.}}</a> {{end}}{{end}}{{if .Next}}<a rel="next" href="{{.URL .Next}}">Next</a>{{end}}{{else}}<strong class="item1">1</strong>{{end}}</p>{{end}}

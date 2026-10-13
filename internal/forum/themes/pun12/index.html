@@ -1,0 +1,45 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+{{range $i, $c := .Body.Categories}}
+<div id="idx{{add $i 1}}" class="blocktable">
+  <h2><span>{{$c.Name}}</span></h2>
+  <div class="box"><div class="inbox">
+    <table>
+      <thead><tr><th class="tcl" scope="col">Forum</th><th class="tc2" scope="col">Topics</th><th class="tc3" scope="col">Posts</th><th class="tcr" scope="col">Last post</th></tr></thead>
+      <tbody>
+        {{range $j, $f := $c.Forums}}
+        <tr class="{{if odd (add $j 1)}}rowodd{{else}}roweven{{end}}{{if $f.Unread}} inew{{end}}">
+          <td class="tcl"><div class="intd">
+            <div class="icon{{if $f.Unread}} inew{{end}}"><div class="nosize">{{if $f.Unread}}New posts{{end}}</div></div>
+            <div class="tclcon"><div><h3><a href="/forum/area/{{$f.Area.ID}}">{{$f.Area.Name}}</a></h3>{{if $f.Area.Description}}<div class="forumdesc">{{$f.Area.Description}}</div>{{end}}</div></div>
+          </div></td>
+          <td class="tc2">{{num $f.Topics}}</td>
+          <td class="tc3">{{num $f.Area.Messages}}</td>
+          <td class="tcr">{{with $f.Last}}<a href="/forum/post/{{.ID}}">{{stamp .Created}}</a> <span class="byuser">by {{.From}}</span>{{else}}Never{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div></div>
+</div>
+{{end}}
+<div id="brdstats" class="block">
+  <h2><span>Board information</span></h2>
+  <div class="box"><div class="inbox">
+    <dl class="conr">
+      <dt><strong>Board statistics</strong></dt>
+      <dd><span>Total number of registered users: <strong>{{num $st.Members}}</strong></span></dd>
+      <dd><span>Total number of topics: <strong>{{num $st.Topics}}</strong></span></dd>
+      <dd><span>Total number of posts: <strong>{{num $st.Posts}}</strong></span></dd>
+    </dl>
+    <dl class="conl">
+      <dt><strong>User information</strong></dt>
+      {{with $st.Newest}}<dd><span>Newest registered user: <a href="/forum/user/{{path .Name}}">{{.Name}}</a></span></dd>{{end}}
+      <dd><span>Registered users online: <strong>{{len .Body.Online}}</strong></span></dd>
+      <dd><span>Guests online: <strong>0</strong></span></dd>
+    </dl>
+    <div class="clearer"></div>
+    {{if .Body.Online}}<dl id="onlinelist" class="clearb"><dt><strong>Online:&#160;</strong></dt>{{range $i, $n := .Body.Online}}<dd>{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a></dd>{{end}}</dl>{{end}}
+  </div></div>
+</div>
+{{template "foot" .}}{{end}}

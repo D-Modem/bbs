@@ -1,0 +1,36 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+{{range $i, $c := .Body.Categories}}
+<div class="main-head"><h2 class="hn"><span>{{$c.Name}}</span></h2></div>
+<div class="main-subhead"><p class="item-summary"><span><strong class="subject-title">Forums</strong> <strong class="info-topics">topics</strong>, <strong class="info-posts">posts</strong>, <strong class="info-lastpost">last post</strong></span></p></div>
+<div id="category{{add $i 1}}" class="main-content main-category">
+  {{range $j, $f := $c.Forums}}
+  <div id="forum{{$f.Area.ID}}" class="main-item {{if odd (add $j 1)}}odd{{else}}even{{end}}{{if eq $j 0}} main-first-item{{end}}{{if $f.Unread}} new{{end}}">
+    <span class="icon{{if $f.Unread}} new{{end}}"><!-- --></span>
+    <div class="item-subject">
+      <h3 class="hn"><a href="/forum/area/{{$f.Area.ID}}"><span>{{$f.Area.Name}}</span></a></h3>
+      {{if $f.Area.Description}}<p>{{$f.Area.Description}}</p>{{end}}
+    </div>
+    <ul class="item-info">
+      <li class="info-topics"><strong>{{num $f.Topics}}</strong> <span class="label">{{if eq $f.Topics 1}}topic{{else}}topics{{end}}</span></li>
+      <li class="info-posts"><strong>{{num $f.Area.Messages}}</strong> <span class="label">{{if eq $f.Area.Messages 1}}post{{else}}posts{{end}}</span></li>
+      <li class="info-lastpost">{{with $f.Last}}<span class="label">Last post</span> <strong><a href="/forum/post/{{.ID}}">{{stamp .Created}}</a></strong> <cite>by {{.From}}</cite>{{else}}<strong>Never</strong>{{end}}</li>
+    </ul>
+  </div>
+  {{end}}
+</div>
+{{end}}
+<div id="brd-stats" class="gen-content">
+  <h2 class="hn"><span>Forum statistics</span></h2>
+  <ul>
+    <li class="st-users"><span>Total number of registered users:</span> <strong>{{num $st.Members}}</strong></li>
+    {{with $st.Newest}}<li class="st-users"><span>Newest registered user:</span> <strong><a href="/forum/user/{{path .Name}}">{{.Name}}</a></strong></li>{{end}}
+    <li class="st-activity"><span>Total number of topics:</span> <strong>{{num $st.Topics}}</strong></li>
+    <li class="st-activity"><span>Total number of posts:</span> <strong>{{num $st.Posts}}</strong></li>
+  </ul>
+</div>
+<div id="brd-online" class="gen-content">
+  <h3 class="hn"><span>Currently online ({{len .Body.Online}}): 0 guests, {{len .Body.Online}} registered {{if eq (len .Body.Online) 1}}user{{else}}users{{end}}</span></h3>
+  {{if .Body.Online}}<p>{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a>{{end}}</p>{{end}}
+</div>
+{{template "foot" .}}{{end}}

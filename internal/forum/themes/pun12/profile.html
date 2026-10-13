@@ -1,0 +1,44 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div id="viewprofile" class="block">
+  <h2><span>Profile</span></h2>
+  <div class="box">
+    <div class="fakeform">
+      <div class="inform"><fieldset>
+        <legend>Personal</legend>
+        <div class="infldset"><dl>
+          <dt>Username: </dt><dd>{{$u.Name}}</dd>
+          <dt>Title: </dt><dd>{{if $u.Sysop}}Administrator{{else}}{{group $u}}{{end}}</dd>
+          <dt>Location: </dt><dd>{{if $u.Location}}{{$u.Location}}{{else}}(Unknown){{end}}</dd>
+          <dt>Interests: </dt><dd>{{if $u.About}}{{$u.About}}{{else}}(Unknown){{end}}</dd>
+        </dl><div class="clearer"></div></div>
+      </fieldset></div>
+      <div class="inform"><fieldset>
+        <legend>Personality</legend>
+        <div class="infldset"><dl><dt>Avatar: </dt><dd>{{template "avatar" (av $u.Name "huge")}}</dd></dl><div class="clearer"></div></div>
+      </fieldset></div>
+      <div class="inform"><fieldset>
+        <legend>User activity</legend>
+        <div class="infldset"><dl>
+          <dt>Posts: </dt><dd>{{num $u.Posts}}</dd>
+          <dt>Last post: </dt><dd>{{range $i, $r := .Body.Recent}}{{if eq $i 0}}{{stamp $r.Created}}{{end}}{{else}}Never{{end}}</dd>
+          <dt>Registered: </dt><dd>{{ymd $u.Created}}</dd>
+          <dt>Last visit: </dt><dd>{{stamp $u.LastLogin}}</dd>
+          <dt>Calls: </dt><dd>{{num $u.Logins}}</dd>
+          <dt>Status: </dt><dd>{{if .Body.On}}Online{{range .Body.On}} (node {{.Num}} by {{.Via}}: {{.Activity}}){{end}}{{else}}Offline{{end}}</dd>
+        </dl><div class="clearer"></div></div>
+      </fieldset></div>
+    </div>
+  </div>
+</div>
+<div class="blocktable" id="recentposts">
+  <h2><span>Recent posts</span></h2>
+  <div class="box"><div class="inbox"><table>
+    <thead><tr><th class="tcl" scope="col">Topic</th><th class="tcr" scope="col">Posted</th></tr></thead>
+    <tbody>
+      {{range $i, $r := .Body.Recent}}<tr class="{{if odd (add $i 1)}}rowodd{{else}}roweven{{end}}"><td class="tcl"><a href="/forum/post/{{$r.ID}}"><strong>{{$r.Subject}}</strong></a><div class="snippet">{{snippet $r.Body 160}}</div></td><td class="tcr">{{stamp $r.Created}}</td></tr>
+      {{else}}<tr class="rowodd"><td class="tcl" colspan="2">No posts yet.</td></tr>{{end}}
+    </tbody>
+  </table></div></div>
+</div>
+{{template "foot" .}}{{end}}

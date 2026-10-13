@@ -1,0 +1,34 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div id="brd-pagepost-top" class="main-pagepost gen-content">
+  {{template "pages" $b.Pages}}
+  {{if $b.CanPost}}<p class="posting"><a class="newpost" href="/forum/area/{{$b.Area.ID}}/new"><span>Post new topic</span></a></p>{{end}}
+</div>
+<div class="main-head">
+  {{if .User}}<div class="options"><span class="feed first-item"><form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark forum read</button></form></span></div>{{end}}
+  <h2 class="hn"><span><span class="item-info">Topics [ {{num $b.Count}} ]</span> {{$b.Area.Name}}</span></h2>
+</div>
+<div class="main-subhead"><p class="item-summary forum-noview"><span><strong class="subject-title">Topics</strong> in this forum, with the number of <strong class="info-replies">replies</strong>, and <strong class="info-lastpost">last post</strong>.</span></p></div>
+<div id="forum{{$b.Area.ID}}" class="main-content main-forum forum-noview">
+  {{range $i, $t := $b.Topics}}
+  <div class="main-item {{if odd (add $i 1)}}odd{{else}}even{{end}}{{if eq $i 0}} main-first-item{{end}}{{if $t.Unread}} new{{end}}">
+    <span class="icon{{if $t.Unread}} new{{end}}"><!-- --></span>
+    <div class="item-subject">
+      <h3 class="hn"><span class="item-num">{{add $i 1}}</span> {{if ge $t.Replies 15}}<span class="item-status"><em class="sticky">[ Hot ]</em></span> {{end}}<a href="/forum/topic/{{$t.Root.ID}}">{{$t.Root.Subject}}</a></h3>
+      <p><span class="item-starter">by <cite>{{$t.Root.From}}</cite></span>{{if $t.Unread}} <span class="item-nav"><a href="/forum/post/{{$t.Last.ID}}">New posts</a></span>{{end}}{{if gt $t.Pages 1}} <span class="item-pages">Pages: {{range (seq $t.Pages)}}<a href="/forum/topic/{{$t.Root.ID}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a> {{end}}</span>{{end}}</p>
+    </div>
+    <ul class="item-info">
+      <li class="info-replies"><strong>{{num $t.Replies}}</strong> <span class="label">{{if eq $t.Replies 1}}reply{{else}}replies{{end}}</span></li>
+      <li class="info-lastpost"><span class="label">Last post</span> <strong><a href="/forum/post/{{$t.Last.ID}}">{{stamp $t.Last.Created}}</a></strong> <cite>by {{$t.Last.From}}</cite></li>
+    </ul>
+  </div>
+  {{else}}
+  <div class="main-item empty"><div class="item-subject"><p>There are no topics in this forum.</p></div></div>
+  {{end}}
+</div>
+<div class="main-foot"><h2 class="hn"><span><span class="item-info">Topics [ {{num $b.Count}} ]</span></span></h2></div>
+<div id="brd-pagepost-end" class="main-pagepost gen-content">
+  {{template "pages" $b.Pages}}
+  {{if $b.CanPost}}<p class="posting"><a class="newpost" href="/forum/area/{{$b.Area.ID}}/new"><span>Post new topic</span></a></p>{{end}}
+</div>
+{{template "foot" .}}{{end}}

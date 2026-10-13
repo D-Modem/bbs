@@ -1,0 +1,36 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="linkst"><div class="inbox crumbsplus">
+  {{template "crumbs" .}}
+  <div class="pagepost">{{template "pages" $b.Pages}}{{if $b.CanPost}}<p class="postlink conr"><a href="/forum/area/{{$b.Area.ID}}/new">Post new topic</a></p>{{end}}</div>
+  <div class="clearer"></div>
+</div></div>
+<div id="vf" class="blocktable">
+  <h2><span>{{$b.Area.Name}}</span></h2>
+  <div class="box"><div class="inbox">
+    <table>
+      <thead><tr><th class="tcl" scope="col">Topic</th><th class="tc2" scope="col">Replies</th><th class="tcr" scope="col">Last post</th></tr></thead>
+      <tbody>
+        {{range $i, $t := $b.Topics}}
+        <tr class="{{if odd (add $i 1)}}rowodd{{else}}roweven{{end}}{{if $t.Unread}} inew{{end}}">
+          <td class="tcl"><div class="intd">
+            <div class="icon{{if $t.Unread}} inew{{end}}"><div class="nosize">{{add $i 1}}</div></div>
+            <div class="tclcon"><div>{{if ge $t.Replies 15}}<strong class="hottext">Hot:</strong> {{end}}{{if $t.Unread}}<strong>{{end}}<a href="/forum/topic/{{$t.Root.ID}}">{{$t.Root.Subject}}</a>{{if $t.Unread}}</strong>{{end}} <span class="byuser">by {{$t.Root.From}}</span>{{if $t.Unread}} <span class="newtext">[ <a href="/forum/post/{{$t.Last.ID}}" title="Go to the first new post in this topic.">New posts</a> ]</span>{{end}}{{if gt $t.Pages 1}} <span class="pagestext">[ {{range (seq $t.Pages)}}<a href="/forum/topic/{{$t.Root.ID}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a> {{end}}]</span>{{end}}</div></div>
+          </div></td>
+          <td class="tc2">{{num $t.Replies}}</td>
+          <td class="tcr"><a href="/forum/post/{{$t.Last.ID}}">{{stamp $t.Last.Created}}</a> <span class="byuser">by {{$t.Last.From}}</span></td>
+        </tr>
+        {{else}}
+        <tr class="rowodd inone"><td class="tcl" colspan="3"><div class="intd"><div class="icon inone"><div class="nosize"></div></div><div class="tclcon"><div><strong>Forum is empty.</strong></div></div></div></td></tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div></div>
+</div>
+<div class="linksb"><div class="inbox crumbsplus">
+  <div class="pagepost">{{template "pages" $b.Pages}}{{if $b.CanPost}}<p class="postlink conr"><a href="/forum/area/{{$b.Area.ID}}/new">Post new topic</a></p>{{end}}</div>
+  {{template "crumbs" .}}
+  {{if .User}}<div class="subscribelink clearb"><form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark this forum as read</button></form></div>{{end}}
+  <div class="clearer"></div>
+</div></div>
+{{template "foot" .}}{{end}}

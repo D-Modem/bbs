@@ -1,0 +1,57 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.Title}} &mdash; {{.BBS}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/pun14.css">
+</head>
+<body>
+<div id="brd-wrap" class="brd">
+<div id="brd-{{if eq .Page "index.html"}}index{{else if eq .Page "area.html"}}forum{{else if eq .Page "topic.html"}}topic{{else}}misc{{end}}" class="brd-page basic-page">
+<div id="brd-head" class="gen-content">
+  <p id="brd-title"><a href="/forum/">{{.BBS}}</a></p>
+  <p id="brd-desc">Dial in, log on, say hello.</p>
+</div>
+<div id="brd-navlinks" class="gen-content">
+  <ul>
+    <li id="navindex"{{if and (ne .Tab "online") (ne .Page "search.html") (ne .Page "profile.html")}} class="isactive"{{end}}><a href="/forum/"><span>Index</span></a></li>
+    <li id="navuserlist"{{if eq .Tab "online"}} class="isactive"{{end}}><a href="/forum/online"><span>Users</span></a></li>
+    <li id="navsearch"{{if eq .Page "search.html"}} class="isactive"{{end}}><a href="/forum/search"><span>Search</span></a></li>
+    {{if .Terminal}}<li id="navterminal"><a href="/terminal"><span>Terminal</span></a></li>{{end}}
+    {{if .User}}<li id="navprofile"{{if eq .Page "profile.html"}} class="isactive"{{end}}><a href="/forum/user/{{path .User.Name}}"><span>Profile</span></a></li>
+    <li id="navlogout"><form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish"><span>Logout</span></button></form></li>
+    {{else}}{{if .Register}}<li id="navregister"><a href="/forum/register"><span>Register</span></a></li>{{end}}
+    <li id="navlogin"><a href="/forum/login"><span>Login</span></a></li>{{end}}
+  </ul>
+</div>
+<div id="brd-visit" class="gen-content">
+  {{if .User}}
+  <p id="welcome"><span>Logged in as <strong>{{.User.Name}}</strong>.</span> <span>Last visit <strong>{{stamp .User.LastLogin}}</strong>.</span></p>
+  <p id="visit-links" class="options"><span id="visit-new" class="first-item"><a href="/forum/search" title="Find topics which contain posts made since your last visit.">New posts</a></span> <span id="visit-recent"><a href="/forum/search" title="Find topics which contain recent posts.">Active topics</a></span></p>
+  {{else}}
+  <p id="welcome"><span>You are not logged in.</span></p>
+  <p id="visit-links" class="options"><span id="visit-recent" class="first-item"><a href="/forum/search">Active topics</a></span></p>
+  {{end}}
+</div>
+<div id="brd-main">
+  {{template "crumbs" .}}
+  {{if and (eq .Notice "welcome") .User}}<div id="brd-announcement" class="gen-content"><h1 class="hn"><span>Welcome</span></h1><div class="content">Thank you for registering, {{.User.Name}}. You are now logged in.</div></div>{{end}}
+{{end}}
+
+{{define "crumbs"}}{{if .Crumbs}}<div class="crumbs gen-content"><p><span class="crumb crumbfirst"><a href="/forum/">{{.BBS}}</a></span>{{range .Crumbs}} <span class="crumb{{if not .URL}} crumblast{{end}}"><span>&rarr;&#160;</span>{{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</span>{{end}}</p></div>{{end}}{{end}}
+
+{{define "foot"}}
+  {{template "crumbs" .}}
+</div>
+<div id="brd-about" class="gen-content">
+  <div id="qjump">{{template "themepicker" .}}</div>
+  <p id="copyright">Powered by <strong>bbs-sec</strong> &middot; <a href="/forum/online">Who's online</a>{{if .Terminal}} &middot; <a href="/terminal">Web terminal</a>{{end}}</p>
+</div>
+</div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}<p class="paging"><span class="pages">Pages</span>{{$cur := .Cur}}{{$p := .}}{{if gt .Total 1}}{{range .Shown}}{{if eq . 0}} <span>&#8230;</span>{{else if eq . $cur}} <strong>{{.}}</strong>{{else}} <a href="{{$p.URL .}}">{{.}}</a>{{end}}{{end}}{{if .Next}} <a href="{{.URL .Next}}">Next</a>{{end}}{{else}} <strong class="first-item">1</strong>{{end}}</p>{{end}}

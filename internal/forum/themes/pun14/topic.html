@@ -1,0 +1,97 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<div id="brd-pagepost-top" class="main-pagepost gen-content">
+  {{template "pages" $b.Pages}}
+  {{if $b.CanPost}}<p class="posting"><a class="newpost" href="#brd-qpost"><span>Post reply</span></a></p>{{end}}
+</div>
+<div class="main-head"><h2 class="hn"><span><span class="item-info">Posts [ {{num $b.Count}} ]</span> {{$b.Root.Subject}}</span></h2></div>
+
+{{with $b.Poll}}
+<div class="main-subhead"><h2 class="hn"><span>Poll</span></h2></div>
+<div class="main-content main-frm poll">
+  <h3 class="hn poll-question">{{$b.Root.Subject}}</h3>
+  {{if or .Voted (not $me)}}
+  <ol class="poll-results">
+    {{range $i, $a := .Answers}}<li{{if $a.Mine}} class="voted"{{end}}><span class="poll-answer">{{$a.Text}}</span> <span class="poll-bar"><meter min="0" max="100" value="{{$a.Pct}}"></meter></span> <span class="poll-count">{{$a.Pct}}% [{{$a.Count}}]</span></li>{{end}}
+  </ol>
+  <p class="poll-total">Users voted: <strong>{{.Total}}</strong>{{if not $me}} &middot; <a href="/forum/login">Login</a> to vote{{end}}</p>
+  {{end}}
+  {{if $me}}
+  <form method="post" action="/forum/post/{{.ID}}/answer" class="frm-form">
+    <input type="hidden" name="csrf" value="{{$csrf}}">
+    <fieldset class="frm-group"><legend><span>{{if .Voted}}Change vote{{else}}Vote{{end}}</span></legend>
+    {{range .Answers}}<div class="mf-item"><label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label></div>{{end}}
+    </fieldset>
+    <div class="frm-buttons"><span class="submit primary"><button>Vote</button></span></div>
+  </form>
+  {{end}}
+</div>
+{{end}}
+
+<div id="forum{{$b.Area.ID}}" class="main-content main-topic">
+  {{range $b.Posts}}
+  <div class="post {{if odd .Num}}odd{{else}}even{{end}}{{if eq .Num 1}} firstpost topicpost{{end}}" id="entry{{.M.ID}}">
+    <div class="posthead">
+      <h3 class="hn post-ident"><span class="post-num">{{.Num}}</span> <span class="post-byline"><span>{{if eq .Num 1}}Topic by{{else}}Reply by{{end}} </span><strong>{{.M.From}}</strong></span> <span class="post-link"><a class="permalink" href="/forum/post/{{.M.ID}}">{{stamp .M.Created}}</a></span></h3>
+    </div>
+    <div class="postbody">
+      <div class="post-author">
+        <ul class="author-ident">
+          <li class="useravatar">{{template "avatar" (av .M.From "large")}}</li>
+          <li class="username">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</li>
+          <li class="usertitle"><span>{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 50}}Member{{else}}New member{{end}}{{else}}Guest{{end}}</span></li>
+          <li class="userstatus"><span>Offline</span></li>
+        </ul>
+        {{if .Author}}<ul class="author-info">
+          {{if .Author.Location}}<li><span>From: <strong>{{.Author.Location}}</strong></span></li>{{end}}
+          <li><span>Registered: <strong>{{ymd .Author.Created}}</strong></span></li>
+          <li><span>Posts: <strong>{{num .Author.Posts}}</strong></span></li>
+        </ul>{{else if .Where}}<ul class="author-info"><li><span>From: <strong>{{.Where}}</strong></span></li></ul>{{end}}
+      </div>
+      <div class="postbody-content">
+        <div class="post-entry">
+          <h4 class="entry-title hn">{{if ne .Num 1}}Re: {{end}}{{$b.Root.Subject}}</h4>
+          <div class="entry-content">{{body .M.Body}}</div>
+          {{if .Likes}}<div class="sig-content"><span class="sig-line"><!-- --></span>{{plural .Likes "member likes" "members like"}} this post.</div>{{end}}
+        </div>
+      </div>
+    </div>
+    <div class="postfoot">
+      <div class="post-options">
+        <p class="post-contacts">{{if .Author}}<span class="user-profile first-item"><a href="/forum/user/{{path .Author.Name}}">Profile</a></span>{{end}}</p>
+        <p class="post-actions">
+          {{if .CanLike}}<span class="like-post first-item"><form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="linkish">{{if .Liked}}Unlike{{else}}Like{{end}}</button></form></span>{{end}}
+          {{if .CanDelete}}<span class="delete-post"><form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="linkish">Delete</button></form></span>{{end}}
+          {{if $b.CanPost}}<span class="quote-post"><a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#brd-qpost">Quote</a></span>{{end}}
+        </p>
+      </div>
+    </div>
+  </div>
+  {{end}}
+</div>
+<div class="main-foot"><h2 class="hn"><span><span class="item-info">Posts [ {{num $b.Count}} ]</span></span></h2></div>
+<div id="brd-pagepost-end" class="main-pagepost gen-content">
+  {{template "pages" $b.Pages}}
+  {{if $b.CanPost}}<p class="posting"><a class="newpost" href="#brd-qpost"><span>Post reply</span></a></p>{{end}}
+</div>
+
+{{if $b.CanPost}}
+<div id="brd-qpost" class="main-subhead"><h2 class="hn"><span>Quick reply to &ldquo;{{$b.Root.Subject}}&rdquo;</span></h2></div>
+<div class="main-content main-frm">
+  <form class="frm-form" method="post" action="/forum/topic/{{$b.Root.ID}}/reply">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    {{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+    <fieldset class="frm-group group1"><legend class="group-legend"><strong>Compose your post</strong></legend>
+      <div class="txt-set set1"><div class="txt-box textarea required">
+        <label for="fld1"><span>Write message</span> <small>Quote with &gt; at the start of a line.</small></label>
+        <div class="txt-input"><span class="fld-input"><textarea id="fld1" name="body" rows="7" required>{{$b.Quote}}</textarea></span></div>
+      </div></div>
+      {{if $b.Aliases}}<div class="mf-item"><label><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label></div>{{end}}
+    </fieldset>
+    <div class="frm-buttons"><span class="submit primary"><button>Submit</button></span></div>
+  </form>
+</div>
+{{else if not .User}}
+<div class="main-content main-frm"><div class="ct-box info-box"><p>You must <a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">login</a> to post a reply.</p></div></div>
+{{end}}
+{{template "foot" .}}{{end}}
