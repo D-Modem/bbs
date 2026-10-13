@@ -1,0 +1,61 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<div class="p-body-header"><div class="p-title"><h1 class="p-title-value">Forums</h1></div></div>
+<div class="p-body-main p-body-main--withSidebar">
+<div class="p-body-content">
+  {{range .Body.Categories}}
+  <div class="block block--category">
+    <div class="block-container">
+      <h2 class="block-header"><a>{{.Name}}</a></h2>
+      <div class="block-body">
+        {{range $f := .Forums}}
+        <div class="node node--forum{{if $f.Unread}} node--unread{{end}}">
+          <div class="node-body">
+            <span class="node-icon" aria-hidden="true"><span class="ic ic-comments"></span></span>
+            <div class="node-main">
+              <h3 class="node-title"><a href="/forum/area/{{$f.Area.ID}}">{{$f.Area.Name}}</a></h3>
+              {{if $f.Area.Description}}<div class="node-description">{{$f.Area.Description}}</div>{{end}}
+            </div>
+            <div class="node-stats">
+              <dl class="pairs pairs--rows"><dt>Threads</dt><dd>{{num $f.Topics}}</dd></dl>
+              <dl class="pairs pairs--rows"><dt>Messages</dt><dd>{{num $f.Area.Messages}}</dd></dl>
+            </div>
+            <div class="node-extra">
+              {{with $f.Last}}
+              <div class="node-extra-icon">{{template "avatar" (av .From "xs")}}</div>
+              <div class="node-extra-row"><a href="/forum/topic/{{$f.LastTopic.ID}}" class="node-extra-title" title="{{$f.LastTopic.Subject}}">{{$f.LastTopic.Subject}}</a></div>
+              <div class="node-extra-row"><ul class="listInline listInline--bullet"><li><a href="/forum/post/{{.ID}}" class="u-dt">{{ago .Created}}</a></li><li class="node-extra-user"><a href="/forum/user/{{path .From}}" class="username">{{.From}}</a></li></ul></div>
+              {{else}}<span class="node-extra-placeholder">None</span>{{end}}
+            </div>
+          </div>
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+  {{end}}
+</div>
+<div class="p-body-sidebar">
+  <div class="block">
+    <div class="block-container">
+      <h3 class="block-minorHeader"><a href="/forum/online">Members online</a></h3>
+      <div class="block-body"><div class="block-row block-row--minor">
+        <ul class="listInline listInline--comma">{{range .Body.Online}}<li><a href="/forum/user/{{path .User}}" class="username">{{.User}}</a></li>{{else}}<li class="u-muted">No members online now.</li>{{end}}</ul>
+      </div></div>
+      <div class="block-footer">Total: {{len .Body.Online}} (members: {{len .Body.Online}}, guests: 0)</div>
+    </div>
+  </div>
+  <div class="block">
+    <div class="block-container">
+      <h3 class="block-minorHeader">Forum statistics</h3>
+      <div class="block-body"><div class="block-row block-row--minor">
+        <dl class="pairs pairs--justified"><dt>Threads</dt><dd>{{num $st.Topics}}</dd></dl>
+        <dl class="pairs pairs--justified"><dt>Messages</dt><dd>{{num $st.Posts}}</dd></dl>
+        <dl class="pairs pairs--justified"><dt>Members</dt><dd>{{num $st.Members}}</dd></dl>
+        {{with $st.Newest}}<dl class="pairs pairs--justified"><dt>Latest member</dt><dd><a href="/forum/user/{{path .Name}}" class="username">{{.Name}}</a></dd></dl>{{end}}
+      </div></div>
+    </div>
+  </div>
+</div>
+</div>
+{{template "foot" .}}{{end}}

@@ -1,0 +1,36 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="block">
+  <div class="block-container"><div class="block-body"><div class="memberHeader">
+    <div class="memberHeader-main">
+      <span class="memberHeader-avatar">{{template "avatar" (av $u.Name "l")}}</span>
+      <div class="memberHeader-content">
+        <h1 class="memberHeader-name"><span class="username">{{$u.Name}}</span></h1>
+        <div class="memberHeader-banners">{{if $u.Sysop}}<em class="userBanner userBanner--staff"><strong>Staff member</strong></em>{{end}}</div>
+        <div class="memberHeader-blurb"><span class="userTitle">{{if $u.Sysop}}Administrator{{else}}{{group $u}}{{end}}</span>{{if $u.Location}} &middot; From <a>{{$u.Location}}</a>{{end}}</div>
+        <div class="memberHeader-blurb"><dl class="pairs pairs--inline"><dt>Joined</dt> <dd>{{smfdate $u.Created}}</dd></dl></div>
+        <div class="memberHeader-blurb"><dl class="pairs pairs--inline"><dt>Last seen</dt> <dd>{{if .Body.On}}{{range .Body.On}}On node {{.Num}} by {{.Via}}: {{.Activity}}{{end}}{{else}}{{ago $u.LastLogin}}{{end}}</dd></dl></div>
+      </div>
+    </div>
+    <div class="memberHeader-stats"><div class="pairJustifier">
+      <dl class="pairs pairs--rows"><dt>Messages</dt><dd>{{num $u.Posts}}</dd></dl>
+      <dl class="pairs pairs--rows"><dt>Calls</dt><dd>{{num $u.Logins}}</dd></dl>
+    </div></div>
+  </div></div>
+  <div class="block-tabHeader"><span class="tabs-tab is-active">Latest activity</span></div>
+  </div>
+</div>
+<div class="block">
+  <div class="block-container">
+    <ul class="block-body">
+      {{range .Body.Recent}}
+      <li class="block-row block-row--separated"><div class="contentRow">
+        <span class="contentRow-figure">{{template "avatar" (av $u.Name "s")}}</span>
+        <div class="contentRow-main"><div class="contentRow-title"><a href="/forum/user/{{path $u.Name}}" class="username">{{$u.Name}}</a> replied to the thread <a href="/forum/post/{{.ID}}">{{.Subject}}</a>.</div><div class="contentRow-snippet">{{snippet .Body 200}}</div><div class="contentRow-minor">{{ago .Created}}</div></div>
+      </div></li>
+      {{else}}<li class="block-row">The news feed is currently empty.</li>{{end}}
+    </ul>
+  </div>
+</div>
+{{if $u.About}}<div class="block"><div class="block-container"><h3 class="block-minorHeader">About</h3><div class="block-body block-row">{{$u.About}}</div></div></div>{{end}}
+{{template "foot" .}}{{end}}

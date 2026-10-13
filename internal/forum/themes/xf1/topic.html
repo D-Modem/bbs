@@ -1,0 +1,86 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<div class="titleBar">
+  <h1>{{$b.Root.Subject}}</h1>
+  <p id="pageDescription" class="muted">Discussion in '<a href="/forum/area/{{$b.Area.ID}}">{{$b.Area.Name}}</a>' started by <a href="/forum/user/{{path $b.Root.From}}" class="username">{{$b.Root.From}}</a>, {{ago $b.Root.Created}}.</p>
+</div>
+<div class="pageNavLinkGroup">
+  <div class="linkGroup">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new">Post New Thread</a>{{end}}</div>
+  {{template "pages" $b.Pages}}
+</div>
+
+{{with $b.Poll}}
+<div class="PollContainer section">
+  <div class="pollBlock">
+    <div class="secondaryContent">
+      <h2 class="questionMark">?</h2>
+      <h2 class="question">{{$b.Root.Subject}}</h2>
+      {{if or .Voted (not $me)}}
+      <ol class="pollResults">
+        {{range $i, $a := .Answers}}<li class="pollResult{{if $a.Mine}} voted{{end}}"><h3 class="optionText">{{$a.Text}}{{if $a.Mine}} <span class="muted">(you voted)</span>{{end}}</h3><span class="barContainer"><meter min="0" max="100" value="{{$a.Pct}}"></meter></span><span class="count">{{$a.Count}} vote(s)</span><span class="percentage">{{$a.Pct}}%</span></li>{{end}}
+      </ol>
+      <p class="pollNotes muted">Total voters: {{.Total}}{{if not $me}} &middot; <a href="/forum/login">Log in</a> to vote{{end}}</p>
+      {{end}}
+      {{if $me}}
+      <form method="post" action="/forum/post/{{.ID}}/answer" class="pollVote">
+        <input type="hidden" name="csrf" value="{{$csrf}}">
+        {{range .Answers}}<label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label>{{end}}
+        <button class="button primary">{{if .Voted}}Change Vote{{else}}Cast Vote{{end}}</button>
+      </form>
+      {{end}}
+    </div>
+  </div>
+</div>
+{{end}}
+
+<ol class="messageList" id="messageList">
+  {{range $b.Posts}}
+  <li class="message" id="entry{{.M.ID}}">
+    <div class="messageUserInfo">
+      <div class="messageUserBlock">
+        <div class="avatarHolder"><span class="helper"></span>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="avatar">{{template "avatar" (av .M.From "large")}}</a>{{else}}{{template "avatar" (av .M.From "large")}}{{end}}</div>
+        <h3 class="userText">
+          {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username">{{.M.From}}</a>{{else}}<span class="username">{{.M.From}}</span>{{end}}
+          <em class="userTitle">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Well-Known Member{{else if ge .Author.Posts 30}}Active Member{{else}}New Member{{end}}{{else}}Guest{{end}}</em>
+          {{if .Author}}{{if .Author.Sysop}}<em class="userBanner bannerStaff"><span class="before"></span><strong>Staff Member</strong><span class="after"></span></em>{{end}}{{end}}
+        </h3>
+        {{if .Author}}<div class="extraUserInfo">
+          <dl class="pairsJustified"><dt>Joined:</dt><dd>{{monthyear .Author.Created}}</dd></dl>
+          <dl class="pairsJustified"><dt>Messages:</dt><dd>{{num .Author.Posts}}</dd></dl>
+          {{if .Author.Location}}<dl class="pairsJustified"><dt>Location:</dt><dd>{{.Author.Location}}</dd></dl>{{end}}
+        </div>{{end}}
+        <span class="arrow"><span></span></span>
+      </div>
+    </div>
+    <div class="messageInfo primaryContent">
+      <div class="messageContent"><article><blockquote class="messageText baseHtml">{{body .M.Body}}</blockquote></article></div>
+      <div class="messageMeta">
+        <div class="privateControls"><span class="item muted"><a href="/forum/user/{{path .M.From}}" class="username author">{{.M.From}}</a>, <a href="/forum/post/{{.M.ID}}" class="datePermalink">{{ago .M.Created}}</a></span>{{if .CanDelete}}<form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="item control delete linkish">Delete</button></form>{{end}}</div>
+        <div class="publicControls">
+          <a href="/forum/post/{{.M.ID}}" class="item muted postNumber">#{{.Num}}</a>
+          {{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="item control like linkish">{{if .Liked}}Unlike{{else}}Like{{end}}</button></form>{{end}}
+          {{if $b.CanPost}}<a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#QuickReply" class="item control reply">Reply</a>{{end}}
+        </div>
+      </div>
+      {{if .Likes}}<div class="likesSummary secondaryContent"><span class="LikeText">{{plural .Likes "person likes" "people like"}} this.</span></div>{{end}}
+    </div>
+  </li>
+  {{end}}
+</ol>
+
+<div class="pageNavLinkGroup">{{template "pages" $b.Pages}}</div>
+
+{{if $b.CanPost}}
+<form method="post" action="/forum/topic/{{$b.Root.ID}}/reply" id="QuickReply" class="quickReply message">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  {{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+  <div class="messageUserInfo"><div class="messageUserBlock"><div class="avatarHolder">{{template "avatar" (av $me.Name "large")}}</div><span class="arrow"><span></span></span></div></div>
+  <div class="messageInfo">
+    <textarea name="body" rows="7" required class="textCtrl" placeholder="Write your reply..." aria-label="Reply">{{$b.Quote}}</textarea>
+    <div class="submitUnit">{{if $b.Aliases}}<label class="muted"><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label>{{else}}<span class="muted">Quote with &gt; at the start of a line.</span>{{end}}<button class="button primary">Post Reply</button></div>
+  </div>
+</form>
+{{else if not .User}}
+<div class="importantMessage"><a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">You must log in or sign up to reply here.</a></div>
+{{end}}
+{{template "foot" .}}{{end}}

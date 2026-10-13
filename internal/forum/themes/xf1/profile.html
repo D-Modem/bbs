@@ -1,0 +1,31 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="profilePage">
+  <div class="mast">
+    <div class="avatarScaler">{{template "avatar" (av $u.Name "huge")}}</div>
+    <div class="section infoBlock"><div class="secondaryContent pairsJustified">
+      <dl><dt>Last Activity:</dt><dd>{{ago $u.LastLogin}}</dd></dl>
+      <dl><dt>Joined:</dt><dd>{{monthyear $u.Created}}</dd></dl>
+      <dl><dt>Messages:</dt><dd>{{num $u.Posts}}</dd></dl>
+      <dl><dt>Calls:</dt><dd>{{num $u.Logins}}</dd></dl>
+    </div></div>
+  </div>
+  <div class="mainProfileColumn">
+    <div class="section primaryUserBlock">
+      <div class="mainText secondaryContent">
+        <h1 class="username">{{$u.Name}}</h1>
+        <p class="userBlurb"><span class="userTitle">{{if $u.Sysop}}Administrator{{else}}{{group $u}}{{end}}</span>{{if $u.Location}}, from <span class="location">{{$u.Location}}</span>{{end}}</p>
+        {{if $u.Sysop}}<em class="userBanner bannerStaff"><strong>Staff Member</strong></em>{{end}}
+        <dl class="pairsInline lastActivity"><dt>{{$u.Name}} was last seen:</dt> <dd>{{if .Body.On}}{{range .Body.On}}On node {{.Num}} by {{.Via}}: {{.Activity}}{{end}}{{else}}{{ago $u.LastLogin}}{{end}}</dd></dl>
+      </div>
+      <ul class="tabs"><li class="active"><a>Profile Posts</a></li></ul>
+    </div>
+    <ol class="recentActivity">
+      {{range .Body.Recent}}
+      <li class="primaryContent">{{template "avatar" (av $u.Name "small")}}<div class="content"><h3 class="description"><a href="/forum/user/{{path $u.Name}}" class="username">{{$u.Name}}</a> replied to the thread <a href="/forum/post/{{.ID}}">{{.Subject}}</a>.</h3><p class="snippet">{{snippet .Body 200}}</p><abbr class="DateTime muted">{{ago .Created}}</abbr></div></li>
+      {{else}}<li class="primaryContent muted">{{$u.Name}} has not posted any messages yet.</li>{{end}}
+    </ol>
+    {{if $u.About}}<div class="section secondaryContent aboutText"><h3>About</h3><p>{{$u.About}}</p></div>{{end}}
+  </div>
+</div>
+{{template "foot" .}}{{end}}

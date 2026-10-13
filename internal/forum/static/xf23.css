@@ -1,0 +1,78 @@
+/*
+ * The forum's light theme: laid out in the manner of XenForo 2.3's
+ * default style, a refresh of 2.0-2.2's (this theme wears the xf2
+ * theme's templates and builds on its stylesheet): rounder corners and
+ * buttons, softer borders, a slightly cooler blue head, round pictures,
+ * pill-shaped page links and reactions, and the dark variation for
+ * readers whose device asks for one.  Written for this BBS; it takes no
+ * code or images from any board.
+ */
+@import url("xf2.css");
+
+:root {
+	--header: #1d4f80;
+	--nav: #2a6db0;
+	--section: #e8f0f8;
+	--body: #f7f8fa;
+	--border: #dde1e6;
+	--line: #eceef1;
+	--head-bg: #f1f6fc;
+	--soft: #f7f9fc;
+	--radius: 8px;
+	--footer: #1b2a3c;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--header: #10263d;
+		--nav: #1b4f7e;
+		--nav-text: #d5e2ef;
+		--section: #1e2c3b;
+		--body: #15181c;
+		--block: #1e2227;
+		--border: #31363d;
+		--line: #2a2f35;
+		--head-bg: #222f3d;
+		--feature: #79b8f0;
+		--feature-dark: #9ccaf5;
+		--link: #6fb3f2;
+		--text: #dfe3e8;
+		--muted: #8b949e;
+		--soft: #23282e;
+		--unread: #5cb4f0;
+		--footer: #0e1319;
+		--footer-text: #aab8c6;
+		color-scheme: dark;
+	}
+	.p-sectionLinks { border-bottom-color: var(--border); }
+	.block-header, .box > h2.maintitle { border-bottom-color: var(--border); }
+	.citation, blockquote.quote { border-color: var(--border); border-left-color: var(--feature); }
+	.blockMessage--success { background: #1d2e22; border-color: #2f5a3a; }
+	.label--hot { background: #4a2a12; color: #f3a35c; }
+	.input, input[type=text], input[type=password], input[type=email], input[type=search], select, textarea { background: #171a1e; border-color: var(--border); color: var(--text); }
+	.p-header-logo a, .p-logo-text { color: #fff; }
+}
+
+body { font-size: 15px; }
+.p-header-content { padding: 18px 0; }
+.p-navEl-link { border-radius: var(--radius) var(--radius) 0 0; }
+.p-navgroup { border-radius: 999px; overflow: hidden; }
+.block-container, .blockMessage, .box { border-radius: var(--radius); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
+.block-header { font-weight: 500; }
+.button, a.button, button.button { border-radius: 999px; padding: 6px 16px; font-weight: 500; }
+.button--small, a.button--small { padding: 4px 12px; }
+.pageNav-main { gap: 4px; }
+.pageNav-page a, .pageNav-page span, .pageNav-jump { border-radius: 999px !important; border-left: 1px solid var(--border) !important; }
+.pageNav-page--current a { background: var(--feature); border-color: var(--feature) !important; color: #fff; }
+.node-icon { opacity: 0.3; }
+.node--unread .node-icon { opacity: 1; filter: drop-shadow(0 1px 2px rgba(37, 119, 177, 0.35)); }
+.message-cell--user { background: transparent; }
+.message-userArrow { display: none; }
+.reactionsBar, .citation, blockquote.quote, .label { border-radius: var(--radius); }
+.citation { border-radius: var(--radius) var(--radius) 0 0; }
+blockquote.quote { border-radius: 0 0 var(--radius) var(--radius); }
+blockquote.quote:not(.citation + blockquote.quote) { border-radius: var(--radius); }
+.reactionsBar { border-radius: 999px; padding: 4px 12px; }
+.userBanner { border-radius: 999px; }
+.avatar { border-radius: 50%; }
+.input, input[type=text], input[type=password], input[type=email], input[type=search], select, textarea { border-radius: var(--radius); }
+.p-footer-copyright { opacity: 0.7; }

@@ -1,0 +1,103 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<div class="p-body-header">
+  <div class="p-title"><h1 class="p-title-value">{{$b.Root.Subject}}</h1></div>
+  <div class="p-description"><ul class="listInline listInline--bullet">
+    <li><span class="ic ic-user" aria-hidden="true"></span> <span class="u-srOnly">Thread starter</span> <a href="/forum/user/{{path $b.Root.From}}" class="username u-concealed">{{$b.Root.From}}</a></li>
+    <li><span class="ic ic-clock" aria-hidden="true"></span> <span class="u-srOnly">Start date</span> <a href="/forum/topic/{{$b.Root.ID}}" class="u-concealed">{{ago $b.Root.Created}}</a></li>
+  </ul></div>
+</div>
+
+{{with $b.Poll}}
+<div class="block block--poll">
+  <div class="block-container">
+    <h2 class="block-header">{{$b.Root.Subject}}</h2>
+    <div class="block-body">
+    {{if or .Voted (not $me)}}
+      <ul class="listPlain pollResults">
+        {{range $i, $a := .Answers}}<li class="pollResult{{if $a.Mine}} pollResult--showVoters is-voted{{end}}"><h3 class="pollResult-response">{{$a.Text}}{{if $a.Mine}} <span class="ic ic-check" aria-hidden="true"></span>{{end}}</h3><span class="pollResult-votes">{{$a.Count}} vote(s)</span><span class="pollResult-percentage">{{$a.Pct}}%</span><span class="pollResult-graph"><meter min="0" max="100" value="{{$a.Pct}}"></meter></span></li>{{end}}
+      </ul>
+      <div class="block-row block-row--minor pollFooter">Total voters {{.Total}}{{if not $me}} &middot; <a href="/forum/login">Log in</a> to vote{{end}}</div>
+    {{end}}
+    {{if $me}}
+      <form method="post" action="/forum/post/{{.ID}}/answer" class="block-row pollVote">
+        <input type="hidden" name="csrf" value="{{$csrf}}">
+        {{range .Answers}}<label class="iconic"><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> <span>{{.Text}}</span></label>{{end}}
+        <button class="button button--primary">{{if .Voted}}Change vote{{else}}Cast vote{{end}}</button>
+      </form>
+    {{end}}
+    </div>
+  </div>
+</div>
+{{end}}
+
+<div class="block block--messages">
+  <div class="block-outer">{{template "pages" $b.Pages}}</div>
+  <div class="block-container lbContainer">
+    <div class="block-body">
+      {{range $b.Posts}}
+      <article class="message message--post" id="entry{{.M.ID}}">
+        <div class="message-inner">
+          <div class="message-cell message-cell--user">
+            <section class="message-user">
+              <div class="message-avatar"><div class="message-avatar-wrapper">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="avatar">{{template "avatar" (av .M.From "m")}}</a>{{else}}{{template "avatar" (av .M.From "m")}}{{end}}</div></div>
+              <div class="message-userDetails">
+                <h4 class="message-name">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username">{{.M.From}}</a>{{else}}<span class="username">{{.M.From}}</span>{{end}}</h4>
+                <h5 class="userTitle message-userTitle">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Well-known member{{else if ge .Author.Posts 30}}Active member{{else}}New member{{end}}{{else}}Guest{{end}}</h5>
+                {{if .Author}}{{if .Author.Sysop}}<div class="userBanner userBanner--staff message-userBanner"><strong>Staff member</strong></div>{{end}}{{end}}
+              </div>
+              {{if .Author}}<div class="message-userExtras">
+                <dl class="pairs pairs--justified"><dt>Joined</dt><dd>{{monthyear .Author.Created}}</dd></dl>
+                <dl class="pairs pairs--justified"><dt>Messages</dt><dd>{{num .Author.Posts}}</dd></dl>
+                {{if .Author.Location}}<dl class="pairs pairs--justified"><dt>Location</dt><dd>{{.Author.Location}}</dd></dl>{{end}}
+              </div>{{end}}
+              <span class="message-userArrow"></span>
+            </section>
+          </div>
+          <div class="message-cell message-cell--main">
+            <div class="message-main">
+              <header class="message-attribution message-attribution--split">
+                <ul class="message-attribution-main listInline"><li class="u-concealed"><a href="/forum/post/{{.M.ID}}" class="u-concealed">{{ago .M.Created}}</a></li></ul>
+                <ul class="message-attribution-opposite listInline"><li><a href="/forum/post/{{.M.ID}}" class="message-attribution-gadget" title="Share" aria-label="Share"><span class="ic ic-share" aria-hidden="true"></span></a></li><li><a href="/forum/post/{{.M.ID}}">#{{.Num}}</a></li></ul>
+              </header>
+              <div class="message-content"><div class="message-userContent"><article class="message-body"><div class="bbWrapper">{{body .M.Body}}</div></article></div></div>
+              <footer class="message-footer">
+                <div class="message-actionBar actionBar">
+                  <div class="actionBar-set actionBar-set--internal">{{if .CanDelete}}<form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="actionBar-action linkish">Delete</button></form>{{end}}</div>
+                  <div class="actionBar-set actionBar-set--external">
+                    {{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="actionBar-action actionBar-action--reaction linkish{{if .Liked}} has-reaction{{end}}"><span class="reaction-sprite" aria-hidden="true"></span> {{if .Liked}}Liked{{else}}Like{{end}}</button></form>{{end}}
+                    {{if $b.CanPost}}<a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#reply" class="actionBar-action actionBar-action--reply"><span class="ic ic-reply" aria-hidden="true"></span> Reply</a>{{end}}
+                  </div>
+                </div>
+                {{if .Likes}}<div class="reactionsBar is-active"><ul class="reactionSummary"><li><span class="reaction-sprite" aria-hidden="true"></span></li></ul> <span class="reactionsBar-link">{{plural .Likes "member" "members"}}</span></div>{{end}}
+              </footer>
+            </div>
+          </div>
+        </div>
+      </article>
+      {{end}}
+    </div>
+  </div>
+  <div class="block-outer block-outer--after">{{template "pages" $b.Pages}}<a href="/forum/area/{{$b.Area.ID}}" class="button button--link button--small">{{$b.Area.Name}}</a></div>
+</div>
+
+{{if $b.CanPost}}
+<form method="post" action="/forum/topic/{{$b.Root.ID}}/reply" id="reply" class="block js-quickReply">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  {{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+  <div class="block-container"><div class="block-body">
+    <div class="message message--quickReply"><div class="message-inner">
+      <div class="message-cell message-cell--user"><div class="message-user"><div class="message-avatar">{{template "avatar" (av $me.Name "s")}}</div><span class="message-userArrow"></span></div></div>
+      <div class="message-cell message-cell--main">
+        <div class="message-editorWrapper">
+          <textarea name="body" rows="7" placeholder="Write your reply..." required class="input" aria-label="Reply">{{$b.Quote}}</textarea>
+          <div class="formButtonGroup">{{if $b.Aliases}}<label class="iconic"><input type="checkbox" name="alias"> <span>Post as {{$me.Alias}}</span></label>{{else}}<span class="u-muted">Quote with &gt; at the start of a line.</span>{{end}}<button class="button button--primary"><span class="ic ic-reply" aria-hidden="true"></span><span class="button-text">Post reply</span></button></div>
+        </div>
+      </div>
+    </div></div>
+  </div></div>
+</form>
+{{else if not .User}}
+<div class="blockMessage blockMessage--loginPrompt">You must <a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">log in</a>{{if .Register}} or <a href="/forum/register">register</a>{{end}} to reply here.</div>
+{{end}}
+{{template "foot" .}}{{end}}

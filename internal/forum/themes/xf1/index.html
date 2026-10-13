@@ -1,0 +1,53 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<div class="titleBar"><h1>{{.BBS}}</h1></div>
+<div class="mainContainer">
+<div class="mainContent">
+<ol class="nodeList">
+  {{range .Body.Categories}}
+  <li class="node category level_1">
+    <div class="nodeInfo categoryNodeInfo categoryStrip"><div class="categoryText"><h3 class="nodeTitle">{{.Name}}</h3></div></div>
+    <ol class="nodeList">
+      {{range $f := .Forums}}
+      <li class="node forum level_2">
+        <div class="nodeInfo forumNodeInfo primaryContent{{if $f.Unread}} unread{{end}}">
+          <span class="nodeIcon" title="{{if $f.Unread}}Unread messages{{else}}No unread messages{{end}}" aria-hidden="true"></span>
+          <div class="nodeText">
+            <h3 class="nodeTitle"><a href="/forum/area/{{$f.Area.ID}}">{{$f.Area.Name}}</a></h3>
+            {{if $f.Area.Description}}<blockquote class="nodeDescription">{{$f.Area.Description}}</blockquote>{{end}}
+            <div class="nodeStats pairsInline"><dl><dt>Discussions:</dt> <dd>{{num $f.Topics}}</dd></dl> <dl><dt>Messages:</dt> <dd>{{num $f.Area.Messages}}</dd></dl></div>
+          </div>
+          <div class="nodeLastPost secondaryContent">
+            {{with $f.Last}}<span class="lastThreadTitle"><span>Latest:</span> <a href="/forum/topic/{{$f.LastTopic.ID}}" title="{{$f.LastTopic.Subject}}">{{truncate $f.LastTopic.Subject 30}}</a></span>
+            <span class="lastThreadMeta"><span class="lastThreadUser"><a href="/forum/user/{{path .From}}" class="username">{{.From}}</a>,</span> <a href="/forum/post/{{.ID}}" class="dateTime lastThreadDate">{{ago .Created}}</a></span>
+            {{else}}<span class="noMessages muted">(Contains no messages)</span>{{end}}
+          </div>
+        </div>
+      </li>
+      {{end}}
+    </ol>
+  </li>
+  {{end}}
+</ol>
+</div>
+</div>
+<aside class="sidebar">
+  <div class="section loginButton">{{if not .User}}<div class="secondaryContent"><a href="/forum/login" class="callToAction"><span>Sign Up Now!</span></a></div>{{end}}</div>
+  <div class="section membersOnline">
+    <div class="secondaryContent">
+      <h3><a href="/forum/online">Members Online Now</a></h3>
+      <ol class="listInline">{{range $i, $n := .Body.Online}}<li><a href="/forum/user/{{path $n.User}}" class="username">{{$n.User}}</a>{{if lt (add $i 1) (len $.Body.Online)}},{{end}}</li>{{else}}<li class="muted">No one is on the BBS just now.</li>{{end}}</ol>
+      <div class="footnote">Total: {{len .Body.Online}} (members: {{len .Body.Online}}, guests: 0)</div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="secondaryContent statsList" id="boardStats">
+      <h3>Forum Statistics</h3>
+      <dl><dt>Discussions:</dt><dd>{{num $st.Topics}}</dd></dl>
+      <dl><dt>Messages:</dt><dd>{{num $st.Posts}}</dd></dl>
+      <dl><dt>Members:</dt><dd>{{num $st.Members}}</dd></dl>
+      {{with $st.Newest}}<dl><dt>Latest Member:</dt><dd><a href="/forum/user/{{path .Name}}" class="username">{{.Name}}</a></dd></dl>{{end}}
+    </div>
+  </div>
+</aside>
+{{template "foot" .}}{{end}}

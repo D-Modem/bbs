@@ -1,0 +1,66 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.Title}} | {{.BBS}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/xf1.css">
+</head>
+<body>
+<div id="headerMover">
+  <div id="header">
+    <div id="logoBlock"><div class="pageWidth"><div class="pageContent">
+      <div id="logo"><a href="/forum/"><span class="logomark" aria-hidden="true"></span><span class="logotext">{{.BBS}}</span></a></div>
+    </div></div></div>
+    <div id="navigation" class="pageWidth"><div class="pageContent">
+      <nav>
+        <ul class="navTabs">
+          <li class="navTab{{if and (ne .Tab "online") (ne .Page "search.html")}} selected{{end}}"><a href="/forum/" class="navLink">Forums</a>
+            <div class="tabLinks"><ul>
+              <li><a href="/forum/search">Search Forums</a></li>
+              <li><a href="/forum/search">Recent Posts</a></li>
+              {{if .User}}<li><a href="/forum/search">What's New?</a></li>{{end}}
+            </ul></div>
+          </li>
+          <li class="navTab{{if eq .Tab "online"}} selected{{end}}"><a href="/forum/online" class="navLink">Members</a>
+            <div class="tabLinks"><ul><li><a href="/forum/online">Current Visitors</a></li>{{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}</ul></div>
+          </li>
+          {{if .Terminal}}<li class="navTab"><a href="/terminal" class="navLink">Terminal</a></li>{{end}}
+          <li class="navTab account">{{if .User}}<a href="/forum/user/{{path .User.Name}}" class="navLink accountPopup">{{template "avatar" (av .User.Name "tiny")}} <strong class="accountUsername">{{.User.Name}}</strong></a>{{else}}<a href="/forum/login" class="navLink">Log in or Sign up</a>{{end}}</li>
+          {{if .User}}<li class="navTab logout"><form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="navLink linkish">Log Out</button></form></li>{{end}}
+        </ul>
+        <form action="/forum/search" method="get" id="QuickSearch"><input type="search" name="q" placeholder="Search..." class="textCtrl" aria-label="Search"></form>
+      </nav>
+    </div></div>
+  </div>
+</div>
+<div id="content" class="pageWidth"><div class="pageContent">
+  {{template "crumbs" .}}
+  {{if and (eq .Notice "welcome") .User}}<div class="importantMessage">Thank you for creating an account, {{.User.Name}}. You are now logged in.</div>{{end}}
+{{end}}
+
+{{define "crumbs"}}<nav class="breadBoxTop"><fieldset class="breadcrumb"><span class="crumbs"><span class="crust homeCrumb"><a href="/forum/" class="crumb"><span>Home</span></a><span class="arrow"><span>&gt;</span></span></span><span class="crust"><a href="/forum/" class="crumb"><span>Forums</span></a><span class="arrow"><span>&gt;</span></span></span>{{range .Crumbs}}{{if .URL}}<span class="crust"><a href="{{.URL}}" class="crumb"><span>{{.Name}}</span></a><span class="arrow"><span>&gt;</span></span></span>{{end}}{{end}}</span></fieldset></nav>{{end}}
+
+{{define "foot"}}
+  {{template "crumbs" .}}
+</div></div>
+<footer>
+  <div class="footer"><div class="pageWidth"><div class="pageContent">
+    <div class="choosers">{{template "themepicker" .}}</div>
+    <ul class="footerLinks">
+      <li><a href="/forum/online">Current Visitors</a></li>
+      {{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}
+      <li><a href="/forum/">Home</a></li>
+      <li><a href="#headerMover" class="topLink">Top</a></li>
+    </ul>
+  </div></div></div>
+  <div class="footerLegal"><div class="pageWidth"><div class="pageContent">
+    <div id="copyright">Forum software by bbs-sec</div>
+    <span class="time">{{smfdate .Now}}</span>
+  </div></div></div>
+</footer>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}{{$cur := .Cur}}{{$p := .}}<div class="PageNav"><span class="pageNavHeader">Page {{.Cur}} of {{.Total}}</span><nav>{{if gt .Cur 1}}<a href="{{.URL .Prev}}" class="text">&lt; Prev</a>{{end}}{{range .Shown}}{{if eq . 0}}<span class="scrollable">…</span>{{else if eq . $cur}}<a class="currentPage">{{.}}</a>{{else}}<a href="{{$p.URL .}}">{{.}}</a>{{end}}{{end}}{{if .Next}}<a href="{{.URL .Next}}" class="text">Next &gt;</a>{{end}}</nav></div>{{end}}{{end}}

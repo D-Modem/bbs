@@ -1,0 +1,44 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="titleBar">
+  {{if $b.CanPost}}<div class="topCtrl"><a href="/forum/area/{{$b.Area.ID}}/new" class="callToAction"><span>Post New Thread</span></a></div>{{end}}
+  <h1>{{$b.Area.Name}}</h1>
+  {{if $b.Area.Description}}<p id="pageDescription" class="muted">{{$b.Area.Description}}</p>{{end}}
+</div>
+<div class="pageNavLinkGroup">
+  <div class="linkGroup">{{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark Forum Read</button></form>{{end}}</div>
+  {{template "pages" $b.Pages}}
+</div>
+<div class="discussionList section sectionMain">
+  <dl class="sectionHeaders">
+    <dt class="posterAvatar"><span>Sort by:</span></dt>
+    <dd class="main"><span class="title">Title</span> <span class="postDate">Start Date</span></dd>
+    <dd class="stats"><span class="major">Replies</span></dd>
+    <dd class="lastPost"><span>Last Message</span></dd>
+  </dl>
+  <ol class="discussionListItems">
+    {{range $b.Topics}}
+    <li class="discussionListItem{{if .Unread}} unread{{end}}{{if ge .Replies 15}} hot{{end}}">
+      <div class="listBlock posterAvatar">{{template "avatar" (av .Root.From "small")}}</div>
+      <div class="listBlock main">
+        <div class="titleText">
+          <h3 class="title">{{if .Unread}}<a href="/forum/post/{{.Last.ID}}" class="unreadLink" title="Go to first unread message" aria-label="Go to first unread message"></a>{{end}}<a href="/forum/topic/{{.Root.ID}}">{{.Root.Subject}}</a>{{if ge .Replies 15}} <span class="prefix hot">Hot</span>{{end}}</h3>
+          <div class="secondRow"><div class="posterDate muted"><a href="/forum/user/{{path .Root.From}}" class="username">{{.Root.From}}</a>, <span class="startDate">{{ago .Root.Created}}</span>{{if gt .Pages 1}} <span class="itemPageNav"><span>...</span>{{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a>{{end}}</span>{{end}}</div></div>
+        </div>
+      </div>
+      <div class="listBlock stats pairsJustified"><dl class="major"><dt>Replies:</dt> <dd>{{num .Replies}}</dd></dl></div>
+      <div class="listBlock lastPost">
+        <dl class="lastPostInfo">
+          <dt><a href="/forum/user/{{path .Last.From}}" class="username">{{.Last.From}}</a></dt>
+          <dd class="muted"><a href="/forum/post/{{.Last.ID}}" class="dateTime">{{ago .Last.Created}}</a></dd>
+        </dl>
+      </div>
+    </li>
+    {{else}}
+    <li class="primaryContent noThreads">There are no threads in this forum.</li>
+    {{end}}
+  </ol>
+  <div class="sectionFooter">Showing {{plural $b.Count "thread" "threads"}}</div>
+</div>
+<div class="pageNavLinkGroup">{{template "pages" $b.Pages}}{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="callToAction"><span>Post New Thread</span></a>{{end}}</div>
+{{template "foot" .}}{{end}}

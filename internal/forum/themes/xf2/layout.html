@@ -1,0 +1,73 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.Title}} | {{.BBS}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/{{.Theme}}.css">
+</head>
+<body>
+<div class="p-pageWrapper" id="top">
+<header class="p-header" id="header">
+  <div class="p-header-inner"><div class="p-header-content">
+    <div class="p-header-logo"><a href="/forum/"><span class="p-logo-mark" aria-hidden="true"></span><span class="p-logo-text">{{.BBS}}</span></a></div>
+  </div></div>
+</header>
+<div class="p-navSticky">
+  <nav class="p-nav">
+    <div class="p-nav-inner">
+      <div class="p-nav-scroller"><ul class="p-nav-list">
+        <li><div class="p-navEl{{if and (ne .Tab "online") (ne .Page "search.html")}} is-selected{{end}}"><a href="/forum/" class="p-navEl-link">Forums</a></div></li>
+        <li><div class="p-navEl{{if eq .Page "search.html"}} is-selected{{end}}"><a href="/forum/search" class="p-navEl-link">What's new</a></div></li>
+        <li><div class="p-navEl{{if eq .Tab "online"}} is-selected{{end}}"><a href="/forum/online" class="p-navEl-link">Members</a></div></li>
+        {{if .Terminal}}<li><div class="p-navEl"><a href="/terminal" class="p-navEl-link">Terminal</a></div></li>{{end}}
+      </ul></div>
+      <div class="p-nav-opposite"><div class="p-navgroup p-account">
+        {{if .User}}
+        <a href="/forum/user/{{path .User.Name}}" class="p-navgroup-link p-navgroup-link--user">{{template "avatar" (av .User.Name "xxs")}}<span class="p-navgroup-linkText">{{.User.Name}}</span></a>
+        <form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="p-navgroup-link linkish">Log out</button></form>
+        {{else}}
+        <a href="/forum/login" class="p-navgroup-link p-navgroup-link--logIn"><span class="p-navgroup-linkText">Log in</span></a>
+        {{if .Register}}<a href="/forum/register" class="p-navgroup-link p-navgroup-link--register"><span class="p-navgroup-linkText">Register</span></a>{{end}}
+        {{end}}
+        <a href="/forum/search" class="p-navgroup-link p-navgroup-link--search" aria-label="Search"><span class="ic ic-search" aria-hidden="true"></span><span class="p-navgroup-linkText">Search</span></a>
+      </div></div>
+    </div>
+  </nav>
+  <div class="p-sectionLinks"><div class="p-sectionLinks-inner">
+    <ul class="p-sectionLinks-list">
+      <li><a href="/forum/search">New posts</a></li>
+      <li><a href="/forum/search">Search forums</a></li>
+      <li><a href="/forum/online">Current visitors</a></li>
+      {{if .Terminal}}<li><a href="/terminal">Web terminal</a></li>{{end}}
+    </ul>
+  </div></div>
+</div>
+<div class="p-body"><div class="p-body-inner">
+  {{template "crumbs" .}}
+  {{if and (eq .Notice "welcome") .User}}<div class="blockMessage blockMessage--success">Thank you for registering, {{.User.Name}}. You are now logged in.</div>{{end}}
+{{end}}
+
+{{define "crumbs"}}<ul class="p-breadcrumbs"><li><a href="/forum/"><span>Forums</span></a></li>{{range .Crumbs}}{{if .URL}}<li><a href="{{.URL}}"><span>{{.Name}}</span></a></li>{{end}}{{end}}</ul>{{end}}
+
+{{define "foot"}}
+  {{template "crumbs" .}}
+</div></div>
+<footer class="p-footer" id="footer"><div class="p-footer-inner">
+  <div class="p-footer-row">
+    <div class="p-footer-row-main">{{template "themepicker" .}}</div>
+    <div class="p-footer-row-opposite"><ul>
+      <li><a href="/forum/online">Current visitors</a></li>
+      {{if .Terminal}}<li><a href="/terminal">Web terminal</a></li>{{end}}
+      <li><a href="/forum/">Home</a></li>
+      <li><a href="#top" title="Top" aria-label="Top"><span class="ic ic-up" aria-hidden="true"></span></a></li>
+    </ul></div>
+  </div>
+  <div class="p-footer-copyright">Community platform by bbs-sec &middot; {{.BBS}}</div>
+</div></footer>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}{{$cur := .Cur}}{{$p := .}}<nav class="pageNavWrapper"><div class="pageNav">{{if gt .Cur 1}}<a href="{{.URL .Prev}}" class="pageNav-jump pageNav-jump--prev">Prev</a>{{end}}<ul class="pageNav-main">{{range .Shown}}{{if eq . 0}}<li class="pageNav-page pageNav-page--skip"><span>…</span></li>{{else if eq . $cur}}<li class="pageNav-page pageNav-page--current"><a>{{.}}</a></li>{{else}}<li class="pageNav-page"><a href="{{$p.URL .}}">{{.}}</a></li>{{end}}{{end}}</ul>{{if .Next}}<a href="{{.URL .Next}}" class="pageNav-jump pageNav-jump--next">Next</a>{{end}}</div></nav>{{end}}{{end}}

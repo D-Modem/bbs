@@ -1,0 +1,41 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="p-body-header">
+  <div class="p-title">
+    <h1 class="p-title-value">{{$b.Area.Name}}</h1>
+    {{if $b.CanPost}}<div class="p-title-pageAction"><a href="/forum/area/{{$b.Area.ID}}/new" class="button button--cta"><span class="ic ic-pen" aria-hidden="true"></span><span class="button-text">Post thread</span></a></div>{{end}}
+  </div>
+  {{if $b.Area.Description}}<div class="p-description">{{$b.Area.Description}}</div>{{end}}
+</div>
+<div class="block">
+  <div class="block-outer">{{template "pages" $b.Pages}}</div>
+  <div class="block-container">
+    <div class="block-filterBar">
+      <span class="filterBar-label">Sort by: Last message</span>
+      {{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish filterBar-menuTrigger">Mark read</button></form>{{end}}
+    </div>
+    <div class="block-body"><div class="structItemContainer">
+      {{range $b.Topics}}
+      <div class="structItem structItem--thread{{if .Unread}} is-unread{{end}}">
+        <div class="structItem-cell structItem-cell--icon">{{template "avatar" (av .Root.From "s")}}</div>
+        <div class="structItem-cell structItem-cell--main">
+          <div class="structItem-title">{{if ge .Replies 15}}<span class="label label--hot">Hot</span> {{end}}<a href="/forum/topic/{{.Root.ID}}">{{.Root.Subject}}</a></div>
+          <div class="structItem-minor"><ul class="structItem-parts"><li><a href="/forum/user/{{path .Root.From}}" class="username">{{.Root.From}}</a></li><li class="structItem-startDate">{{ago .Root.Created}}</li>{{if gt .Pages 1}}<li><span class="structItem-pageJump">{{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a>{{end}}</span></li>{{end}}</ul></div>
+        </div>
+        <div class="structItem-cell structItem-cell--meta">
+          <dl class="pairs pairs--justified"><dt>Replies</dt><dd>{{num .Replies}}</dd></dl>
+        </div>
+        <div class="structItem-cell structItem-cell--latest">
+          <a href="/forum/post/{{.Last.ID}}" class="u-dt">{{ago .Last.Created}}</a>
+          <div class="structItem-minor"><a href="/forum/user/{{path .Last.From}}" class="username">{{.Last.From}}</a></div>
+        </div>
+        <div class="structItem-cell structItem-cell--icon structItem-cell--iconEnd">{{template "avatar" (av .Last.From "xxs")}}</div>
+      </div>
+      {{else}}
+      <div class="structItem structItem--empty"><div class="block-row">There are no threads in this forum.</div></div>
+      {{end}}
+    </div></div>
+  </div>
+  <div class="block-outer block-outer--after">{{template "pages" $b.Pages}}{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="button button--cta button--small"><span class="ic ic-pen" aria-hidden="true"></span><span class="button-text">Post thread</span></a>{{end}}</div>
+</div>
+{{template "foot" .}}{{end}}
