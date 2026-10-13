@@ -1,7 +1,6 @@
 package fido
 
 import (
-	"archive/zip"
 	"bytes"
 	"errors"
 	"fmt"
@@ -11,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
@@ -95,38 +95,54 @@ func (f *Fido) tossFile(l *Link, path string, st *TossStats) error {
 }
 
 func (f *Fido) tossBundle(l *Link, path string, st *TossStats) error {
-	z, err := zip.OpenReader(path)
+	fh, err := os.Open(path)
 	if err != nil {
-		if fi, e := os.Stat(path); e == nil && fi.Size() == 0 {
-			return nil // an empty bundle: some mailers leave them
-		}
-		return fmt.Errorf("not a ZIP bundle (ARC, ARJ, LHA are not unpacked here): %v", err)
+		return err
 	}
-	defer z.Close()
-	if len(z.File) > maxBundleFiles {
-		return errors.New("too many files in the bundle")
+	defer fh.Close()
+	fi, err := fh.Stat()
+	if err != nil {
+		return err
 	}
-	var total uint64
-	for _, zf := range z.File {
-		if !strings.HasSuffix(strings.ToLower(zf.Name), ".pkt") || strings.ContainsAny(zf.Name, "/\\") {
-			f.B.Log.Printf("fido: %s: %s in the bundle is not a packet: skipped", l.Name, zf.Name)
-			continue
+	if fi.Size() == 0 {
+		return nil // an empty bundle: some mailers leave them
+	}
+	head := make([]byte, 8)
+	n, _ := fh.ReadAt(head, 0)
+	if archive.Detect(head[:n]) == "" {
+		return errors.New("not a bundle: not ZIP, ARC, ARJ or LHA")
+	}
+	var total int64
+	count := 0
+	var werr error
+	err = archive.Walk(fh, fi.Size(), func(e archive.Entry, open archive.Opener) bool {
+		if count++; count > maxBundleFiles {
+			werr = errors.New("too many files in the bundle")
+			return false
 		}
-		total += zf.UncompressedSize64
-		if zf.UncompressedSize64 > maxPacket || total > maxBundleUnpack {
-			return errors.New("the bundle unpacks too big")
+		if !strings.HasSuffix(strings.ToLower(e.Name), ".pkt") || strings.ContainsAny(e.Name, "/\\") {
+			f.B.Log.Printf("fido: %s: %s in the bundle is not a packet: skipped", l.Name, e.Name)
+			return true
 		}
-		r, err := zf.Open()
+		if total += e.Size; e.Size > maxPacket || total > maxBundleUnpack {
+			werr = errors.New("the bundle unpacks too big")
+			return false
+		}
+		data, err := open(maxPacket)
 		if err != nil {
-			return err
+			werr = fmt.Errorf("%s: %w", e.Name, err)
+			return false
 		}
-		err = f.tossPacket(l, io.LimitReader(r, maxPacket), st)
-		r.Close()
-		if err != nil {
-			return fmt.Errorf("%s: %w", zf.Name, err)
+		if err := f.tossPacket(l, bytes.NewReader(data), st); err != nil {
+			werr = fmt.Errorf("%s: %w", e.Name, err)
+			return false
 		}
+		return true
+	})
+	if werr != nil {
+		return werr
 	}
-	return nil
+	return err
 }
 
 // tossPacket takes a packet from a link: from its address, to ours, with

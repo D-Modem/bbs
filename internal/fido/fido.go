@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
@@ -37,13 +38,13 @@ type Settings struct {
 type Link struct {
 	Name        string
 	Addr        ftn.Addr
-	Host        string // host:port to call it ("": it calls us)
-	Password    string // binkp session password
-	PlainOK     bool   // the password may be sent in the clear (no CRAM-MD5)
-	PktPassword string // packets' password ("": not checked, none sent)
-	Echoes      string // wildmat of the echo tags exchanged
-	Route       bool   // netmail for nodes that are not links goes here
-	Zip         bool   // bundles: ZIP (ARCmail), else bare packets
+	Host        string       // host:port to call it ("": it calls us)
+	Password    string       // binkp session password
+	PlainOK     bool         // the password may be sent in the clear (no CRAM-MD5)
+	PktPassword string       // packets' password ("": not checked, none sent)
+	Echoes      string       // wildmat of the echo tags exchanged
+	Route       bool         // netmail for nodes that are not links goes here
+	Packer      archive.Kind // bundles' format (ARCmail): ZIP, ARC, ARJ, LHA ("": bare packets)
 	Poll        time.Duration
 	AKA         ftn.Addr // ours to use with it (zero: by its zone)
 }

@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 )
 
 func TestFidoConfig(t *testing.T) {
@@ -38,10 +40,10 @@ packer = none
 		t.Fatalf("%+v %+v", f, c.Binkp)
 	}
 	hub := f.Links[0]
-	if hub.Host != "hub.example:24554" || !hub.Zip || !hub.Route || hub.Poll != time.Hour || hub.PktPassword != "PKT" {
+	if hub.Host != "hub.example:24554" || hub.Packer != archive.ZIP || !hub.Route || hub.Poll != time.Hour || hub.PktPassword != "PKT" {
 		t.Fatalf("%+v", hub)
 	}
-	if f.Links[1].Zip || !strings.Contains(strings.Join(c.Warnings, "\n"), "[link other] has no password") {
+	if f.Links[1].Packer != "" || !strings.Contains(strings.Join(c.Warnings, "\n"), "[link other] has no password") {
 		t.Fatalf("%+v %v", f.Links[1], c.Warnings)
 	}
 	for body, want := range map[string]string{

@@ -2,7 +2,7 @@ package files
 
 import (
 	"archive/tar"
-	"archive/zip"
+	"bytes"
 	"compress/gzip"
 	"errors"
 	"io"
@@ -16,11 +16,12 @@ import (
 
 	"golang.org/x/text/encoding/charmap"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
 // ErrNotArchive: the file is not an archive the BBS looks into.
-var ErrNotArchive = errors.New("not an archive the BBS can look into (ZIP, tar, tar.gz)")
+var ErrNotArchive = errors.New("not an archive the BBS can look into (ZIP, ARC, ARJ, LHA, tar, tar.gz)")
 
 // Entry is a file in an archive.
 type Entry struct {
@@ -36,12 +37,14 @@ const MaxEntries = 2000
 // maxDIZ is the most of a FILE_ID.DIZ read.
 const maxDIZ = 4096
 
-// archiveKind is how a file of that name is read: "zip", "tar", "tgz" or "".
+// archiveKind is how a file of that name is read: "zip", "arc", "arj",
+// "lha", "tar", "tgz" or "".
 func archiveKind(name string) string {
 	n := strings.ToLower(name)
+	if k := archive.KindByName(n); k != "" {
+		return string(k)
+	}
 	switch {
-	case strings.HasSuffix(n, ".zip"):
-		return "zip"
 	case strings.HasSuffix(n, ".tar"):
 		return "tar"
 	case strings.HasSuffix(n, ".tar.gz"), strings.HasSuffix(n, ".tgz"):
@@ -57,28 +60,31 @@ func IsArchive(name string) bool { return archiveKind(name) != "" }
 // reader of its contents, until fn says stop or MaxEntries.
 func walk(p, name string, fn func(e Entry, open func() (io.Reader, error)) bool) error {
 	switch archiveKind(name) {
-	case "zip":
-		z, err := zip.OpenReader(p)
+	case "zip", "arc", "arj", "lha":
+		in, err := os.Open(p)
 		if err != nil {
-			return ErrNotArchive
+			return err
 		}
-		defer z.Close()
-		for i, f := range z.File {
-			if i >= MaxEntries {
-				break
+		defer in.Close()
+		fi, err := in.Stat()
+		if err != nil {
+			return err
+		}
+		i := 0
+		err = archive.Walk(in, fi.Size(), func(e archive.Entry, open archive.Opener) bool {
+			if i++; i > MaxEntries {
+				return false
 			}
-			e := Entry{Name: f.Name, Size: int64(f.UncompressedSize64), Modified: f.Modified,
-				Dir: strings.HasSuffix(f.Name, "/")}
-			open := func() (io.Reader, error) {
-				r, err := f.Open()
+			return fn(Entry{Name: e.Name, Size: e.Size, Modified: e.Modified, Dir: e.Dir}, func() (io.Reader, error) {
+				b, err := open(maxDIZ * 4)
 				if err != nil {
 					return nil, err
 				}
-				return r, nil
-			}
-			if !fn(e, open) {
-				break
-			}
+				return bytes.NewReader(b), nil
+			})
+		})
+		if err != nil && i == 0 {
+			return ErrNotArchive
 		}
 		return nil
 	case "tar", "tgz":

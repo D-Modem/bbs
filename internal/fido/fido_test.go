@@ -3,15 +3,18 @@ package fido
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
@@ -127,11 +130,11 @@ func (s *system) messages(t *testing.T) []*store.Message {
 func TestEchomailAndNetmail(t *testing.T) {
 	// hub 21:1/100 with nodes 21:1/200 and 21:1/300; 200 calls the hub,
 	// the hub calls 300
-	hubTo200 := &Link{Name: "n200", Addr: mustAddr("21:1/200"), Password: "pw200", Echoes: "*", Zip: true}
+	hubTo200 := &Link{Name: "n200", Addr: mustAddr("21:1/200"), Password: "pw200", Echoes: "*", Packer: archive.ZIP}
 	hubTo300 := &Link{Name: "n300", Addr: mustAddr("21:1/300"), Password: "pw300", Echoes: "*"}
 	hub := newSystem(t, "21:1/100", hubTo200, hubTo300)
 	n200 := newSystem(t, "21:1/200", &Link{Name: "hub", Addr: mustAddr("21:1/100"), Host: hub.host,
-		Password: "pw200", Echoes: "*", Zip: true, Route: true})
+		Password: "pw200", Echoes: "*", Packer: archive.ZIP, Route: true})
 	n300 := newSystem(t, "21:1/300", &Link{Name: "hub", Addr: mustAddr("21:1/100"), Password: "pw300", Echoes: "TEST"})
 	hubTo300.Host = n300.host
 
@@ -359,5 +362,98 @@ func TestGateway(t *testing.T) {
 	if em.From != "Carol" || em.Kludge("REPLY") != "21:1/100 0000abcd" ||
 		em.Kludge("MSGID") != ftn.MSGIDOf("<abc@news.peer>", mustAddr("21:1/200")) {
 		t.Fatalf("%+v", em)
+	}
+}
+
+// TestBundles: echomail in ARC, ARJ and LHA bundles (stored, as written
+// here) is tossed like ZIP's; the bundle is named as ARCmail is,
+// whatever is in it.
+func TestBundles(t *testing.T) {
+	for _, k := range []archive.Kind{archive.ARC, archive.ARJ, archive.LHA} {
+		t.Run(string(k), func(t *testing.T) {
+			hub := newSystem(t, "21:1/100", &Link{Name: "n200", Addr: mustAddr("21:1/200"), Password: "pw", Echoes: "*"})
+			n200 := newSystem(t, "21:1/200", &Link{Name: "hub", Addr: mustAddr("21:1/100"), Host: hub.host,
+				Password: "pw", Echoes: "*", Packer: k})
+			n200.f.ScanAll()
+			if _, err := n200.node(t, "alice").Post(n200.area, "All", "In "+string(k), []string{"Packed"}, 0); err != nil {
+				t.Fatal(err)
+			}
+			if n, err := n200.f.Scan(n200.f.S.Links[0]); err != nil || n != 1 {
+				t.Fatalf("scan: %d, %v", n, err)
+			}
+			var bundles []string
+			ents, _ := os.ReadDir(n200.f.outbound(n200.f.S.Links[0]))
+			for _, e := range ents {
+				if !strings.HasPrefix(e.Name(), ".") {
+					bundles = append(bundles, e.Name())
+				}
+			}
+			if len(bundles) != 1 || !bundleName.MatchString(bundles[0]) {
+				t.Fatalf("outbound: %v", bundles)
+			}
+			b, _ := os.ReadFile(filepath.Join(n200.f.outbound(n200.f.S.Links[0]), bundles[0]))
+			if archive.Detect(b) != k {
+				t.Fatalf("the bundle is %q", archive.Detect(b))
+			}
+			n200.call(t, n200.f.S.Links[0], hub)
+			if hm := hub.messages(t); len(hm) != 1 || hm[0].Subject != "In "+string(k) {
+				t.Fatalf("hub has %+v", hm)
+			}
+		})
+	}
+}
+
+// TestRealBundles: bundles packed by the real programs (arc crunching,
+// ARJ's methods 1 and 4, LHA's -lh5-), where they are installed.
+func TestRealBundles(t *testing.T) {
+	for _, c := range []struct {
+		prog string
+		args []string // then the bundle and the packet
+	}{
+		{"arc", []string{"a"}},
+		{"arj", []string{"a", "-m1", "-y"}},
+		{"arj", []string{"a", "-m4", "-y"}},
+		{"jlha", []string{"ao5q"}},
+	} {
+		t.Run(c.prog+strings.Join(c.args, ""), func(t *testing.T) {
+			if _, err := exec.LookPath(c.prog); err != nil {
+				t.Skipf("no %s", c.prog)
+			}
+			hub := newSystem(t, "21:1/100", &Link{Name: "n200", Addr: mustAddr("21:1/200"), Password: "pw", Echoes: "*"})
+			n200 := newSystem(t, "21:1/200", &Link{Name: "hub", Addr: mustAddr("21:1/100"), Password: "pw", Echoes: "*"})
+			n200.f.ScanAll()
+			for i := 0; i < 20; i++ { // enough text to be worth packing
+				n200.node(t, "alice").Post(n200.area, "All", fmt.Sprintf("Message %d", i), []string{strings.Repeat("Hello, hub. ", 40)}, 0)
+			}
+			if n, err := n200.f.Scan(n200.f.S.Links[0]); err != nil || n != 20 {
+				t.Fatalf("scan: %d, %v", n, err)
+			}
+			out := n200.f.outbound(n200.f.S.Links[0])
+			pkts, _ := filepath.Glob(filepath.Join(out, "*.pkt"))
+			if len(pkts) != 1 {
+				t.Fatalf("packets: %v", pkts)
+			}
+			bundle := filepath.Join(hub.f.inbound(hub.f.S.Links[0]), "0000abcd.mo1")
+			tmp := filepath.Join(t.TempDir(), "b."+c.prog)
+			cmd := exec.Command(c.prog, append(c.args, tmp, filepath.Base(pkts[0]))...)
+			cmd.Dir = out
+			cmd.Env = append(os.Environ(), "JAVA_TOOL_OPTIONS=")
+			if b, err := cmd.CombinedOutput(); err != nil {
+				t.Fatalf("%s: %v\n%s", c.prog, err, b)
+			}
+			if _, err := os.Stat(tmp); err != nil { // arj adds .arj, jlha may add .lzh
+				m, _ := filepath.Glob(tmp + ".*")
+				if len(m) != 1 {
+					t.Fatalf("no bundle made")
+				}
+				tmp = m[0]
+			}
+			b, _ := os.ReadFile(tmp)
+			os.WriteFile(bundle, b, 0600)
+			st, err := hub.f.Toss(hub.f.S.Links[0])
+			if err != nil || st.Echomail != 20 {
+				t.Fatalf("tossed %v, %v (%s bundle)", st, err, archive.Detect(b))
+			}
+		})
 	}
 }

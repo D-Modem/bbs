@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
@@ -170,7 +171,7 @@ node 21:1/200@fidonet %s secret
 	b := bbs.New(bbs.Defaults(), st, nil)
 	b.Log.SetOutput(lb)
 	link := &Link{Name: "hub", Addr: mustAddr("21:1/100"), Host: hubAddr, Password: "secret",
-		Echoes: "TEST", Route: true, Zip: true}
+		Echoes: "TEST", Route: true, Packer: archive.ZIP}
 	f, err := New(b, Settings{Addrs: []ftn.Addr{mustAddr("21:1/200")}, System: "Our BBS", Sysop: "Alice",
 		Origin: "Our BBS", Dir: filepath.Join(dir, "fido"), Links: []*Link{link}})
 	if err != nil {

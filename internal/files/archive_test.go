@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 )
 
 func zipOf(t *testing.T, files map[string][]byte) []byte {
@@ -94,5 +96,35 @@ func TestDIZAndListing(t *testing.T) {
 	}
 	if !strings.Contains(ErrNotArchive.Error(), "ZIP") {
 		t.Error(ErrNotArchive)
+	}
+}
+
+// TestOldArchives: an LHA's and an ARJ's FILE_ID.DIZ, and their listings,
+// as a ZIP's.
+func TestOldArchives(t *testing.T) {
+	s, alice, _, a := setup(t, 1<<20, 0)
+	when := time.Date(1995, 3, 4, 10, 0, 0, 0, time.Local)
+	for _, k := range []archive.Kind{archive.LHA, archive.ARJ, archive.ARC} {
+		var b bytes.Buffer
+		archive.Write(&b, k, "game."+string(k), []archive.File{
+			{Name: "FILE_ID.DIZ", Data: []byte("Lord v4.00\r\nA door game\r\n"), Modified: when},
+			{Name: "lord.exe", Data: bytes.Repeat([]byte{2}, 500), Modified: when}})
+		name := "lord." + map[archive.Kind]string{archive.LHA: "lzh", archive.ARJ: "arj", archive.ARC: "arc"}[k]
+		up, err := s.Upload(alice, a, name, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		up.Write(b.Bytes())
+		f, err := up.Commit()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if f.Description != "Lord v4.00" || f.LongDesc != "Lord v4.00\nA door game" {
+			t.Errorf("%s: %q, %q", k, f.Description, f.LongDesc)
+		}
+		es, err := s.Listing(f)
+		if err != nil || len(es) != 2 || !strings.EqualFold(es[1].Name, "lord.exe") || es[1].Size != 500 || es[1].Modified.Year() != 1995 {
+			t.Errorf("%s: listing %+v %v", k, es, err)
+		}
 	}
 }

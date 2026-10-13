@@ -6,6 +6,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
 	"github.com/Neo-Desktop/bbs-sec/internal/fido"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
@@ -144,11 +145,13 @@ func link(s *config.Section) (*fido.Link, error) {
 		return nil, err
 	}
 	switch p := strings.ToLower(s.String("packer", "zip")); p {
-	case "zip":
-		l.Zip = true
+	case "zip", "arc", "arj", "lha":
+		l.Packer = archive.Kind(p)
+	case "lzh":
+		l.Packer = archive.LHA
 	case "none":
 	default:
-		return nil, fmt.Errorf("packer: %q is not zip or none", p)
+		return nil, fmt.Errorf("packer: %q is not zip, arc, arj, lha or none", p)
 	}
 	if l.Poll, err = s.Seconds("poll", 0, 0, 7*86400); err != nil {
 		return nil, err

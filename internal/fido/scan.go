@@ -1,10 +1,8 @@
 package fido
 
 import (
-	"archive/zip"
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,6 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
@@ -306,18 +305,12 @@ func (f *Fido) writeOutbound(l *Link, msgs []*ftn.Message) error {
 	}
 	data := pkt.Bytes()
 	file := name + ".pkt"
-	if l.Zip {
-		var z bytes.Buffer
-		zw := zip.NewWriter(&z)
-		w, err := zw.CreateHeader(&zip.FileHeader{Name: file, Method: zip.Deflate, Modified: time.Now()})
-		if err != nil {
+	if l.Packer != "" {
+		var b bytes.Buffer
+		if err := archive.Write(&b, l.Packer, name, []archive.File{{Name: file, Data: data, Modified: time.Now()}}); err != nil {
 			return err
 		}
-		io.Copy(w, bytes.NewReader(data))
-		if err := zw.Close(); err != nil {
-			return err
-		}
-		data = z.Bytes()
+		data = b.Bytes()
 		ext := days[time.Now().Weekday()]
 		for c := 0; ; c++ {
 			file = fmt.Sprintf("%s.%s%c", name, ext, "0123456789abcdefghijklmnopqrstuvwxyz"[c%36])
