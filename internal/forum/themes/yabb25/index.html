@@ -1,0 +1,46 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+{{range $c := .Body.Categories}}
+<div class="yycat25">
+  <div class="tabtitle yystrip"><span class="yystrip-name"><span class="yyicon cat25"></span> {{$c.Name}}</span><span class="yystrip-last">Last post</span></div>
+  <table class="bordercolor yyboards25">
+    {{range $f := $c.Forums}}
+    <tr>
+      <td class="shadow pic"><a href="/forum/area/{{$f.Area.ID}}" class="yyboardpic" aria-hidden="true" tabindex="-1"></a></td>
+      <td class="shadow info"><span class="yyorb{{if $f.Unread}} on{{end}}" title="{{if $f.Unread}}New Posts{{else}}No New Posts{{end}}"></span> <a href="/forum/area/{{$f.Area.ID}}" class="boardname"><b>{{$f.Area.Name}}</b></a>{{if $f.Area.Description}}<div>{{$f.Area.Description}}</div>{{end}}<div class="small"><i>Moderator: N/A</i></div></td>
+      <td class="shadow counts small"><b>Topics:</b> {{num $f.Topics}}<br><b>Posts:</b> {{num $f.Area.Messages}}</td>
+      <td class="shadow last small">{{with $f.Last}}<a href="/forum/post/{{.ID}}">{{template "yydate" .Created}}</a><br><b>Topic:</b> {{with $f.LastTopic}}<a href="/forum/topic/{{.ID}}">{{truncate .Subject 25}}</a>{{else}}<a href="/forum/post/{{.ID}}">{{truncate .Subject 25}}</a>{{end}}<br><b>by:</b> {{.From}}{{else}}N/A{{end}}</td>
+    </tr>
+    {{end}}
+  </table>
+</div>
+{{end}}
+{{if .User}}
+<table class="bordercolor yylegend25"><tr><td class="shadow"><div class="yylegend">
+  <span class="small"><span class="yyorb on"></span> New Posts &nbsp; <span class="yyorb"></span> No New Posts</span>
+  <span class="small"><a href="/forum/search">Show new posts</a></span>
+</div></td></tr></table>
+{{end}}
+
+<div class="yycat25">
+  <div class="tabtitle yystrip"><span class="yystrip-name">Forum Statistics</span></div>
+  <table class="bordercolor yyinfo25">
+    <tr>
+      <td class="shadow icon"><span class="yyicon info25"></span></td>
+      <td class="shadow small"><div class="yycols">
+        <div><b>{{num $st.Posts}} Posts</b> in <b>{{num $st.Topics}} Topics</b>.</div>
+        <div>{{num $st.Members}} Members.{{with $st.Newest}}<br>Latest Member: <a href="/forum/user/{{path .Name}}"><b>{{.Name}}</b></a>{{end}}</div>
+      </div></td>
+    </tr>
+  </table>
+</div>
+<div class="yycat25">
+  <div class="tabtitle yystrip"><span class="yystrip-name">Users Online</span></div>
+  <table class="bordercolor yyinfo25">
+    <tr>
+      <td class="shadow icon"><span class="yyicon people25"></span></td>
+      <td class="shadow small">Users: {{len .Body.Online}}{{if .Body.Online}}<br>{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}" class="useronline">{{$n.User}}</a>{{end}}{{end}}<br>Guests: 0<br>Bots: 0</td>
+    </tr>
+  </table>
+</div>
+{{template "foot" .}}{{end}}

@@ -1,0 +1,256 @@
+/*
+ * The forum's YaBB theme: laid out in the manner of the Perl boards of
+ * 2001-2004 (YaBB 1 Gold's default template and its kind): a light
+ * grey page, everything in tables ruled with a one-pixel slate-blue
+ * grid, a head with the board's name and a "Hey, alice" greeting over a
+ * pale menu row of words split by bars, the way to the page as a little
+ * tree of open folders, pale steel title rows and category rows, cells
+ * in pale blue and white, manila folders for boards and topics (a blue
+ * badge when there is something new, a flag when a topic runs hot),
+ * posts with the poster and their stars in a column at the left,
+ * "Reply #1 on: 10/12/26 at 23:12:05" over a rule, Verdana.  Colors
+ * follow YaBB 1 Gold's template; the CSS is our own and no images are
+ * taken (the folders, stars and icons are drawn here).
+ */
+
+:root {
+	--page: #f5f5f5;
+	--grid: #b1bdc9;
+	--wb: #dde3eb;
+	--wb2: #fefefe;
+	--title: #e8ebef;
+	--title-text: #304b58;
+	--cat: #d2d9e2;
+	--cat-text: #304b58;
+	--text: #000;
+	--link: #75879a;
+	--link-hover: #75879a;
+	--nav: #000;
+	--nav-hover: #cc3333;
+	--hr: #273f49;
+	--quote: #e8ebef;
+	--quote-line: #b1bdc9;
+	--input: #e8ebef;
+	--folder-a: #fff3c8;
+	--folder-b: #e9d27c;
+	--folder-line: #8a7a3c;
+	--badge: #2a5fc8;
+	--font: Verdana, Arial, Helvetica, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body.yabb { margin: 0; padding: 16px 0; background: var(--page); color: var(--text); font: 13px/1.35 var(--font); }
+#container { width: 92%; margin: 0 auto; }
+a:link, a:visited { color: var(--link); text-decoration: none; }
+a:hover { color: var(--link-hover); border-bottom: 1px solid currentColor; }
+b, strong { font-weight: bold; }
+.small, .desc { font-size: 11px; }
+.inline-form { display: inline; }
+.linkish { padding: 0; margin: 0; border: 0; background: none; color: var(--link); font: inherit; cursor: pointer; }
+.linkish:hover { text-decoration: underline; }
+.menusep { color: var(--title-text); }
+hr.hr, .yabb hr { height: 1px; margin: 4px 0; border: 0; background: var(--hr); }
+
+/* --- the tables: a one-pixel grid of slate blue */
+table.bordercolor { width: 100%; margin: 0 0 16px; border-spacing: 1px; background: var(--grid); font-size: 13px; }
+table.bordercolor td, table.bordercolor th { padding: 4px; text-align: left; vertical-align: middle; font-weight: normal; }
+.windowbg { background: var(--wb); }
+.windowbg2 { background: var(--wb2); }
+th.titlebg, td.titlebg, .titlebg { background: var(--title); color: var(--title-text); font-weight: bold; }
+.catbg { background: var(--cat); color: var(--cat-text); font-weight: bold; }
+table.bordercolor .titlebg, table.bordercolor .catbg { font-weight: bold; }
+.catbg a:link, .catbg a:visited, .titlebg a:link, .titlebg a:visited { color: var(--cat-text); }
+.num { width: 1%; text-align: center !important; white-space: nowrap; }
+td.icon { width: 6%; text-align: center !important; }
+.last { width: 24%; }
+
+/* the head */
+.yyheader { margin-bottom: 20px; }
+.yyheader td { padding: 3px 6px; }
+.yylogo { width: 230px; }
+.yylogo a, .yylogo a:hover { display: block; padding: 6px 4px; border: 0; }
+.yylogo-name { display: block; color: #3c5b6c; font: bold italic 26px/1 Georgia, "Times New Roman", serif; letter-spacing: -0.5px; text-shadow: 1px 1px 0 #c8d2dc; }
+.yylogo-sub { display: block; margin-top: 2px; color: #75879a; font: bold 10px var(--font); letter-spacing: 4px; text-transform: uppercase; }
+.yywelcome { vertical-align: top !important; padding-top: 12px !important; font-size: 13px; }
+.yytime { font-size: 11px; }
+.yynews { margin-top: 10px; font-size: 13px; }
+td.yymenu { height: 30px; text-align: center !important; font-size: 11px; }
+.yymenu a:link, .yymenu a:visited, .yymenu .linkish { color: #000; font-weight: bold; font-size: 11px; }
+.yymenu a:hover, .yymenu .linkish:hover { color: var(--nav-hover); border: 0; text-decoration: underline; }
+.yynotice { margin: 0 0 14px; padding: 6px 8px; border: 1px solid var(--grid); background: var(--wb2); text-align: center; }
+
+/* the way here: a tree of open folders */
+.yytree { margin: 0 0 6px; font-size: 11px; font-weight: bold; }
+.yytree-row { display: flex; align-items: flex-end; gap: 4px; min-height: 17px; }
+.yytree-row.d1 { padding-left: 4px; }
+.yytree-row.d2 { padding-left: 22px; }
+.yytree-row.d3 { padding-left: 40px; }
+.yytree-row.d4 { padding-left: 58px; }
+.tline { display: inline-block; width: 12px; height: 10px; margin-bottom: 4px; border-left: 1px dotted #7b7b7b; border-bottom: 1px dotted #7b7b7b; }
+.nav a:link, .nav a:visited, a.nav:link, a.nav:visited { color: var(--nav); }
+.nav a:hover, a.nav:hover { color: var(--nav-hover); border: 0; text-decoration: underline; }
+
+/* manila folders, drawn: boards, topics and the tree */
+.ficon { position: relative; display: inline-block; width: 20px; height: 13px; margin: 4px 1px 0; vertical-align: middle; border: 1px solid var(--folder-line); border-radius: 1px; background: linear-gradient(var(--folder-a), var(--folder-b)); box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.7); }
+.ficon::before { content: ""; position: absolute; top: -4px; left: -1px; width: 8px; height: 3px; border: 1px solid var(--folder-line); border-bottom: 0; border-radius: 2px 2px 0 0; background: var(--folder-a); }
+.ficon.open::after { content: ""; position: absolute; left: 2px; right: -3px; bottom: -1px; height: 8px; border: 1px solid var(--folder-line); background: linear-gradient(#fff8dc, var(--folder-a)); transform: skewX(-24deg); }
+.ficon.board::after { content: ""; position: absolute; left: -5px; bottom: -4px; width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, #fff 0 1.5px, #9a9a9a 2px 3px, #6a6a6a 3.5px); }
+.ficon.board.on::after { background: radial-gradient(circle at 50% 50%, #fff 0 1.5px, #5d8de6 2px 3px, var(--badge) 3.5px); }
+.ficon.hot::after, .ficon.veryhot::after { content: ""; position: absolute; left: -3px; top: -6px; width: 8px; height: 17px; border-left: 1px solid #555; background: linear-gradient(#f2dc00, #f2dc00) no-repeat 0 0 / 7px 6px; }
+.ficon.veryhot::after { background-image: linear-gradient(#e0201c, #e0201c); }
+.yylegend-topics { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: -8px 0 16px; }
+
+/* little pictures: a page for the message, information, who is on */
+.yyicon { display: inline-block; vertical-align: middle; }
+.yyicon.xx { width: 11px; height: 13px; border: 1px solid #999; background: repeating-linear-gradient(#fff 0 2px, #b8b8b8 2px 3px) 2px 2px / 5px 8px no-repeat, #f4f4f4; }
+.yyicon.info { position: relative; width: 18px; height: 14px; border: 1px solid #44444a; border-radius: 2px; background: #eaebff; }
+.yyicon.info::before { content: "i"; position: absolute; inset: 0; color: #22224a; font: bold 11px/12px Georgia, serif; text-align: center; }
+.yyicon.online { width: 22px; height: 15px; background: radial-gradient(circle at 7px 4px, #c96 0 2.5px, transparent 3px), radial-gradient(circle at 15px 4px, #963 0 2.5px, transparent 3px), radial-gradient(ellipse 4px 6px at 7px 14px, #3b6db0 0 99%, transparent), radial-gradient(ellipse 4px 6px at 15px 14px, #8a3b2e 0 99%, transparent); }
+.yyicon.ip { position: relative; width: 14px; height: 10px; margin-bottom: 3px; border: 1px solid #69727a; background: #a6b0ba; }
+.yyicon.ip::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: -4px; height: 2px; background: #69727a; }
+.yyicon.poll { width: 14px; height: 12px; background: linear-gradient(#3a6ea5, #3a6ea5) 1px 5px / 3px 7px no-repeat, linear-gradient(#c33, #c33) 5px 1px / 3px 11px no-repeat, linear-gradient(#e2b000, #e2b000) 9px 7px / 3px 5px no-repeat; }
+.yyicon.profile { width: 12px; height: 13px; background: radial-gradient(circle at 6px 3.5px, #996633 0 3px, transparent 3.5px), radial-gradient(ellipse 6px 5px at 6px 13px, #4a6c8c 0 99%, transparent); }
+td.yycat { padding: 4px 6px !important; height: 18px; font-size: 13px; }
+
+/* the board index */
+.yyboards td.info .boardname { font-size: 13px; }
+.yyboards td.info .small { margin-top: 1px; }
+.yyinfo th.titlebg { text-align: center; }
+.yylegend { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-weight: normal; }
+.yylegend .ficon { margin-right: 4px; }
+.yyinfo td.icon { width: 30px; }
+.yycols { display: flex; flex-wrap: wrap; gap: 4px 0; }
+.yycols > div:first-child { flex: 0 0 60%; }
+.yycols > div { padding: 2px 3px; }
+
+/* the bars with page links and buttons */
+table.yybar { margin-bottom: 0; }
+table.yybar + table, table.yybar + .yylegend-topics { margin-top: 0; }
+.yybar td.catbg { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 13px; }
+.yypages { font-weight: normal; }
+.yypages b { font-weight: bold; }
+.yybuttons { font-size: 11px; }
+.yybuttons a:link, .yybuttons a:visited, .yybuttons .linkish { color: #000; font-weight: bold; }
+.yybuttons a:hover, .yybuttons .linkish:hover { color: var(--nav-hover); border: 0; text-decoration: underline; }
+.yytopics { margin-top: 0; }
+.yytopics .micon { width: 4%; }
+.yytopics .subject { width: 44%; }
+.yytopics .starter { width: 14%; text-align: center !important; }
+.yynew { display: inline-block; padding: 0 3px; border: 1px solid #c33 !important; background: #fee; color: #c33 !important; font: bold 9px/12px var(--font); text-transform: uppercase; }
+td.none { padding: 10px !important; text-align: center !important; }
+
+/* the topic */
+table.yytitle { margin: 0; }
+.yytitle th.author { width: 20%; }
+.yytitle .ficon { margin-right: 6px; }
+.yyread { font-weight: normal; }
+table.yypost { margin: 0; border-spacing: 0; border: 1px solid var(--grid); border-top: 0; }
+.yypost.alt1 td { background: var(--wb); }
+.yypost.alt2 td { background: var(--wb2); }
+.yypost td { padding: 6px !important; vertical-align: top !important; }
+.yypost td.poster { width: 20%; overflow-wrap: anywhere; }
+.yypost .yyname { font-size: 13px; }
+.yypic { margin: 10px 0 8px; }
+.yyposts { margin-top: 6px; }
+.yystars { color: #f0b416; font-size: 13px; letter-spacing: 1px; text-shadow: 0 0 1px #996600; }
+.yymsghead { display: flex; align-items: center; gap: 8px; }
+.yysubj { flex: 1; font-size: 13px; }
+.yypostbtns { align-self: flex-end; white-space: nowrap; }
+.yypostbtns a:link, .yypostbtns a:visited, .yypostbtns .linkish { color: #000; }
+.yypostbtns a:hover, .yypostbtns .linkish:hover { color: var(--nav-hover); border: 0; text-decoration: underline; }
+.yymessage { min-height: 60px; font-size: 13px; overflow-wrap: anywhere; }
+.yymessage p { margin: 0 0 10px; }
+td.msgfoot { vertical-align: bottom !important; }
+.yymsgfoot { display: flex; justify-content: space-between; gap: 10px; }
+.yyip { white-space: nowrap; }
+
+/* quotes: "Quote from: alice" over a pale box */
+.yabb .citation { margin: 6px 0 0; font-size: 11px; font-weight: bold; }
+.yabb blockquote.quote { margin: 2px 0 10px 18px; padding: 4px 6px; border: 1px solid var(--quote-line); background: var(--quote); font: 11px/1.4 Arial, Verdana, sans-serif; }
+.yabb .citation + blockquote.quote { margin-top: 1px; }
+.yabb pre, .yabb code { font-family: "Courier New", monospace; }
+.yabb pre { padding: 4px 6px; background: #ccc; overflow: auto; }
+
+/* polls */
+.yypoll .answer { width: 30%; }
+.yypoll .bar { width: 50%; }
+.yypoll meter { width: 100%; height: 12px; }
+.yypoll .votes { white-space: nowrap; }
+.pollvote { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+
+/* the reply form and the profile */
+table.yyform { margin-top: 16px; }
+.yyform td.label, .yyprofile td.label { width: 25%; vertical-align: top !important; }
+.yyform textarea { width: 100%; max-width: 600px; }
+.yyform td.buttons { text-align: center !important; }
+.yyprofile .yystars { margin-left: 4px; }
+
+/* --- forms and the plain pages, in tables of the same make */
+input[type=text], input[type=password], input[type=email], input[type=search], select, textarea { padding: 2px; border: 1px solid var(--grid); background: var(--input); color: #000; font: 12px var(--font); }
+button, .button { padding: 1px 8px; border: 1px solid var(--grid); background: var(--input); color: #000; font: 12px var(--font); cursor: pointer; }
+button.linkish { padding: 0; border: 0; background: none; color: var(--link); }
+.box { margin: 0 0 16px; padding: 1px; background: var(--grid); }
+.box > * { background: var(--wb2); }
+.box > * + * { margin-top: 1px; }
+.box > h2.maintitle { display: flex; gap: 8px; margin: 0; padding: 4px 6px; background: var(--title); color: var(--title-text); font-size: 13px; font-weight: bold; }
+.box .count { margin-left: auto; font-weight: normal; }
+.box.narrow { max-width: 560px; margin-left: auto; margin-right: auto; }
+.box-body { padding: 8px; }
+.field { display: grid; grid-template-columns: 35% 1fr; align-items: center; gap: 6px; padding: 3px 0; font-weight: bold; }
+.field input, .field textarea { font-weight: normal; }
+.editor .field { grid-template-columns: 1fr; }
+.editor-foot { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.signin .desc { margin-bottom: 6px; }
+.poll-maker { margin: 8px 0; }
+.poll-maker summary { cursor: pointer; font-weight: bold; }
+.searchform { display: flex; gap: 6px; }
+.searchform input { flex: 1; }
+.message.error { color: #c33; font-weight: bold; }
+p.message { margin: 0 0 16px; padding: 6px; border: 1px solid var(--grid); background: var(--wb2); }
+table.board { width: 100%; border-spacing: 1px; background: var(--grid); }
+table.board th { padding: 4px; background: var(--cat); color: var(--cat-text); text-align: left; }
+table.board td { padding: 4px; background: var(--wb); vertical-align: top; }
+table.board h3 { margin: 0; font-size: 13px; }
+table.board p { margin: 2px 0 0; }
+.snippet { color: #555; }
+
+/* letter pictures for those without one */
+.avatar { display: inline-flex; align-items: center; justify-content: center; flex: none; color: #fff; font: bold 14px var(--font); vertical-align: middle; }
+.avatar.tiny { width: 16px; height: 16px; font-size: 9px; }
+.avatar.mini { width: 24px; height: 24px; font-size: 12px; }
+.avatar.small { width: 32px; height: 32px; font-size: 15px; }
+.avatar.large { width: 64px; height: 64px; font-size: 30px; }
+.avatar.huge { width: 80px; height: 80px; font-size: 38px; }
+.av0 { background: #4f7bb0; } .av1 { background: #b0574f; } .av2 { background: #4f9a6b; }
+.av3 { background: #8a5fb0; } .av4 { background: #c0862d; } .av5 { background: #3e8f9e; }
+.av6 { background: #a24f86; } .av7 { background: #6b7a3c; } .av8 { background: #c06a3e; }
+.av9 { background: #546478; } .av10 { background: #2f7f5f; } .av11 { background: #9b4545; }
+
+/* --- the foot */
+.copyright { margin-top: 10px; color: #000; font-size: 11px; text-align: center; line-height: 1.7; }
+.yyfoot-theme { margin-bottom: 6px; }
+.themepicker { display: inline-flex; align-items: center; gap: 4px; }
+.themepicker select, .themepicker .button { font-size: 11px; }
+
+/* --- narrow screens */
+@media (max-width: 760px) {
+	body.yabb { padding: 6px 0; }
+	#container { width: auto; margin: 0 6px; }
+	.yyheader tr, .yyheader td { display: block; width: auto; }
+	.yywelcome { padding-top: 4px !important; }
+	.yylogo-name { font-size: 20px; }
+	.yyboards th.num, .yyboards td.num { display: none; }
+	.yyboards td.last { width: 34%; }
+	.yytopics .micon, .yytopics th.starter, .yytopics td.starter, .yytopics th.num, .yytopics td.num { display: none; }
+	.yytopics th[colspan] { display: none; }
+	.yytitle th.author { display: none; }
+	.yypost, .yypost tbody, .yypost tr, .yypost td { display: block; width: auto !important; }
+	.yypost td.poster { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; padding-bottom: 0 !important; }
+	.yypic { order: -1; margin: 0; }
+	.yypic .avatar.large { width: 32px; height: 32px; font-size: 15px; }
+	.yyposts { margin: 0; }
+	.yymsghead { flex-wrap: wrap; }
+	.yycols > div:first-child { flex-basis: 100%; }
+	.yyform td.label, .yyprofile td.label { width: 32%; }
+	.field { grid-template-columns: 1fr; }
+}

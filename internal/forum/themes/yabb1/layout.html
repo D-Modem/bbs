@@ -1,0 +1,51 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.Title}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/{{.Theme}}.css">
+</head>
+<body class="yabb">
+<div id="container">
+<table class="bordercolor yyheader">
+  <tr>
+    <td class="windowbg2 yylogo"><a href="/forum/"><span class="yylogo-name">{{.BBS}}</span><span class="yylogo-sub">forum</span></a></td>
+    <td class="windowbg2 yywelcome">
+      {{if .User}}Hey, <b>{{.User.Name}}</b>, you have <a href="/forum/search">new posts</a> to read.{{else}}Welcome, Guest. Please <a href="/forum/login">login</a>{{if .Register}} or <a href="/forum/register">register</a>{{end}}.{{end}}<br>
+      <span class="yytime">{{template "yydate" .Now}}</span>
+      <div class="yynews"><b>News:</b> Dial in, log on, say hello.</div>
+    </td>
+  </tr>
+  <tr>
+    <td class="catbg yymenu" colspan="2">
+      <a href="/forum/">Home</a><span class="menusep"> | </span><a href="/forum/search">Search</a><span class="menusep"> | </span><a href="/forum/online">Members</a>{{if .Terminal}}<span class="menusep"> | </span><a href="/terminal">Terminal</a>{{end}}{{if .User}}<span class="menusep"> | </span><a href="/forum/user/{{path .User.Name}}">Profile</a><span class="menusep"> | </span><form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Logout</button></form>{{else}}<span class="menusep"> | </span><a href="/forum/login">Login</a>{{if .Register}}<span class="menusep"> | </span><a href="/forum/register">Register</a>{{end}}{{end}}
+    </td>
+  </tr>
+</table>
+{{if and (eq .Notice "welcome") .User}}<div class="yynotice"><b>Registration successful.</b> Welcome to {{.BBS}}, {{.User.Name}}.</div>{{end}}
+<div id="yymain">
+{{end}}
+
+{{define "crumbs"}}<div class="yytree nav">
+  <div class="yytree-row"><span class="ficon open"></span> {{if .Crumbs}}<a href="/forum/" class="nav">{{.BBS}}</a>{{else}}<b>{{.BBS}}</b>{{end}}</div>
+  {{range $i, $c := .Crumbs}}<div class="yytree-row d{{add $i 1}}"><span class="tline"></span><span class="ficon open"></span> {{if $c.URL}}<a href="{{$c.URL}}" class="nav">{{$c.Name}}</a>{{else}}<b>{{$c.Name}}</b>{{end}}</div>{{end}}
+</div>{{end}}
+
+{{define "foot"}}
+</div>
+<div class="copyright">
+  <div class="yyfoot-theme">{{template "themepicker" .}}</div>
+  <a href="/forum/online">Who's online</a>{{if .Terminal}} | <a href="/terminal">Web terminal</a>{{end}}<br>
+  {{.BBS}} &raquo; Powered by bbs-sec
+</div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}<span class="yypages"><b>Pages:</b> {{$cur := .Cur}}{{$p := .}}{{if gt .Total 1}}{{range .Shown}}{{if eq . 0}}&#8230; {{else if eq . $cur}}[<b>{{.}}</b>] {{else}}<a href="{{$p.URL .}}">{{.}}</a> {{end}}{{end}}{{else}}[<b>1</b>]{{end}}</span>{{end}}
+
+{{define "yyrank"}}{{if .Sysop}}Administrator{{else if ge .Posts 500}}Forum God{{else if ge .Posts 250}}Senior Member{{else if ge .Posts 100}}Full Member{{else if ge .Posts 50}}Junior Member{{else}}Newbie{{end}}{{end}}
+{{define "yystars"}}<span class="yystars" title="{{template "yyrank" .}}">{{if .Sysop}}&#9733;&#9733;&#9733;&#9733;&#9733;{{else if ge .Posts 500}}&#9733;&#9733;&#9733;&#9733;&#9733;{{else if ge .Posts 250}}&#9733;&#9733;&#9733;&#9733;{{else if ge .Posts 100}}&#9733;&#9733;&#9733;{{else if ge .Posts 50}}&#9733;&#9733;{{else}}&#9733;{{end}}</span>{{end}}
+{{define "yydate"}}{{yabbdate .}}{{end}}

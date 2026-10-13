@@ -27,6 +27,8 @@ var funcs = template.FuncMap{
 	"vbtime":    func(t time.Time) string { return t.Format("03:04 PM") },
 	"smfdate":   func(t time.Time) string { return t.Format("January 02, 2006, 03:04:05 PM") },
 	"ymd":       func(t time.Time) string { return t.Format("2006-01-02") },
+	"yabbdate":  func(t time.Time) string { return t.Format("01/02/06 at 15:04:05") },
+	"yabb2date": yabb2Date,
 	"mod5":      func(n int) int { return n % 5 },
 	"shortdate": func(t time.Time) string { return t.Format("Jan. 02, 2006") },
 	"clock":     func(t time.Time) string { return t.Format("03:04 PM") },
@@ -312,3 +314,20 @@ func newPages(base string, count, cur int) pages {
 }
 
 func urlEscape(s string) string { return url.QueryEscape(s) }
+
+// yabb2Date writes a time as YaBB 2 did by default: "Oct 12th, 2026, 11:12pm".
+func yabb2Date(t time.Time) string {
+	d := t.Day()
+	suffix := "th"
+	if d < 11 || d > 13 {
+		switch d % 10 {
+		case 1:
+			suffix = "st"
+		case 2:
+			suffix = "nd"
+		case 3:
+			suffix = "rd"
+		}
+	}
+	return fmt.Sprintf("%s %d%s, %d, %s", t.Format("Jan"), d, suffix, t.Year(), t.Format("3:04pm"))
+}

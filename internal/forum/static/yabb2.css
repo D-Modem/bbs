@@ -1,0 +1,151 @@
+/*
+ * The forum's YaBB 2 theme: YaBB 2.0-2.4's default template over the
+ * yabb1 theme's pages, with a head and board index of its own: a cool
+ * blue-white page, the tables in grey frames with a pale ledge beneath
+ * (the "seperator"), a bright blue title row carrying the greeting and a
+ * search box over the board's name, the time and the news, the way here
+ * as one line of bold blue links split by single angles, category rows
+ * in pale blue with white letters and a speech balloon, rounded lamps
+ * with a tick (orange when there is something new, blue when not), the
+ * last post before the counts, posts with their header and foot ruled
+ * off in pale blue, smaller grey message text, and the little validator
+ * buttons at the foot.  Colors follow YaBB 2.1's default.css; the CSS is
+ * our own and no images are taken.
+ */
+@import url("yabb1.css");
+
+:root {
+	--page: #f2f6f9;
+	--grid: #b1bdc9;
+	--frame: #bbbbbb;
+	--wb: #dde3eb;
+	--wb2: #fefefe;
+	--title: #6699cc;
+	--title-text: #fff;
+	--cat: #adc7e1;
+	--cat-text: #fff;
+	--text: #304b58;
+	--link: #62686f;
+	--link-hover: #000;
+	--nav: #5488c1;
+	--nav-hover: #cc3333;
+	--divider: #a7b8cc;
+	--quote: #e8ebef;
+	--quote-line: #34689a;
+	--msg: #62686f;
+	--msglink: #900000;
+}
+
+body.yabb2 { padding-top: 5px; font-size: 12px; }
+.yabb2 #container { width: 90%; }
+.yabb2 a:hover { border: 0; text-decoration: underline; }
+.yabb2 table.bordercolor { margin-bottom: 0; font-size: 12px; }
+.yabb2 .titlebg, .yabb2 .catbg { font-size: 13px; }
+.yabb2 .catbg { text-shadow: 0 0 2px #6d8eb0; }
+.yabb2 .catbg a:link, .yabb2 .catbg a:visited, .yabb2 .titlebg a:link, .yabb2 .titlebg a:visited { color: #fff; }
+
+/* grey frames with a pale ledge, as YaBB 2 wrapped its tables */
+.seperator, .boardcontainer { margin-bottom: 18px; border-bottom: 3px solid #eee; border-left: 1px solid #eee; background: var(--frame); }
+.seperator > table.bordercolor, .boardcontainer > table.bordercolor { background: var(--frame); }
+.seperator:has(+ .boardcontainer) { margin-bottom: 0; border-bottom: 0; }
+
+/* the head */
+.yyhead2 { margin-bottom: 26px; }
+.yyheadtable { width: 100%; border-spacing: 1px; }
+.yyheadtable td { padding: 2px 4px; }
+td.yywelcbar { display: flex; align-items: center; justify-content: center; position: relative; min-height: 28px; }
+.headerwelc { color: #fff; font-size: 13px; font-weight: bold; text-align: center; }
+.headerwelc a:link, .headerwelc a:visited { color: #fff; }
+.yysearchbox { position: absolute; right: 4px; display: flex; gap: 2px; }
+.yysearchbox input { width: 120px; font-size: 10px; }
+.yysearchbox button { font-size: 10px; padding: 0 4px; }
+.yylogorow { padding: 6px 8px !important; }
+.yylogobox { display: flex; align-items: flex-start; gap: 20px; }
+.yylogo2, .yylogo2:hover { flex: 0 0 auto; width: 480px; max-width: 50%; padding: 4px 0 6px; border: 0; }
+.yylogo2 .yylogo-name { color: #34689a; font: bold 30px/1 "Trebuchet MS", Verdana, sans-serif; letter-spacing: -1px; text-shadow: 2px 2px 0 #d5e2ef; }
+.yylogo2 .yylogo-sub { margin-top: 4px; color: #6699cc; font: bold 10px Verdana, sans-serif; letter-spacing: 1px; text-transform: none; }
+.yytimenews { padding: 10px 0 0 20px; font-size: 12px; }
+.yytimenews .yytime { font-weight: bold; font-size: 12px; }
+.yytimenews .yynews { margin-top: 5px; font-size: 12px; }
+.yymenu2 { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--divider); text-align: center; font-size: 11px; }
+.yymenu2 > * + *::before { content: "|"; margin: 0 7px; color: var(--divider); font-weight: normal; }
+.yymenu2 a:link, .yymenu2 a:visited, .yymenu2 .linkish { color: #000; font-weight: bold; font-size: 11px; }
+.yymenu2 a.selected { color: var(--nav); }
+
+/* the way here */
+.navbarcontainer { margin: 0 0 6px; }
+.yabb2 .nav { font-size: 13px; font-weight: bold; color: var(--nav); }
+.yabb2 .nav a:link, .yabb2 .nav a:visited { color: var(--nav); }
+.yabb2 .nav a:hover { color: var(--nav-hover); }
+
+/* lamps: rounded squares with a tick, orange for new */
+.yylamp { position: relative; display: inline-block; width: 18px; height: 18px; vertical-align: middle; border: 1px solid #9696a2; border-radius: 4px; background: linear-gradient(#f4f8fc, #dde8f3); }
+.yylamp::after { content: ""; position: absolute; left: 5px; top: 1px; width: 5px; height: 10px; border: solid #34699e; border-width: 0 3px 3px 0; transform: rotate(40deg); }
+.yylamp.on::after { border-color: #e39a1c; }
+.yyicon.balloon { position: relative; width: 18px; height: 12px; margin-bottom: 3px; border-radius: 50%; background: radial-gradient(ellipse at 40% 35%, #9cc0e6, #4f86c0); box-shadow: 0 0 0 1px #fff; }
+.yyicon.balloon::after { content: ""; position: absolute; left: 3px; bottom: -4px; border: 3px solid transparent; border-top-color: #4f86c0; border-left-color: #4f86c0; }
+
+/* the board index */
+.yyboards { table-layout: fixed; }
+.yyboards col.c-icon { width: 5%; }
+.yyboards col.c-info { width: 55%; }
+.yyboards col.c-last { width: 24%; }
+.yyboards col.c-num { width: 8%; }
+.yyboards td.info { color: var(--text); overflow-wrap: anywhere; }
+.yyboards td.info .boardname { font-size: 12px; }
+.yyboards td.last { padding-left: 12px; overflow-wrap: anywhere; }
+.yyboards .num { width: auto; }
+.yyboards td.icon { width: auto; }
+.yabb2 .yypostbtns .menusep, .yabb2 .yybuttons .menusep { color: var(--divider); }
+.yylegendbar { margin: 0; }
+.yyinfo td.icon { width: 5%; }
+.yyinfo th.titlebg { text-align: center; }
+
+/* topic lists and bars */
+.yabb2 .yybar td.catbg { font-size: 12px; }
+.yabb2 .yybar + * { margin-top: 1px; }
+.yabb2 .yybuttons a:link, .yabb2 .yybuttons a:visited, .yabb2 .yybuttons .linkish { color: #fff; }
+.yabb2 table.yytopics { margin-top: 1px; }
+.yabb2 .yylegend-topics { margin-top: 6px; }
+.yabb2 .ficon.board::after { display: none; }
+
+/* the topic: a title row, and posts ruled within */
+.yabb2 .yytitle th.author { display: none; }
+.yabb2 table.yytitle { margin-top: 1px; }
+.yabb2 table.yypost { margin-top: 1px; border: 1px solid var(--frame); }
+.yabb2 .yypost td.poster { width: 140px; }
+.yabb2 .yymsghead { padding-bottom: 4px; border-bottom: 1px solid var(--divider); }
+.yabb2 .yypost hr.hr { display: none; }
+.yabb2 .yymessage { padding-top: 6px; color: var(--msg); font-size: 11px; }
+.yabb2 .yymessage a:link, .yabb2 .yymessage a:visited { color: var(--msglink); }
+.yabb2 .yysubj { font-size: 12px; }
+.yabb2 .yymsgfoot { padding-top: 5px; border-top: 1px solid var(--divider); }
+.yabb2 .yystars { color: #3f4fc2; text-shadow: none; font-size: 12px; }
+.yabb2 .yyname { font-size: 12px; }
+.yabb2 blockquote.quote { width: 90%; margin-left: 0; padding: 4px; border-color: var(--quote-line); font: 11px Verdana, Helvetica, Arial, sans-serif; color: #000; }
+.yabb2 table.yyform { margin-top: 18px; }
+.yabb2 .box { background: var(--frame); border-bottom: 3px solid #eee; }
+.yabb2 .box > h2.maintitle { color: #fff; }
+.yabb2 table.board th { color: #fff; text-shadow: 0 0 2px #6d8eb0; }
+
+/* the foot: the little validator buttons */
+.yabb2 .copyright { color: var(--text); }
+.yybadges { display: flex; justify-content: center; gap: 4px; margin-top: 8px; }
+.yybadges span { width: 50px; padding: 1px 0; border: 1px solid; border-color: #fff #889 #889 #fff; background: linear-gradient(#f4f6f8, #cfd6de); color: #456; font: bold 8px/11px Verdana, sans-serif; letter-spacing: 1px; text-align: center; }
+
+@media (max-width: 760px) {
+	.yabb2 #container { width: auto; }
+	td.yywelcbar { flex-direction: column; gap: 4px; }
+	.yysearchbox { position: static; }
+	.yylogobox { flex-direction: column; gap: 4px; }
+	.yylogo2, .yylogo2:hover { width: auto; max-width: none; }
+	.yylogo2 .yylogo-name { font-size: 22px; }
+	.yytimenews { padding: 0; }
+	.yyboards col.c-num { width: 0; }
+	.yyboards th.num, .yyboards td.num { display: none; }
+	.yyboards col.c-icon { width: 30px; }
+	.yyboards col.c-info { width: auto; }
+	.yyboards col.c-last { width: 38%; }
+	.yyboards td.last { padding-left: 4px; }
+	.yabb2 .yypost td.poster { width: auto; }
+}

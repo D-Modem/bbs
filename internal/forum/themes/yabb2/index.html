@@ -1,0 +1,59 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+{{template "crumbs" .}}
+<div class="seperator">
+<table class="bordercolor yyboards yyboardhead">
+  <colgroup><col class="c-icon"><col class="c-info"><col class="c-last"><col class="c-num"><col class="c-num"></colgroup>
+  <thead><tr>
+    <th class="titlebg" colspan="2">Forum name</th>
+    <th class="titlebg last">Last post</th>
+    <th class="titlebg num">Topics</th>
+    <th class="titlebg num">Posts</th>
+  </tr></thead>
+</table>
+</div>
+{{range $c := .Body.Categories}}
+<div class="boardcontainer">
+<table class="bordercolor yyboards">
+  <colgroup><col class="c-icon"><col class="c-info"><col class="c-last"><col class="c-num"><col class="c-num"></colgroup>
+  <tr><td colspan="5" class="catbg yycat"><span class="yyicon balloon"></span> {{$c.Name}}</td></tr>
+  {{range $f := $c.Forums}}
+  <tr class="yyboard">
+    <td class="windowbg icon"><span class="yylamp{{if $f.Unread}} on{{end}}" title="{{if $f.Unread}}New Posts{{else}}No New Posts{{end}}"></span></td>
+    <td class="windowbg2 info"><a href="/forum/area/{{$f.Area.ID}}" class="boardname"><b>{{$f.Area.Name}}</b></a>{{if $f.Area.Description}}<div>{{$f.Area.Description}}</div>{{end}}<div class="small"><i>Moderator: N/A</i></div></td>
+    <td class="windowbg last small">{{with $f.Last}}<a href="/forum/post/{{.ID}}">{{template "yydate" .Created}}</a><br><b>Topic:</b> {{with $f.LastTopic}}<a href="/forum/topic/{{.ID}}">{{truncate .Subject 25}}</a>{{else}}<a href="/forum/post/{{.ID}}">{{truncate .Subject 25}}</a>{{end}}<br><b>by:</b> {{.From}}{{else}}N/A{{end}}</td>
+    <td class="windowbg2 num">{{num $f.Topics}}</td>
+    <td class="windowbg2 num">{{num $f.Area.Messages}}</td>
+  </tr>
+  {{end}}
+</table>
+</div>
+{{end}}
+{{if .User}}
+<div class="seperator">
+<table class="bordercolor yylegendbar"><tr><td class="catbg"><div class="yylegend">
+  <span class="small"><span class="yylamp on"></span> New Posts &nbsp; <span class="yylamp"></span> No New Posts</span>
+  <span class="small"><a href="/forum/search">Show new posts</a></span>
+</div></td></tr></table>
+</div>
+{{end}}
+
+<div class="seperator">
+<table class="bordercolor yyinfo">
+  <tr><th class="titlebg" colspan="2">Info Center</th></tr>
+  <tr><td class="catbg" colspan="2">Forum Statistics</td></tr>
+  <tr>
+    <td class="windowbg icon"><span class="yyicon info"></span></td>
+    <td class="windowbg2 small"><div class="yycols">
+      <div><b>{{num $st.Posts}} Posts</b> in <b>{{num $st.Topics}} Topics</b>.</div>
+      <div>{{num $st.Members}} Members.{{with $st.Newest}}<br>Latest Member: <a href="/forum/user/{{path .Name}}"><b>{{.Name}}</b></a>{{end}}</div>
+    </div></td>
+  </tr>
+  <tr><td class="catbg" colspan="2">Users Online</td></tr>
+  <tr>
+    <td class="windowbg icon"><span class="yyicon online"></span></td>
+    <td class="windowbg2 small">Users: {{len .Body.Online}}{{if .Body.Online}}<br>{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a>{{end}}{{end}}<br>Guests: 0</td>
+  </tr>
+</table>
+</div>
+{{template "foot" .}}{{end}}

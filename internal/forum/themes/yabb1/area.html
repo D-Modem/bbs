@@ -1,0 +1,40 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+{{template "crumbs" .}}
+<table class="bordercolor yybar"><tr><td class="catbg">
+  {{template "pages" $b.Pages}}
+  <span class="yybuttons">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new">Start new topic</a>{{end}}{{if .User}}{{if $b.CanPost}}<span class="menusep"> | </span>{{end}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark as read</button></form>{{end}}</span>
+</td></tr></table>
+<table class="bordercolor yytopics">
+  <thead><tr>
+    <th class="titlebg" colspan="2">&nbsp;</th>
+    <th class="titlebg subject">Subject</th>
+    <th class="titlebg starter">Started by</th>
+    <th class="titlebg num">Replies</th>
+    <th class="titlebg last">Last post</th>
+  </tr></thead>
+  <tbody>
+  {{range $t := $b.Topics}}
+  <tr>
+    <td class="windowbg2 icon"><span class="ficon{{if ge $t.Replies 25}} veryhot{{else if ge $t.Replies 15}} hot{{end}}"></span></td>
+    <td class="windowbg2 icon micon"><span class="yyicon xx"></span></td>
+    <td class="windowbg subject">{{if $t.Unread}}<a href="/forum/post/{{$t.Last.ID}}" class="yynew">new</a> {{end}}<a href="/forum/topic/{{$t.Root.ID}}"><b>{{$t.Root.Subject}}</b></a>{{if gt $t.Pages 1}} <span class="small">&laquo; {{range (seq $t.Pages)}}<a href="/forum/topic/{{$t.Root.ID}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a> {{end}}&raquo;</span>{{end}}</td>
+    <td class="windowbg2 starter small">{{$t.Root.From}}</td>
+    <td class="windowbg num">{{num $t.Replies}}</td>
+    <td class="windowbg2 last small"><a href="/forum/post/{{$t.Last.ID}}">{{template "yydate" $t.Last.Created}}</a><br>by {{$t.Last.From}}</td>
+  </tr>
+  {{else}}
+  <tr><td class="windowbg2 none" colspan="6">There are no topics in this board yet.</td></tr>
+  {{end}}
+  </tbody>
+</table>
+<table class="bordercolor yybar"><tr><td class="catbg">
+  {{template "pages" $b.Pages}}
+  <span class="yybuttons">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new">Start new topic</a>{{end}}</span>
+</td></tr></table>
+<div class="yylegend-topics small">
+  <span><span class="ficon"></span> Normal Topic</span>
+  <span><span class="ficon hot"></span> Hot Topic (More than 15 Replies)</span>
+  <span><span class="ficon veryhot"></span> Very Hot Topic (More than 25 Replies)</span>
+</div>
+{{template "foot" .}}{{end}}

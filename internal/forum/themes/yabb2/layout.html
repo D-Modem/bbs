@@ -1,0 +1,54 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.Title}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/{{.Theme}}.css">
+</head>
+<body class="yabb yabb2">
+<div id="container">
+<div class="seperator yyhead2">
+<table class="yyheadtable">
+  <tr>
+    <td class="titlebg yywelcbar">
+      <div class="headerwelc">{{if .User}}Hey, <a href="/forum/user/{{path .User.Name}}">{{.User.Name}}</a>, you have <a href="/forum/search">new posts</a> to read.{{else}}Welcome, Guest. Please <a href="/forum/login">login</a>{{if .Register}} or <a href="/forum/register">register</a>{{end}}.{{end}}</div>
+      <form method="get" action="/forum/search" class="yysearchbox"><input type="search" name="q" aria-label="Search" placeholder="Search"><button>Search</button></form>
+    </td>
+  </tr>
+  <tr>
+    <td class="windowbg2 yylogorow">
+      <div class="yylogobox">
+        <a href="/forum/" class="yylogo2"><span class="yylogo-name">{{.BBS}}</span><span class="yylogo-sub">Yet another bulletin board</span></a>
+        <div class="yytimenews">
+          <div class="yytime">{{template "yydate" .Now}}</div>
+          <div class="yynews"><b>News:</b> Dial in, log on, say hello.</div>
+        </div>
+      </div>
+      <div class="yymenu2">
+        <a href="/forum/"{{if eq .Page "index.html"}} class="selected"{{end}}>Home</a><a href="/forum/search"{{if eq .Page "search.html"}} class="selected"{{end}}>Search</a><a href="/forum/online"{{if eq .Tab "online"}} class="selected"{{end}}>Members</a>{{if .Terminal}}<a href="/terminal">Terminal</a>{{end}}{{if .User}}<a href="/forum/user/{{path .User.Name}}"{{if eq .Page "profile.html"}} class="selected"{{end}}>Profile</a><form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Logout</button></form>{{else}}<a href="/forum/login">Login</a>{{if .Register}}<a href="/forum/register">Register</a>{{end}}{{end}}
+      </div>
+    </td>
+  </tr>
+</table>
+</div>
+{{if and (eq .Notice "welcome") .User}}<div class="yynotice"><b>Registration successful.</b> Welcome to {{.BBS}}, {{.User.Name}}.</div>{{end}}
+<div id="yymain">
+{{end}}
+
+{{define "crumbs"}}<div class="navbarcontainer"><span class="nav">{{if .Crumbs}}<a href="/forum/">{{.BBS}}</a>{{else}}{{.BBS}}{{end}}{{range .Crumbs}} &rsaquo; {{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}{{end}}</span></div>{{end}}
+
+{{define "foot"}}
+</div>
+<div class="copyright">
+  <div class="yyfoot-theme">{{template "themepicker" .}}</div>
+  <a href="/forum/online">Who's online</a>{{if .Terminal}} | <a href="/terminal">Web terminal</a>{{end}}<br>
+  {{.BBS}} &raquo; Powered by bbs-sec
+  <div class="yybadges"><span>XHTML</span><span>CSS</span><span>Go</span></div>
+</div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "yydate"}}{{yabb2date .}}{{end}}

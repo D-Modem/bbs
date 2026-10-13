@@ -1,0 +1,47 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+{{template "crumbs" .}}
+<table class="bordercolor yyboards">
+  <thead><tr>
+    <th class="titlebg" colspan="2">Forum name</th>
+    <th class="titlebg num">Topics</th>
+    <th class="titlebg num">Posts</th>
+    <th class="titlebg last">Last post</th>
+  </tr></thead>
+  {{range $c := .Body.Categories}}
+  <tbody>
+    <tr><td colspan="5" class="catbg yycat">{{$c.Name}}</td></tr>
+    {{range $f := $c.Forums}}
+    <tr class="yyboard">
+      <td class="windowbg icon"><span class="ficon board{{if $f.Unread}} on{{end}}" title="{{if $f.Unread}}New Posts{{else}}No New Posts{{end}}"></span></td>
+      <td class="windowbg2 info"><a href="/forum/area/{{$f.Area.ID}}" class="boardname"><b>{{$f.Area.Name}}</b></a>{{if $f.Area.Description}}<div class="small">{{$f.Area.Description}}</div>{{end}}<div class="small"><i>Moderator: N/A</i></div></td>
+      <td class="windowbg num">{{num $f.Topics}}</td>
+      <td class="windowbg num">{{num $f.Area.Messages}}</td>
+      <td class="windowbg2 last small">{{with $f.Last}}<a href="/forum/post/{{.ID}}">{{template "yydate" .Created}}</a><br>by {{.From}}{{else}}N/A{{end}}</td>
+    </tr>
+    {{end}}
+  </tbody>
+  {{end}}
+  {{if .User}}<tfoot><tr><td colspan="5" class="catbg"><div class="yylegend">
+    <span class="small"><span class="ficon board on"></span> New Posts &nbsp; <span class="ficon board"></span> No New Posts</span>
+    <span class="small"><a href="/forum/search">Show new posts</a></span>
+  </div></td></tr></tfoot>{{end}}
+</table>
+
+<table class="bordercolor yyinfo">
+  <tr><th class="titlebg" colspan="2">Info Center</th></tr>
+  <tr><td class="catbg" colspan="2">Forum Statistics</td></tr>
+  <tr>
+    <td class="windowbg icon"><span class="yyicon info"></span></td>
+    <td class="windowbg2 small"><div class="yycols">
+      <div>Total Topics: <b>{{num $st.Topics}}</b> &nbsp; - &nbsp; Total Posts: <b>{{num $st.Posts}}</b></div>
+      <div>Total Members: <a href="/forum/online"><b>{{num $st.Members}}</b></a>{{with $st.Newest}}<br>Newest Member: <a href="/forum/user/{{path .Name}}"><b>{{.Name}}</b></a>{{end}}</div>
+    </div></td>
+  </tr>
+  <tr><td class="catbg" colspan="2">Users online</td></tr>
+  <tr>
+    <td class="windowbg icon"><span class="yyicon online"></span></td>
+    <td class="windowbg2 small">0 Guests, {{len .Body.Online}} Users{{if .Body.Online}}<br>{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a>{{end}}{{end}}</td>
+  </tr>
+</table>
+{{template "foot" .}}{{end}}

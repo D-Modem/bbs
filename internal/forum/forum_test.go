@@ -429,6 +429,9 @@ func TestThemes(t *testing.T) {
 			"pun12":  {{"postleft", "Quick post", "Post reply", "/forum/static/pun12.css"}, {"Board information", "Total number of registered users", "You are not logged in."}},
 			"flux15": {{"postleft", "Quick post", "Post reply", "/forum/static/flux15.css"}, {"Board information", "You are not logged in.", "/forum/static/flux15.css"}},
 			"pun14":  {{"post-author", "Quick reply to", "entry-content", "/forum/static/pun14.css"}, {"Forum statistics", "Currently online", "brd-navlinks"}},
+			"yabb1":  {{"Reply #1 on:", "Post reply", `class="bordercolor yypost`, "/forum/static/yabb1.css"}, {"Info Center", "Welcome, Guest. Please", "yytree", "/forum/static/yabb1.css"}},
+			"yabb2":  {{"Reply #1 on:", "navbarcontainer", "/forum/static/yabb2.css"}, {"Info Center", "boardcontainer", "Welcome, Guest. Please", "/forum/static/yabb2.css"}},
+			"yabb25": {{`class="userinfo"`, "Reply #1 - ", "Quick Reply", "/forum/static/yabb25.css"}, {"Forum Statistics", "tabtitle", "Welcome, <b>Guest</b>", "/forum/static/yabb25.css"}},
 			"smf1":   {{"Author", "Quick Reply", "(Read ", "Reply #1 on:"}, {"Info Center", "Forum Stats", "Hello <em>Guest</em>", `class="board_icon`}},
 			"smf20":  {{"<span class=\"author\">Author</span> Topic: ", "Quick Reply", `class="post_wrapper"`, "Reply #1 on:"}, {"Info Center", "Users Online", "Login with username and password", "/forum/static/smf20.css"}},
 			"smf21":  {{"<span class=\"author\">Author</span> Topic: ", `class="post_wrapper"`, "/forum/static/smf21.css"}, {"Info Center", `id="top_info"`, "/forum/static/smf21.css"}},
@@ -466,6 +469,11 @@ func TestThemeLineage(t *testing.T) {
 		if th.Parent != "" && !KnownTheme(th.Parent) {
 			t.Errorf("%s: no parent %s", th.Name, th.Parent)
 		}
+		if th.Name == "yabb25" {
+			if got := strings.Join(lineage(th), " "); got != "yabb1 yabb2 yabb25" {
+				t.Errorf("yabb25's lineage: %s", got)
+			}
+		}
 		if th.Name == "phpbb33" {
 			if got := strings.Join(lineage(th), " "); got != "phpbb31 phpbb32 phpbb33" {
 				t.Errorf("phpbb33's lineage: %s", got)
@@ -491,6 +499,22 @@ func TestAgo(t *testing.T) {
 	} {
 		if got := ago(c.t); got != c.want {
 			t.Errorf("ago(%v) = %q, want %q", c.t, got, c.want)
+		}
+	}
+}
+
+func TestYabb2Date(t *testing.T) {
+	for _, c := range []struct {
+		day  int
+		want string
+	}{
+		{1, "Oct 1st, 2026, 11:12pm"}, {2, "Oct 2nd, 2026, 11:12pm"}, {3, "Oct 3rd, 2026, 11:12pm"},
+		{4, "Oct 4th, 2026, 11:12pm"}, {11, "Oct 11th, 2026, 11:12pm"}, {12, "Oct 12th, 2026, 11:12pm"},
+		{13, "Oct 13th, 2026, 11:12pm"}, {21, "Oct 21st, 2026, 11:12pm"}, {22, "Oct 22nd, 2026, 11:12pm"},
+		{23, "Oct 23rd, 2026, 11:12pm"}, {31, "Oct 31st, 2026, 11:12pm"},
+	} {
+		if got := yabb2Date(time.Date(2026, 10, c.day, 23, 12, 0, 0, time.UTC)); got != c.want {
+			t.Errorf("yabb2Date(day %d) = %q, want %q", c.day, got, c.want)
 		}
 	}
 }

@@ -1,0 +1,23 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+{{template "crumbs" .}}
+<table class="bordercolor yyprofile">
+  <tr><th class="titlebg" colspan="2"><span class="yyicon profile"></span> View Profile: {{$u.Name}}</th></tr>
+  <tr><td class="windowbg label"><b>Name:</b></td><td class="windowbg">{{$u.Name}}</td></tr>
+  <tr><td class="windowbg label"><b>Posts:</b></td><td class="windowbg">{{num $u.Posts}}</td></tr>
+  <tr><td class="windowbg label"><b>Position:</b></td><td class="windowbg">{{template "yyrank" $u}} {{template "yystars" $u}}</td></tr>
+  <tr><td class="windowbg label"><b>Date Registered:</b></td><td class="windowbg">{{template "yydate" $u.Created}}</td></tr>
+  <tr><td class="windowbg label"><b>Last visit:</b></td><td class="windowbg">{{template "yydate" $u.LastLogin}}</td></tr>
+  <tr><td class="windowbg label"><b>Calls:</b></td><td class="windowbg">{{num $u.Logins}}</td></tr>
+  <tr><td class="windowbg label"><b>Location:</b></td><td class="windowbg">{{if $u.Location}}{{$u.Location}}{{else}}N/A{{end}}</td></tr>
+  <tr><td class="windowbg label"><b>Status:</b></td><td class="windowbg">{{if .Body.On}}Online{{range .Body.On}} (node {{.Num}} by {{.Via}}: {{.Activity}}){{end}}{{else}}Offline{{end}}</td></tr>
+  <tr><td class="windowbg2 label"><b>Personal Text:</b></td><td class="windowbg2">{{if $u.About}}{{$u.About}}{{else}}&nbsp;{{end}}</td></tr>
+  <tr><td class="windowbg2 label"><b>Picture:</b></td><td class="windowbg2">{{template "avatar" (av $u.Name "huge")}}</td></tr>
+  <tr><td class="catbg" colspan="2">Most recent posts</td></tr>
+  {{range $r := .Body.Recent}}
+  <tr><td class="windowbg label small">{{template "yydate" $r.Created}}</td><td class="windowbg2"><a href="/forum/post/{{$r.ID}}"><b>{{$r.Subject}}</b></a><div class="small">{{snippet $r.Body 160}}</div></td></tr>
+  {{else}}
+  <tr><td class="windowbg2" colspan="2">No posts yet.</td></tr>
+  {{end}}
+</table>
+{{template "foot" .}}{{end}}

@@ -1,0 +1,80 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<div class="displaycontainer yybar25"><div class="catbg">
+  {{template "pages" $b.Pages}}
+  <span class="yybuttons">{{if $b.CanPost}}<a href="#yyreply">Reply</a>{{end}}</span>
+</div></div>
+
+{{with $b.Poll}}
+<div class="displaycontainer yypoll25">
+  <div class="titlebg"><span class="yyicon poll"></span> Poll: {{$b.Root.Subject}}</div>
+  <div class="windowbg2 yypollbody">
+  {{if or .Voted (not $me)}}
+    <table class="yypollres">
+    {{range $i, $a := .Answers}}<tr><td class="answer"><b>{{$a.Text}}</b>{{if $a.Mine}} <span class="small">(your vote)</span>{{end}}</td><td class="bar"><meter min="0" max="100" value="{{$a.Pct}}"></meter></td><td class="votes small">{{$a.Count}} ({{$a.Pct}}%)</td></tr>{{end}}
+    </table>
+    <div class="small">Total votes: <b>{{.Total}}</b>{{if not $me}} &middot; <a href="/forum/login">Login</a> to vote{{end}}</div>
+  {{end}}
+  {{if $me}}
+    <form method="post" action="/forum/post/{{.ID}}/answer" class="pollvote">
+      <input type="hidden" name="csrf" value="{{$csrf}}">
+      <b>{{if .Voted}}Change your vote{{else}}Cast your vote{{end}}:</b>
+      {{range .Answers}}<label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label>{{end}}
+      <button class="button">Vote</button>
+    </form>
+  {{end}}
+  </div>
+</div>
+{{end}}
+
+<div class="displaycontainer yytitle25"><div class="titlebg"><span class="yydoc{{if ge $b.Count 16}} hot{{end}}"></span> {{$b.Root.Subject}} <span class="yyread">({{plural $b.Count "post" "posts"}})</span></div></div>
+
+{{range $b.Posts}}
+<div class="displaycontainer yypost25" id="entry{{.M.ID}}">
+  <div class="catbg yydate25"><span class="yydoc"></span> <b>{{if ne .Num 1}}Reply #{{add .Num -1}} - {{end}}</b><a href="/forum/post/{{.M.ID}}">{{template "yydate" .M.Created}}</a></div>
+  <div class="userinfo">
+    <div class="yyuserpic">{{template "avatar" (av .M.From "large")}}</div>
+    <div class="yyuserleft small">
+      <span class="yyname25">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"><b>{{.M.From}}</b></a>{{else}}<b>{{.M.From}}</b>{{end}}</span> &nbsp; <span class="useroffline">Offline</span><br>
+      {{if .Author}}<b>{{template "yyrank" .Author}}</b>{{if .Author.Location}}<br>{{.Author.Location}}{{end}}{{else}}Guest{{if .Where}}<br>{{.Where}}{{end}}{{end}}
+    </div>
+    {{if .Author}}<div class="yyuserright small">
+      <b>Posts: {{num .Author.Posts}}</b><br>
+      {{template "yystars" .Author}}
+    </div>{{end}}
+  </div>
+  <div class="{{if odd .Num}}windowbg{{else}}windowbg2{{end}} yybody25">
+    <div class="yypostbtns small">
+      {{if $b.CanPost}}<a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#yyreply" class="yybtn">Quote</a>{{end}}
+      {{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="yybtn">{{if .Liked}}Unlike{{else}}Like{{end}}</button></form>{{end}}
+      {{if .CanDelete}}<form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="yybtn">Delete</button></form>{{end}}
+    </div>
+    <div class="message yymessage">{{body .M.Body}}</div>
+    {{if .Likes}}<div class="small yylikes"><i>{{plural .Likes "member likes" "members like"}} this post.</i></div>{{end}}
+    <div class="dividertop yymsgfoot small"><a href="#">Back to top</a><span class="yyip"><span class="yyicon ip"></span> Logged</span></div>
+  </div>
+</div>
+{{end}}
+
+<div class="displaycontainer yybar25"><div class="catbg">
+  {{template "pages" $b.Pages}}
+  <span class="yybuttons">{{if $b.CanPost}}<a href="#yyreply">Reply</a>{{end}}</span>
+</div></div>
+
+{{if $b.CanPost}}
+<form method="post" action="/forum/topic/{{$b.Root.ID}}/reply" id="yyreply" class="displaycontainer yyform25">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  {{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+  <div class="titlebg">Quick Reply</div>
+  <div class="windowbg2 yyformbody">
+    <div class="small"><b>Subject:</b> Re: {{$b.Root.Subject}}</div>
+    <textarea name="body" rows="8" required aria-label="Message">{{$b.Quote}}</textarea>
+    <div class="small">Quote with &gt; at the start of a line.</div>
+    {{if $b.Aliases}}<label class="small"><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label>{{end}}
+    <div class="yyformfoot"><button class="button">Post</button></div>
+  </div>
+</form>
+{{else if not .User}}
+<p class="yynotice">Please <a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">login</a> to reply to this topic.</p>
+{{end}}
+{{template "foot" .}}{{end}}
