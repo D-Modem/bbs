@@ -1,0 +1,59 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.Title}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/{{.Theme}}.css">
+</head>
+<body>
+<div id="container">
+  <a name="top" id="top"></a>
+  <div id="header">
+    <div id="logo"><div class="wrapper">
+      <a href="/forum/" class="logo_link"><span class="logomark" aria-hidden="true"><b>my</b><i>BB</i></span><span class="logotext">{{.BBS}}</span></a>
+      <ul class="menu top_links">
+        <li><a href="/forum/search" class="search">Search</a></li>
+        <li><a href="/forum/online" class="memberlist">Member List</a></li>
+        {{if .Terminal}}<li><a href="/terminal" class="terminal">Terminal</a></li>{{end}}
+        <li><a href="/forum/online" class="help">Who's Online</a></li>
+      </ul>
+    </div></div>
+    <div id="panel">
+      <div class="upper"><div class="wrapper">
+        <form action="/forum/search" method="get" class="float_left search_form"><input type="search" name="q" class="textbox" placeholder="Search..." aria-label="Search"> <button class="button">Search</button></form>
+        {{if .User}}<span class="welcome">Welcome back, <strong>{{.User.Name}}</strong>. <form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="logout linkish">Log Out</button></form></span>
+        {{else}}<span class="welcome">Hello There, Guest! <a href="/forum/login" class="login">Login</a>{{if .Register}} <a href="/forum/register" class="register">Register</a>{{end}}</span>{{end}}
+      </div></div>
+      {{if .User}}<div class="lower"><div class="wrapper">
+        <ul class="menu panel_links"><li><a href="/forum/user/{{path .User.Name}}" class="usercp">User CP</a></li></ul>
+        <ul class="menu user_links"><li><a href="/forum/search">View New Posts</a></li><li><a href="/forum/search">View Today's Posts</a></li><li><span class="last_visit">Last visit: {{ago .User.LastLogin}}</span></li></ul>
+      </div></div>{{end}}
+    </div>
+  </div>
+  <div id="content"><div class="wrapper">
+    {{template "navigation" .}}
+    {{if and (eq .Notice "welcome") .User}}<div class="redirect_box"><strong>Thank you for registering, {{.User.Name}}.</strong> You are now logged in.</div>{{end}}
+{{end}}
+
+{{define "foot"}}
+  </div></div>
+  <div id="footer">
+    <div class="upper"><div class="wrapper">
+      <div class="theme">{{template "themepicker" .}}</div>
+      <ul class="menu bottom_links">
+        <li><a href="/forum/online">Who's Online</a></li>
+        {{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}
+        <li><a href="/forum/">{{.BBS}}</a></li>
+        <li><a href="#top">Return to Top</a></li>
+      </ul>
+    </div></div>
+    <div class="lower"><div class="wrapper">
+      <span id="current_time"><strong>Current time:</strong> {{vbdate .Now}}, {{vbtime .Now}}</span>
+      <span id="copyright">Powered By bbs-sec, {{.BBS}}</span>
+    </div></div>
+  </div>
+</div>
+</body>
+</html>
+{{end}}

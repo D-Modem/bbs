@@ -26,7 +26,7 @@ key_file = /etc/bbs/tls/key.pem
 | `rate`, `burst` | `10`, `20` | requests a second per token (per address without one), and how many may come at once |
 | `session_hours` | `24` | how long a login's token lasts |
 | `terminal` | `yes` | the web terminal page (below) |
-| `forum`, `forum_guests`, `forum_theme` | `yes`, `yes`, `ipb3` | the [web forum](Web-Forum), guests reading it, and its theme (`ipb3`, `ipb5`, `ipb4`, `ipb2`, `ipb1`, `ikon`, `vb6`, `vb5`, `vb4`, `vb3`, `vb2`, `vblite`, `xf23`, `xf2`, `xf1`, `smf30`, `smf21`, `smf20`, `smf1`, `phpbb33`, `phpbb32`, `phpbb31`, `phpbb30`, `phpbb2` or `phpbb1`) |
+| `forum`, `forum_guests`, `forum_theme` | `yes`, `yes`, `ipb3` | the [web forum](Web-Forum), guests reading it, and its theme (`ipb3`, `ipb5`, `ipb4`, `ipb2`, `ipb1`, `ikon`, `vb6`, `vb5`, `vb4`, `vb3`, `vb2`, `vblite`, `xf23`, `xf2`, `xf1`, `mybb18`, `mybb16`, `mybb12`, `smf30`, `smf21`, `smf20`, `smf1`, `phpbb33`, `phpbb32`, `phpbb31`, `phpbb30`, `phpbb2` or `phpbb1`) |
 
 The OpenAPI 3.1 description is at `/api/v1/openapi.json`.
 

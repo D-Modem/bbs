@@ -1,0 +1,39 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<table border="0" cellspacing="1" cellpadding="4" class="tborder">
+  <tr><td class="trow1 profile_head">
+    <table cellspacing="0" cellpadding="4" border="0" width="100%"><tr>
+      <td width="75%"><span class="largetext"><strong>{{$u.Name}}</strong></span><br><span class="smalltext">({{if $u.Sysop}}Administrator{{else}}{{group $u}}{{end}})<br>{{if .Body.On}}<strong class="online">Online</strong>{{else}}<span class="offline">Offline</span>{{end}}</span></td>
+      <td width="25%" align="right" valign="middle">{{template "avatar" (av $u.Name "huge")}}</td>
+    </tr></table>
+  </td></tr>
+</table>
+<br>
+<table width="100%" cellspacing="0" cellpadding="0" border="0" class="profile_cols"><tr>
+<td width="50%" valign="top">
+  <table border="0" cellspacing="1" cellpadding="4" class="tborder">
+    <tr><td colspan="2" class="thead"><strong>{{$u.Name}}'s Forum Info</strong></td></tr>
+    <tr><td class="trow1" width="40%"><strong>Joined:</strong></td><td class="trow1">{{vbdate $u.Created}}</td></tr>
+    <tr><td class="trow2"><strong>Last Visit:</strong></td><td class="trow2">{{vbdate $u.LastLogin}} {{vbtime $u.LastLogin}}</td></tr>
+    <tr><td class="trow1"><strong>Total Posts:</strong></td><td class="trow1">{{num $u.Posts}}</td></tr>
+    <tr><td class="trow2"><strong>Calls:</strong></td><td class="trow2">{{num $u.Logins}}</td></tr>
+    {{range .Body.On}}<tr><td class="trow1"><strong>Now:</strong></td><td class="trow1">node {{.Num}} by {{.Via}}: {{.Activity}}</td></tr>{{end}}
+  </table>
+</td>
+<td width="1%">&nbsp;</td>
+<td width="49%" valign="top">
+  <table border="0" cellspacing="1" cellpadding="4" class="tborder">
+    <tr><td colspan="2" class="thead"><strong>Additional Info About {{$u.Name}}</strong></td></tr>
+    <tr><td class="trow1" width="40%"><strong>Location:</strong></td><td class="trow1">{{$u.Location}}</td></tr>
+    <tr><td class="trow2"><strong>Interests:</strong></td><td class="trow2">{{$u.About}}</td></tr>
+  </table>
+</td>
+</tr></table>
+<br>
+<table border="0" cellspacing="1" cellpadding="4" class="tborder">
+  <tr><td colspan="2" class="thead"><strong>Latest Posts</strong></td></tr>
+  {{range .Body.Recent}}
+  <tr><td class="trow1" width="25%"><span class="smalltext">{{vbdate .Created}}, {{vbtime .Created}}</span></td><td class="trow1"><a href="/forum/post/{{.ID}}"><strong>{{.Subject}}</strong></a><div class="smalltext">{{snippet .Body 200}}</div></td></tr>
+  {{else}}<tr><td class="trow1" colspan="2">This user has not posted yet.</td></tr>{{end}}
+</table>
+{{template "foot" .}}{{end}}

@@ -1,0 +1,57 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.Title}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/{{.Theme}}.css">
+</head>
+<body>
+<div id="container">
+  <a name="top" id="top"></a>
+  <div id="header">
+    <div class="logo"><a href="/forum/"><span class="logomark" aria-hidden="true"><b>my</b><i>BB</i></span><span class="logotext">{{.BBS}}</span></a></div>
+    <div class="menu"><ul>
+      <li><a href="/forum/search"><span class="mi search" aria-hidden="true"></span>Search</a></li>
+      <li><a href="/forum/online"><span class="mi memberlist" aria-hidden="true"></span>Member List</a></li>
+      {{if .Terminal}}<li><a href="/terminal"><span class="mi terminal" aria-hidden="true"></span>Terminal</a></li>{{end}}
+      <li><a href="/forum/online"><span class="mi help" aria-hidden="true"></span>Who's Online</a></li>
+    </ul></div>
+    <hr class="hidden">
+    <div id="panel">
+      {{if .User}}
+      <span class="links"><a href="/forum/user/{{path .User.Name}}">User CP</a> | <form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Log Out</button></form></span>
+      Welcome back, <strong>{{.User.Name}}</strong>. You last visited: {{vbdate .User.LastLogin}}, {{vbtime .User.LastLogin}}<br>
+      <span class="smalltext"><a href="/forum/search">View New Posts</a> | <a href="/forum/search">View Today's Posts</a></span>
+      {{else}}
+      <span class="links"><a href="/forum/login">Login</a>{{if .Register}} | <a href="/forum/register">Register</a>{{end}}</span>
+      Hello There, Guest! (<a href="/forum/login">Login</a>{{if .Register}} &mdash; <a href="/forum/register">Register</a>{{end}})
+      {{end}}
+    </div>
+  </div>
+  <hr class="hidden">
+  <br class="clear">
+  <div id="content">
+    {{template "navigation" .}}
+    {{if and (eq .Notice "welcome") .User}}<div class="redirect_box"><strong>Thank you for registering, {{.User.Name}}.</strong> You are now logged in.</div>{{end}}
+{{end}}
+
+{{define "navigation"}}<div class="navigation"><a href="/forum/">{{.BBS}}</a>{{range .Crumbs}}{{if .URL}} <span class="nav_sep">/</span> <a href="{{.URL}}">{{.Name}}</a>{{end}}{{end}}{{range .Crumbs}}{{if not .URL}}<br><span class="nav_sep_active" aria-hidden="true"></span><span class="active">{{.Name}}</span>{{end}}{{end}}</div><br>{{end}}
+
+{{define "foot"}}
+  </div>
+  <div class="bottommenu">
+    <div class="float_right">{{template "themepicker" .}}</div>
+    <span class="smalltext"><a href="/forum/online">Who's Online</a> | <a href="/forum/">{{.BBS}}</a> | {{if .Terminal}}<a href="/terminal">Web Terminal</a> | {{end}}<a href="#top">Return to Top</a></span>
+  </div>
+  <hr class="hidden">
+  <div id="copyright">
+    <div id="debug">Current time: {{vbdate .Now}}, {{vbtime .Now}}</div>
+    Powered By bbs-sec<br>{{.BBS}}
+  </div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}{{$cur := .Cur}}{{$p := .}}<div class="pagination"><span class="pages">Pages ({{.Total}}):</span>{{if gt .Cur 1}} <a href="{{.URL .Prev}}" class="pagination_previous">&laquo; Previous</a>{{end}}{{range .Shown}}{{if eq . 0}} <span class="pagination_dots">...</span>{{else if eq . $cur}} <span class="pagination_current">{{.}}</span>{{else}} <a href="{{$p.URL .}}" class="pagination_page">{{.}}</a>{{end}}{{end}}{{if .Next}} <a href="{{.URL .Next}}" class="pagination_next">Next &raquo;</a>{{end}}</div>{{end}}{{end}}

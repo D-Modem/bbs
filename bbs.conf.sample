@@ -214,15 +214,16 @@ address = 127.0.0.1:2513
 ; the forum's theme until a caller chooses (at the foot of each page):
 ; ipb3 (in the manner of Invision Power Board 3), ipb5 (fresh, as Invision
 ; Community 5), ipb4 (modern, as Invision Community 4), ipb2 (classic, as
-; IPB 2), ipb1 (retro, as IPB 1), ikon (grey, as Ikonboard 2), vb6
-; (clean, as vBulletin 6), vb5 (connect, as vBulletin 5), vb4 (steel, as
-; vBulletin 4), vb3 (blue, as vBulletin 3), vb2 (purple, as vBulletin 2),
-; vblite (lavender, as vBulletin Lite), xf23 (light, as XenForo 2.3), xf2
-; (xen, as XenForo 2), xf1 (classic, as XenForo 1), smf30 (natural, as
-; Simple Machines Forum 3.0), smf21 (simple, as SMF 2.1), smf20 (curve, as SMF
-; 2.0), smf1 (core, as SMF 1), phpbb33, phpbb32, phpbb31 and phpbb30
-; (prosilver, as phpBB 3.3, 3.2, 3.1 and 3.0), phpbb2 (silver, as phpBB 2)
-; or phpbb1 (dark, as phpBB 1)
+; IPB 2), ipb1 (retro, as IPB 1), ikon (grey, as Ikonboard 2), vb6 (clean,
+; as vBulletin 6), vb5 (connect, as vBulletin 5), vb4 (steel, as vBulletin
+; 4), vb3 (blue, as vBulletin 3), vb2 (purple, as vBulletin 2), vblite
+; (lavender, as vBulletin Lite), xf23 (light, as XenForo 2.3), xf2 (xen, as
+; XenForo 2), xf1 (classic, as XenForo 1), mybb18 (flat, as MyBB 1.8),
+; mybb16 (classic, as MyBB 1.6), mybb12 (original, as MyBB 1.2), smf30
+; (natural, as Simple Machines Forum 3.0), smf21 (simple, as SMF 2.1), smf20
+; (curve, as SMF 2.0), smf1 (core, as SMF 1), phpbb33, phpbb32, phpbb31 and
+; phpbb30 (prosilver, as phpBB 3.3, 3.2, 3.1 and 3.0), phpbb2 (silver, as
+; phpBB 2) or phpbb1 (dark, as phpBB 1)
 ;forum_theme = ipb3
 
 ; Access levels: a user's level (0-255) gets what the [level] at or

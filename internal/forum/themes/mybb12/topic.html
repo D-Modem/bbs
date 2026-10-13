@@ -1,0 +1,80 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+{{template "pollbox" .}}
+<div class="float_left">{{template "pages" $b.Pages}}</div>
+<div class="float_right">{{if $b.CanPost}}<a href="#quickreply" class="button new_reply_button"><span>New Reply</span></a> <a href="/forum/area/{{$b.Area.ID}}/new" class="button new_thread_button"><span>Post Thread</span></a>{{end}}</div>
+<br class="clear">
+<table border="0" cellspacing="1" cellpadding="4" class="tborder postlist" style="clear: both;">
+  <tr><td class="thead" colspan="2"><div style="float: right;"><span class="smalltext"><strong><a href="/forum/area/{{$b.Area.ID}}">&laquo; {{$b.Area.Name}}</a></strong></span></div><div><strong>{{$b.Root.Subject}}</strong></div></td></tr>
+  {{range $b.Posts}}{{$alt := "trow1"}}{{if not (odd .Num)}}{{$alt = "trow2"}}{{end}}
+  <tr id="entry{{.M.ID}}">
+    <td class="{{$alt}} author_cell" width="155" valign="top">
+      <strong><span class="largetext">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</span></strong><br>
+      <span class="smalltext">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Senior Member{{else if ge .Author.Posts 50}}Member{{else}}Junior Member{{end}}{{else}}Unregistered{{end}}<br>
+      <span class="stars">{{if .Author}}{{if .Author.Sysop}}&#9733;&#9733;&#9733;&#9733;&#9733;{{else if ge .Author.Posts 100}}&#9733;&#9733;&#9733;{{else if ge .Author.Posts 50}}&#9733;&#9733;{{else}}&#9733;{{end}}{{end}}</span></span><br>
+      <span class="avatar_wrap">{{template "avatar" (av .M.From "large")}}</span><br>
+      {{if .Author}}<span class="smalltext">Posts: {{num .Author.Posts}}<br>Joined: {{monthyear .Author.Created}}{{if .Author.Location}}<br>{{.Author.Location}}{{end}}</span>{{else if .Where}}<span class="smalltext">{{.Where}}</span>{{end}}
+    </td>
+    <td class="{{$alt}}" valign="top">
+      <span class="smalltext"><span class="posticon" aria-hidden="true"></span><strong> {{.M.Subject}}</strong></span>
+      <div class="post_body"><p>{{body .M.Body}}</p></div>
+      {{if .Likes}}<div class="signature">{{plural .Likes "member likes" "members like"}} this post.</div>{{end}}
+    </td>
+  </tr>
+  <tr>
+    <td class="{{$alt}} post_date" height="18"><span class="smalltext">{{vbdate .M.Created}} {{vbtime .M.Created}}</span></td>
+    <td class="{{$alt}}" valign="middle" height="18"><div class="postbit_buttons">
+      <span class="author_buttons">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="postbit_find"><span>Find</span></a>{{end}}</span>
+      <span class="post_management_buttons">
+        {{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="postbit_like"><span>{{if .Liked}}Unlike{{else}}Like{{end}}</span></button></form>{{end}}
+        {{if .CanDelete}}<form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="postbit_qdelete"><span>Delete</span></button></form>{{end}}
+        {{if $b.CanPost}}<a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#quickreply" class="postbit_quote"><span>Quote</span></a>{{end}}
+      </span>
+    </div></td>
+  </tr>
+  {{end}}
+</table>
+<div class="float_left">{{template "pages" $b.Pages}}</div>
+<div class="float_right" style="margin-top: 4px;">{{if $b.CanPost}}<a href="#quickreply" class="button new_reply_button"><span>New Reply</span></a>{{end}}</div>
+<br class="clear">
+{{template "quickreply" .}}
+{{template "foot" .}}{{end}}
+
+{{define "pollbox"}}{{$b := .Body}}{{$me := .User}}{{with $b.Poll}}
+<table border="0" cellspacing="1" cellpadding="4" class="tborder pollbox">
+  <tr><td class="thead" colspan="4"><strong>Poll: {{$b.Root.Subject}}</strong></td></tr>
+  {{if or .Voted (not $me)}}
+  {{range $i, $a := .Answers}}<tr><td class="trow1" width="30%">{{$a.Text}}{{if $a.Mine}} <span class="smalltext">*</span>{{end}}</td><td class="trow1" width="50%"><meter min="0" max="100" value="{{$a.Pct}}"></meter></td><td class="trow1" width="10%" align="center">{{$a.Count}}</td><td class="trow1" width="10%" align="center">{{$a.Pct}}%</td></tr>{{end}}
+  <tr><td class="tfoot" align="right" colspan="2"><strong>Total</strong></td><td class="tfoot" align="center"><strong>{{.Total}} vote(s)</strong></td><td class="tfoot" align="center"><strong>100%</strong></td></tr>
+  {{end}}
+  {{if $me}}
+  <tr><td class="trow1" colspan="4"><form method="post" action="/forum/post/{{.ID}}/answer" class="pollvote">
+    <input type="hidden" name="csrf" value="{{$.CSRF}}">
+    {{range .Answers}}<label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label>{{end}}
+    <button class="button_input">{{if .Voted}}Change Vote{{else}}Vote!{{end}}</button>
+  </form></td></tr>
+  {{else}}<tr><td class="trow2" colspan="4"><span class="smalltext">You must <a href="/forum/login">login</a> to vote.</span></td></tr>{{end}}
+</table>
+<br>
+{{end}}{{end}}
+
+{{define "quickreply"}}{{$b := .Body}}{{$me := .User}}
+{{if $b.CanPost}}
+<br>
+<form method="post" action="/forum/topic/{{$b.Root.ID}}/reply" id="quickreply">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+{{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+<table border="0" cellspacing="1" cellpadding="4" class="tborder">
+  <thead><tr><td class="thead" colspan="2"><strong>Quick Reply</strong></td></tr></thead>
+  <tbody>
+    <tr>
+      <td class="trow1" valign="top" width="22%"><strong>Message</strong><br><span class="smalltext">Type your reply to this message here.<br><br>Quote with &gt; at the start of a line.</span></td>
+      <td class="trow1"><textarea name="body" rows="8" required aria-label="Message">{{$b.Quote}}</textarea>{{if $b.Aliases}}<br><label class="smalltext"><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label>{{end}}</td>
+    </tr>
+  </tbody>
+</table>
+<div class="submit_row"><button class="button_input">Post Reply</button></div>
+</form>
+{{else if not .User}}
+<p class="smalltext center">You must <a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">login</a> to reply.</p>
+{{end}}{{end}}

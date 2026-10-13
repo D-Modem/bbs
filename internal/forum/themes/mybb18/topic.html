@@ -1,0 +1,45 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+{{template "pollbox" .}}
+<div class="float_left">{{template "pages" $b.Pages}}</div>
+<div class="float_right">{{if $b.CanPost}}<a href="#quickreply" class="button new_reply_button"><span>New Reply</span></a>{{end}}</div>
+<br class="clear">
+<table border="0" cellspacing="0" cellpadding="8" class="tborder tfixed clear threadhead">
+  <tr><td class="thead"><div class="float_right"><span class="smalltext"><strong><a href="/forum/area/{{$b.Area.ID}}">&laquo; {{$b.Area.Name}}</a></strong></span></div><div><strong>{{$b.Root.Subject}}</strong></div></td></tr>
+  <tr><td id="posts_container"><div id="posts">
+    {{range $b.Posts}}
+    <div class="post" id="entry{{.M.ID}}">
+      <div class="post_author">
+        <div class="author_avatar">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{template "avatar" (av .M.From "large")}}</a>{{else}}{{template "avatar" (av .M.From "large")}}{{end}}</div>
+        <div class="author_information">
+          <strong><span class="largetext">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</span></strong> <span class="online_status" aria-hidden="true"></span><br>
+          <span class="smalltext">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Senior Member{{else if ge .Author.Posts 50}}Member{{else}}Junior Member{{end}}{{else}}Unregistered{{end}}<br>
+          <span class="stars">{{if .Author}}{{if .Author.Sysop}}&#9733;&#9733;&#9733;&#9733;&#9733;{{else if ge .Author.Posts 100}}&#9733;&#9733;&#9733;{{else if ge .Author.Posts 50}}&#9733;&#9733;{{else}}&#9733;{{end}}{{end}}</span></span>
+        </div>
+        <div class="author_statistics">{{if .Author}}Posts: {{num .Author.Posts}}<br>Joined: {{monthyear .Author.Created}}{{if .Author.Location}}<br>Location: {{.Author.Location}}{{end}}{{else if .Where}}{{.Where}}{{end}}</div>
+      </div>
+      <div class="post_content">
+        <div class="post_head">
+          <div class="float_right"><strong><a href="/forum/post/{{.M.ID}}">#{{.Num}}</a></strong></div>
+          <span class="post_date">{{ago .M.Created}}</span>{{if ne .Num 1}} <span class="post_subject">{{.M.Subject}}</span>{{end}}
+        </div>
+        <div class="post_body">{{body .M.Body}}</div>
+        {{if .Likes}}<div class="post_meta"><span class="like_icon" aria-hidden="true"></span> {{plural .Likes "member likes" "members like"}} this post.</div>{{end}}
+      </div>
+      <div class="post_controls">
+        <div class="postbit_buttons author_buttons float_left">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="postbit_find"><span>Find</span></a>{{end}}</div>
+        <div class="postbit_buttons post_management_buttons float_right">
+          {{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="postbit_like"><span>{{if .Liked}}Unlike{{else}}Like{{end}}</span></button></form>{{end}}
+          {{if .CanDelete}}<form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="postbit_qdelete"><span>Delete</span></button></form>{{end}}
+          {{if $b.CanPost}}<a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#quickreply" class="postbit_quote"><span>Quote</span></a>{{end}}
+        </div>
+      </div>
+    </div>
+    {{end}}
+  </div></td></tr>
+</table>
+<div class="float_left">{{template "pages" $b.Pages}}</div>
+<div class="float_right" style="margin-top: 4px;">{{if $b.CanPost}}<a href="#quickreply" class="button new_reply_button"><span>New Reply</span></a>{{end}}</div>
+<br class="clear">
+{{template "quickreply" .}}
+{{template "foot" .}}{{end}}

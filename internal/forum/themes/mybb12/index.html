@@ -1,0 +1,50 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+{{range .Body.Categories}}
+<table border="0" cellspacing="1" cellpadding="4" class="tborder forumlist">
+<thead>
+  <tr><td class="thead" colspan="5"><strong>{{.Name}}</strong></td></tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tcat" width="2%">&nbsp;</td>
+    <td class="tcat" width="59%"><span class="smalltext"><strong>Forum</strong></span></td>
+    <td class="tcat" width="7%" align="center"><span class="smalltext"><strong>Threads</strong></span></td>
+    <td class="tcat" width="7%" align="center"><span class="smalltext"><strong>Posts</strong></span></td>
+    <td class="tcat" width="15%" align="center"><span class="smalltext"><strong>Last Post</strong></span></td>
+  </tr>
+  {{range $f := .Forums}}
+  <tr>
+    <td class="trow1" align="center" valign="top"><span class="forum_status forum_{{if $f.Unread}}on{{else}}off{{end}}" title="{{if $f.Unread}}Forum Contains New Posts{{else}}Forum Contains No New Posts{{end}}" aria-hidden="true"></span></td>
+    <td class="trow2" valign="top"><strong><a href="/forum/area/{{$f.Area.ID}}">{{$f.Area.Name}}</a></strong>{{if $f.Area.Description}}<div class="smalltext">{{$f.Area.Description}}</div>{{end}}</td>
+    <td class="trow1" valign="top" align="center" style="white-space: nowrap">{{num $f.Topics}}</td>
+    <td class="trow2" valign="top" align="center" style="white-space: nowrap">{{num $f.Area.Messages}}</td>
+    <td class="trow1 lastpost" valign="top" align="right" style="white-space: nowrap"><span class="smalltext">{{with $f.Last}}<a href="/forum/topic/{{$f.LastTopic.ID}}" title="{{$f.LastTopic.Subject}}"><strong>{{truncate $f.LastTopic.Subject 25}}</strong></a><br>{{vbdate .Created}}, {{vbtime .Created}}<br>by <a href="/forum/user/{{path .From}}">{{.From}}</a>{{else}}<div style="text-align: center;">Never</div>{{end}}</span></td>
+  </tr>
+  {{end}}
+</tbody>
+</table>
+<br>
+{{end}}
+
+<table border="0" cellspacing="1" cellpadding="4" class="tborder boardstats">
+<thead><tr><td class="thead" colspan="2"><strong>Board Statistics</strong></td></tr></thead>
+<tbody>
+  <tr><td class="tcat" colspan="2"><span class="smalltext"><strong>Who's Online</strong> [<a href="/forum/online">Complete List</a>]</span></td></tr>
+  <tr>
+    <td class="trow1" align="center" valign="middle" width="1"><span class="stats_icon online" aria-hidden="true"></span></td>
+    <td class="trow1"><span class="smalltext">{{len .Body.Online}} {{if eq (len .Body.Online) 1}}user{{else}}users{{end}} on the BBS ({{len .Body.Online}} members, 0 of whom are invisible, and 0 guests).<br>{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a>{{end}}</span></td>
+  </tr>
+  <tr><td class="tcat" colspan="2"><span class="smalltext"><strong>Board Statistics</strong></span></td></tr>
+  <tr>
+    <td class="trow1" align="center" valign="middle" width="1"><span class="stats_icon stats" aria-hidden="true"></span></td>
+    <td class="trow1"><span class="smalltext">Our members have made a total of {{num $st.Posts}} posts in {{num $st.Topics}} threads.<br>We currently have {{num $st.Members}} members registered.{{with $st.Newest}}<br>Please welcome our newest member, <strong><a href="/forum/user/{{path .Name}}">{{.Name}}</a></strong>{{end}}</span></td>
+  </tr>
+</tbody>
+</table>
+<br>
+<div class="forum_legend smalltext">
+  <span class="forum_status forum_on small" aria-hidden="true"></span> Forum Contains New Posts
+  <span class="forum_status forum_off small" aria-hidden="true"></span> Forum Contains No New Posts
+</div>
+{{template "foot" .}}{{end}}

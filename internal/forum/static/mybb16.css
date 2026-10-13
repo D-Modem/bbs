@@ -1,0 +1,41 @@
+/*
+ * The forum's mybb theme, second edition: laid out in the manner of
+ * MyBB 1.4 and 1.6's default theme, which kept 1.2's colors and pages
+ * (this theme wears the mybb12 theme's templates and builds on its
+ * stylesheet) but gave each post a table of its own: a pale blue strip
+ * with the date and "Post: #1", the author across the top with picture,
+ * title and stars, and the counts at the right; quotes in plain boxes
+ * with a bold citation line; little grey buttons.  Colors follow MyBB's
+ * default theme; the CSS is our own and no images are taken.
+ */
+@import url("mybb12.css");
+
+.threadhead { margin-bottom: 0; }
+#posts { margin: 0 0 6px; }
+table.post { margin-top: 6px; }
+table.post .tcat { display: flow-root; font-size: 11px; }
+table.post .tcat a:link, table.post .tcat a:visited { color: #000; }
+.post_author_table { width: 100%; border-collapse: collapse; }
+.post_author_table td { padding: 0; vertical-align: middle; }
+.post_avatar { padding-right: 10px !important; }
+.post_author .stars { color: #e3a21a; letter-spacing: 1px; }
+.post_author_info { text-align: right; color: #333; line-height: 1.5; }
+.online_status { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #b5b5b5; vertical-align: 1px; }
+.post_content { padding: 8px 6px !important; }
+.post_body { padding: 8px 0 4px; font-size: 13px; }
+.post_meta { margin-top: 6px; color: #666; font-size: 11px; }
+.post_buttons { padding: 3px 6px !important; }
+.postbit_buttons a, .postbit_buttons button { padding: 2px 7px; border-color: #ccc; background: linear-gradient(#fff, #eee); font-size: 11px; }
+
+/* quotes in plain boxes with a citation line, as 1.4 brought */
+.citation { margin: 8px 0 0; padding: 4px 4px 2px; border: 1px solid #ccc; border-bottom: 0; background: #fff; font-size: 13px; }
+.citation::before { content: "Quote: "; }
+.citation + blockquote.quote { border-top: 0; }
+.citation + blockquote.quote::before { content: ""; display: block; margin: 0 0 4px; border-bottom: 1px solid #ccc; }
+blockquote.quote { margin: 0 0 8px; padding: 4px; border: 1px solid #ccc; background: #fff; }
+blockquote.quote:not(.citation + blockquote.quote)::before { content: "Quote:"; display: block; margin: 0 0 4px; padding: 0 0 2px; border-bottom: 1px solid #ccc; font-weight: bold; font-size: 13px; }
+
+@media (max-width: 760px) {
+	.post_author_info { display: none; }
+	table.post .avatar.large { width: 40px; height: 40px; font-size: 18px; }
+}

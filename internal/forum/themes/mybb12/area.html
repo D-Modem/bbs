@@ -1,0 +1,42 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="float_left">{{template "pages" $b.Pages}}</div>
+<div class="float_right">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="button new_thread_button"><span>Post Thread</span></a>{{end}}</div>
+<br class="clear">
+<table border="0" cellspacing="1" cellpadding="4" class="tborder clear threadlist">
+<thead>
+  <tr><td class="thead" colspan="5"><div class="float_right"><span class="smalltext">{{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark this forum read</button></form>{{end}}</span></div><strong>{{$b.Area.Name}}</strong></td></tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tcat" colspan="2" width="68%"><span class="smalltext"><strong>Thread / Author</strong></span></td>
+    <td class="tcat" align="center" width="7%"><span class="smalltext"><strong>Replies</strong></span></td>
+    <td class="tcat" align="right" width="20%"><span class="smalltext"><strong>Last Post</strong></span></td>
+  </tr>
+  {{range $b.Topics}}
+  <tr>
+    <td align="center" class="trow1" width="2%"><span class="thread_status{{if .Unread}} newfolder{{end}}{{if ge .Replies 15}} hotfolder{{end}}" title="{{if .Unread}}New Posts{{else}}No New Posts{{end}}" aria-hidden="true"></span></td>
+    <td class="trow1">
+      <div>{{if .Unread}}<a href="/forum/post/{{.Last.ID}}" class="gotonew" title="Go to first unread post" aria-label="Go to first unread post"></a> {{end}}<span class="subject_{{if .Unread}}new{{else}}old{{end}}"><a href="/forum/topic/{{.Root.ID}}">{{.Root.Subject}}</a></span>{{if gt .Pages 1}} <span class="smalltext">(Pages: {{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a> {{end}})</span>{{end}}</div>
+      <div class="author smalltext"><a href="/forum/user/{{path .Root.From}}">{{.Root.From}}</a></div>
+    </td>
+    <td align="center" class="trow2">{{num .Replies}}</td>
+    <td class="trow1" style="white-space: nowrap; text-align: right;"><span class="lastpost smalltext">{{vbdate .Last.Created}}, {{vbtime .Last.Created}}<br><a href="/forum/post/{{.Last.ID}}">Last Post</a>: <a href="/forum/user/{{path .Last.From}}">{{.Last.From}}</a></span></td>
+  </tr>
+  {{else}}
+  <tr><td colspan="4" class="trow1">Sorry, but there are currently no threads in this forum.</td></tr>
+  {{end}}
+  <tr><td class="tfoot" colspan="4" align="right"><span class="smalltext">{{plural $b.Count "thread" "threads"}}</span></td></tr>
+</tbody>
+</table>
+<div class="float_left">{{template "pages" $b.Pages}}</div>
+<div class="float_right" style="margin-top: 4px;">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="button new_thread_button"><span>Post Thread</span></a>{{end}}</div>
+<br class="clear">
+<br>
+<div class="thread_legend smalltext">
+  <span class="thread_status newfolder" aria-hidden="true"></span> New Posts &nbsp;
+  <span class="thread_status" aria-hidden="true"></span> No New Posts &nbsp;
+  <span class="thread_status newfolder hotfolder" aria-hidden="true"></span> Hot Thread (New) &nbsp;
+  <span class="thread_status hotfolder" aria-hidden="true"></span> Hot Thread (No New)
+</div>
+{{template "foot" .}}{{end}}

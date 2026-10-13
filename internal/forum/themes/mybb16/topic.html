@@ -1,0 +1,47 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+{{template "pollbox" .}}
+<div class="float_left">{{template "pages" $b.Pages}}</div>
+<div class="float_right">{{if $b.CanPost}}<a href="#quickreply" class="button new_reply_button"><span>New Reply</span></a> <a href="/forum/area/{{$b.Area.ID}}/new" class="button new_thread_button"><span>Post Thread</span></a>{{end}}</div>
+<br class="clear">
+<table border="0" cellspacing="1" cellpadding="4" class="tborder threadhead" style="clear: both; border-bottom-width: 0;">
+  <tr><td class="thead" colspan="2"><div style="float: right;"><span class="smalltext"><strong><a href="/forum/area/{{$b.Area.ID}}">&laquo; {{$b.Area.Name}}</a></strong></span></div><div><strong>{{$b.Root.Subject}}</strong></div></td></tr>
+</table>
+<div id="posts">
+{{range $b.Posts}}
+<table border="0" cellspacing="1" cellpadding="4" class="tborder post" id="entry{{.M.ID}}">
+  <tbody>
+    <tr><td class="tcat"><div class="float_left smalltext">{{vbdate .M.Created}}, {{vbtime .M.Created}}</div><div class="float_right smalltext"><strong>Post: <a href="/forum/post/{{.M.ID}}">#{{.Num}}</a></strong></div></td></tr>
+    <tr><td class="trow1">
+      <table cellspacing="0" cellpadding="0" border="0" class="post_author_table"><tr>
+        <td class="post_avatar" width="1">{{template "avatar" (av .M.From "large")}}</td>
+        <td class="post_author">
+          <strong><span class="largetext">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</span></strong> <span class="online_status" aria-hidden="true"></span><br>
+          <span class="smalltext">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Senior Member{{else if ge .Author.Posts 50}}Member{{else}}Junior Member{{end}}{{else}}Unregistered{{end}}<br>
+          <span class="stars">{{if .Author}}{{if .Author.Sysop}}&#9733;&#9733;&#9733;&#9733;&#9733;{{else if ge .Author.Posts 100}}&#9733;&#9733;&#9733;{{else if ge .Author.Posts 50}}&#9733;&#9733;{{else}}&#9733;{{end}}{{end}}</span></span>
+        </td>
+        <td class="smalltext post_author_info" width="165">{{if .Author}}Posts: {{num .Author.Posts}}<br>Joined: {{monthyear .Author.Created}}{{if .Author.Location}}<br>Location: {{.Author.Location}}{{end}}{{else if .Where}}{{.Where}}{{end}}</td>
+      </tr></table>
+    </td></tr>
+    <tr><td class="trow2 post_content">
+      <span class="smalltext"><strong><span class="posticon" aria-hidden="true"></span> {{.M.Subject}}</strong></span>
+      <div class="post_body">{{body .M.Body}}</div>
+      {{if .Likes}}<div class="post_meta">{{plural .Likes "member likes" "members like"}} this post.</div>{{end}}
+    </td></tr>
+    <tr><td class="trow1 post_buttons"><div class="postbit_buttons">
+      <span class="author_buttons">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="postbit_find"><span>Find</span></a>{{end}}</span>
+      <span class="post_management_buttons">
+        {{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="postbit_like"><span>{{if .Liked}}Unlike{{else}}Like{{end}}</span></button></form>{{end}}
+        {{if .CanDelete}}<form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="postbit_qdelete"><span>Delete</span></button></form>{{end}}
+        {{if $b.CanPost}}<a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#quickreply" class="postbit_quote"><span>Quote</span></a>{{end}}
+      </span>
+    </div></td></tr>
+  </tbody>
+</table>
+{{end}}
+</div>
+<div class="float_left">{{template "pages" $b.Pages}}</div>
+<div class="float_right" style="margin-top: 4px;">{{if $b.CanPost}}<a href="#quickreply" class="button new_reply_button"><span>New Reply</span></a>{{end}}</div>
+<br class="clear">
+{{template "quickreply" .}}
+{{template "foot" .}}{{end}}
