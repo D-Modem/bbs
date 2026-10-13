@@ -1,0 +1,37 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="ipsPageHeader ipsBox ipsPad headerbox">
+  <div>
+    <h1 class="ipsType_pageTitle">{{$b.Area.Name}}</h1>
+    {{if $b.Area.Description}}<p class="ipsType_light pagedesc">{{$b.Area.Description}}</p>{{end}}
+  </div>
+  {{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="ipsButton ipsButton_medium ipsButton_important"><i class="fa fa-pencil" aria-hidden="true"></i> Start new topic</a>{{end}}
+</div>
+<div class="ipsButtonBar">
+  <div class="left">{{template "pages" $b.Pages}}</div>
+  <div class="right">{{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="ipsButton ipsButton_link">Mark forum read</button></form>{{end}}</div>
+</div>
+<section class="ipsBox">
+  <ol class="ipsDataList cTopicList">
+    {{range $b.Topics}}
+    <li class="ipsDataItem{{if .Unread}} ipsDataItem_unread{{end}}">
+      <div class="ipsDataItem_icon">{{if .Unread}}<a href="/forum/post/{{.Last.ID}}" class="ipsItemStatus" title="Go to first unread post"><i class="fa fa-circle" aria-hidden="true"></i></a>{{end}}</div>
+      <div class="ipsDataItem_main">
+        <h4 class="ipsDataItem_title"><a href="/forum/topic/{{.Root.ID}}">{{.Root.Subject}}</a>{{if ge .Replies 15}} <span class="ipsBadge ipsBadge_hot"><i class="fa fa-fire" aria-hidden="true"></i></span>{{end}}</h4>
+        {{if gt .Pages 1}}<ul class="ipsPagination ipsPagination_mini">{{$root := .Root.ID}}{{range (seq .Pages)}}<li><a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a></li>{{end}}</ul>{{end}}
+        <div class="ipsDataItem_meta">By <strong>{{.Root.From}}</strong>, <span>{{ago .Root.Created}}</span></div>
+      </div>
+      <ul class="ipsDataItem_stats"><li><span class="ipsDataItem_stats_number">{{num .Replies}}</span> <span class="ipsDataItem_stats_type">{{if eq .Replies 1}}reply{{else}}replies{{end}}</span></li></ul>
+      <ul class="ipsDataItem_lastPoster">
+        <li class="photo">{{template "avatar" (av .Last.From "mini")}}</li>
+        <li class="title">{{.Last.From}}</li>
+        <li class="meta"><a href="/forum/post/{{.Last.ID}}">{{ago .Last.Created}}</a></li>
+      </ul>
+    </li>
+    {{else}}
+    <li class="ipsDataItem empty"><div class="ipsPad ipsType_light">There are no topics in this forum yet{{if $b.CanPost}}. <a href="/forum/area/{{$b.Area.ID}}/new">Start the conversation</a>{{end}}</div></li>
+    {{end}}
+  </ol>
+</section>
+<div class="ipsButtonBar bottom"><div class="left">{{template "pages" $b.Pages}}</div></div>
+{{template "foot" .}}{{end}}

@@ -1,0 +1,58 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<div class="ipsPageHeader"><h1 class="ipsType_pageTitle">Forums</h1></div>
+<div class="ipsColumns">
+<div class="ipsColumn_fluid">
+{{range .Body.Categories}}
+<section class="ipsBox cForumCategory">
+  <h2 class="ipsType_sectionTitle"><span>{{.Name}}</span><i class="fa fa-minus" aria-hidden="true"></i></h2>
+  <ol class="ipsDataList ipsDataList_large">
+    {{range $f := .Forums}}
+    <li class="cForumRow ipsDataItem{{if $f.Unread}} ipsDataItem_unread{{end}}">
+      <div class="ipsDataItem_icon"><span class="ipsItemStatus ipsItemStatus_large{{if not $f.Unread}} ipsItemStatus_read{{end}}" title="{{if $f.Unread}}Forum contains unread content{{else}}Forum contains no unread content{{end}}"><i class="fa fa-comments" aria-hidden="true"></i></span></div>
+      <div class="ipsDataItem_main">
+        <h4 class="ipsDataItem_title"><a href="/forum/area/{{$f.Area.ID}}">{{$f.Area.Name}}</a></h4>
+        {{if $f.Area.Description}}<div class="ipsDataItem_meta">{{$f.Area.Description}}</div>{{end}}
+      </div>
+      <div class="ipsDataItem_stats"><dl><dt class="ipsDataItem_stats_number">{{num $f.Area.Messages}}</dt><dd class="ipsDataItem_stats_type">{{if eq $f.Area.Messages 1}}post{{else}}posts{{end}}</dd></dl></div>
+      <ul class="ipsDataItem_lastPoster">
+        {{with $f.Last}}
+        <li class="photo">{{template "avatar" (av .From "mini")}}</li>
+        <li class="title"><a href="/forum/post/{{.ID}}">{{truncate $f.LastTopic.Subject 34}}</a></li>
+        <li class="meta">By <strong>{{.From}}</strong>, <span>{{ago .Created}}</span></li>
+        {{else}}<li class="meta">No posts here yet</li>{{end}}
+      </ul>
+    </li>
+    {{end}}
+  </ol>
+</section>
+{{else}}
+<section class="ipsBox"><p class="ipsPad">There are no forums open to you yet.{{if not .User}} <a href="/forum/login">Sign in</a> to see more.{{end}}</p></section>
+{{end}}
+</div>
+<aside class="ipsColumn_wide">
+  <section class="ipsWidget ipsBox">
+    <h3 class="ipsWidget_title">Who's Online <span class="count">{{plural (len .Body.Online) "member" "members"}}</span></h3>
+    <div class="ipsWidget_inner">{{range .Body.Online}}<a href="/forum/user/{{path .User}}" class="onlineuser">{{template "avatar" (av .User "tiny")}} {{.User}}</a>{{else}}<p class="ipsType_light">There are no members online</p>{{end}}</div>
+  </section>
+  <section class="ipsWidget ipsBox">
+    <h3 class="ipsWidget_title">Forum Statistics</h3>
+    <div class="ipsWidget_inner">
+      <dl class="ipsDataList stats">
+        <dt>Total Topics</dt><dd>{{num $st.Topics}}</dd>
+        <dt>Total Posts</dt><dd>{{num $st.Posts}}</dd>
+      </dl>
+    </div>
+  </section>
+  <section class="ipsWidget ipsBox">
+    <h3 class="ipsWidget_title">Member Statistics</h3>
+    <div class="ipsWidget_inner">
+      <dl class="ipsDataList stats">
+        <dt>Total Members</dt><dd>{{num $st.Members}}</dd>
+        {{with $st.Newest}}<dt>Newest Member</dt><dd><a href="/forum/user/{{path .Name}}">{{.Name}}</a><br><span class="ipsType_light">Joined {{ago .Created}}</span></dd>{{end}}
+      </dl>
+    </div>
+  </section>
+</aside>
+</div>
+{{template "foot" .}}{{end}}

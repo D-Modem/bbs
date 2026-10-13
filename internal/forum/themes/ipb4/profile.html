@@ -1,0 +1,41 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="ipsBox profilehead">
+  <div class="cover"></div>
+  <div class="profilebar">
+    <div class="ipsPhotoPanel">{{template "avatar" (av $u.Name "huge")}}
+      <div><h1 class="ipsType_pageTitle">{{$u.Name}}</h1><p class="group{{if $u.Sysop}} admin{{end}}">{{if $u.Sysop}}Administrators{{else}}{{group $u}}{{end}}{{if .Body.On}} &middot; <span class="online"><i class="fa fa-circle" aria-hidden="true"></i> Online</span>{{end}}</p></div>
+    </div>
+    <ul class="ipsList_inline stats">
+      <li><h4>Posts</h4>{{num $u.Posts}}</li>
+      <li><h4>Joined</h4>{{ago $u.Created}}</li>
+      <li><h4>Last visited</h4>{{ago $u.LastLogin}}</li>
+    </ul>
+  </div>
+</div>
+<div class="ipsColumns">
+  <aside class="ipsColumn_wide">
+    <section class="ipsWidget ipsBox">
+      <h3 class="ipsWidget_title">About {{$u.Name}}</h3>
+      <div class="ipsWidget_inner">
+        <dl class="ipsDataList stats">
+          <dt>Calls</dt><dd>{{num $u.Logins}}</dd>
+          {{if $u.Location}}<dt>Location</dt><dd>{{$u.Location}}</dd>{{end}}
+          {{if $u.About}}<dt>Interests</dt><dd>{{$u.About}}</dd>{{end}}
+          {{range .Body.On}}<dt>Now</dt><dd>node {{.Num}} by {{.Via}}: {{.Activity}}</dd>{{end}}
+        </dl>
+      </div>
+    </section>
+  </aside>
+  <div class="ipsColumn_fluid">
+    <section class="ipsBox">
+      <h2 class="ipsType_sectionTitle"><span>{{$u.Name}}'s Activity</span></h2>
+      <ol class="ipsDataList">
+        {{range .Body.Recent}}
+        <li class="ipsDataItem"><div class="ipsDataItem_main"><h4 class="ipsDataItem_title"><a href="/forum/post/{{.ID}}">{{.Subject}}</a></h4><div class="ipsDataItem_meta">{{snippet .Body 180}}</div><div class="ipsDataItem_meta ipsType_light">{{ago .Created}}</div></div></li>
+        {{else}}<li class="ipsDataItem empty"><div class="ipsPad ipsType_light">{{$u.Name}} hasn't posted any content yet.</div></li>{{end}}
+      </ol>
+    </section>
+  </div>
+</div>
+{{template "foot" .}}{{end}}

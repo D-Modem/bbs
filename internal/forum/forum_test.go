@@ -453,3 +453,24 @@ func TestThemeLineage(t *testing.T) {
 		}
 	}
 }
+
+func TestAgo(t *testing.T) {
+	now := time.Now()
+	y, m, d := now.Date()
+	today := time.Date(y, m, d, 12, 0, 0, 0, now.Location())
+	for _, c := range []struct {
+		t    time.Time
+		want string
+	}{
+		{now.Add(-10 * time.Second), "Just now"},
+		{now.Add(-5 * time.Minute), "5 minutes ago"},
+		{now.Add(-1 * time.Minute), "1 minute ago"},
+		{today.AddDate(0, 0, -1), "Yesterday at 12:00 PM"},
+		{today.AddDate(-2, 0, 0), today.AddDate(-2, 0, 0).Format("January 2, 2006")},
+		{time.Time{}, "never"},
+	} {
+		if got := ago(c.t); got != c.want {
+			t.Errorf("ago(%v) = %q, want %q", c.t, got, c.want)
+		}
+	}
+}

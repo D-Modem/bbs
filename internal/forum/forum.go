@@ -50,6 +50,7 @@ type Theme struct {
 // Themes are the forum's looks; the first is the default.
 var Themes = []Theme{
 	{"ipb3", "Default (IPB 3 style)", ""},
+	{"ipb4", "Modern (IPB 4 style)", ""},
 	{"ipb2", "Classic (IPB 2 style)", ""},
 	{"ipb1", "Retro (IPB 1 style)", ""},
 	{"ikon", "Grey (Ikonboard style)", ""},

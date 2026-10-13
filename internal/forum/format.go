@@ -22,6 +22,7 @@ var funcs = template.FuncMap{
 	"date":      func(t time.Time) string { return t.Format("02 January 2006") },
 	"longdate":  longDate,
 	"odd":       func(n int) bool { return n%2 == 1 },
+	"ago":       ago,
 	"mod5":      func(n int) int { return n % 5 },
 	"shortdate": func(t time.Time) string { return t.Format("Jan. 02, 2006") },
 	"clock":     func(t time.Time) string { return t.Format("03:04 PM") },
@@ -67,6 +68,35 @@ func when(t time.Time) string {
 		return t.Format("02 January - 03:04 PM")
 	}
 	return t.Format("02 January 2006 - 03:04 PM")
+}
+
+// ago is a time as the boards of the 2010s and after told it: "2 hours
+// ago", "Yesterday at 11:21 PM", "Monday at 9:02 AM", "October 12".
+func ago(t time.Time) string {
+	if t.IsZero() {
+		return "never"
+	}
+	now := time.Now()
+	d := now.Sub(t)
+	y, m, dd := now.Date()
+	today := time.Date(y, m, dd, 0, 0, 0, 0, now.Location())
+	switch {
+	case d < time.Minute:
+		return "Just now"
+	case d < time.Hour:
+		return plural(int(d/time.Minute), "minute", "minutes") + " ago"
+	case d < 12*time.Hour && !t.Before(today):
+		return plural(int(d/time.Hour), "hour", "hours") + " ago"
+	case !t.Before(today):
+		return "Today at " + t.Format("3:04 PM")
+	case !t.Before(today.AddDate(0, 0, -1)):
+		return "Yesterday at " + t.Format("3:04 PM")
+	case !t.Before(today.AddDate(0, 0, -6)):
+		return t.Format("Monday at 3:04 PM")
+	case t.Year() == now.Year():
+		return t.Format("January 2")
+	}
+	return t.Format("January 2, 2006")
 }
 
 // longDate is a time in full, as "12th October 2026 - 11:21 PM".

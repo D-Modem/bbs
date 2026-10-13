@@ -1,0 +1,78 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.Title}} - {{.BBS}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/ipb4.css">
+</head>
+<body class="ipsApp">
+<div id="ipsLayout_header">
+  <header>
+    <div class="ipsLayout_container header-row">
+      <a href="/forum/" id="elSiteTitle">{{.BBS}}</a>
+      <ul id="elUserNav">
+        {{if .User}}
+        <li>
+          <details class="menu">
+            <summary id="elUserLink">{{template "avatar" (av .User.Name "mini")}} <span>{{.User.Name}}</span> <i class="fa fa-caret" aria-hidden="true"></i></summary>
+            <ul class="ipsMenu right">
+              <li class="ipsMenu_item"><a href="/forum/user/{{path .User.Name}}">Profile</a></li>
+              <li class="ipsMenu_item"><a href="/forum/search">Search</a></li>
+              <li class="ipsMenu_sep"></li>
+              <li class="ipsMenu_item"><form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Sign Out</button></form></li>
+            </ul>
+          </details>
+        </li>
+        {{else}}
+        <li class="signin">Existing user? <a href="/forum/login">Sign In <i class="fa fa-caret" aria-hidden="true"></i></a></li>
+        {{if .Register}}<li><a href="/forum/register" class="ipsButton ipsButton_normal ipsButton_primary">Sign Up</a></li>{{end}}
+        {{end}}
+      </ul>
+    </div>
+  </header>
+  <nav class="ipsNavBar_primary">
+    <div class="ipsLayout_container nav-row">
+      <ul class="tabs">
+        <li class="ipsNavBar_active"><a href="/forum/">Browse</a></li>
+        <li><a href="/forum/online">Online Users</a></li>
+        <li><a href="/forum/search">Search</a></li>
+        {{if .Terminal}}<li><a href="/terminal">Terminal</a></li>{{end}}
+      </ul>
+      <form action="/forum/search" method="get" id="elSearch"><input type="search" name="q" placeholder="Search..." aria-label="Search"><button title="Search" aria-label="Search"><i class="fa fa-search" aria-hidden="true"></i></button></form>
+    </div>
+    <div class="ipsNavBar_secondary">
+      <div class="ipsLayout_container">
+        <a href="/forum/" class="{{if ne .Tab "online"}}active{{end}}">Forums</a>
+        <a href="/forum/online" class="{{if eq .Tab "online"}}active{{end}}">Online Users</a>
+        {{if .Terminal}}<a href="/terminal">Web Terminal</a>{{end}}
+      </div>
+    </div>
+  </nav>
+</div>
+<main id="ipsLayout_body" class="ipsLayout_container">
+  {{template "crumbs" .}}
+  {{if eq .Notice "welcome"}}<div class="ipsMessage ipsMessage_success">Welcome! Your account is made, and you are signed in.</div>{{end}}
+{{end}}
+
+{{define "crumbs"}}<nav class="ipsBreadcrumb">
+    <ul><li><a href="/forum/"><i class="fa fa-home" aria-hidden="true"></i> Home</a></li><li><a href="/forum/">Forums</a></li>{{range .Crumbs}}<li>{{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</li>{{end}}</ul>
+    <a href="/forum/search" class="allact"><i class="fa fa-rss" aria-hidden="true"></i> All Activity</a>
+  </nav>{{end}}
+
+{{define "foot"}}
+  {{template "crumbs" .}}
+</main>
+<footer id="ipsLayout_footer" class="ipsLayout_container">
+  <ul class="ipsList_inline">
+    <li>{{template "themepicker" .}}</li>
+    <li><a href="/forum/online">Online Users</a></li>
+    {{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}
+  </ul>
+  <p id="elCopyright">Powered by bbs-sec &middot; {{.BBS}}</p>
+</footer>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}<ul class="ipsPagination">{{if gt .Cur 1}}<li class="ipsPagination_prev"><a href="{{.URL .Prev}}" rel="prev"><i class="fa fa-left" aria-hidden="true"></i> Prev</a></li>{{end}}{{$cur := .Cur}}{{$p := .}}{{range .Shown}}{{if eq . 0}}<li class="gap">…</li>{{else if eq . $cur}}<li class="ipsPagination_active"><a>{{.}}</a></li>{{else}}<li><a href="{{$p.URL .}}">{{.}}</a></li>{{end}}{{end}}{{if .Next}}<li class="ipsPagination_next"><a href="{{.URL .Next}}" rel="next">Next <i class="fa fa-right" aria-hidden="true"></i></a></li>{{end}}<li class="ipsPagination_pageJump">Page {{.Cur}} of {{.Total}}</li></ul>{{end}}{{end}}

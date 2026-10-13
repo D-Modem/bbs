@@ -1,0 +1,93 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<div class="ipsPageHeader ipsBox ipsPad headerbox topichead">
+  <div class="ipsPhotoPanel">
+    {{template "avatar" (av $b.Root.From "mini")}}
+    <div>
+      <h1 class="ipsType_pageTitle">{{$b.Root.Subject}}</h1>
+      <p class="ipsType_light">By <strong>{{$b.Root.From}}</strong>, {{ago $b.Root.Created}} in <a href="/forum/area/{{$b.Area.ID}}">{{$b.Area.Name}}</a></p>
+    </div>
+  </div>
+</div>
+<div class="ipsButtonBar">
+  <div class="left">{{template "pages" $b.Pages}}</div>
+  <div class="right">{{if $b.CanPost}}<a href="#replyForm" class="ipsButton ipsButton_link ipsButton_medium">Reply to this topic</a> <a href="/forum/area/{{$b.Area.ID}}/new" class="ipsButton ipsButton_medium ipsButton_important">Start new topic</a>{{end}}</div>
+</div>
+
+{{with $b.Poll}}
+<section class="ipsBox ipsPoll">
+  <h2 class="ipsType_sectionTitle"><span><i class="fa fa-bar-chart" aria-hidden="true"></i> {{$b.Root.Subject}}</span></h2>
+  <div class="ipsPad">
+  {{if or .Voted (not $me)}}
+    <ul class="ipsPoll_results">
+    {{range .Answers}}<li{{if .Mine}} class="mine"{{end}}><span class="ipsPoll_choiceTitle">{{.Text}}{{if .Mine}} <i class="fa fa-check" aria-hidden="true"></i>{{end}}</span><meter min="0" max="100" value="{{.Pct}}"></meter><span class="ipsPoll_voteCount">{{.Count}}</span><span class="ipsType_light">{{.Pct}}%</span></li>{{end}}
+    </ul>
+    <p class="ipsType_light">{{plural .Total "member has" "members have"}} voted{{if not $me}} &middot; <a href="/forum/login">Sign in</a> to vote{{end}}</p>
+  {{end}}
+  {{if $me}}
+    <form method="post" action="/forum/post/{{.ID}}/answer" class="pollvote">
+      <input type="hidden" name="csrf" value="{{$csrf}}">
+      {{range .Answers}}<label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label>{{end}}
+      <button class="ipsButton ipsButton_small ipsButton_primary">{{if .Voted}}Change vote{{else}}Vote{{end}}</button>
+    </form>
+  {{end}}
+  </div>
+</section>
+{{end}}
+
+{{range $b.Posts}}
+<article id="entry{{.M.ID}}" class="cPost ipsBox ipsComment">
+  <aside class="cAuthorPane">
+    <h3 class="cAuthorPane_author">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"{{if .Author.Sysop}} class="admin"{{end}}>{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</h3>
+    <div class="cAuthorPane_photo">{{template "avatar" (av .M.From "large")}}</div>
+    <ul class="cAuthorPane_info">
+      {{if .Author}}
+      <li class="group{{if .Author.Sysop}} admin{{end}}">{{if .Author.Sysop}}Administrators{{else}}{{group .Author}}{{end}}</li>
+      <li class="ipsType_light"><i class="fa fa-comment" aria-hidden="true"></i> {{num .Author.Posts}}</li>
+      {{if .Author.Location}}<li class="ipsType_light">{{.Author.Location}}</li>{{end}}
+      {{else if .Where}}<li class="ipsType_light">{{.Where}}</li>{{end}}
+    </ul>
+  </aside>
+  <div class="ipsComment_content">
+    <div class="ipsComment_meta">
+      <span class="ipsType_light">Posted <a href="/forum/post/{{.M.ID}}">{{ago .M.Created}}</a>{{if and .M.To (ne .M.To "All")}} &middot; to {{.M.To}}{{end}}</span>
+      <a href="/forum/post/{{.M.ID}}" class="share" title="Share this post">#{{.Num}}</a>
+    </div>
+    <div class="ipsType_richText">{{body .M.Body}}</div>
+    <div class="ipsComment_controls">
+      <ul class="ipsList_inline left">
+        {{if $b.CanPost}}<li><a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#replyForm" class="ipsButton ipsButton_light ipsButton_verySmall">Quote</a></li>{{end}}
+        {{if .CanDelete}}<li><form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="ipsButton ipsButton_link ipsButton_verySmall danger">Delete</button></form></li>{{end}}
+      </ul>
+      <div class="ipsReact">
+        {{if .Likes}}<span class="ipsReact_reactCount"><span class="react-like" aria-hidden="true">&#9829;</span> {{.Likes}}</span>{{end}}
+        {{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="ipsReact_button{{if .Liked}} reacted{{end}}"><i class="fa fa-heart" aria-hidden="true"></i> {{if .Liked}}Liked{{else}}Like{{end}}</button></form>{{end}}
+      </div>
+    </div>
+  </div>
+</article>
+{{end}}
+
+<div class="ipsButtonBar bottom">
+  <div class="left">{{template "pages" $b.Pages}}</div>
+  <div class="right"><a href="/forum/area/{{$b.Area.ID}}" class="ipsButton ipsButton_link"><i class="fa fa-left" aria-hidden="true"></i> Go to topic listing</a></div>
+</div>
+
+{{if $b.CanPost}}
+<form method="post" action="/forum/topic/{{$b.Root.ID}}/reply" id="replyForm" class="ipsComposeArea ipsBox">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  {{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+  <div class="ipsComposeArea_photo">{{template "avatar" (av $me.Name "mini")}}</div>
+  <div class="ipsComposeArea_editor">
+    <textarea name="body" rows="7" placeholder="Reply to this topic..." required aria-label="Reply to this topic">{{$b.Quote}}</textarea>
+    <div class="ipsComposeArea_foot">
+      {{if $b.Aliases}}<label><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label>{{end}}
+      <button class="ipsButton ipsButton_medium ipsButton_primary">Submit Reply</button>
+    </div>
+  </div>
+</form>
+{{else if not .User}}
+<div class="ipsBox ipsPad signinbox"><h3>Create an account or sign in to comment</h3><p class="ipsType_light">You need to be a member in order to leave a comment</p>
+  <div class="two">{{if .Register}}<a href="/forum/register" class="ipsButton ipsButton_primary ipsButton_medium">Register a new account</a>{{end}}<a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}" class="ipsButton ipsButton_light ipsButton_medium">Sign In Now</a></div></div>
+{{end}}
+{{template "foot" .}}{{end}}
