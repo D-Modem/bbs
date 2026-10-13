@@ -187,8 +187,12 @@ func (f *Fido) Call(ctx context.Context, l *Link) error {
 	if _, err := f.scan(l); err != nil {
 		f.B.Log.Printf("fido: scan for %s: %v", l.Name, err)
 	}
+	host, err := f.host(l)
+	if err != nil {
+		return err
+	}
 	d := net.Dialer{Timeout: time.Minute}
-	c, err := d.DialContext(ctx, "tcp", l.Host)
+	c, err := d.DialContext(ctx, "tcp", host)
 	if err != nil {
 		return err
 	}
@@ -196,7 +200,7 @@ func (f *Fido) Call(ctx context.Context, l *Link) error {
 	stop := context.AfterFunc(ctx, func() { c.Close() })
 	defer stop()
 	s := &session{f: f, c: c, r: bufio.NewReader(c), w: bufio.NewWriter(c), link: l, caller: true,
-		who: l.Name + " (" + l.Host + ")", frames: make(chan frame, 16)}
+		who: l.Name + " (" + host + ")", frames: make(chan frame, 16)}
 	c.SetDeadline(time.Now().Add(binkpSession))
 	go s.readFrames()
 	defer func() {

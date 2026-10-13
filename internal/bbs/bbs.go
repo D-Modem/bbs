@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
 	"github.com/Neo-Desktop/bbs-sec/internal/events"
+	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
 	"log"
@@ -121,6 +122,12 @@ type BBS struct {
 	News NewsSettings
 	// Netmail sends FidoNet netmail (nil: the BBS is not on FidoNet)
 	Netmail NetmailFunc
+	// NetmailTo checks a netmail's address before it is written: whether
+	// it can be sent, and its system as the nodelist names it ("": the
+	// nodelist does not say)
+	NetmailTo func(ftn.Addr) (string, error)
+	// Nodelist is the FidoNet nodelist (nil: none)
+	Nodelist func() *ftn.Nodelist
 	// Doors are the door programs (for text callers)
 	Doors []*door.Door
 	// the sysop's screens, menus and strings

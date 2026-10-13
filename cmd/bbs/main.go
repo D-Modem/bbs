@@ -18,6 +18,7 @@
 //	bbs [-config FILE] area keep AREA MESSAGES DAYS
 //	bbs [-config FILE] area purge
 //	bbs [-config FILE] fido poll|scan|toss [LINK]
+//	bbs [-config FILE] fido node ADDRESS | nodes WORDS...
 //	bbs [-config FILE] user qwknode|unqwknode NAME
 //	bbs [-config FILE] qwknet call [NET]
 //	bbs [-config FILE] room list|add|del|topic [ROOM] [TOPIC]
@@ -94,6 +95,8 @@ func usage() {
   bbs [-config FILE] area purge                     take away what areas keep no more, now
   bbs [-config FILE] fido poll [LINK]               call links (with a host) now
   bbs [-config FILE] fido scan|toss [LINK]          pack new mail, or take in what came
+  bbs [-config FILE] fido node ADDRESS              a system in the nodelist
+  bbs [-config FILE] fido nodes WORDS...            systems found by name, place, sysop
   bbs [-config FILE] user qwknode|unqwknode NAME     an account for another BBS, a QWK network node
   bbs [-config FILE] qwknet call [NET]               call QWK networks' hubs now
   bbs [-config FILE] room list                       permanent chat rooms (IRC channels)
@@ -390,6 +393,8 @@ func serve(cfg *server.Config) int {
 			return 1
 		}
 		b.Netmail = fd.Netmail
+		b.NetmailTo = fd.NetmailTo
+		b.Nodelist = fd.Nodelist
 		if cfg.Binkp != nil {
 			bs := &fido.Server{F: fd, Address: cfg.Binkp.Address, MaxClients: cfg.Binkp.MaxClients,
 				MaxPerIP: cfg.Binkp.MaxPerIP}
@@ -1052,8 +1057,18 @@ func qwkNetCmd(cfg *server.Config, args []string) {
 
 func fidoCmd(cfg *server.Config, args []string) {
 	words, _ := split(args)
-	if len(words) == 0 || len(words) > 2 {
+	if len(words) == 0 {
 		usage()
+	}
+	switch words[0] {
+	case "node", "nodes":
+		if len(words) < 2 {
+			usage()
+		}
+	default:
+		if len(words) > 2 {
+			usage()
+		}
 	}
 	if cfg.Fido == nil {
 		fatal(errors.New("no [fido] section"))
@@ -1066,6 +1081,11 @@ func fidoCmd(cfg *server.Config, args []string) {
 	fd, err := fido.New(b, *cfg.Fido)
 	if err != nil {
 		fatal(err)
+	}
+	switch words[0] {
+	case "node", "nodes":
+		nodelistCmd(fd, words)
+		return
 	}
 	var links []*fido.Link
 	for _, l := range cfg.Fido.Links {
@@ -1114,6 +1134,45 @@ func fidoCmd(cfg *server.Config, args []string) {
 	if failed {
 		os.Exit(1)
 	}
+}
+
+// nodelistCmd: a node of the nodelist, or the nodes found by words.
+func nodelistCmd(fd *fido.Fido, words []string) {
+	nl := fd.Nodelist()
+	if nl.Len() == 0 {
+		fatal(errors.New("no nodelist read (set [fido] nodelist)"))
+	}
+	show := func(n *ftn.Node) {
+		kind := ""
+		if n.Kind != "" {
+			kind = " (" + strings.ToLower(n.Kind) + ")"
+		}
+		fmt.Printf("%-14s %s%s\n", n.Addr.String4D(), n.Name, kind)
+		fmt.Printf("               %s; sysop %s; %s\n", n.Location, n.Sysop, n.Phone)
+		if len(n.Flags) > 0 {
+			fmt.Printf("               %s\n", strings.Join(n.Flags, ","))
+		}
+		if h, ok := n.Binkp(); ok {
+			fmt.Printf("               binkp at %s\n", h)
+		}
+	}
+	if words[0] == "node" {
+		a, err := ftn.ParseAddr(words[1])
+		if err != nil {
+			fatal(err)
+		}
+		n, ok := nl.Lookup(a)
+		if !ok {
+			fatal(fmt.Errorf("%s is not in the nodelist", a))
+		}
+		show(n)
+		return
+	}
+	found := nl.Search(strings.Join(words[1:], " "), 200)
+	for _, n := range found {
+		show(n)
+	}
+	fmt.Printf("%d found (of %d)\n", len(found), nl.Len())
 }
 
 func tokenCmd(cfg *server.Config, args []string) {

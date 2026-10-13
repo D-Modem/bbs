@@ -509,9 +509,14 @@ func (s *Session) post(a *store.Area, to, subject string, quote []string, replyT
 // compose: a private mail
 func (s *Session) compose(to, subject string, quote []string, replyTo int64) error {
 	s.N.Doing("Writing mail")
+	sentTo := ""
 	d := &view.Draft{Title: "New mail", To: to, ToHint: "user name", Subject: subject, Quote: quote,
 		CheckTo: func(to string) error {
-			if _, _, ok := bbs.SplitNetmail(to); ok && s.B.Netmail != nil {
+			if _, addr, ok := bbs.SplitNetmail(to); ok && s.B.Netmail != nil {
+				if s.B.NetmailTo != nil {
+					_, err := s.B.NetmailTo(addr)
+					return err
+				}
 				return nil
 			}
 			if _, err := s.B.Store.UserByName(to); err != nil {
@@ -520,6 +525,7 @@ func (s *Session) compose(to, subject string, quote []string, replyTo int64) err
 			return nil
 		},
 		Send: func(to, subject string, body []string) error {
+			sentTo = to
 			return s.N.SendMail(to, subject, s.signed(body), replyTo)
 		}}
 	if s.B.Netmail != nil {
@@ -527,9 +533,47 @@ func (s *Session) compose(to, subject string, quote []string, replyTo int64) err
 	}
 	sent, err := s.UI.Edit(d)
 	if err == nil && sent {
-		s.UI.Say(view.Good, "Sent.")
+		msg := "Sent."
+		if name, addr, ok := bbs.SplitNetmail(sentTo); ok && s.B.Netmail != nil {
+			msg = fmt.Sprintf("Netmail for %s at %s is on its way.", name, addr)
+			if s.B.NetmailTo != nil {
+				if desc, _ := s.B.NetmailTo(addr); desc != "" {
+					msg = fmt.Sprintf("Netmail for %s at %s (%s) is on its way.", name, addr, desc)
+				}
+			}
+		}
+		s.UI.Say(view.Good, msg)
 	}
 	return err
+}
+
+// nodelist: FidoNet's systems found by their names, places, sysops or
+// addresses; one picked is written to (its sysop, by netmail)
+func (s *Session) nodelist() error {
+	v, ok, err := s.UI.Form(&view.Form{Title: "Find a FidoNet system", Submit: "Find", Fields: []view.Field{
+		{Name: "text", Label: "Find", Prompt: "Find (a name, place, sysop or address): ", Width: 40}}})
+	text := strings.TrimSpace(v["text"])
+	if err != nil || !ok || text == "" {
+		return err
+	}
+	s.N.Doing("Reading the nodelist")
+	nodes := s.B.Nodelist().Search(text, most)
+	t := &view.Table{Title: "Nodelist: " + text, Empty: "No system has " + text + ".", Pick: "Number to write to",
+		Columns: []view.Column{{Title: "Address", Width: 14}, {Title: "System", Width: 26},
+			{Title: "Place", Width: 20, Wide: true}, {Title: "Sysop", Width: 18}}}
+	for i, n := range nodes {
+		name := n.Name
+		if n.Kind != "" {
+			name += " (" + strings.ToLower(n.Kind) + ")"
+		}
+		t.Rows = append(t.Rows, view.Row{Num: strconv.Itoa(i + 1), Cells: []string{n.Addr.String4D(), name, n.Location, n.Sysop}})
+	}
+	c, err := s.UI.Table(t)
+	if err != nil || c.Action != view.Pick || c.Row < 0 || c.Row >= len(nodes) {
+		return err
+	}
+	n := nodes[c.Row]
+	return s.compose(bbs.Clean(n.Sysop, bbs.MaxFTNNameLen)+"@"+n.Addr.String4D(), "", nil, 0)
 }
 
 // mail: the inbox
@@ -544,6 +588,9 @@ func (s *Session) mail() error {
 			Columns: []view.Column{{Title: "From", Width: 16}, {Title: "Subject", Width: 40},
 				{Title: "Date", Width: 11, Wide: true}},
 			Actions: []view.Action{{ID: "send", Label: "Send", Key: 'S', PF: 6, Short: "New mail"}}}
+		if s.B.Nodelist != nil && s.B.Nodelist().Len() > 0 {
+			t.Actions = append(t.Actions, view.Action{ID: "nodes", Label: "Nodelist", Key: 'N', PF: 5, Short: "Find a FidoNet system"})
+		}
 		for i, m := range inbox {
 			t.Rows = append(t.Rows, view.Row{Num: strconv.Itoa(i + 1), Mark: !m.Read,
 				Cells: []string{m.From, m.Subject, m.Created.Format("01-02 15:04")}})
@@ -557,6 +604,10 @@ func (s *Session) mail() error {
 			return nil
 		case "send":
 			if err := s.compose("", "", nil, 0); err != nil {
+				return err
+			}
+		case "nodes":
+			if err := s.nodelist(); err != nil {
 				return err
 			}
 		case view.Pick:

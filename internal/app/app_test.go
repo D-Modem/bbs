@@ -14,6 +14,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
 	"github.com/Neo-Desktop/bbs-sec/internal/events"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
+	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
@@ -543,5 +544,38 @@ func TestOfflineMail(t *testing.T) {
 	ms, _ := b.Store.Messages(gen.ID, 1, 10)
 	if len(ms) != 1 || ms[0].From != "alice" || ms[0].ReplyTo != 1 {
 		t.Errorf("replies %+v", ms)
+	}
+}
+
+// TestNodelist: the inbox finds FidoNet systems in the nodelist; one
+// picked is written to, its system named when the netmail goes.
+func TestNodelist(t *testing.T) {
+	b, alice, _ := setup(t)
+	nl := ftn.NewNodelist()
+	nl.Read(strings.NewReader("Zone,21,Z,Here,Z,-Unpublished-,300\r\nHost,1,N,Here,H,-Unpublished-,300\r\n" +
+		",300,Node_300,Perth_AU,Three_Hundred,-Unpublished-,300,CM\r\n"))
+	b.Nodelist = func() *ftn.Nodelist { return nl }
+	var sent []string
+	b.Netmail = func(u *store.User, to string, addr ftn.Addr, subject, body string, reply *store.Message) error {
+		sent = append(sent, to+"@"+addr.String()+": "+subject)
+		return nil
+	}
+	b.NetmailTo = func(a ftn.Addr) (string, error) {
+		n, ok := nl.Lookup(a)
+		if !ok {
+			return "", fmt.Errorf("%s is not in the nodelist", a)
+		}
+		return n.Name + ", " + n.Location, nil
+	}
+	f := run(t, b, alice,
+		"E", view.Choice{Action: "nodes"}, map[string]string{"text": "perth"},
+		view.Choice{Action: view.Pick, Row: 0}, draft{"Three Hundred@21:1/300", "Hello", []string{"From the nodelist"}},
+		view.Choice{Action: "send"}, draft{"Nobody@21:1/999", "x", []string{"x"}},
+		view.Choice{Action: view.Back})
+	has(t, "screens", f.shown, "table Nodelist: perth: 21:1/300|Node 300|Perth AU|Three Hundred")
+	has(t, "said", f.said, "Netmail for Three Hundred at 21:1/300 (Node 300, Perth AU) is on its way.")
+	has(t, "said", f.said, "21:1/999 is not in the nodelist")
+	if len(sent) != 1 || sent[0] != "Three Hundred@21:1/300: Hello" {
+		t.Errorf("sent %q", sent)
 	}
 }

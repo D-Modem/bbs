@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"path/filepath"
 	"strings"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/archive"
@@ -55,6 +56,12 @@ func (c *Config) fidoSections(cf *config.File) error {
 		return fmt.Errorf("[fido] %w", err)
 	}
 	f.MaxMessage = int(max)
+	f.Nodelists = strings.Fields(s.String("nodelist", ""))
+	for _, p := range f.Nodelists {
+		if _, err := filepath.Match(p, ""); err != nil {
+			return fmt.Errorf("[fido] nodelist %s: %v", p, err)
+		}
+	}
 	for _, field := range []string{f.System, f.Sysop, f.Location} {
 		if strings.ContainsAny(field, "\r\n\x00") {
 			return errors.New("[fido] names must be one line")
@@ -127,7 +134,7 @@ func link(s *config.Section) (*fido.Link, error) {
 			return nil, fmt.Errorf("aka: %w", err)
 		}
 	}
-	if l.Host = s.String("host", ""); l.Host != "" {
+	if l.Host = s.String("host", ""); l.Host != "" && l.Host != fido.NodelistHost {
 		if _, _, err := net.SplitHostPort(l.Host); err != nil {
 			l.Host = net.JoinHostPort(l.Host, "24554")
 		}

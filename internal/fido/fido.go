@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -27,10 +28,11 @@ type Settings struct {
 	System     string     // the system's name, for binkp
 	Sysop      string
 	Location   string
-	Origin     string // the origin line's text
-	Dir        string // inbound, outbound and bad packets under it
-	UTF8       bool   // write UTF-8, not CP437
-	MaxMessage int    // bytes of a message's text
+	Origin     string   // the origin line's text
+	Dir        string   // inbound, outbound and bad packets under it
+	UTF8       bool     // write UTF-8, not CP437
+	MaxMessage int      // bytes of a message's text
+	Nodelists  []string // nodelist files (globs: the newest of each is read)
 	Links      []*Link
 }
 
@@ -56,6 +58,10 @@ type Fido struct {
 
 	locks sync.Map // link name: *sync.Mutex, one session or toss at a time
 	kick  chan struct{}
+
+	nl      atomic.Pointer[ftn.Nodelist]
+	nlMu    sync.Mutex
+	nlStamp string // the nodelist files read, and their times
 }
 
 // New makes it, its directories too.
@@ -79,6 +85,7 @@ func New(b *bbs.BBS, s Settings) (*Fido, error) {
 			}
 		}
 	}
+	f.loadNodelists()
 	return f, nil
 }
 
@@ -196,6 +203,9 @@ func (l *Link) origin() string { return "ftn:" + l.Name }
 
 // Netmail queues a netmail from a user: the BBS's NetmailFunc.
 func (f *Fido) Netmail(u *store.User, to string, addr ftn.Addr, subject, body string, reply *store.Message) error {
+	if err := f.checkNodelist(addr); err != nil {
+		return err
+	}
 	if f.route(addr) == nil {
 		return fmt.Errorf("no route to %s: it is not a link, and no link takes netmail on", addr)
 	}
@@ -245,6 +255,7 @@ func (f *Fido) Run(ctx context.Context) {
 	tick := time.NewTicker(time.Minute)
 	defer tick.Stop()
 	for {
+		f.loadNodelists()
 		fresh, err := f.ScanAll()
 		if err != nil {
 			f.B.Log.Printf("fido: scan: %v", err)
