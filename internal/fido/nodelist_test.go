@@ -98,3 +98,28 @@ func TestNodelistUse(t *testing.T) {
 		t.Errorf("log: %s", n200.log)
 	}
 }
+
+// TestNodelistArea: nodelist = area:NAME reads the newest file in a file
+// area, as the NODELIST file echo brings it.
+func TestNodelistArea(t *testing.T) {
+	s := newSystem(t, "21:1/200")
+	a, _ := s.f.B.Store.CreateFileArea("Nodelist", "Nodelists", true)
+	s.f.S.Nodelists = []string{"area:Nodelist"}
+	put := func(name, text string) {
+		p := filepath.Join(t.TempDir(), name)
+		os.WriteFile(p, []byte(text), 0600)
+		if _, err := s.f.B.Files.Put(a, p, name, "", "", "21:1/100", "ftn:hub"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	put("NODELIST.276", nodelistText("old.example"))
+	s.f.loadNodelists()
+	if n, ok := s.f.Nodelist().Lookup(mustAddr("21:1/100")); !ok || n.Name != "The Hub" {
+		t.Fatalf("1/100: %+v", n)
+	}
+	put("NODELIST.283", strings.Replace(nodelistText("x"), "The_Hub", "New_Hub", 1))
+	s.f.loadNodelists()
+	if n, _ := s.f.Nodelist().Lookup(mustAddr("21:1/100")); n.Name != "New Hub" {
+		t.Fatalf("not read again: %+v", n)
+	}
+}

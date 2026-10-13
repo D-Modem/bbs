@@ -75,7 +75,8 @@ What there is:
 - [newsgroups](Newsgroups-and-NNTP): message areas given a newsgroup name are served by NNTP to
   newsreaders and exchanged with other news servers (INN and the like)
 - [FidoNet](FidoNet) (or any FTN network): message areas that are echoes, netmail
-  as private mail, and a binkp mailer to exchange packets with links
+  as private mail, file echoes (TIC), AreaFix and FileFix, nodelists, and a
+  binkp mailer to exchange ZIP, ARC, ARJ or LHA bundles with links
 - [doors](Doors): DOS door games in dosemu2 (in Docker), with a FOSSIL on COM1
   and the usual drop files, or any Linux program, for text callers; doors
   elsewhere by telnet or RLogin, and the door networks BBSLink and DoorParty
@@ -114,7 +115,7 @@ What there is:
 | [Offline mail](Offline-Mail) | QWK packets, REP replies, QWK networks |
 | [Doors](Doors) | DOS doors in dosemu2 (Docker), Linux doors |
 | [Newsgroups and NNTP](Newsgroups-and-NNTP) | the NNTP server, news peers |
-| [FidoNet](FidoNet) | echomail, netmail, binkp |
+| [FidoNet](FidoNet) | echomail, netmail, binkp, file echoes, AreaFix, nodelists |
 | [Chat and paging](Chat-and-Paging) | chat rooms, node messages, paging the sysop |
 | [IRC](IRC) | the IRC server: the chat rooms as channels |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |

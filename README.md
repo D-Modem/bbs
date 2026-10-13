@@ -75,7 +75,8 @@ What there is:
 - [offline mail](https://github.com/Neo-Desktop/bbs-sec/wiki/Offline-Mail): QWK packets of new messages and mail, REP
   replies brought back (by a transfer protocol, IND$FILE, FTP or the API); QWK networks as a hub or a node
 - [FidoNet](https://github.com/Neo-Desktop/bbs-sec/wiki/FidoNet) (or any FTN network): message areas that are echoes, netmail
-  as private mail, and a binkp mailer to exchange packets with links
+  as private mail, file echoes (TIC), AreaFix and FileFix, nodelists, and a
+  binkp mailer to exchange ZIP, ARC, ARJ or LHA bundles with links
 - [IRC](https://github.com/Neo-Desktop/bbs-sec/wiki/IRC): the chat rooms as IRC channels, built on parts of
   [ergo](https://github.com/ergochat/ergo); logins by SASL or the server password, TLS
 - [MRC](https://github.com/Neo-Desktop/bbs-sec/wiki/MRC): Multi Relay Chat, the BBSes' chat network, its rooms as chat rooms here
@@ -132,7 +133,7 @@ The documentation is in the [wiki](https://github.com/Neo-Desktop/bbs-sec/wiki/)
 | [File transfers](https://github.com/Neo-Desktop/bbs-sec/wiki/File-Transfers) | X/Y/ZMODEM, Kermit, IND$FILE |
 | [Doors](https://github.com/Neo-Desktop/bbs-sec/wiki/Doors) | DOS doors in dosemu2 (Docker), Linux doors |
 | [Newsgroups and NNTP](https://github.com/Neo-Desktop/bbs-sec/wiki/Newsgroups-and-NNTP) | the NNTP server, news peers |
-| [FidoNet](https://github.com/Neo-Desktop/bbs-sec/wiki/FidoNet) | echomail, netmail, binkp |
+| [FidoNet](https://github.com/Neo-Desktop/bbs-sec/wiki/FidoNet) | echomail, netmail, binkp, file echoes, AreaFix, nodelists |
 | [IRC](https://github.com/Neo-Desktop/bbs-sec/wiki/IRC) | the IRC server: the chat rooms as channels |
 | [MRC](https://github.com/Neo-Desktop/bbs-sec/wiki/MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Offline mail](https://github.com/Neo-Desktop/bbs-sec/wiki/Offline-Mail) | QWK packets, REP replies, QWK networks |

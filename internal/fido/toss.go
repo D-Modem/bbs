@@ -29,15 +29,16 @@ var bundleName = regexp.MustCompile(`(?i)\.(mo|tu|we|th|fr|sa|su)[0-9a-z]$`)
 
 // TossStats counts what a toss did.
 type TossStats struct {
-	Echomail, Netmail, Dupes, Bad, Forwarded int
+	Echomail, Netmail, Dupes, Bad, Forwarded, Files int
 }
 
 func (s TossStats) String() string {
-	return fmt.Sprintf("%d echomail, %d netmail, %d dupes, %d bad", s.Echomail, s.Netmail, s.Dupes, s.Bad)
+	return fmt.Sprintf("%d echomail, %d netmail, %d files, %d dupes, %d bad", s.Echomail, s.Netmail, s.Files, s.Dupes, s.Bad)
 }
 
-// Toss takes in what a link has sent: its packets, bare or bundled.
-// Files that are neither are left for the sysop (in/LINK/files).
+// Toss takes in what a link has sent: its packets, bare or bundled, and
+// its file echoes' files with their TICs.  Other files are left for the
+// sysop (in/LINK/files).
 func (f *Fido) Toss(l *Link) (TossStats, error) {
 	mu := f.lock(l)
 	mu.Lock()
@@ -52,9 +53,10 @@ func (f *Fido) toss(l *Link) (TossStats, error) {
 	if err != nil {
 		return st, err
 	}
+	ticFiles := ticNames(dir, ents)
 	for _, e := range ents {
 		name := e.Name()
-		if !e.Type().IsRegular() || strings.HasPrefix(name, ".") {
+		if !e.Type().IsRegular() || strings.HasPrefix(name, ".") || ticFiles[strings.ToLower(name)] {
 			continue
 		}
 		path := filepath.Join(dir, name)
@@ -64,12 +66,7 @@ func (f *Fido) toss(l *Link) (TossStats, error) {
 		case bundleName.MatchString(name):
 			err = f.tossBundle(l, path, &st)
 		default:
-			// a file echo's file, a TIC, a file request: not ours to do
-			files := filepath.Join(dir, "files")
-			os.MkdirAll(files, 0700)
-			os.Rename(path, filepath.Join(files, name))
-			f.B.Log.Printf("fido: %s sent %s: not mail, left in %s", l.Name, name, files)
-			continue
+			continue // a file echo's file, or not ours to know: tossTICs
 		}
 		if err != nil {
 			f.B.Log.Printf("fido: %s: %s: %v (moved to bad)", l.Name, name, err)
@@ -79,6 +76,7 @@ func (f *Fido) toss(l *Link) (TossStats, error) {
 		}
 		os.Remove(path)
 	}
+	f.tossTICs(l, dir, &st)
 	if st != (TossStats{}) {
 		f.B.Log.Printf("fido: tossed from %s: %s", l.Name, st)
 	}

@@ -98,6 +98,11 @@ func (s *Store) Delete(u *store.User, f *store.File) error {
 	if !CanDelete(u, f) {
 		return ErrDenied
 	}
+	return s.Remove(f)
+}
+
+// Remove takes a file away, whoever may: the system's own doing.
+func (s *Store) Remove(f *store.File) error {
 	if err := s.DB.DeleteFile(f.ID); err != nil {
 		return err
 	}
@@ -259,6 +264,68 @@ func (s *Store) Import(u *store.User, a *store.FileArea, path, name, desc string
 		return nil, err
 	}
 	return up.Commit()
+}
+
+// Path is where a file's contents are kept.
+func (s *Store) Path(f *store.File) string { return s.path(f.ID) }
+
+// Put adds a file from disk to an area as it came from elsewhere (a file
+// echo, from origin): no user's limits but the size limit, a file of the
+// same name replaced (not one uploaded here), the description its own or
+// else the archive's FILE_ID.DIZ.
+func (s *Store) Put(a *store.FileArea, path, name, desc, longDesc, uploader, origin string) (*store.File, error) {
+	if msg := ValidName(name); msg != "" {
+		return nil, errors.New(msg)
+	}
+	in, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer in.Close()
+	tmp, err := os.CreateTemp(filepath.Join(s.Dir, "tmp"), "put-*")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tmp.Name())
+	h := sha256.New()
+	n, err := io.Copy(io.MultiWriter(tmp, h), io.LimitReader(in, s.MaxSize+1))
+	if err == nil {
+		err = tmp.Close()
+	} else {
+		tmp.Close()
+	}
+	if err != nil {
+		return nil, err
+	}
+	if n > s.MaxSize {
+		return nil, ErrTooLarge
+	}
+	f := &store.File{AreaID: a.ID, Name: name, Description: desc, LongDesc: longDesc, Size: n,
+		SHA256: hex.EncodeToString(h.Sum(nil)), Uploader: uploader, Origin: origin}
+	if f.LongDesc == "" {
+		f.LongDesc = diz(tmp.Name(), name)
+	}
+	if f.Description == "" {
+		f.Description = short(f.LongDesc)
+	}
+	if old, err := s.DB.FileByName(a.ID, name); err == nil {
+		if old.Origin == "" && origin != "" {
+			return nil, errors.New("a file here is called " + name)
+		}
+		if err := s.DB.DeleteFile(old.ID); err != nil {
+			return nil, err
+		}
+		os.Remove(s.path(old.ID))
+	}
+	id, err := s.DB.AddFile(f)
+	if err != nil {
+		return nil, err
+	}
+	if err := os.Rename(tmp.Name(), s.path(id)); err != nil {
+		s.DB.DeleteFile(id)
+		return nil, err
+	}
+	return s.DB.FileByID(id)
 }
 
 // Size is n bytes for people: 512 B, 1.5 KB, 23 MB.

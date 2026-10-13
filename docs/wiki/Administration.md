@@ -86,6 +86,11 @@ bbs news sync [PEER]                # exchange articles with news peers now
 bbs fido poll [LINK]                # call FidoNet links now
 bbs fido scan [LINK]                # pack new mail into the outbound
 bbs fido toss [LINK]                # take in what has come
+bbs fido node ADDRESS               # a system in the nodelist
+bbs fido nodes WORDS...             # systems by name, place or sysop
+bbs fido subs LINK                  # the echoes and file echoes a link has
+bbs fido link|unlink LINK TAG...    # link it to echoes (filelink, fileunlink)
+bbs fido areafix|filefix LINK CMD...  # a request to a link's AreaFix (FileFix)
 bbs qwknet call [NET]               # call QWK networks' hubs now
 bbs user qwknode|unqwknode NAME     # an account a QWK node calls this hub as
 ```

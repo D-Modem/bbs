@@ -15,6 +15,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -539,6 +540,10 @@ func (s *session) transfer() error {
 		queue = append(queue, &outFile{path: filepath.Join(f.outbound(l), e.Name()), name: e.Name(),
 			size: fi.Size(), time: fi.ModTime().Unix()})
 	}
+	// TICs after their files: a tosser that finds a TIC looks for its file
+	sort.SliceStable(queue, func(i, j int) bool {
+		return !isTIC(queue[i].name) && isTIC(queue[j].name)
+	})
 	var cur *outFile
 	waiting := map[string]*outFile{}
 	var in *inFile

@@ -29,6 +29,7 @@
 //	bbs [-config FILE] token revoke ID
 //	bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
 //	bbs [-config FILE] filearea del|list [NAME]
+//	bbs [-config FILE] filearea echo AREA TAG|-
 //	bbs [-config FILE] file add AREA PATH [DESCRIPTION] [-as NAME]
 //	bbs [-config FILE] file list AREA
 //	bbs [-config FILE] file del AREA NAME
@@ -119,6 +120,7 @@ func usage() {
   bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
   bbs [-config FILE] filearea del NAME
   bbs [-config FILE] filearea list
+  bbs [-config FILE] filearea echo AREA TAG|-       make it a FidoNet file echo (- : not)
   bbs [-config FILE] filearea require AREA DOWNLOAD UPLOAD
   bbs [-config FILE] file add AREA PATH [DESCRIPTION]   (as the first sysop)
   bbs [-config FILE] file list AREA
@@ -851,7 +853,34 @@ func fileAreaCmd(cfg *server.Config, args []string) {
 			if a.SysopUpload {
 				only = " (sysop uploads only)"
 			}
+			if a.FileEcho != "" {
+				only += " (file echo " + a.FileEcho + ")"
+			}
 			fmt.Printf("%-20s %5d files %10s  %s%s\n", a.Name, a.Files, files.Size(a.Bytes), a.Description, only)
+		}
+	case "echo":
+		if len(words) != 3 {
+			usage()
+		}
+		a, err := st.FileAreaByName(words[1])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", words[1], err))
+		}
+		tag := strings.ToUpper(words[2])
+		if tag == "-" {
+			tag = ""
+		} else if !ftn.ValidTag(tag) {
+			fatal(errors.New("a file echo's tag is letters, digits and . _ - (NODEDIFF), up to 60"))
+		}
+		if err := st.SetFileEcho(a.ID, tag); errors.Is(err, store.ErrExists) {
+			fatal(errors.New("another file area is the file echo " + tag))
+		} else if err != nil {
+			fatal(err)
+		}
+		if tag == "" {
+			fmt.Println(a.Name, "is no longer a file echo")
+		} else {
+			fmt.Println(a.Name, "is the file echo", tag)
 		}
 	case "add":
 		if len(words) < 2 || len(words) > 3 {

@@ -119,7 +119,8 @@ func (f *Fido) scan(l *Link) (int, error) {
 	if len(msgs) > 0 {
 		f.B.Log.Printf("fido: packed %d messages for %s", len(msgs), l.Name)
 	}
-	return len(msgs), nil
+	n, err := f.hatch(l)
+	return len(msgs) + n, err
 }
 
 // tzutc is the TZUTC kludge's value: -0500, 0100.

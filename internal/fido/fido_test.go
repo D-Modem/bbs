@@ -16,6 +16,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/files"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
@@ -63,6 +64,9 @@ func newSystem(t *testing.T, addr string, links ...*Link) *system {
 	area, _ := st.Area(a.ID)
 	lb := &syncBuf{}
 	b := bbs.New(bbs.Defaults(), st, log.New(lb, "", 0))
+	if b.Files, err = files.Open(st, filepath.Join(dir, "files"), 1<<20, 0); err != nil {
+		t.Fatal(err)
+	}
 	ad, _ := ftn.ParseAddr(addr)
 	f, err := New(b, Settings{Addrs: []ftn.Addr{ad}, System: "Test " + addr, Sysop: "Sysop",
 		Origin: "Test system", Dir: filepath.Join(dir, "fido"), Links: links})
@@ -281,11 +285,16 @@ func TestTossChecks(t *testing.T) {
 	pkt("21:1/100", "21:1/201", "PKT", echo("21:1/100 00000006"))
 	os.WriteFile(filepath.Join(s.f.inbound(l), "abcd0001.mo0"), []byte("not a zip"), 0600)
 	os.WriteFile(filepath.Join(s.f.inbound(l), "file.tic"), []byte("tic"), 0600)
+	// a file echo's file, and file echoes are not exchanged with the link
+	os.WriteFile(filepath.Join(s.f.inbound(l), "good.tic"), (&ftn.TIC{Area: "X", File: "X.ZIP"}).Bytes(), 0600)
+	os.WriteFile(filepath.Join(s.f.inbound(l), "X.ZIP"), []byte("x"), 0600)
+	// a file with no TIC, not yet a day old: left to wait for one
+	os.WriteFile(filepath.Join(s.f.inbound(l), "LONELY.ZIP"), []byte("x"), 0600)
 	st, err := s.f.Toss(l)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if st.Echomail != 1 || st.Dupes != 2 || st.Bad != 5 {
+	if st.Echomail != 1 || st.Dupes != 2 || st.Bad != 6 {
 		t.Errorf("stats %+v", st)
 	}
 	ms := s.messages(t)
@@ -293,11 +302,13 @@ func TestTossChecks(t *testing.T) {
 		t.Fatalf("%+v", ms)
 	}
 	bad, _ := os.ReadDir(filepath.Join(s.f.S.Dir, "bad"))
-	if len(bad) != 4 {
+	if len(bad) != 5 || !exists(filepath.Join(s.f.S.Dir, "bad", "hub-file.tic")) {
 		t.Errorf("%d in bad", len(bad))
 	}
-	if _, err := os.Stat(filepath.Join(s.f.inbound(l), "files", "file.tic")); err != nil {
-		t.Error("the TIC was not set aside")
+	for _, p := range []string{"files/good.tic", "files/X.ZIP", "LONELY.ZIP"} {
+		if !exists(filepath.Join(s.f.inbound(l), p)) {
+			t.Errorf("no %s", p)
+		}
 	}
 }
 

@@ -325,6 +325,9 @@ address = 127.0.0.1:2513
 ; what messages are written in: cp437 (what FidoNet reads) or utf-8
 ;charset = cp437
 ;max_message = 64K
+; nodelists, to check netmail and look systems up: paths or patterns (the
+; newest file of each), or area:NAME, the newest file in a file area
+;nodelist = /var/lib/bbs/fido/nodelist/NODELIST.* area:Nodelist
 
 ; binkp: answer the links' calls.  Without it, links are only called
 ;[binkp]
@@ -335,7 +338,8 @@ address = 127.0.0.1:2513
 ; A system we exchange mail with, one section each
 ;[link hub]
 ;address = 21:1/100
-; to call it (port 24554 if none); without a host it calls us
+; to call it (port 24554 if none); without a host it calls us; nodelist:
+; where the nodelist says
 ;host = hub.example.net:24554
 ; the session password (CRAM-MD5); and the packets', up to 8 characters
 ;password = secret
@@ -346,7 +350,17 @@ address = 127.0.0.1:2513
 ;echoes = FSX_*
 ; netmail for systems that are not links goes by it (one link at most)
 ;route = yes
-; zip: ARCmail bundles; none: bare packets
+; the file echoes (TIC) exchanged with it: a wildmat (none if unset); and
+; the TICs' password, both ways
+;fileechoes = FSX_*
+;tic_password =
+; it asks for echoes and file echoes by AreaFix and FileFix (of those
+; echoes and fileechoes allow) with this password; we ask its with it too
+;areafix = no
+;areafix_password =
+; make the echoes and file echoes it sends that are not here
+;create = no
+; how mail to it is bundled: zip, arc, arj, lha; none: bare packets
 ;packer = zip
 ; call it every this many seconds, mail or not (0: only with mail)
 ;poll = 3600

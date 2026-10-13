@@ -9,6 +9,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
+	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
 // maxNodelist is the most of a nodelist read (FidoNet's is some 3 MB).
@@ -23,6 +24,13 @@ func (f *Fido) newestNodelists() ([]string, string) {
 	var files []string
 	var stamp strings.Builder
 	for _, pat := range f.S.Nodelists {
+		if name, ok := strings.CutPrefix(pat, "area:"); ok {
+			if p, t := f.newestInArea(name); p != "" {
+				files = append(files, p)
+				fmt.Fprintf(&stamp, "%s@%d;", p, t)
+			}
+			continue
+		}
 		ms, _ := filepath.Glob(pat)
 		best, bestTime := "", int64(0)
 		for _, m := range ms {
@@ -40,6 +48,32 @@ func (f *Fido) newestNodelists() ([]string, string) {
 		}
 	}
 	return files, stamp.String()
+}
+
+// newestInArea is the newest file in a file area (a file echo's, as
+// NODELIST comes) and when it came.
+func (f *Fido) newestInArea(name string) (string, int64) {
+	if f.B.Files == nil {
+		return "", 0
+	}
+	a, err := f.B.Store.FileAreaByName(name)
+	if err != nil {
+		return "", 0
+	}
+	list, err := f.B.Store.Files(a.ID)
+	if err != nil {
+		return "", 0
+	}
+	var best *store.File
+	for _, fl := range list {
+		if best == nil || fl.ID > best.ID {
+			best = fl
+		}
+	}
+	if best == nil {
+		return "", 0
+	}
+	return f.B.Files.Path(best), best.ID
 }
 
 // loadNodelists reads the nodelists again if they have changed.
