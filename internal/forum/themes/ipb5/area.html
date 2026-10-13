@@ -1,0 +1,41 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<header class="ipsPageHeader ipsPageHeader--row">
+  <div class="ipsPageHeader__primary">
+    <h1 class="ipsPageHeader__title">{{$b.Area.Name}}</h1>
+    {{if $b.Area.Description}}<p class="ipsPageHeader__desc">{{$b.Area.Description}}</p>{{end}}
+    <p class="ipsPageHeader__meta">{{plural $b.Count "topic" "topics"}}</p>
+  </div>
+  <div class="ipsButtons">
+    {{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="ipsButton ipsButton--soft"><span class="ic ic-check" aria-hidden="true"></span>Mark read</button></form>{{end}}
+    {{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="ipsButton ipsButton--primary"><span class="ic ic-pen" aria-hidden="true"></span>Start new topic</a>{{end}}
+  </div>
+</header>
+<section class="ipsBox">
+  <div class="ipsButtonBar">{{template "pages" $b.Pages}}<span class="ipsMuted">Sort by: Recently Updated</span></div>
+  <ol class="ipsData ipsData--topics">
+    {{range $b.Topics}}
+    <li class="ipsData__item{{if .Unread}} ipsData__item--unread{{end}}">
+      <div class="ipsData__icon">{{template "avatar" (av .Root.From "fluid")}}</div>
+      <div class="ipsData__main">
+        <h3 class="ipsData__title">{{if .Unread}}<a href="/forum/post/{{.Last.ID}}" class="ipsIndicator" title="Go to first unread post" aria-label="Go to first unread post"></a>{{end}}<a href="/forum/topic/{{.Root.ID}}">{{.Root.Subject}}</a>{{if ge .Replies 15}} <span class="ipsBadge ipsBadge--hot" title="Hot topic"><span class="ic ic-fire" aria-hidden="true"></span></span>{{end}}</h3>
+        <div class="ipsData__meta">By <a href="/forum/user/{{path .Root.From}}">{{.Root.From}}</a> &middot; {{ago .Root.Created}}{{if gt .Pages 1}} &middot; <span class="ipsMiniPages">{{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a>{{end}}</span>{{end}}</div>
+      </div>
+      <ul class="ipsData__stats">
+        <li><span class="ipsData__stats-number">{{num .Replies}}</span> <span class="ipsData__stats-label">{{if eq .Replies 1}}Reply{{else}}Replies{{end}}</span></li>
+      </ul>
+      <div class="ipsData__last">
+        {{template "avatar" (av .Last.From "mini")}}
+        <div class="ipsData__last-text">
+          <a href="/forum/user/{{path .Last.From}}" class="ipsData__last-primary">{{.Last.From}}</a>
+          <div class="ipsData__last-secondary"><a href="/forum/post/{{.Last.ID}}">{{ago .Last.Created}}</a></div>
+        </div>
+      </div>
+    </li>
+    {{else}}
+    <li class="ipsEmpty">There are no topics in this forum yet{{if $b.CanPost}}. <a href="/forum/area/{{$b.Area.ID}}/new">Start the conversation</a>{{end}}</li>
+    {{end}}
+  </ol>
+  {{if gt $b.Pages.Total 1}}<div class="ipsButtonBar ipsButtonBar--bottom">{{template "pages" $b.Pages}}</div>{{end}}
+</section>
+{{template "foot" .}}{{end}}

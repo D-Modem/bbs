@@ -1,0 +1,43 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="ipsBox ipsProfileHeader">
+  <div class="ipsProfileHeader__cover"></div>
+  <div class="ipsProfileHeader__bar">
+    <div class="ipsProfileHeader__photo">{{template "avatar" (av $u.Name "huge")}}</div>
+    <div class="ipsProfileHeader__name">
+      <h1>{{$u.Name}}</h1>
+      <p><span class="ipsEntry__group{{if $u.Sysop}} admin{{end}}">{{if $u.Sysop}}Administrators{{else}}{{group $u}}{{end}}</span>{{if .Body.On}} <span class="ipsOnlineDot" aria-hidden="true"></span> Online now{{end}}</p>
+    </div>
+    <ul class="ipsProfileHeader__stats">
+      <li><span class="ipsStatGrid__number">{{num $u.Posts}}</span><span class="ipsStatGrid__label">Posts</span></li>
+      <li><span class="ipsStatGrid__number">{{monthyear $u.Created}}</span><span class="ipsStatGrid__label">Joined</span></li>
+      <li><span class="ipsStatGrid__number">{{ago $u.LastLogin}}</span><span class="ipsStatGrid__label">Last visited</span></li>
+    </ul>
+  </div>
+</div>
+<div class="ipsLayout__columns ipsLayout__columns--flip">
+  <aside class="ipsLayout__secondary">
+    <section class="ipsWidget ipsBox">
+      <h2 class="ipsWidget__header">About {{$u.Name}}</h2>
+      <div class="ipsWidget__content">
+        <dl class="ipsFacts">
+          <dt>Calls</dt><dd>{{num $u.Logins}}</dd>
+          {{if $u.Location}}<dt>Location</dt><dd>{{$u.Location}}</dd>{{end}}
+          {{if $u.About}}<dt>Interests</dt><dd>{{$u.About}}</dd>{{end}}
+          {{range .Body.On}}<dt>Now</dt><dd>node {{.Num}} by {{.Via}}: {{.Activity}}</dd>{{end}}
+        </dl>
+      </div>
+    </section>
+  </aside>
+  <div class="ipsLayout__primary">
+    <section class="ipsBox">
+      <h2 class="ipsBox__header"><span>Activity</span></h2>
+      <ol class="ipsData ipsData--activity">
+        {{range .Body.Recent}}
+        <li class="ipsData__item"><div class="ipsData__icon">{{template "avatar" (av $u.Name "mini")}}</div><div class="ipsData__main"><h3 class="ipsData__title"><a href="/forum/post/{{.ID}}">{{.Subject}}</a></h3><div class="ipsData__desc">{{snippet .Body 180}}</div><div class="ipsData__meta">{{$u.Name}} posted {{ago .Created}}</div></div></li>
+        {{else}}<li class="ipsEmpty">{{$u.Name}} hasn't posted any content yet.</li>{{end}}
+      </ol>
+    </section>
+  </div>
+</div>
+{{template "foot" .}}{{end}}

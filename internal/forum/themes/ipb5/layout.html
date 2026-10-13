@@ -1,0 +1,75 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.Title}} - {{.BBS}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/ipb5.css">
+</head>
+<body class="ipsApp">
+<header class="ipsHeader">
+  <div class="ipsHeader__primary">
+    <div class="ipsWidth ipsHeader__row">
+      <a href="/forum/" class="ipsLogo"><span class="ipsLogo__mark" aria-hidden="true"></span><span class="ipsLogo__text">{{.BBS}}</span></a>
+      <nav class="ipsNav" aria-label="Main">
+        <a href="/forum/"{{if and (ne .Tab "online") (ne .Page "search.html")}} aria-current="page"{{end}}><span class="ic ic-forums" aria-hidden="true"></span>Forums</a>
+        <a href="/forum/online"{{if eq .Tab "online"}} aria-current="page"{{end}}><span class="ic ic-online" aria-hidden="true"></span>Online</a>
+        <a href="/forum/search"{{if eq .Page "search.html"}} aria-current="page"{{end}}><span class="ic ic-activity" aria-hidden="true"></span>Activity</a>
+        {{if .Terminal}}<a href="/terminal"><span class="ic ic-terminal" aria-hidden="true"></span>Terminal</a>{{end}}
+      </nav>
+      <div class="ipsUserNav">
+        {{if .User}}
+        <details class="ipsMenu">
+          <summary class="ipsUserNav__link">{{template "avatar" (av .User.Name "mini")}} <span class="ipsUserNav__name">{{.User.Name}}</span> <span class="caret" aria-hidden="true"></span></summary>
+          <div class="ipsMenu__panel">
+            <div class="ipsMenu__title">{{.User.Name}}</div>
+            <a href="/forum/user/{{path .User.Name}}">Profile</a>
+            <a href="/forum/search">Search</a>
+            {{if .Terminal}}<a href="/terminal">Web Terminal</a>{{end}}
+            <hr>
+            <form method="post" action="/forum/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Sign Out</button></form>
+          </div>
+        </details>
+        {{else}}
+        <a href="/forum/login" class="ipsButton ipsButton--text">Sign In</a>
+        {{if .Register}}<a href="/forum/register" class="ipsButton ipsButton--primary">Sign Up</a>{{end}}
+        {{end}}
+      </div>
+    </div>
+  </div>
+  <div class="ipsHeader__secondary">
+    <div class="ipsWidth ipsHeader__row">
+      {{template "crumbs" .}}
+      <form action="/forum/search" method="get" class="ipsSearch" role="search"><span class="ic ic-search" aria-hidden="true"></span><input type="search" name="q" placeholder="Search..." aria-label="Search"></form>
+    </div>
+  </div>
+</header>
+<main class="ipsWidth ipsLayout__main">
+  {{if and (eq .Notice "welcome") .User}}<div class="ipsMessage ipsMessage--success">Welcome, {{.User.Name}}! Your account is ready and you are signed in.</div>{{end}}
+{{end}}
+
+{{define "crumbs"}}<nav class="ipsBreadcrumb" aria-label="Breadcrumbs"><ol><li><a href="/forum/"><span class="ic ic-home" aria-hidden="true"></span>Home</a></li>{{range .Crumbs}}<li>{{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}<span>{{.Name}}</span>{{end}}</li>{{end}}</ol></nav>{{end}}
+
+{{define "foot"}}
+</main>
+<footer class="ipsFooter">
+  <div class="ipsWidth">
+    <div class="ipsFooter__top">
+      {{template "crumbs" .}}
+      <a href="/forum/search" class="allact"><span class="ic ic-activity" aria-hidden="true"></span>All Activity</a>
+    </div>
+    <div class="ipsFooter__bottom">
+      <ul class="ipsFooter__links">
+        <li><a href="/forum/online">Online Users</a></li>
+        {{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}
+        <li class="themes">{{template "themepicker" .}}</li>
+      </ul>
+      <p class="ipsFooter__copyright">Powered by bbs-sec &middot; {{.BBS}}</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}<nav class="ipsPagination" aria-label="Pages">{{if gt .Cur 1}}<a href="{{.URL .Prev}}" rel="prev" class="ipsPagination__prev" aria-label="Previous page"><span class="chev left" aria-hidden="true"></span></a>{{end}}{{$cur := .Cur}}{{$p := .}}{{range .Shown}}{{if eq . 0}}<span class="gap">…</span>{{else if eq . $cur}}<a aria-current="page" class="active">{{.}}</a>{{else}}<a href="{{$p.URL .}}">{{.}}</a>{{end}}{{end}}{{if .Next}}<a href="{{.URL .Next}}" rel="next" class="ipsPagination__next" aria-label="Next page"><span class="chev" aria-hidden="true"></span></a>{{end}}<span class="ipsPagination__count">Page {{.Cur}} of {{.Total}}</span></nav>{{end}}{{end}}

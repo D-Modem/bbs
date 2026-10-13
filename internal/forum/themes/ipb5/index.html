@@ -1,0 +1,63 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<header class="ipsPageHeader"><h1 class="ipsPageHeader__title">Forums</h1></header>
+<div class="ipsLayout__columns">
+<div class="ipsLayout__primary">
+{{range .Body.Categories}}
+<section class="ipsBox ipsBox--forumCategory">
+  <h2 class="ipsBox__header"><span>{{.Name}}</span></h2>
+  <ol class="ipsData ipsData--forums">
+    {{range $f := .Forums}}
+    <li class="ipsData__item{{if $f.Unread}} ipsData__item--unread{{end}}">
+      <div class="ipsData__icon"><span class="ipsForumIcon{{if $f.Unread}} unread{{end}}" title="{{if $f.Unread}}Forum contains unread content{{else}}Forum contains no unread content{{end}}"><span class="ic ic-bubble" aria-hidden="true"></span></span></div>
+      <div class="ipsData__main">
+        <h3 class="ipsData__title"><a href="/forum/area/{{$f.Area.ID}}">{{$f.Area.Name}}</a></h3>
+        {{if $f.Area.Description}}<div class="ipsData__desc">{{$f.Area.Description}}</div>{{end}}
+      </div>
+      <ul class="ipsData__stats">
+        <li><span class="ipsData__stats-number">{{num $f.Topics}}</span> <span class="ipsData__stats-label">{{if eq $f.Topics 1}}Topic{{else}}Topics{{end}}</span></li>
+        <li><span class="ipsData__stats-number">{{num $f.Area.Messages}}</span> <span class="ipsData__stats-label">{{if eq $f.Area.Messages 1}}Post{{else}}Posts{{end}}</span></li>
+      </ul>
+      <div class="ipsData__last">
+        {{with $f.Last}}
+        {{template "avatar" (av .From "mini")}}
+        <div class="ipsData__last-text">
+          <a href="/forum/post/{{.ID}}" class="ipsData__last-primary" title="{{$f.LastTopic.Subject}}">{{truncate $f.LastTopic.Subject 40}}</a>
+          <div class="ipsData__last-secondary">By <a href="/forum/user/{{path .From}}">{{.From}}</a> &middot; {{ago .Created}}</div>
+        </div>
+        {{else}}<div class="ipsData__last-secondary">No posts here yet</div>{{end}}
+      </div>
+    </li>
+    {{end}}
+  </ol>
+</section>
+{{else}}
+<section class="ipsBox"><p class="ipsEmpty">There are no forums open to you yet.{{if not .User}} <a href="/forum/login">Sign in</a> to see more.{{end}}</p></section>
+{{end}}
+</div>
+<aside class="ipsLayout__secondary">
+  <section class="ipsWidget ipsBox">
+    <h2 class="ipsWidget__header">Who's Online <span class="ipsWidget__count">{{plural (len .Body.Online) "member" "members"}}</span></h2>
+    <div class="ipsWidget__content">{{range .Body.Online}}<a href="/forum/user/{{path .User}}" class="ipsOnline">{{template "avatar" (av .User "tiny")}} {{.User}}</a>{{else}}<p class="ipsMuted">There are no members online</p>{{end}}</div>
+  </section>
+  <section class="ipsWidget ipsBox">
+    <h2 class="ipsWidget__header">Forum Statistics</h2>
+    <div class="ipsWidget__content">
+      <ul class="ipsStatGrid">
+        <li><span class="ipsStatGrid__number">{{num $st.Topics}}</span><span class="ipsStatGrid__label">Total Topics</span></li>
+        <li><span class="ipsStatGrid__number">{{num $st.Posts}}</span><span class="ipsStatGrid__label">Total Posts</span></li>
+      </ul>
+    </div>
+  </section>
+  <section class="ipsWidget ipsBox">
+    <h2 class="ipsWidget__header">Member Statistics</h2>
+    <div class="ipsWidget__content">
+      <ul class="ipsStatGrid">
+        <li><span class="ipsStatGrid__number">{{num $st.Members}}</span><span class="ipsStatGrid__label">Total Members</span></li>
+        {{with $st.Newest}}<li><span class="ipsStatGrid__number"><a href="/forum/user/{{path .Name}}">{{.Name}}</a></span><span class="ipsStatGrid__label">Newest Member · joined {{ago .Created}}</span></li>{{end}}
+      </ul>
+    </div>
+  </section>
+</aside>
+</div>
+{{template "foot" .}}{{end}}
