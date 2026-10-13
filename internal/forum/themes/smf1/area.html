@@ -1,0 +1,34 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="pagesection">
+  <div class="pagelinks">{{template "pages" $b.Pages}}</div>
+  <div class="buttonlist small">{{if $b.CanPost}}<ul><li class="active"><a href="/forum/area/{{$b.Area.ID}}/new"><span>New Topic</span></a></li>{{if .User}}<li><form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish"><span>Mark Read</span></button></form></li>{{end}}</ul>{{end}}</div>
+</div>
+<div class="tborder topic_table">
+<table class="table_grid">
+  <thead><tr class="catbg"><th class="icons" colspan="2">&nbsp;</th><th class="subject">Subject / Started by</th><th class="stats">Replies</th><th class="lastpost">Last post</th></tr></thead>
+  <tbody>
+  {{range $b.Topics}}
+  <tr>
+    <td class="windowbg2 icon1"><span class="topic_icon{{if .Unread}} new{{end}}{{if ge .Replies 15}} hot{{end}}" aria-hidden="true"></span></td>
+    <td class="windowbg2 icon2"><span class="xx" aria-hidden="true"></span></td>
+    <td class="windowbg subject"><a href="/forum/topic/{{.Root.ID}}">{{.Root.Subject}}</a>{{if .Unread}} <a href="/forum/post/{{.Last.ID}}" class="newpost">new</a>{{end}}{{if gt .Pages 1}} <span class="smalltext">&laquo; {{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a> {{end}}&raquo;</span>{{end}}<p class="smalltext">Started by <a href="/forum/user/{{path .Root.From}}">{{.Root.From}}</a></p></td>
+    <td class="windowbg2 stats">{{num .Replies}}</td>
+    <td class="windowbg lastpost smalltext"><a href="/forum/post/{{.Last.ID}}" class="lastlink" title="Last post" aria-label="Last post"></a> {{smfdate .Last.Created}}<br>by <a href="/forum/user/{{path .Last.From}}">{{.Last.From}}</a></td>
+  </tr>
+  {{else}}
+  <tr><td colspan="5" class="windowbg2 center">No messages...</td></tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+<div class="pagesection">
+  <div class="pagelinks">{{template "pages" $b.Pages}}</div>
+  <div class="buttonlist small">{{if $b.CanPost}}<ul><li class="active"><a href="/forum/area/{{$b.Area.ID}}/new"><span>New Topic</span></a></li></ul>{{end}}</div>
+</div>
+<div class="iconlegend smalltext tborder windowbg2">
+  <span class="topic_icon" aria-hidden="true"></span> Normal Topic &nbsp;
+  <span class="topic_icon hot" aria-hidden="true"></span> Hot Topic (More than 15 replies) &nbsp;
+  <span class="topic_icon new" aria-hidden="true"></span> New posts
+</div>
+{{template "foot" .}}{{end}}

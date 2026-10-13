@@ -1,0 +1,33 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div id="profileview" class="profile_view">
+  <div id="basicinfo">
+    <div class="windowbg">
+      <div class="username"><h4>{{$u.Name}} <span class="position">{{if $u.Sysop}}Administrator{{else}}{{group $u}}{{end}}</span></h4></div>
+      {{template "avatar" (av $u.Name "huge")}}
+      <p class="online_status">{{if .Body.On}}<span class="on" aria-hidden="true"></span> Online{{else}}<span class="off" aria-hidden="true"></span> Offline{{end}}</p>
+    </div>
+  </div>
+  <div id="detailedinfo">
+    <div class="windowbg">
+      <dl class="settings">
+        <dt>Posts:</dt><dd>{{num $u.Posts}}</dd>
+        <dt>Position:</dt><dd>{{if $u.Sysop}}Administrator{{else}}{{group $u}}{{end}}</dd>
+        <dt>Date Registered:</dt><dd>{{smfdate $u.Created}}</dd>
+        <dt>Last Active:</dt><dd>{{smfdate $u.LastLogin}}</dd>
+        <dt>Calls:</dt><dd>{{num $u.Logins}}</dd>
+        {{if $u.Location}}<dt>Location:</dt><dd>{{$u.Location}}</dd>{{end}}
+        {{if $u.About}}<dt>Interests:</dt><dd>{{$u.About}}</dd>{{end}}
+        {{range .Body.On}}<dt>Now:</dt><dd>node {{.Num}} by {{.Via}}: {{.Activity}}</dd>{{end}}
+      </dl>
+    </div>
+  </div>
+</div>
+<div class="cat_bar"><h3 class="catbg">Show Posts</h3></div>
+{{range .Body.Recent}}
+<div class="windowbg recent_post">
+  <div class="topic_details"><h5><a href="/forum/post/{{.ID}}">{{.Subject}}</a></h5><span class="smalltext">&laquo; on: {{smfdate .Created}} &raquo;</span></div>
+  <div class="list_posts">{{snippet .Body 200}}</div>
+</div>
+{{else}}<div class="windowbg"><p>This member has not posted yet.</p></div>{{end}}
+{{template "foot" .}}{{end}}

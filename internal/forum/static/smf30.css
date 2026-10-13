@@ -1,0 +1,97 @@
+/*
+ * The forum's natural theme: laid out in the manner of Simple Machines
+ * Forum 3.0's default look, which refines 2.1's (this theme wears the
+ * same templates and builds on the smf21 stylesheet): the top strip and
+ * the menu each on a soft blue-to-white band, the menu running the full
+ * width of the frame, a rounded breadcrumb, a deep slate foot without a
+ * rule, and a dark scheme in slate blues and warm orange for readers
+ * whose device asks for one.  Written for this BBS; it takes no code or
+ * images from any board.
+ */
+@import url("smf21.css");
+
+:root {
+	--primary: #38546b;
+	--band: #38546b;
+	--footer: #38546b;
+	--bandgrad: linear-gradient(#e2e9f3 0%, #fff 70%);
+	--crumb: hsl(0, 0%, 97%);
+	--crumb-line: hsl(0, 0%, 87%);
+	--frame: #ffffff;
+}
+
+#top_section { background: var(--bandgrad); }
+#wrapper { background: var(--frame); }
+#main_menu { margin: 8px -10px 0; padding: 5px 10px; background: var(--bandgrad); border-top: 1px solid #ccd5df; border-bottom: 1px solid #bbb; }
+.navigate_section ul { margin-top: 10px; border: 1px solid var(--crumb-line); border-radius: 5px; background: var(--crumb); box-shadow: 0 0 1px 1px #fff inset; }
+#footer { background: var(--footer); border-top: 0; min-height: 35px; font-size: 12px; }
+.cat_bar { border-bottom: 0; }
+.board_icon .board_on { box-shadow: 0 0 6px rgba(255, 148, 0, 0.6); }
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--d0: hsl(207, 24%, 8%);
+		--d1: hsl(207, 20%, 11%);
+		--d2: hsl(207, 16%, 15%);
+		--d3: hsl(207, 14%, 19%);
+		--d4: hsl(207, 13%, 24%);
+		--dline: hsl(207, 12%, 26%);
+		--dline2: hsl(207, 12%, 36%);
+		--ink: hsl(207, 10%, 84%);
+		--ink-dim: hsl(207, 8%, 62%);
+		--ink-bright: hsl(207, 14%, 96%);
+		--page: var(--d1);
+		--band: var(--d0);
+		--footer: var(--d0);
+		--frame: var(--d2);
+		--text: var(--ink);
+		--link: hsl(207, 55%, 72%);
+		--catbar: hsl(207, 30%, 22%);
+		--win: var(--d2);
+		--win2: var(--d3);
+		--board: #f0913a;
+		--poster: #f0913a;
+		--line: var(--dline);
+		--accent: #e08600;
+		--accent-dark: #a75c00;
+		--quote: hsl(207, 20%, 17%);
+		--bandgrad: linear-gradient(hsl(207, 20%, 15%) 0%, hsl(207, 20%, 11%) 70%);
+		--crumb: var(--d3);
+		--crumb-line: var(--dline);
+		color-scheme: dark;
+	}
+	#top_section, #main_menu { border-color: var(--dline); box-shadow: none; }
+	#top_info > li > a, #top_info > li .linkish, .dropmenu a.firstlevel, .dropmenu button.firstlevel { color: var(--ink); }
+	.dropmenu .main_icons { color: var(--link); }
+	#wrapper { border-color: var(--dline); box-shadow: none; }
+	#upper_section { border-color: var(--dline); }
+	#smflogo b { color: var(--link); text-shadow: none; }
+	h1.forumtitle a:link, h1.forumtitle a:visited { color: #f0913a; text-shadow: none; }
+	.board_icon .board_on, #posting_icons .board_icon > .board_on { background: radial-gradient(circle at 40% 35%, #ffd08a, #e08600 75%); border-color: #a75c00; }
+	#smflogo i { color: var(--ink-dim); }
+	.navigate_section ul { box-shadow: none; }
+	.navigate_section li { text-shadow: none; }
+	.navigate_section .last, h3.titlebg, h4.subbg, .display_title, .keyinfo h5 a:link, .keyinfo h5 a:visited, #pollquestion { color: var(--ink-bright); }
+	.title_bar { background: var(--d3); border-left-color: var(--dline); border-right-color: var(--dline); }
+	.sub_bar { border-color: var(--dline); box-shadow: 0 -1px 0 var(--dline2) inset; }
+	.windowbg, .roundframe, .information, .information.board_head, #display_head { border-color: var(--dline); box-shadow: none; }
+	.roundframe, .information { background: hsl(207, 16%, 13%); }
+	.information.board_head, #display_head { background: none; }
+	.board_description, .info p.floatleft, .like_count, .user_info, .lastpost, .board_stats, .smalltext, .list_posts { color: var(--ink-dim); }
+	.board_stats p { border-color: var(--dline); }
+	.board_icon a, #posting_icons .board_icon > span { background: radial-gradient(circle at 40% 35%, hsl(207, 14%, 40%), hsl(207, 14%, 24%) 75%); border-color: var(--dline2); }
+	.topic_icon { background: linear-gradient(var(--d4), var(--d3)); border-color: var(--dline2); }
+	.messageicon { background: var(--d4); border-color: var(--dline2); }
+	.post .inner { color: var(--ink); border-top-color: var(--dline); box-shadow: none; }
+	.keyinfo .postinfo { color: #e0a060; }
+	.button, a.button, button.button, .quickbuttons li > a, .quickbuttons li .linkish { background: var(--d3); border-color: var(--dline2); color: var(--ink); box-shadow: none; }
+	.button:hover, .quickbuttons a:hover, .quickbuttons .linkish:hover { background: var(--d4); color: #f0b060; }
+	.button.active, a.button.active { background: hsl(207, 32%, 32%); border-color: var(--dline2); }
+	.pagelinks .current_page { background: var(--d3); border-color: var(--dline2); }
+	.citation, blockquote.quote { border-color: var(--dline); border-left-color: var(--dline2); border-right-color: var(--dline2); color: var(--ink); }
+	input[type=text], input[type=password], input[type=email], input[type=search], select, textarea { background: hsl(207, 16%, 14%); border-color: var(--dline2); color: var(--ink); }
+	.button_submit { background: hsl(207, 32%, 32%); border-color: var(--dline2); color: var(--ink-bright); }
+	.infobox { background: hsl(110, 22%, 14%); border-color: hsl(110, 30%, 30%); color: var(--ink); }
+	table.board th { background: var(--d3); color: var(--ink-bright); }
+	meter::-webkit-meter-bar { background: var(--d3); border-color: var(--dline2); }
+}

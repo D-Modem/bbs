@@ -1,0 +1,43 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div id="display_head" class="information board_head">
+  <h2 class="display_title">{{$b.Area.Name}}</h2>
+  {{if $b.Area.Description}}<p>{{$b.Area.Description}}</p>{{end}}
+</div>
+<div class="pagesection">
+  {{template "pages" $b.Pages}}
+  <div class="buttonlist">{{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="button">Mark Read</button></form>{{end}}{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="button active">New Topic</a>{{end}}</div>
+</div>
+<div id="messageindex">
+  <div class="title_bar" id="topic_header">
+    <div class="board_icon"></div>
+    <div class="info">Subject / Started by</div>
+    <div class="board_stats centertext">Replies</div>
+    <div class="lastpost">Last post</div>
+  </div>
+  <div id="topic_container">
+    {{range $b.Topics}}
+    <div class="windowbg topic_row{{if ge .Replies 15}} hot{{end}}">
+      <div class="board_icon"><span class="topic_icon{{if .Unread}} new{{end}}{{if ge .Replies 15}} hot{{end}}" aria-hidden="true"></span></div>
+      <div class="info">
+        <div class="message_index_title">{{if .Unread}}<a href="/forum/post/{{.Last.ID}}" class="new_posts">New</a> {{end}}<span class="preview"><a href="/forum/topic/{{.Root.ID}}">{{.Root.Subject}}</a></span>{{if gt .Pages 1}} <span class="topic_pages">{{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a>{{end}}</span>{{end}}</div>
+        <p class="floatleft">Started by <a href="/forum/user/{{path .Root.From}}">{{.Root.From}}</a></p>
+      </div>
+      <div class="board_stats centertext"><p>{{num .Replies}} Replies</p></div>
+      <div class="lastpost">{{template "avatar" (av .Last.From "mini")}}<p><a href="/forum/post/{{.Last.ID}}">{{smfdate .Last.Created}}</a><br>by <a href="/forum/user/{{path .Last.From}}">{{.Last.From}}</a></p></div>
+    </div>
+    {{else}}
+    <div class="windowbg"><p class="centertext">There are no topics in this board yet.</p></div>
+    {{end}}
+  </div>
+</div>
+<div class="pagesection">
+  {{template "pages" $b.Pages}}
+  <div class="buttonlist">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="button active">New Topic</a>{{end}}</div>
+</div>
+<div class="information icon_legend">
+  <span class="topic_icon" aria-hidden="true"></span> Normal Topic &nbsp;
+  <span class="topic_icon hot" aria-hidden="true"></span> Hot Topic (More than 15 replies) &nbsp;
+  <span class="topic_icon new" aria-hidden="true"></span> New posts
+</div>
+{{template "foot" .}}{{end}}

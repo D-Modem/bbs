@@ -1,0 +1,91 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<div id="display_head" class="information">
+  <h2 class="display_title"><span id="top_subject">{{$b.Root.Subject}}</span></h2>
+  <p>Started by <a href="/forum/user/{{path $b.Root.From}}">{{$b.Root.From}}</a>, {{smfdate $b.Root.Created}}</p>
+</div>
+<div class="pagesection top">
+  {{template "pages" $b.Pages}}
+  <div class="buttonlist">{{if $b.CanPost}}<a href="#quickreply" class="button active">Reply</a><a href="/forum/area/{{$b.Area.ID}}/new" class="button">New Topic</a>{{end}}</div>
+</div>
+
+{{with $b.Poll}}
+<div id="poll">
+  <div class="cat_bar"><h3 class="catbg"><span class="main_icons poll" aria-hidden="true"></span> Poll</h3></div>
+  <div class="windowbg">
+    <h4 id="pollquestion">{{$b.Root.Subject}}</h4>
+    {{if or .Voted (not $me)}}
+    <dl class="options">
+      {{range $i, $a := .Answers}}<dt class="{{if $a.Mine}}voted{{end}}">{{$a.Text}}</dt><dd class="statsbar"><meter min="0" max="100" value="{{$a.Pct}}"></meter><span class="percentage">{{$a.Count}} ({{$a.Pct}}%)</span></dd>{{end}}
+    </dl>
+    <p><strong>Total Members Voted: {{.Total}}</strong>{{if not $me}} &middot; <a href="/forum/login">Login</a> to vote{{end}}</p>
+    {{end}}
+    {{if $me}}
+    <form method="post" action="/forum/post/{{.ID}}/answer" class="pollvote">
+      <input type="hidden" name="csrf" value="{{$csrf}}">
+      {{range .Answers}}<label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label>{{end}}
+      <button class="button">{{if .Voted}}Change Vote{{else}}Submit Vote{{end}}</button>
+    </form>
+    {{end}}
+  </div>
+</div>
+{{end}}
+
+<div id="forumposts">
+  <div class="cat_bar"><h3 class="catbg"><span class="author">Author</span> Topic: {{$b.Root.Subject}} &nbsp;(Read {{plural $b.Count "post" "posts"}})</h3></div>
+  {{range $b.Posts}}
+  <div class="windowbg {{if odd .Num}}odd{{else}}even{{end}}" id="entry{{.M.ID}}">
+    <div class="post_wrapper">
+      <div class="poster">
+        <h4>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" title="View the profile of {{.M.From}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</h4>
+        <ul class="user_info">
+          {{if .Author}}<li class="membergroup">{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Full Member{{else if ge .Author.Posts 50}}Jr. Member{{else}}Newbie{{end}}</li>
+          <li class="stars">{{if .Author.Sysop}}&#9733;&#9733;&#9733;&#9733;&#9733;{{else if ge .Author.Posts 100}}&#9733;&#9733;&#9733;{{else if ge .Author.Posts 50}}&#9733;&#9733;{{else}}&#9733;{{end}}</li>
+          <li class="avatar">{{template "avatar" (av .M.From "large")}}</li>
+          <li class="postcount">Posts: {{num .Author.Posts}}</li>
+          {{if .Author.Location}}<li class="location">{{.Author.Location}}</li>{{end}}
+          <li class="profile"><a href="/forum/user/{{path .Author.Name}}" class="main_icons profile_sm" title="View Profile" aria-label="View Profile"></a></li>
+          {{else}}<li class="membergroup">Guest</li>{{if .Where}}<li>{{.Where}}</li>{{end}}{{end}}
+        </ul>
+      </div>
+      <div class="postarea">
+        <div class="keyinfo">
+          <span class="messageicon" aria-hidden="true"></span>
+          <h5><a href="/forum/post/{{.M.ID}}">{{.M.Subject}}</a></h5>
+          <div class="postinfo smalltext">&laquo; {{if ne .Num 1}}<strong>Reply #{{add .Num -1}} on:</strong>{{else}}<strong>on:</strong>{{end}} {{smfdate .M.Created}} &raquo;</div>
+        </div>
+        <div class="post"><div class="inner">{{body .M.Body}}</div></div>
+      </div>
+      <div class="moderatorbar">
+        <div class="post_likes">{{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="linkish like_button"><span class="main_icons {{if .Liked}}unlike{{else}}like{{end}}" aria-hidden="true"></span> {{if .Liked}}Unlike{{else}}Like{{end}}</button></form>{{end}}{{if .Likes}}<span class="like_count">{{plural .Likes "person likes" "people like"}} this.</span>{{end}}</div>
+        <ul class="quickbuttons">
+          {{if $b.CanPost}}<li><a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#quickreply"><span class="main_icons quote" aria-hidden="true"></span>Quote</a></li>{{end}}
+          {{if .CanDelete}}<li><form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="linkish"><span class="main_icons remove_button" aria-hidden="true"></span>Remove</button></form></li>{{end}}
+        </ul>
+        <div class="reportlinks smalltext"><span class="main_icons logged" aria-hidden="true"></span> Logged</div>
+      </div>
+    </div>
+  </div>
+  {{end}}
+</div>
+
+<div class="pagesection">
+  {{template "pages" $b.Pages}}
+  <div class="buttonlist">{{if $b.CanPost}}<a href="#quickreply" class="button active">Reply</a>{{end}}<a href="/forum/area/{{$b.Area.ID}}" class="button">Back to {{$b.Area.Name}}</a></div>
+</div>
+
+{{if $b.CanPost}}
+<form method="post" action="/forum/topic/{{$b.Root.ID}}/reply" id="quickreply">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  {{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+  <div class="cat_bar"><h3 class="catbg">Quick Reply</h3></div>
+  <div class="roundframe">
+    <p class="smalltext">Quote with &gt; at the start of a line.</p>
+    <textarea name="body" rows="8" required aria-label="Message">{{$b.Quote}}</textarea>
+    <div class="qr_foot">{{if $b.Aliases}}<label class="smalltext"><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label>{{end}}<button class="button_submit">Post</button></div>
+  </div>
+</form>
+{{else if not .User}}
+<p class="information centertext">You must <a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">login</a> to reply.</p>
+{{end}}
+{{template "foot" .}}{{end}}

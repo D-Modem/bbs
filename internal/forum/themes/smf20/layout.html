@@ -1,0 +1,90 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}} - Index{{else}}{{.Title}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/{{.Theme}}.css">
+</head>
+<body>
+<div id="top_section">
+  <div class="inner_wrap">
+    <ul id="top_info">
+      {{if .User}}
+      <li><a href="/forum/user/{{path .User.Name}}" class="top_avatar">{{template "avatar" (av .User.Name "tiny")}} <span>{{.User.Name}}</span></a></li>
+      <li><a href="/forum/search"><span class="main_icons inbox" aria-hidden="true"></span> Unread</a></li>
+      <li><form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish"><span class="main_icons logout" aria-hidden="true"></span> Logout</button></form></li>
+      {{else}}
+      <li class="welcome">Welcome to <strong>{{.BBS}}</strong>. Please <a href="/forum/login">login</a>{{if .Register}} or <a href="/forum/register">sign up</a>{{end}}.</li>
+      {{end}}
+    </ul>
+    <form id="search_form" action="/forum/search" method="get"><input type="search" name="q" placeholder="Search" aria-label="Search"> <button class="button">Search</button></form>
+  </div>
+</div>
+<div id="wrapper">
+  <div id="header">
+    <h1 class="forumtitle"><a href="/forum/">{{.BBS}}</a></h1>
+    <span id="smflogo" aria-hidden="true"><b>SMF</b><i>Simple Machines</i></span>
+  </div>
+  <div id="upper_section">
+    <div class="user">
+      {{if .User}}
+      {{template "avatar" (av .User.Name "large")}}
+      <ul>
+        <li class="greeting">Hello <span>{{.User.Name}}</span></li>
+        <li><a href="/forum/search">Show unread posts since last visit.</a></li>
+        <li><a href="/forum/user/{{path .User.Name}}">Show your profile.</a></li>
+        <li>{{smfdate .Now}}</li>
+      </ul>
+      {{else}}
+      <form id="guest_form" method="post" action="/forum/login">
+        <input type="hidden" name="back" value="{{.Path}}">
+        <div class="info">Please <a href="/forum/login">login</a>{{if .Register}} or <a href="/forum/register">register</a>{{end}}.</div>
+        <input type="text" name="name" size="10" aria-label="Username" autocomplete="username">
+        <input type="password" name="password" size="10" aria-label="Password" autocomplete="current-password">
+        <button class="button_submit">Login</button>
+        <div class="info">Login with username and password</div>
+      </form>
+      {{end}}
+    </div>
+    <div class="news">
+      <h2>News:</h2>
+      <p>Welcome to {{.BBS}}. Pull up a chair and dial in.</p>
+    </div>
+  </div>
+  <div id="main_menu">
+    <ul class="dropmenu">
+      <li><a href="/forum/" class="firstlevel{{if and (ne .Tab "online") (ne .Page "search.html") (ne .Page "profile.html")}} active{{end}}"><span class="main_icons home" aria-hidden="true"></span><span class="firstlevel">Home</span></a></li>
+      <li><a href="/forum/search" class="firstlevel{{if eq .Page "search.html"}} active{{end}}"><span class="main_icons search" aria-hidden="true"></span><span class="firstlevel">Search</span></a></li>
+      {{if .User}}<li><a href="/forum/user/{{path .User.Name}}" class="firstlevel{{if eq .Page "profile.html"}} active{{end}}"><span class="main_icons profile" aria-hidden="true"></span><span class="firstlevel">Profile</span></a></li>{{end}}
+      <li><a href="/forum/online" class="firstlevel{{if eq .Tab "online"}} active{{end}}"><span class="main_icons people" aria-hidden="true"></span><span class="firstlevel">Members</span></a></li>
+      {{if .Terminal}}<li><a href="/terminal" class="firstlevel"><span class="main_icons terminal" aria-hidden="true"></span><span class="firstlevel">Terminal</span></a></li>{{end}}
+      {{if .User}}<li><form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="firstlevel linkish"><span class="main_icons logout" aria-hidden="true"></span><span class="firstlevel">Logout</span></button></form></li>{{else}}<li><a href="/forum/login" class="firstlevel"><span class="main_icons login" aria-hidden="true"></span><span class="firstlevel">Login</span></a></li>{{if .Register}}<li><a href="/forum/register" class="firstlevel"><span class="main_icons regcenter" aria-hidden="true"></span><span class="firstlevel">Register</span></a></li>{{end}}{{end}}
+    </ul>
+  </div>
+  {{template "linktree" .}}
+  <div id="content_section">
+  {{if and (eq .Notice "welcome") .User}}<div class="infobox">Thank you for registering, {{.User.Name}}. You are now logged in.</div>{{end}}
+{{end}}
+
+{{define "linktree"}}<div class="navigate_section"><ul><li><a href="/forum/"><span>{{.BBS}}</span></a></li>{{range .Crumbs}}<li><span class="dividers" aria-hidden="true">&#9658;</span> {{if .URL}}<a href="{{.URL}}"><span>{{.Name}}</span></a>{{else}}<span class="last">{{.Name}}</span>{{end}}</li>{{end}}</ul></div>{{end}}
+
+{{define "foot"}}
+  </div>
+</div>
+<div id="footer">
+  <div class="inner_wrap">
+    <ul>
+      <li class="themes">{{template "themepicker" .}}</li>
+      <li><a href="/forum/online">Who's Online</a></li>
+      {{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}
+      <li><a href="#top_section">Top</a></li>
+      <li class="copyright">Powered by bbs-sec &middot; {{.BBS}}</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}{{$cur := .Cur}}{{$p := .}}<div class="pagelinks"><span class="pages">Pages</span>{{if gt .Cur 1}}<a href="{{.URL .Prev}}" rel="prev" class="nav_page" aria-label="Previous page">&#9668;</a>{{end}}{{range .Shown}}{{if eq . 0}}<span class="expand_pages">...</span>{{else if eq . $cur}}<span class="current_page">{{.}}</span>{{else}}<a href="{{$p.URL .}}" class="nav_page">{{.}}</a>{{end}}{{end}}{{if .Next}}<a href="{{.URL .Next}}" rel="next" class="nav_page" aria-label="Next page">&#9658;</a>{{end}}</div>{{end}}{{end}}

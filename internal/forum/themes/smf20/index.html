@@ -1,0 +1,38 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<div id="boardindex_table" class="boardindex_table">
+  {{range .Body.Categories}}
+  <div class="main_container">
+    <div class="cat_bar"><h3 class="catbg">{{.Name}}</h3></div>
+    <div class="up_contain">
+      {{range $f := .Forums}}
+      <div class="windowbg board_row">
+        <div class="board_icon"><a href="/forum/area/{{$f.Area.ID}}" class="board_{{if $f.Unread}}on{{else}}off{{end}}" title="{{if $f.Unread}}New Posts{{else}}No New Posts{{end}}" aria-label="{{if $f.Unread}}New Posts{{else}}No New Posts{{end}}"></a></div>
+        <div class="info">
+          <a href="/forum/area/{{$f.Area.ID}}" class="subject mobile_subject">{{$f.Area.Name}}</a>
+          {{if $f.Area.Description}}<p class="board_description">{{$f.Area.Description}}</p>{{end}}
+        </div>
+        <div class="board_stats"><p>{{num $f.Area.Messages}} Posts<br>{{num $f.Topics}} Topics</p></div>
+        <div class="lastpost">
+          {{with $f.Last}}
+          {{template "avatar" (av .From "mini")}}
+          <p><strong>Last post</strong> by <a href="/forum/user/{{path .From}}">{{.From}}</a><br>in <a href="/forum/topic/{{$f.LastTopic.ID}}" title="{{$f.LastTopic.Subject}}">{{truncate $f.LastTopic.Subject 28}}</a><br>on {{smfdate .Created}}</p>
+          {{end}}
+        </div>
+      </div>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+</div>
+<div id="posting_icons">
+  <p class="information"><span class="board_icon"><span class="board_on" aria-hidden="true"></span></span> New Posts &nbsp; <span class="board_icon"><span class="board_off" aria-hidden="true"></span></span> No New Posts{{if .User}} &nbsp;&middot;&nbsp; <a href="/forum/search">Show unread posts since last visit</a>{{end}}</p>
+</div>
+<div class="roundframe" id="info_center">
+  <div class="title_bar"><h3 class="titlebg"><span class="main_icons stats" aria-hidden="true"></span> {{.BBS}} - Info Center</h3></div>
+  <div class="sub_bar"><h4 class="subbg"><span class="main_icons history" aria-hidden="true"></span> Forum Stats</h4></div>
+  <p class="inline">{{num $st.Posts}} Posts in {{num $st.Topics}} Topics by {{num $st.Members}} Members.{{with $st.Newest}} Latest Member: <strong><a href="/forum/user/{{path .Name}}">{{.Name}}</a></strong>{{end}}</p>
+  <div class="sub_bar"><h4 class="subbg"><span class="main_icons people" aria-hidden="true"></span> Users Online</h4></div>
+  <p class="inline">{{len .Body.Online}} {{if eq (len .Body.Online) 1}}User{{else}}Users{{end}} active on the BBS{{if .Body.Online}}: {{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a>{{end}}{{end}}</p>
+</div>
+{{template "foot" .}}{{end}}

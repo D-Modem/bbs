@@ -1,0 +1,149 @@
+/*
+ * The forum's simple theme: laid out in the manner of Simple Machines
+ * Forum 2.1's default look, which grew out of Curve (this theme wears
+ * the smf20 theme's templates and builds on its stylesheet): a white
+ * strip across the top with the member's name and a search box, a dark
+ * blue page edge, a white bordered frame with the board's name in
+ * orange, orange pills for the current menu item, a boxed breadcrumb,
+ * flat steel-blue category bars, title bars edged in orange, rows in
+ * white and pale blue, posts as bordered boxes, small capital buttons
+ * in a row, a dark blue foot.  Written for this BBS; it takes no code or
+ * images from any board.
+ */
+@import url("smf20.css");
+
+:root {
+	--band: #3e5a78;
+	--page: #e9eef2;
+	--text: #4d4d4d;
+	--link: #334466;
+	--catbar: #557ea0;
+	--win: #fdfdfd;
+	--win2: #f0f4f7;
+	--board: #a85400;
+	--poster: #c06002;
+	--line: #dddddd;
+	--accent: #ff9400;
+	--accent-dark: #bf6900;
+	--quote: #e0e6f6;
+	--radius: 6px;
+	--footer: #3e5a78;
+}
+
+html { background: var(--band); }
+body { display: flex; flex-direction: column; min-height: 100vh; padding: 0; background: var(--page); color: var(--text); font: 13px/1.5 "Segoe UI", "Helvetica Neue", "Nimbus Sans L", Arial, "Liberation Sans", sans-serif; }
+input, select, textarea, button { font-family: inherit; }
+
+/* the strip across the top */
+#top_section { display: block; background: #fff; border-bottom: 1px solid #bbb; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16); }
+#top_section .inner_wrap { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; max-width: 1200px; margin: 0 auto; padding: 5px 10px; }
+#top_info { display: flex; flex-wrap: wrap; gap: 2px; font-size: 12px; }
+#top_info > li > a, #top_info > li .linkish { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border: 1px solid transparent; border-radius: 4px; color: var(--text); }
+#top_info > li > a:hover, #top_info > li .linkish:hover { background: #597b9f; border-color: #4a6b8c; color: #fff; text-decoration: none; }
+#top_info .welcome { padding: 2px 4px; }
+#top_info .top_avatar span { font-weight: bold; }
+#search_form { display: flex; gap: 4px; }
+#search_form input { width: 180px; padding: 3px 6px; border: 1px solid #c5c5c5; border-radius: 3px; }
+
+/* the frame */
+#wrapper { width: 100%; max-width: 1200px; margin: 18px auto 0; padding: 0 10px 10px; border: 1px solid #b8b8b8; border-radius: 8px; box-shadow: 0 2px 3px rgba(0, 0, 0, 0.14); }
+#header { padding: 18px 2px 6px; }
+h1.forumtitle { font: 28px/1.3 Tahoma, sans-serif; }
+h1.forumtitle a:link, h1.forumtitle a:visited { color: #a85400; text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3); }
+#smflogo b { color: #557ea0; }
+#upper_section { padding: 0 2px 6px; background: none; border-bottom: 1px solid #bbb; border-radius: 0; }
+#upper_section .user > .avatar, #upper_section .user li:not(:last-child), #guest_form { display: none; }
+#upper_section .news { display: flex; gap: 8px; align-items: baseline; text-align: left; }
+
+/* menu pills: orange for here */
+#main_menu { margin: 8px 0 0; }
+.dropmenu a.firstlevel, .dropmenu button.firstlevel { padding: 2px 8px; border: 1px solid transparent; border-radius: 4px; font: 13px "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #346; }
+.dropmenu .main_icons { color: #557ea0; }
+.dropmenu a.firstlevel:hover, .dropmenu button.firstlevel:hover { background: #597b9f; border-color: #4a6b8c; color: #fff; text-shadow: 0 0 2px #000; }
+.dropmenu a.firstlevel.active { background: linear-gradient(#ffae14, #f5a100); border-color: #f49a3a; color: #fff; text-shadow: 0 0 2px #000; }
+.dropmenu a.firstlevel.active:hover { background: orange; color: #444; text-shadow: none; }
+
+/* the boxed breadcrumb */
+.navigate_section ul { margin: 6px 0 12px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 2px; background: linear-gradient(#fff, #f1f3f5 95%); box-shadow: 0 -2px 2px rgba(0, 0, 0, 0.08); }
+.navigate_section .dividers { color: #3f6b8c; }
+
+/* bars and blocks */
+.cat_bar { background: var(--catbar); border-bottom: 1px solid #777; border-radius: var(--radius) var(--radius) 0 0; }
+h3.catbg { font: 600 15px Tahoma, sans-serif; padding: 7px 12px; }
+.title_bar { background: #fff; border: 1px solid var(--line); border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent-dark); border-radius: 2px 2px 0 0; }
+h3.titlebg { color: #666; font: 600 14px Tahoma, sans-serif; }
+.sub_bar { box-shadow: 0 -1px 0 #999 inset; border-bottom: 1px solid var(--line); }
+.windowbg { background: var(--win); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 -2px 2px rgba(0, 0, 0, 0.1); }
+.windowbg.even, .board_row:nth-child(even), .topic_row:nth-child(even) { background: var(--win2); }
+.board_row, .topic_row { margin-top: -1px; box-shadow: none; }
+.roundframe { background: #f8f8f8; border-color: #c5c5c5; box-shadow: 0 -2px 2px rgba(0, 0, 0, 0.1); }
+.information { background: #f8f8f8; border-color: var(--line); }
+.infobox { background: #cfc; border-color: green; border-radius: 0; border-width: 1px 0; }
+
+/* the board index: big round board icons, centered counts */
+.board_row { grid-template-columns: 60px minmax(0, 1fr) 15% 30%; padding: 10px; }
+.board_icon a { width: 45px; height: 45px; border-radius: 50%; }
+.board_icon a::after { left: 13px; right: 13px; top: 17px; height: 8px; }
+.info .subject { color: var(--board) !important; font-size: 14px; font-weight: 600; }
+.board_stats p { padding: 0 6px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+.lastpost .avatar { display: inline-flex; }
+.topic_row { grid-template-columns: 44px minmax(0, 1fr) 15% 28%; }
+#messageindex .title_bar { grid-template-columns: 44px minmax(0, 1fr) 15% 28%; color: #666; }
+
+/* buttons: small capitals, in a row */
+.button, a.button, button.button {
+	padding: 0 8px; line-height: 2em; border: 1px solid #ddd; border-radius: 3px; background: linear-gradient(#fff 0%, #f2f2f2 100%);
+	color: #444; font: 11px "Segoe UI", "Helvetica Neue", Arial, sans-serif; text-transform: uppercase; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.button:hover { background: linear-gradient(#fff 0%, #e2e9f3 70%); color: #af6700; text-shadow: none; }
+.button.active, a.button.active { background: var(--catbar); border-color: #558080; color: #fff; text-shadow: 0 0 1px #000; }
+.button.active:hover { color: #ffc187; background: var(--catbar); }
+.buttonlist { gap: 0; }
+.buttonlist .button, .buttonlist form .button { border-radius: 0; margin-left: -1px; }
+.buttonlist > :first-child, .buttonlist > :first-child .button { border-top-left-radius: 3px; border-bottom-left-radius: 3px; }
+.buttonlist > :last-child, .buttonlist > :last-child .button { border-top-right-radius: 3px; border-bottom-right-radius: 3px; }
+.pagelinks .current_page { padding: 0 6px; border: 1px solid #ddd; border-radius: 3px; background: #fff; }
+.pagelinks .current_page::before, .pagelinks .current_page::after { content: none; }
+
+/* posts as boxes */
+#forumposts > .windowbg { margin-top: 6px; border-radius: var(--radius); }
+#forumposts .cat_bar { border-radius: var(--radius); }
+.post_wrapper { padding: 10px 12px; }
+.poster h4 { font-size: 16px; font-weight: 600; }
+.user_info .membergroup { font-weight: bold; }
+.keyinfo h5 a:link, .keyinfo h5 a:visited { color: #333; font-size: 13px; }
+.keyinfo .postinfo { color: #ad6825; font-weight: bold; }
+.post .inner { border-top: 1px solid #bfbfbf; box-shadow: 0 1px 0 #fff inset; font-size: 14px; }
+.moderatorbar { border-top: 0; }
+.quickbuttons { gap: 0; font: 11px "Segoe UI", Arial, sans-serif; text-transform: uppercase; }
+.quickbuttons li > a, .quickbuttons li .linkish { padding: 0 8px; line-height: 22px; border: 1px solid #ddd; margin-left: -1px; background: linear-gradient(#fff, #f2f2f2); color: #222; }
+.quickbuttons li:first-child > a, .quickbuttons li:first-child .linkish { border-radius: 4px 0 0 4px; }
+.quickbuttons li:last-child > a, .quickbuttons li:last-child .linkish { border-radius: 0 4px 4px 0; }
+.quickbuttons li:only-child > a, .quickbuttons li:only-child .linkish { border-radius: 4px; }
+.quickbuttons .linkish { text-transform: inherit; }
+.quickbuttons a:hover, .quickbuttons .linkish:hover { background: linear-gradient(#fff, #e2e9f3 70%); color: #222; }
+.reportlinks { display: none; }
+
+/* quotes with a curly mark in the citation */
+.citation { margin: 8px 0 0; padding: 4px 10px 2px; border: 1px solid #d6dfe2; border-bottom: 1px solid rgba(0, 0, 0, 0.1); border-left: 2px solid #aaa; border-right: 2px solid #aaa; background: var(--quote); color: #333; font-size: 12px; }
+.citation::before { content: "\275D  Quote from: "; color: #888; }
+blockquote.quote { margin: 0 0 10px; padding: 6px 10px; border: 1px solid #d6dfe2; border-top: 0; border-left: 2px solid #aaa; border-right: 2px solid #aaa; background: var(--quote); font-size: 13px; }
+blockquote.quote::after { content: none; }
+blockquote.quote:not(.citation + blockquote.quote) { margin-top: 8px; border-top: 1px solid #d6dfe2; }
+blockquote.quote:not(.citation + blockquote.quote)::before { content: "\275D  Quote"; display: block; margin-bottom: 4px; color: #888; font-size: 12px; }
+
+/* the foot: dark blue, full width */
+#footer { max-width: none; width: 100%; margin: 4em 0 0; padding: 10px 0; background: var(--footer); border-top: 3px solid #b2b6bd; color: #fff; flex: none; }
+#footer a:link, #footer a:visited { color: #fff; }
+#footer li { border-left-color: rgba(255, 255, 255, 0.4); }
+#footer .inner_wrap { max-width: 1200px; margin: 0 auto; padding: 0 10px; }
+#footer .themepicker { color: #fff; }
+
+@media (max-width: 760px) {
+	#wrapper { margin-top: 8px; border-radius: 0; border-left: 0; border-right: 0; }
+	#search_form input { width: 130px; }
+	h1.forumtitle { font-size: 21px; }
+	.board_row { grid-template-columns: 56px minmax(0, 1fr); }
+	.topic_row { grid-template-columns: 34px minmax(0, 1fr); }
+	#messageindex .title_bar { grid-template-columns: 1fr; }
+}

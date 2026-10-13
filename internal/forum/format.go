@@ -25,6 +25,7 @@ var funcs = template.FuncMap{
 	"ago":       ago,
 	"vbdate":    func(t time.Time) string { return t.Format("01-02-2006") },
 	"vbtime":    func(t time.Time) string { return t.Format("03:04 PM") },
+	"smfdate":   func(t time.Time) string { return t.Format("January 02, 2006, 03:04:05 PM") },
 	"mod5":      func(n int) int { return n % 5 },
 	"shortdate": func(t time.Time) string { return t.Format("Jan. 02, 2006") },
 	"clock":     func(t time.Time) string { return t.Format("03:04 PM") },

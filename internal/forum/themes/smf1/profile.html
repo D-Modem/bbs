@@ -1,0 +1,28 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="tborder profile">
+  <h3 class="catbg">Profile of {{$u.Name}}</h3>
+  <table class="profiletable">
+    <tr>
+      <td class="windowbg profleft">
+        <table class="facts">
+          <tr><td><b>Name:</b></td><td>{{$u.Name}}</td></tr>
+          <tr><td><b>Posts:</b></td><td>{{num $u.Posts}}</td></tr>
+          <tr><td><b>Position:</b></td><td>{{if $u.Sysop}}Administrator{{else}}{{group $u}}{{end}}</td></tr>
+          <tr><td><b>Date Registered:</b></td><td>{{smfdate $u.Created}}</td></tr>
+          <tr><td><b>Last Active:</b></td><td>{{smfdate $u.LastLogin}}</td></tr>
+          <tr><td><b>Calls:</b></td><td>{{num $u.Logins}}</td></tr>
+          {{if $u.Location}}<tr><td><b>Location:</b></td><td>{{$u.Location}}</td></tr>{{end}}
+          {{if $u.About}}<tr><td><b>Interests:</b></td><td>{{$u.About}}</td></tr>{{end}}
+          <tr><td><b>Status:</b></td><td>{{if .Body.On}}<span class="online">Online</span>{{range .Body.On}} (node {{.Num}} by {{.Via}}: {{.Activity}}){{end}}{{else}}<span class="offline">Offline</span>{{end}}</td></tr>
+        </table>
+      </td>
+      <td class="windowbg2 profright">{{template "avatar" (av $u.Name "huge")}}<p class="smalltext">{{$u.Name}}</p></td>
+    </tr>
+  </table>
+  <h4 class="titlebg">Latest posts</h4>
+  {{range .Body.Recent}}
+  <div class="windowbg2 recentpost"><a href="/forum/post/{{.ID}}"><b>{{.Subject}}</b></a> <span class="smalltext">&laquo; on: {{smfdate .Created}} &raquo;</span><p class="smalltext">{{snippet .Body 200}}</p></div>
+  {{else}}<div class="windowbg2 recentpost">This member has not posted yet.</div>{{end}}
+</div>
+{{template "foot" .}}{{end}}

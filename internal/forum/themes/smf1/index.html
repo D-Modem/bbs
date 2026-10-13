@@ -1,0 +1,29 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<div class="tborder boardindex">
+<table class="table_list">
+  {{range .Body.Categories}}
+  <tbody class="header"><tr><td colspan="4" class="catbg">{{.Name}}</td></tr></tbody>
+  <tbody class="content">
+    {{range $f := .Forums}}
+    <tr>
+      <td class="windowbg icon"><a href="/forum/area/{{$f.Area.ID}}" class="board_icon{{if $f.Unread}} on{{end}}" title="{{if $f.Unread}}New posts{{else}}No new posts{{end}}" aria-label="{{if $f.Unread}}New posts{{else}}No new posts{{end}}"></a></td>
+      <td class="windowbg2 info"><a href="/forum/area/{{$f.Area.ID}}" class="subject">{{$f.Area.Name}}</a>{{if $f.Area.Description}}<p class="desc">{{$f.Area.Description}}</p>{{end}}</td>
+      <td class="windowbg stats smalltext">{{num $f.Area.Messages}} Posts<br>{{num $f.Topics}} Topics</td>
+      <td class="windowbg2 lastpost smalltext">{{with $f.Last}}<b>Last post</b> by <a href="/forum/user/{{path .From}}">{{.From}}</a><br>in <a href="/forum/topic/{{$f.LastTopic.ID}}" title="{{$f.LastTopic.Subject}}">{{truncate $f.LastTopic.Subject 26}}</a><br>on {{smfdate .Created}}{{end}}</td>
+    </tr>
+    {{end}}
+  </tbody>
+  {{end}}
+</table>
+</div>
+<div class="iconlegend smalltext"><span class="board_icon on small" aria-hidden="true"></span> New Posts &nbsp; <span class="board_icon small" aria-hidden="true"></span> No New Posts{{if .User}} &nbsp; &middot; &nbsp; <a href="/forum/search">Show unread posts</a>{{end}}</div>
+
+<div class="tborder infocenter">
+  <h3 class="catbg">{{.BBS}} - Info Center</h3>
+  <h4 class="titlebg">Forum Stats</h4>
+  <div class="windowbg2 inforow"><span class="infoicon stats" aria-hidden="true"></span><p class="smalltext">{{num $st.Posts}} Posts in {{num $st.Topics}} Topics by {{num $st.Members}} Members.{{with $st.Newest}} Latest Member: <b><a href="/forum/user/{{path .Name}}">{{.Name}}</a></b>{{end}}</p></div>
+  <h4 class="titlebg">Users Online</h4>
+  <div class="windowbg2 inforow"><span class="infoicon online" aria-hidden="true"></span><p class="smalltext">{{len .Body.Online}} {{if eq (len .Body.Online) 1}}User{{else}}Users{{end}} online<br>{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a>{{end}}</p></div>
+</div>
+{{template "foot" .}}{{end}}

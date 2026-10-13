@@ -1,0 +1,74 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}} - Index{{else}}{{.Title}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/smf1.css">
+</head>
+<body>
+<div id="mainframe">
+  <div class="tborder headbox">
+    <div class="catbg headbar">
+      <span class="smflogo" aria-hidden="true"><b>S</b><b>M</b><b>F</b></span>
+      <h1 id="forum_name"><a href="/forum/">{{.BBS}}</a></h1>
+    </div>
+    <ul id="greeting_section" class="titlebg2">
+      <li id="time" class="smalltext">{{smfdate .Now}}</li>
+      <li id="name">Hello <em>{{if .User}}{{.User.Name}}{{else}}Guest{{end}}</em></li>
+    </ul>
+    <div id="user_section" class="windowbg2">
+      {{if .User}}
+      <div id="myavatar">{{template "avatar" (av .User.Name "large")}}</div>
+      <ul>
+        <li><a href="/forum/search">Show unread posts since last visit.</a></li>
+        <li><a href="/forum/user/{{path .User.Name}}">View your profile.</a></li>
+        <li>Last visit: {{smfdate .User.LastLogin}}</li>
+      </ul>
+      {{else}}
+      <form id="guest_form" method="post" action="/forum/login">
+        <input type="hidden" name="back" value="{{.Path}}">
+        <span>Please <a href="/forum/login">login</a>{{if .Register}} or <a href="/forum/register">register</a>{{end}}.</span><br>
+        <input type="text" name="name" size="10" aria-label="Username" autocomplete="username">
+        <input type="password" name="password" size="10" aria-label="Password" autocomplete="current-password">
+        <button class="button_submit">Login</button><br>
+        <span class="smalltext">Login with username and password</span>
+      </form>
+      {{end}}
+    </div>
+    <div id="news_section" class="titlebg2"><b>News:</b> Welcome to {{.BBS}}. Pull up a chair and dial in.</div>
+  </div>
+  <div id="main_menu" class="buttonlist">
+    <ul>
+      <li{{if and (ne .Tab "online") (ne .Page "search.html") (ne .Page "profile.html")}} class="active"{{end}}><a href="/forum/"><span>Home</span></a></li>
+      <li{{if eq .Page "search.html"}} class="active"{{end}}><a href="/forum/search"><span>Search</span></a></li>
+      {{if .User}}<li{{if eq .Page "profile.html"}} class="active"{{end}}><a href="/forum/user/{{path .User.Name}}"><span>Profile</span></a></li>{{end}}
+      <li{{if eq .Tab "online"}} class="active"{{end}}><a href="/forum/online"><span>Who's Online</span></a></li>
+      {{if .Terminal}}<li><a href="/terminal"><span>Terminal</span></a></li>{{end}}
+      {{if .User}}<li><form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish"><span>Logout</span></button></form></li>{{else}}<li><a href="/forum/login"><span>Login</span></a></li>{{if .Register}}<li><a href="/forum/register"><span>Register</span></a></li>{{end}}{{end}}
+    </ul>
+  </div>
+  <div id="bodyarea">
+  {{template "linktree" .}}
+  {{if and (eq .Notice "welcome") .User}}<div class="tborder notice windowbg">Thank you for registering, {{.User.Name}}. You are now logged in.</div>{{end}}
+{{end}}
+
+{{define "linktree"}}<div class="linktree"><b><a href="/forum/">{{.BBS}}</a>{{range .Crumbs}} &raquo; {{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}{{end}}</b></div>{{end}}
+
+{{define "foot"}}
+  </div>
+  <div id="footerarea">
+    <div class="themerow">{{template "themepicker" .}}</div>
+    <ul>
+      <li><a href="/forum/online">Who's Online</a></li>
+      {{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}
+      <li class="last"><a href="/forum/">{{.BBS}}</a></li>
+      <li class="copyright">Powered by bbs-sec</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}{{$cur := .Cur}}{{$p := .}}<span class="pagelinks">Pages: {{range .Shown}}{{if eq . 0}}... {{else if eq . $cur}}[<b>{{.}}</b>] {{else}}<a href="{{$p.URL .}}" class="navPages">{{.}}</a> {{end}}{{end}}</span>{{end}}{{end}}
