@@ -54,6 +54,7 @@ var Themes = []Theme{
 	{"ipb2", "Classic (IPB 2 style)", ""},
 	{"ipb1", "Retro (IPB 1 style)", ""},
 	{"ikon", "Grey (Ikonboard style)", ""},
+	{"vb3", "Blue (vBulletin 3 style)", ""},
 	{"vb2", "Purple (vBulletin 2 style)", ""},
 	{"vblite", "Lavender (vBulletin Lite style)", ""},
 	{"phpbb1", "Dark (phpBB 1 style)", ""},

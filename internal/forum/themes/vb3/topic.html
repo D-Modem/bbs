@@ -1,0 +1,86 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<div class="pagebar">
+  <span>{{if $b.CanPost}}<a href="#reply" class="bigbutton"><span class="plus" aria-hidden="true">&#8629;</span>Post Reply</a>{{end}}</span>
+  <span>{{template "pages" $b.Pages}}</span>
+</div>
+
+{{with $b.Poll}}
+<table class="tborder tbl poll">
+  <tr><td class="tcat" colspan="4">Poll: <span class="normal">{{$b.Root.Subject}}</span></td></tr>
+  {{if or .Voted (not $me)}}
+  {{range $i, $a := .Answers}}
+  <tr><td class="alt1">{{$a.Text}}{{if $a.Mine}} <span class="smallfont">(your vote)</span>{{end}}</td><td class="alt2 barcell"><meter min="0" max="100" value="{{$a.Pct}}" class="pollbar{{add (mod5 $i) 1}}"></meter></td><td class="alt1 center">{{$a.Count}}</td><td class="alt2 center smallfont">{{$a.Pct}}%</td></tr>
+  {{end}}
+  <tr><td class="tfoot smallfont center" colspan="4"><b>Voters: {{.Total}}.</b>{{if not $me}} You may not vote on this poll until you <a href="/forum/login">log in</a>.{{end}}</td></tr>
+  {{end}}
+  {{if $me}}
+  <tr><td class="panelsurround" colspan="4"><div class="panel"><form method="post" action="/forum/post/{{.ID}}/answer" class="pollform">
+    <input type="hidden" name="csrf" value="{{$csrf}}">
+    <fieldset class="fieldset"><legend>{{if .Voted}}Change your vote{{else}}Poll options{{end}}</legend>
+    {{range .Answers}}<label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label>{{end}}
+    </fieldset>
+    <button class="button">Vote Now</button>
+  </form></div></td></tr>
+  {{end}}
+</table>
+{{end}}
+
+<table class="tborder tbl threadtools"><tr><td class="thead"><div class="tcathead"><span>{{$b.Root.Subject}}</span><span class="normal"><a href="/forum/area/{{$b.Area.ID}}">&laquo; {{$b.Area.Name}}</a>{{if $b.CanPost}} | <a href="/forum/area/{{$b.Area.ID}}/new">New Thread</a>{{end}}</span></div></td></tr></table>
+
+{{range $b.Posts}}
+<table class="tborder tbl post" id="entry{{.M.ID}}">
+  <tr>
+    <td class="thead normalw"><span class="posticon status{{if eq .Num 1}} new{{end}}" aria-hidden="true"></span> {{vbdate .M.Created}}, <span class="time">{{vbtime .M.Created}}</span></td>
+    <td class="thead normalw right">#<a href="/forum/post/{{.M.ID}}"><b>{{.Num}}</b></a></td>
+  </tr>
+  <tr>
+    <td class="alt2 author">
+      <div>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="bigusername">{{.M.From}}</a>{{else}}<span class="bigusername">{{.M.From}}</span>{{end}}</div>
+      <div class="smallfont">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Senior Member{{else if ge .Author.Posts 30}}Member{{else}}Junior Member{{end}}{{else}}Guest{{end}}</div>
+      <div class="avbox">{{template "avatar" (av .M.From "large")}}</div>
+      <div class="smallfont">{{if .Author}}<div>Join Date: {{monthyear .Author.Created}}</div>{{if .Author.Location}}<div>Location: {{.Author.Location}}</div>{{end}}<div>Posts: {{num .Author.Posts}}</div>{{else if .Where}}<div>Location: {{.Where}}</div>{{end}}</div>
+    </td>
+    <td class="alt1 messagecell">
+      <div class="smallfont"><span class="posticon" aria-hidden="true"></span> <b>{{.M.Subject}}</b></div>
+      <hr>
+      <div class="message">{{body .M.Body}}</div>
+      {{if .Likes}}<div class="smallfont likes">{{plural .Likes "member likes" "members like"}} this post.</div>{{end}}
+    </td>
+  </tr>
+  <tr>
+    <td class="alt2 smallfont">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="vbbtn"><span class="bi profile" aria-hidden="true"></span>Profile</a>{{end}}</td>
+    <td class="alt1 right controls">
+      {{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="vbbtn"><span class="bi thanks" aria-hidden="true"></span>{{if .Liked}}Unlike{{else}}Like{{end}}</button></form>{{end}}
+      {{if .CanDelete}}<form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="vbbtn"><span class="bi edit" aria-hidden="true"></span>Delete</button></form>{{end}}
+      {{if $b.CanPost}}<a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#reply" class="vbbtn"><span class="bi quote" aria-hidden="true"></span>Quote</a>{{end}}
+    </td>
+  </tr>
+</table>
+{{end}}
+
+<div class="pagebar">
+  <span>{{if $b.CanPost}}<a href="#reply" class="bigbutton"><span class="plus" aria-hidden="true">&#8629;</span>Post Reply</a>{{end}}</span>
+  <span>{{template "pages" $b.Pages}}</span>
+</div>
+
+{{if $b.CanPost}}
+<form method="post" action="/forum/topic/{{$b.Root.ID}}/reply" id="reply">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+{{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+<table class="tborder tbl quickreply">
+  <tr><td class="tcat">Quick Reply</td></tr>
+  <tr><td class="panelsurround center"><div class="panel">
+    <div class="qrbox">
+      <div class="smallfont"><b>Message:</b> <span class="hint">Quote with &gt; at the start of a line.</span></div>
+      <textarea name="body" rows="10" required aria-label="Message">{{$b.Quote}}</textarea>
+      {{if $b.Aliases}}<label class="smallfont"><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label>{{end}}
+    </div>
+  </div>
+  <div class="qrbuttons"><button class="button">Post Quick Reply</button></div></td></tr>
+</table>
+</form>
+{{else if not .User}}
+<p class="smallfont center"><a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">Log in</a> to post a reply.</p>
+{{end}}
+{{template "foot" .}}{{end}}

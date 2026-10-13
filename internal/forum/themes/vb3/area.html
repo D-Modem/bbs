@@ -1,0 +1,40 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="pagebar">
+  <span>{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="bigbutton"><span class="plus" aria-hidden="true">+</span>New Thread</a>{{end}}</span>
+  <span>{{template "pages" $b.Pages}}</span>
+</div>
+<table class="tborder tbl threads">
+  <thead>
+  <tr><td class="tcat" colspan="5"><div class="tcathead"><span>Threads in Forum <span class="normal">: {{$b.Area.Name}}</span></span>{{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark This Forum Read</button></form>{{end}}</div></td></tr>
+  <tr class="thead"><td class="icon">&nbsp;</td><td class="icon">&nbsp;</td><td class="left wide">Thread / Thread Starter</td><td class="lastcol">Last Post</td><td>Replies</td></tr>
+  </thead>
+  <tbody>
+  {{range $b.Topics}}
+  <tr>
+    <td class="alt1 icon"><span class="threadicon{{if .Unread}} new{{end}}{{if ge .Replies 15}} hot{{end}}" title="{{if .Unread}}New posts{{else}}No new posts{{end}}" aria-hidden="true"></span></td>
+    <td class="alt2 icon"><span class="posticon" aria-hidden="true"></span></td>
+    <td class="alt1">
+      <div>{{if .Unread}}<a href="/forum/post/{{.Last.ID}}" class="firstnew" title="Go to first new post" aria-label="Go to first new post"></a> {{end}}<a href="/forum/topic/{{.Root.ID}}"{{if .Unread}} class="unread"{{end}}>{{.Root.Subject}}</a>{{if gt .Pages 1}} <span class="smallfont">( <span class="multipage" aria-hidden="true"></span>{{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a> {{end}})</span>{{end}}</div>
+      <div class="smallfont">{{.Root.From}}</div>
+    </td>
+    <td class="alt2 lastpost smallfont"><div class="right">{{vbdate .Last.Created}} <span class="time">{{vbtime .Last.Created}}</span></div><div class="right">by <a href="/forum/user/{{path .Last.From}}">{{.Last.From}}</a> <a href="/forum/post/{{.Last.ID}}" class="golast" title="Go to last post" aria-label="Go to last post"></a></div></td>
+    <td class="alt1 center">{{num .Replies}}</td>
+  </tr>
+  {{else}}
+  <tr><td class="alt1 center" colspan="5">There have been no posts in this forum yet.</td></tr>
+  {{end}}
+  </tbody>
+  <tfoot><tr><td class="tfoot smallfont" colspan="5">{{plural $b.Count "thread" "threads"}} in this forum</td></tr></tfoot>
+</table>
+<div class="pagebar">
+  <span>{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="bigbutton"><span class="plus" aria-hidden="true">+</span>New Thread</a>{{end}}</span>
+  <span>{{template "pages" $b.Pages}}</span>
+</div>
+<table class="iconkey smallfont"><tr>
+  <td><span class="threadicon new" aria-hidden="true"></span> New posts</td>
+  <td><span class="threadicon" aria-hidden="true"></span> No new posts</td>
+  <td><span class="threadicon new hot" aria-hidden="true"></span> Hot thread with new posts</td>
+  <td><span class="threadicon hot" aria-hidden="true"></span> Hot thread with no new posts</td>
+</tr></table>
+{{template "foot" .}}{{end}}

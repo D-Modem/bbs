@@ -1,0 +1,22 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<table class="tborder tbl profile">
+  <tr><td class="tcat" colspan="2">View Profile <span class="normal">: {{$u.Name}}</span></td></tr>
+  <tr><td class="alt1 profhead" colspan="2">
+    <div class="profid">{{template "avatar" (av $u.Name "huge")}}<div><div class="bigusername">{{$u.Name}}</div><div class="smallfont">{{if $u.Sysop}}Administrator{{else}}{{group $u}}{{end}}</div>{{if .Body.On}}<div class="smallfont"><span class="onlinedot" aria-hidden="true"></span> {{$u.Name}} is online now</div>{{else}}<div class="smallfont"><span class="onlinedot off" aria-hidden="true"></span> {{$u.Name}} is offline</div>{{end}}</div></div>
+  </td></tr>
+  <tr><td class="thead" colspan="2">Forum Info</td></tr>
+  <tr><td class="alt2 key">Join Date</td><td class="alt1">{{vbdate $u.Created}}</td></tr>
+  <tr><td class="alt2 key">Total Posts</td><td class="alt1">{{num $u.Posts}}</td></tr>
+  <tr><td class="alt2 key">Last Activity</td><td class="alt1">{{vbdate $u.LastLogin}} <span class="time">{{vbtime $u.LastLogin}}</span></td></tr>
+  <tr><td class="alt2 key">Calls</td><td class="alt1">{{num $u.Logins}}</td></tr>
+  {{range .Body.On}}<tr><td class="alt2 key">Now</td><td class="alt1">node {{.Num}} by {{.Via}}: {{.Activity}}</td></tr>{{end}}
+  <tr><td class="thead" colspan="2">Additional Information</td></tr>
+  <tr><td class="alt2 key">Location</td><td class="alt1">{{$u.Location}}</td></tr>
+  <tr><td class="alt2 key">Interests</td><td class="alt1">{{$u.About}}</td></tr>
+  <tr><td class="thead" colspan="2">Recent Posts</td></tr>
+  {{range .Body.Recent}}
+  <tr><td class="alt2 key smallfont">{{vbdate .Created}} <span class="time">{{vbtime .Created}}</span></td><td class="alt1"><a href="/forum/post/{{.ID}}"><b>{{.Subject}}</b></a><div class="smallfont">{{snippet .Body 160}}</div></td></tr>
+  {{else}}<tr><td class="alt1 center" colspan="2">No posts to show.</td></tr>{{end}}
+</table>
+{{template "foot" .}}{{end}}

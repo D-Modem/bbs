@@ -1,0 +1,35 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<table class="tborder tbl forums">
+  <thead><tr class="thead"><td class="icon">&nbsp;</td><td class="left wide">Forum</td><td class="lastcol">Last Post</td><td>Threads</td><td>Posts</td></tr></thead>
+  {{range .Body.Categories}}
+  <tbody><tr><td class="tcat" colspan="5">{{.Name}}</td></tr></tbody>
+  <tbody>
+  {{range $f := .Forums}}
+  <tr>
+    <td class="alt1Active icon"><span class="forumicon{{if $f.Unread}} new{{end}}" title="{{if $f.Unread}}Contains new posts{{else}}Contains no new posts{{end}}" aria-hidden="true"></span></td>
+    <td class="alt1Active"><div><a href="/forum/area/{{$f.Area.ID}}"><b>{{$f.Area.Name}}</b></a></div>{{if $f.Area.Description}}<div class="smallfont">{{$f.Area.Description}}</div>{{end}}</td>
+    <td class="alt2 lastpost smallfont">{{with $f.Last}}<div><a href="/forum/topic/{{$f.LastTopic.ID}}" title="{{$f.LastTopic.Subject}}"><b>{{truncate $f.LastTopic.Subject 28}}</b></a></div><div>by <a href="/forum/user/{{path .From}}">{{.From}}</a></div><div class="right">{{vbdate .Created}} <span class="time">{{vbtime .Created}}</span> <a href="/forum/post/{{.ID}}" class="golast" title="Go to last post" aria-label="Go to last post"></a></div>{{else}}<div class="center">Never</div>{{end}}</td>
+    <td class="alt1 center">{{num $f.Topics}}</td>
+    <td class="alt2 center">{{num $f.Area.Messages}}</td>
+  </tr>
+  {{end}}
+  </tbody>
+  {{end}}
+</table>
+
+<table class="tborder tbl going">
+  <thead><tr><td class="tcat" colspan="2">What's Going On?</td></tr></thead>
+  <tbody>
+    <tr><td class="thead" colspan="2"><a href="/forum/online">Currently Active Users</a>: {{len .Body.Online}}</td></tr>
+    <tr><td class="alt2 icon"><span class="whoicon" aria-hidden="true"></span></td><td class="alt1 smallfont">{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a>{{else}}No one is on the BBS just now.{{end}}</td></tr>
+    <tr><td class="thead" colspan="2">{{.BBS}} Statistics</td></tr>
+    <tr><td class="alt2 icon"><span class="statsicon" aria-hidden="true"></span></td><td class="alt1 smallfont"><div>Threads: {{num $st.Topics}}, Posts: {{num $st.Posts}}, Members: {{num $st.Members}}</div>{{with $st.Newest}}<div>Welcome to our newest member, <a href="/forum/user/{{path .Name}}">{{.Name}}</a></div>{{end}}</td></tr>
+  </tbody>
+</table>
+
+<table class="iconkey smallfont"><tr>
+  <td><span class="forumicon new" aria-hidden="true"></span> Contains new posts</td>
+  <td><span class="forumicon" aria-hidden="true"></span> Contains no new posts</td>
+</tr></table>
+{{template "foot" .}}{{end}}

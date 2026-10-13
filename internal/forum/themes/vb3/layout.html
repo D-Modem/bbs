@@ -1,0 +1,42 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.Title}} - {{.BBS}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/vb3.css">
+</head>
+<body id="top">
+<div class="logobar"><a href="/forum/" class="logo" title="{{.BBS}}"><span class="logo-mark" aria-hidden="true"></span><span class="logo-name">{{.BBS}}</span></a></div>
+<div class="page">
+
+<table class="tborder navtbl"><tr>
+  <td class="alt1 crumbs">{{if .Crumbs}}<div class="navbar"><span class="navstart" aria-hidden="true"></span> <a href="/forum/">{{.BBS}}</a>{{range .Crumbs}}{{if .URL}} <span class="navsep">&gt;</span> <a href="{{.URL}}">{{.Name}}</a>{{end}}{{end}}</div>
+    <div class="navlast">{{range .Crumbs}}{{if not .URL}}<span class="navreload" aria-hidden="true"></span> <b>{{.Name}}</b>{{end}}{{end}}</div>{{else}}<div class="navbar navhome"><span class="navstart" aria-hidden="true"></span> <b>{{.BBS}}</b></div>{{end}}</td>
+  <td class="alt2 who small">{{if .User}}<b>Welcome, {{.User.Name}}.</b><br>You last visited: {{vbdate .User.LastLogin}} at <span class="time">{{vbtime .User.LastLogin}}</span>{{else}}<form method="post" action="/forum/login" class="navlogin"><input type="hidden" name="back" value="{{.Path}}">
+    <label for="navbar_username">User Name</label><input type="text" name="name" id="navbar_username" size="10" class="bginput" autocomplete="username">
+    <label for="navbar_password">Password</label><input type="password" name="password" id="navbar_password" size="10" class="bginput" autocomplete="current-password"> <button class="button">Log in</button></form>{{end}}</td>
+</tr></table>
+<div class="tborder menubar">
+  {{if .User}}<a href="/forum/user/{{path .User.Name}}" class="vbmenu_control">User CP</a>{{else if .Register}}<a href="/forum/register" class="vbmenu_control">Register</a>{{end}}
+  <a href="/forum/online" class="vbmenu_control">Who's Online</a>
+  <a href="/forum/search" class="vbmenu_control">Search</a>
+  {{if .Terminal}}<a href="/terminal" class="vbmenu_control">Web Terminal</a>{{end}}
+  {{if .User}}<form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="vbmenu_control">Log Out</button></form>{{else}}<a href="/forum/login" class="vbmenu_control">Log in</a>{{end}}
+</div>
+{{if and (eq .Notice "welcome") .User}}<div class="tborder notice"><div class="tcat">Thank you for registering</div><div class="alt1">Welcome to {{.BBS}}, {{.User.Name}}. You are now logged in.</div></div>{{end}}
+{{end}}
+
+{{define "foot"}}
+<p class="smallfont center">All times are server time. The time now is <span class="time">{{vbtime .Now}}</span>.</p>
+</div>
+<div class="tfootbar">
+  <div class="themerow">{{template "themepicker" .}}</div>
+  <div class="smallfont"><b><a href="/forum/online">Who's Online</a> - {{if .Terminal}}<a href="/terminal">Web Terminal</a> - {{end}}<a href="/forum/">{{.BBS}}</a> - <a href="#top">Top</a></b></div>
+</div>
+<div class="copyright">Powered by bbs-sec<br>{{.BBS}}</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}{{$cur := .Cur}}{{$p := .}}<span class="pagenav"><span class="pagelabel">Page {{.Cur}} of {{.Total}}</span>{{if gt .Cur 1}}<a href="{{.URL .Prev}}" rel="prev" title="Previous Page">&lt;</a>{{end}}{{range .Shown}}{{if eq . 0}}<span class="gap">…</span>{{else if eq . $cur}}<b class="cur">{{.}}</b>{{else}}<a href="{{$p.URL .}}">{{.}}</a>{{end}}{{end}}{{if .Next}}<a href="{{.URL .Next}}" rel="next" title="Next Page">&gt;</a>{{end}}</span>{{end}}{{end}}
