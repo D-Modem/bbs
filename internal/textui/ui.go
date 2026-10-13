@@ -148,12 +148,12 @@ func (s *session) settleTerminal(name string) (string, error) {
 func (s *session) namePrompt() string {
 	t := s.t
 	p := "Name: "
-	if v, set := s.n.Str("name_prompt"); set {
+	if v, set := s.n.StrMarked("name_prompt"); set {
 		p = v
 	}
 	if s.b.NewUsers {
 		p = "Name" + t.C(Dim, " (or NEW)") + ": "
-		if v, set := s.n.Str("new_name_prompt"); set {
+		if v, set := s.n.StrMarked("new_name_prompt"); set {
 			p = v
 		}
 	}

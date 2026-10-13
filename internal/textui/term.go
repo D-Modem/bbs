@@ -217,10 +217,70 @@ func (t *Term) C(color, s string) string {
 	return "\x1b[" + color + "m" + s + "\x1b[0m"
 }
 
+// Code is a tag of the sysop's ({red}, {clear}: screens.Tags) as this
+// terminal's escape sequence: ANSI's (a Commodore's translated), bold
+// alone on one without color, the clears and the cursor's moves alone on
+// a VT52, and nothing on a plain terminal ({clear} a new line, as Clear).
+func (t *Term) Code(tag string) string {
+	moves := t.ANSI || t.PETSCII || t.VT52
+	switch tag {
+	case "clear", "cls":
+		if moves {
+			return "\x1b[2J\x1b[H"
+		}
+		return "\r\n"
+	case "home":
+		if moves {
+			return "\x1b[H"
+		}
+		return ""
+	case "eol":
+		if moves {
+			return "\x1b[K"
+		}
+		return ""
+	}
+	if t.VT52 || !t.ANSI && !t.PETSCII {
+		return ""
+	}
+	sgr := ""
+	switch tag {
+	case "bright", "bold":
+		sgr = "1"
+	case "normal":
+		sgr = "22"
+	case "blink":
+		sgr = "5"
+	case "underline":
+		sgr = "4"
+	case "reverse":
+		sgr = "7"
+	case "default", "reset":
+		sgr = "0"
+	default:
+		name, bg := strings.CutPrefix(tag, "on ")
+		n, ok := screens.ColorNumber(name)
+		if !ok || t.Mono {
+			return ""
+		}
+		if bg {
+			n += 40
+		} else {
+			n += 30
+		}
+		sgr = strconv.Itoa(n)
+	}
+	return "\x1b[" + sgr + "m"
+}
+
 // Print writes s: \n as CR LF, and on an ASCII terminal anything else as ?.
-// Our own escape sequences (from C) pass; text from users never has them
-// (bbs.Clean took them out).
+// Our own escape sequences (from C) pass, and the sysop's tags, marked
+// (screens.Marked), become the terminal's (Code); text from users never
+// has either (bbs.Clean took them out).
 func (t *Term) Print(s string) {
+	if strings.IndexByte(s, 0x1e) >= 0 {
+		s = screens.Marks.ReplaceAllStringFunc(s, func(m string) string { return t.Code(m[1 : len(m)-1]) })
+	}
 	for i := 0; i < len(s); {
 		r, size := utf8.DecodeRuneInString(s[i:])
 		i += size

@@ -302,7 +302,7 @@ func (s *Session) runMenu(full *bbs.Menu, depth int, intro []view.Line) error {
 			vm.Items = append(vm.Items, view.Item{Key: it.Key, Label: screens.String(it.Label, vars)})
 		}
 		if m.Prompt != "" {
-			vm.Prompt = screens.String(m.Prompt, vars)
+			vm.Prompt = screens.Marked(m.Prompt, vars) // its tags for a text terminal; a 3270 drops them
 		}
 		k, err := s.UI.Menu(vm)
 		if err != nil {

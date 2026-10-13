@@ -75,13 +75,24 @@ var Strings = map[string]string{
 }
 
 // Str is a string, the sysop's or the default, its @-codes filled in for
-// the node; and whether the sysop set it.
+// the node and its tags ({red}: screens.Tags) dropped; and whether the
+// sysop set it.
 func (n *Node) Str(key string) (string, bool) {
 	v, set := n.b.Text[key]
 	if !set {
 		v = Strings[key]
 	}
 	return screens.String(v, n.Vars()), set
+}
+
+// StrMarked is Str with its tags kept, marked (screens.Marked), for a
+// text terminal to print.
+func (n *Node) StrMarked(key string) (string, bool) {
+	v, set := n.b.Text[key]
+	if !set {
+		v = Strings[key]
+	}
+	return screens.Marked(v, n.Vars()), set
 }
 
 // Vars are the @-codes' values for the node's caller:

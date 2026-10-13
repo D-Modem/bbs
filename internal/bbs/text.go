@@ -68,7 +68,11 @@ func ValidPassword(pw, name string) string {
 // control characters (escape sequences, 3270 orders once in EBCDIC, bell),
 // no C1 controls, no bidirectional overrides, no invalid UTF-8; tabs become
 // spaces.  The result is at most max runes, spaces trimmed.
-func Clean(s string, max int) string {
+func Clean(s string, max int) string { return strings.TrimSpace(CleanSpaced(s, max)) }
+
+// CleanSpaced is Clean with the spaces kept: a line of a screen, its
+// indentation and the spaces about its tags as they were.
+func CleanSpaced(s string, max int) string {
 	var b strings.Builder
 	n := 0
 	for i := 0; i < len(s) && n < max; {
@@ -86,7 +90,7 @@ func Clean(s string, max int) string {
 		b.WriteRune(r)
 		n++
 	}
-	return strings.TrimSpace(b.String())
+	return b.String()
 }
 
 func safeRune(r rune) bool {

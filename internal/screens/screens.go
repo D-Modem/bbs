@@ -173,11 +173,13 @@ func EncodeCP437(s string) []byte {
 // one.
 type Vars func(code string) (string, bool)
 
-// Piece is part of a screen: text, or a clear or a pause.
+// Piece is part of a screen: text, or a clear or a pause, or (from
+// ExpandTags) a tag.
 type Piece struct {
 	Text  string
 	Clear bool
 	Pause bool
+	Tag   string // a text terminal's tag (Tags), without its braces
 }
 
 // @CODE@ or @CODE:WIDTH@ (negative: right-aligned)
@@ -185,20 +187,58 @@ var code = regexp.MustCompile(`@([A-Z][A-Z0-9]*)(?::(-?[0-9]{1,3}))?@`)
 
 // Expand fills in a text's @-codes, and splits it at @CLS@ and @PAUSE@.
 // A code that is not one stays as it was.
-func Expand(text string, vars Vars) []Piece {
+func Expand(text string, vars Vars) []Piece { return expand(text, vars, false) }
+
+// ExpandTags is Expand that splits the text at its tags (Tags) too: the
+// sysop's text's, never a value's (a caller named "{red}" stays so).
+// {clear} and {pause} are pieces as @CLS@ and @PAUSE@ are.
+func ExpandTags(text string, vars Vars) []Piece { return expand(text, vars, true) }
+
+func expand(text string, vars Vars, tags bool) []Piece {
 	var out []Piece
 	var cur strings.Builder
+	flush := func() {
+		if cur.Len() > 0 {
+			out = append(out, Piece{Text: cur.String()})
+			cur.Reset()
+		}
+	}
+	// literal is the sysop's own text, split at its tags
+	literal := func(s string) {
+		if !tags {
+			cur.WriteString(s)
+			return
+		}
+		last := 0
+		for _, m := range termTag.FindAllStringSubmatchIndex(s, -1) {
+			cur.WriteString(s[last:m[0]])
+			last = m[1]
+			var name string
+			if m[2] >= 0 { // {tag}
+				name = s[m[2]:m[3]]
+			} else { // its mark
+				name = s[m[4]:m[5]]
+			}
+			flush()
+			switch name {
+			case "clear", "cls":
+				out = append(out, Piece{Clear: true})
+			case "pause":
+				out = append(out, Piece{Pause: true})
+			default:
+				out = append(out, Piece{Tag: name})
+			}
+		}
+		cur.WriteString(s[last:])
+	}
 	last := 0
 	for _, m := range code.FindAllStringSubmatchIndex(text, -1) {
-		cur.WriteString(text[last:m[0]])
+		literal(text[last:m[0]])
 		last = m[1]
 		name := text[m[2]:m[3]]
 		switch name {
 		case "CLS", "PAUSE":
-			if cur.Len() > 0 {
-				out = append(out, Piece{Text: cur.String()})
-				cur.Reset()
-			}
+			flush()
 			out = append(out, Piece{Clear: name == "CLS", Pause: name == "PAUSE"})
 			continue
 		}
@@ -207,7 +247,7 @@ func Expand(text string, vars Vars) []Piece {
 			v, ok = vars(name)
 		}
 		if !ok {
-			cur.WriteString(text[m[0]:m[1]])
+			literal(text[m[0]:m[1]])
 			continue
 		}
 		if m[4] >= 0 {
@@ -216,20 +256,92 @@ func Expand(text string, vars Vars) []Piece {
 		}
 		cur.WriteString(v)
 	}
-	cur.WriteString(text[last:])
-	if cur.Len() > 0 {
-		out = append(out, Piece{Text: cur.String()})
-	}
+	literal(text[last:])
+	flush()
 	return out
 }
 
-// String is Expand's text alone (clears and pauses dropped).
+// String is the text with its @-codes filled in, and its tags (and
+// clears and pauses) dropped: for where they cannot be shown.
 func String(text string, vars Vars) string {
 	var b strings.Builder
-	for _, p := range Expand(text, vars) {
+	for _, p := range ExpandTags(text, vars) {
 		b.WriteString(p.Text)
 	}
 	return b.String()
+}
+
+// Marked is String with the tags kept, as marks (Mark) a text terminal
+// turns into its escape sequences when it prints them (and anything else
+// drops, with String).  A value cannot make one: the marks are control
+// characters, which the values never have.
+func Marked(text string, vars Vars) string {
+	var b strings.Builder
+	for _, p := range ExpandTags(text, vars) {
+		switch {
+		case p.Clear:
+			b.WriteString(Mark("clear"))
+		case p.Tag != "":
+			b.WriteString(Mark(p.Tag))
+		default:
+			b.WriteString(p.Text)
+		}
+	}
+	return b.String()
+}
+
+// Mark is a tag (Tags) as Marked writes it.
+func Mark(tag string) string { return "\x1e" + tag + "\x1f" }
+
+// Unmark is a marked text (Marked) with its marks dropped: for where it
+// cannot be shown.
+func Unmark(s string) string { return Marks.ReplaceAllString(s, "") }
+
+// Marks finds the marks in a text: [start, end, name start, name end].
+var Marks = regexp.MustCompile("\x1e([a-z ]+)\x1f")
+
+// Colors are the tags' colors, in ANSI's order; pink and turquoise (the
+// 3270's names) are magenta and cyan.
+var Colors = []string{"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"}
+
+// Tags are what a text screen, a [strings] value or a menu's prompt may
+// say for a text terminal, in braces:
+//
+//	{clear} {cls}              clear the screen
+//	{pause}                    wait for a key
+//	{home} {eol}               the cursor to the top left; clear to the end of the line
+//	{black} {red} {green} {yellow} {blue} {magenta} {cyan} {white}
+//	{pink} {turquoise}         (magenta and cyan, as on a 3270)
+//	{on blue} ...              a background
+//	{bright} {bold} {normal}   intensity
+//	{blink} {underline} {reverse}
+//	{default} {reset}          everything back to plain
+//
+// A previously marked text's marks (Mark) count as its tags too.
+var Tags = []string{"clear", "cls", "pause", "home", "eol", "bright", "bold", "normal",
+	"blink", "underline", "reverse", "default", "reset"}
+
+var termTag = func() *regexp.Regexp {
+	colors := strings.Join(append(append([]string{}, Colors...), "pink", "turquoise"), "|")
+	names := strings.Join(Tags, "|") + "|" + colors + "|on (?:" + colors + ")"
+	return regexp.MustCompile(`\{(` + names + `)\}|\x1e(` + names + `)\x1f`)
+}()
+
+// ColorNumber is a color tag's ANSI number (0-7), with pink and turquoise as
+// magenta and cyan; false if it is not a color.
+func ColorNumber(name string) (int, bool) {
+	switch name {
+	case "pink":
+		name = "magenta"
+	case "turquoise":
+		name = "cyan"
+	}
+	for i, c := range Colors {
+		if c == name {
+			return i, true
+		}
+	}
+	return 0, false
 }
 
 // pad fits v to |w| runes: cut, or padded with spaces (on the left if w
@@ -259,28 +371,36 @@ type Span struct {
 	Bright bool
 }
 
-var tag = regexp.MustCompile(`\{(blue|red|pink|green|turquoise|yellow|white|default|bright|normal)\}`)
+// a 3270's colors for the tags' (black is the default: a 3270's screen is
+// black already)
+var colors3270 = []string{"", "red", "green", "yellow", "blue", "pink", "turquoise", "white"}
 
-// Spans splits a .3270 line at its {color} tags: {blue} ... {white},
-// {default}, and {bright} or {normal} intensity.
+// Spans splits a line, from ExpandTags with its tags as marks (Mark), at
+// them: {blue} ... {white} (with magenta and cyan as pink and turquoise),
+// {default}, {bright} or {normal} intensity, and {reset} for both; the
+// tags a 3270 has nothing for are dropped.
 func Spans(line string) []Span {
 	var out []Span
 	color, bright := "", false
 	last := 0
-	for _, m := range tag.FindAllStringSubmatchIndex(line, -1) {
+	for _, m := range Marks.FindAllStringSubmatchIndex(line, -1) {
 		if m[0] > last {
 			out = append(out, Span{line[last:m[0]], color, bright})
 		}
 		last = m[1]
 		switch t := line[m[2]:m[3]]; t {
-		case "bright":
+		case "bright", "bold":
 			bright = true
 		case "normal":
 			bright = false
 		case "default":
 			color = ""
+		case "reset":
+			color, bright = "", false
 		default:
-			color = t
+			if n, ok := ColorNumber(t); ok {
+				color = colors3270[n]
+			}
 		}
 	}
 	if last < len(line) {
@@ -289,5 +409,5 @@ func Spans(line string) []Span {
 	return out
 }
 
-// StripTags is a .3270 line without its tags.
-func StripTags(line string) string { return tag.ReplaceAllString(line, "") }
+// StripTags is a line without its tags, as braces or marks.
+func StripTags(line string) string { return termTag.ReplaceAllString(line, "") }

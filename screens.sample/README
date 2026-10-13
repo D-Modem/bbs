@@ -3,8 +3,12 @@ and set [general] screens_dir = /etc/bbs/screens.  The [menu main] in
 bbs.conf.sample uses mainmenu and bulletins.
 
   NAME.ans    ANSI art, CP437      (ANSI terminals)
-  NAME.asc    plain text           (any text terminal; 3270s too)
+  NAME.asc    text with {tags}     (any text terminal; 3270s too)
   NAME.3270   text with {color}    (3270s)
+
+Tags in a .asc ({clear}, {pause}, {red}, {on blue}, {bright}, {reset}...)
+are ANSI on an ANSI terminal, colors on a Commodore and a 3270, and
+nothing on a plain terminal: bulletins.asc has a few.
 
 logon, newuser, welcome and goodbye are shown by themselves; others by
 the menus that name them.  See the wiki's Customization page.

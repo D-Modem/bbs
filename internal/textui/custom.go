@@ -8,8 +8,9 @@ import (
 )
 
 // screen shows the sysop's display file of that name, if there is one
-// for this terminal: ANSI art as it is, text a page at a time, @CLS@ and
-// @PAUSE@ done.  It reports whether there was one.
+// for this terminal: ANSI art as it is, text a page at a time with its
+// tags ({red}, {clear}: screens.Tags) as the terminal's escape sequences,
+// @CLS@ and @PAUSE@ done.  It reports whether there was one.
 func (s *session) screen(name string) (bool, error) {
 	t := s.t
 	kind := screens.Plain
@@ -28,35 +29,93 @@ func (s *session) screen(name string) (bool, error) {
 	if sc.Format == screens.Raw {
 		return true, t.Raw(sc.Bytes)
 	}
-	for _, p := range screens.Expand(sc.Text, s.n.Vars()) {
-		switch {
-		case p.Clear:
-			t.Clear()
-		case p.Pause:
-			if err := t.Pause(); err != nil {
-				return true, err
-			}
-		case sc.Format == screens.Art:
-			t.Art(p.Text)
-			if sc.Ext == ".rip" {
-				t.ripScene, t.sinceKey = true, 0 // its buttons go when a key is chosen
-			}
-		default:
-			lines := strings.Split(strings.TrimSuffix(p.Text, "\n"), "\n")
-			for i, l := range lines {
-				lines[i] = bbs.Clean(l, 400)
-			}
-			if more, err := t.Page(lines); err != nil || !more {
-				return true, err
+	if sc.Format == screens.Art {
+		for _, p := range screens.Expand(sc.Text, s.n.Vars()) {
+			switch {
+			case p.Clear:
+				t.Clear()
+			case p.Pause:
+				if err := t.Pause(); err != nil {
+					return true, err
+				}
+			default:
+				t.Art(p.Text)
+				if sc.Ext == ".rip" {
+					t.ripScene, t.sinceKey = true, 0 // its buttons go when a key is chosen
+				}
 			}
 		}
+		return true, t.Flush()
+	}
+	if _, err := s.textScreen(sc.Text); err != nil {
+		return true, err
 	}
 	return true, t.Flush()
 }
 
-// str is a string of the sysop's (or the default), filled in.
+// textScreen shows a text screen a page at a time, its tags as the
+// terminal's escape sequences; false if the caller quit it.
+func (s *session) textScreen(text string) (bool, error) {
+	t := s.t
+	var lines []string
+	var line strings.Builder
+	open := false  // a line begun
+	fresh := false // just after a clear or a pause: its line's end is dropped
+	tagged := false
+	defer func() {
+		if tagged {
+			t.Print(t.Code("reset")) // the caller's text plain again
+		}
+	}()
+	show := func() (bool, error) {
+		if open {
+			lines = append(lines, line.String())
+			line.Reset()
+			open = false
+		}
+		more, err := t.Page(lines)
+		lines = nil
+		return more, err
+	}
+	for _, p := range screens.ExpandTags(text, s.n.Vars()) {
+		switch {
+		case p.Clear, p.Pause:
+			if more, err := show(); err != nil || !more {
+				return more, err
+			}
+			if p.Clear {
+				t.Clear()
+			} else if err := t.Pause(); err != nil {
+				return false, err
+			}
+			fresh = true
+		case p.Tag != "":
+			line.WriteString(t.Code(p.Tag))
+			open, tagged = true, true
+		default:
+			text := p.Text
+			if fresh {
+				text = strings.TrimPrefix(text, "\n") // the rest of a {clear}'s line
+				fresh = false
+			}
+			for i, part := range strings.Split(text, "\n") {
+				if i > 0 {
+					lines = append(lines, line.String())
+					line.Reset()
+					open = false
+				}
+				line.WriteString(bbs.CleanSpaced(part, 400))
+				open = open || part != ""
+			}
+		}
+	}
+	return show()
+}
+
+// str is a string of the sysop's (or the default), filled in, its tags
+// marked for Print.
 func (s *session) str(key string) string {
-	v, _ := s.n.Str(key)
+	v, _ := s.n.StrMarked(key)
 	return v
 }
 

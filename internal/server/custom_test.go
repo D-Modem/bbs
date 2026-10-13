@@ -143,6 +143,64 @@ func TestCustomText(t *testing.T) {
 	}
 }
 
+// TestCustomTags: {tags} in a text screen, the strings and a menu's
+// prompt, as ANSI on an ANSI terminal, dropped on a plain one; a
+// caller's braces are not tags.
+func TestCustomTags(t *testing.T) {
+	files := map[string]string{
+		"welcome.asc":  "{clear}\n{yellow}{bright}Hello @USER@{reset}, node @NODE@.\n",
+		"bulletin.asc": "{red}Red{default} plain {on blue}{white}box{reset}\n{pause}\n{cyan}after\n",
+	}
+	tags := func(b *bbs.BBS, top string) {
+		customizeBBS(t, b, top, files)
+		b.Text["command_prompt"] = "{green}Your choice{default}: "
+		b.Menus["extras"].Prompt = "{magenta}Extras{reset}> "
+	}
+	e := startFull(t, ui3270.Graphics{}, nil, tags,
+		&Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "yes", UTF8: "no"},
+		&Listener{Name: "plain", Kind: "raw", Address: "plain.sock", ANSI: "no", UTF8: "no"})
+
+	d := e.dial("modem.sock")
+	d.expect("Who are you (or NEW)? ")
+	d.send("alice\r")
+	d.expect("Secret word: ")
+	d.send("alicepass1\r")
+	d.expect("\x1b[2J\x1b[H\x1b[33m\x1b[1mHello alice\x1b[0m, node 1.")
+	d.expect("\x1b[32mYour choice\x1b[0m: ")
+	d.send("B")
+	d.expect("\x1b[31mRed\x1b[0m plain \x1b[44m\x1b[37mbox\x1b[0m")
+	d.expect("(more)")
+	d.send(" ")
+	d.expect("\x1b[36mafter\r\n\x1b[0m") // plain again after the screen
+	d.expect("(more)")
+	d.send(" ")
+	d.expect("\x1b[32mYour choice\x1b[0m: ")
+	d.send("X")
+	d.expect("\x1b[35mExtras\x1b[0m> ")
+	if strings.ContainsAny(string(d.got), "{\x1e") {
+		t.Errorf("a tag or a mark shown: %q", d.got)
+	}
+
+	p := e.dial("plain.sock")
+	p.expect("Who are you (or NEW)? ")
+	p.send("alice\r")
+	p.expect("Secret word: ")
+	p.send("alicepass1\r")
+	p.expect("Hello alice, node 2.")
+	p.expect("Your choice: ")
+	p.send("B")
+	p.expect("Red plain box")
+	p.expect("(more)")
+	p.send(" ")
+	p.expect("after")
+	p.expect("(more)")
+	p.send(" ")
+	p.expect("Your choice: ")
+	if strings.ContainsAny(string(p.got), "{\x1e") {
+		t.Errorf("a tag or a mark shown: %q", p.got)
+	}
+}
+
 // TestCustom3270: the same on a 3270 (s3270): a .3270 logon screen in
 // colors, the welcome screen, the sysop's main menu, a screen from it.
 func TestCustom3270(t *testing.T) {
@@ -153,7 +211,7 @@ func TestCustom3270(t *testing.T) {
 	startFull(t, ui3270.Graphics{}, nil, customize(t, map[string]string{
 		"logon.3270":   "{yellow}{bright}Welcome to @BBS@{normal} {blue}on a mainframe\n",
 		"welcome.3270": "{green}Hello @USER@.\n",
-		"bulletin.asc": "A plain bulletin\n",
+		"bulletin.asc": "{yellow}A plain bulletin{blink}\n", // a text terminal's tags: a 3270 has blink none
 		"goodbye.3270": "{white}So long, @USER@.\n",
 	}), &Listener{Name: "telnet", Kind: "telnet", Address: addr, TN3270: true})
 	script := strings.Join([]string{
@@ -174,6 +232,9 @@ func TestCustom3270(t *testing.T) {
 		if !strings.Contains(string(out), want) {
 			t.Errorf("no %q:\n%s", want, out)
 		}
+	}
+	if strings.Contains(string(out), "{") {
+		t.Errorf("a tag shown:\n%s", out)
 	}
 }
 

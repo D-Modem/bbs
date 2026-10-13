@@ -15,7 +15,8 @@ var colors = map[string]go3270.Color{
 }
 
 // screenPages is the sysop's display file of that name for a 3270, as
-// pages of lines (split at @CLS@ and @PAUSE@ and where a page is full).
+// pages of lines (split at @CLS@ and @PAUSE@, {clear} and {pause}, and
+// where a page is full), their tags as marks for lineFields.
 func (u *ui) screenPages(name string, per int) ([][]string, *screens.Screen, bool) {
 	sc, ok := u.b.Screens.Find(name, screens.TN3270)
 	if !ok {
@@ -29,27 +30,57 @@ func (u *ui) screenPages(name string, per int) ([][]string, *screens.Screen, boo
 			cur = nil
 		}
 	}
-	for _, p := range screens.Expand(sc.Text, u.n.Vars()) {
-		if p.Clear || p.Pause {
+	var line strings.Builder
+	open := false  // a line begun
+	fresh := false // just after a clear or a pause: its line's end is dropped
+	endLine := func() {
+		cur = append(cur, line.String())
+		line.Reset()
+		open = false
+		if len(cur) == per {
 			flush()
-			continue
 		}
-		for _, l := range strings.Split(strings.TrimSuffix(p.Text, "\n"), "\n") {
-			cur = append(cur, l)
-			if len(cur) == per {
-				flush()
+	}
+	for _, p := range screens.ExpandTags(sc.Text, u.n.Vars()) {
+		switch {
+		case p.Clear || p.Pause:
+			if open {
+				endLine()
+			}
+			flush()
+			fresh = true
+		case p.Tag != "":
+			line.WriteString(screens.Mark(p.Tag))
+			open = true
+		default:
+			text := p.Text
+			if fresh {
+				text = strings.TrimPrefix(text, "\n") // the rest of a {clear}'s line
+				fresh = false
+			}
+			for i, part := range strings.Split(text, "\n") {
+				if i > 0 {
+					endLine()
+				}
+				line.WriteString(part)
+				open = open || part != ""
 			}
 		}
+	}
+	if open {
+		endLine()
 	}
 	flush()
 	return pages, sc, true
 }
 
-// lineFields draws a display file's line at row: a .3270 line's colors
-// (each change of color takes a column, as 3270 attributes do), or text.
+// lineFields draws a display file's line at row in its colors (each
+// change of color takes a column, as 3270 attributes do): a .3270's, or a
+// text file's in green where its tags give none.
 func (u *ui) lineFields(sc *screens.Screen, row int, line string) go3270.Screen {
+	plain := go3270.DefaultColor
 	if sc.Format != screens.Color {
-		return go3270.Screen{u.text(row, 1, bbs.Clean(line, u.cols-3), go3270.Green, false)}
+		plain = go3270.Green
 	}
 	var out go3270.Screen
 	col := 1
@@ -61,7 +92,11 @@ func (u *ui) lineFields(sc *screens.Screen, row int, line string) go3270.Screen 
 		if t == "" {
 			continue
 		}
-		out = append(out, u.text(row, col, t, colors[sp.Color], sp.Bright))
+		c := colors[sp.Color]
+		if sp.Color == "" {
+			c = plain
+		}
+		out = append(out, u.text(row, col, t, c, sp.Bright))
 		col += len([]rune(t)) + 1
 	}
 	return out

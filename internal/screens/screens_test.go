@@ -67,15 +67,68 @@ func TestExpand(t *testing.T) {
 }
 
 func TestSpans(t *testing.T) {
-	got := Spans("plain {red}red {bright}hot{normal}{default} end")
-	want := []Span{{"plain ", "", false}, {"red ", "red", false}, {"hot", "red", true}, {" end", "", false}}
+	// a line of a .3270, marked as screenPages marks it
+	line := String("", nil)
+	for _, p := range ExpandTags("plain {red}red {bright}hot{normal}{default} {cyan}cool{reset} end", nil) {
+		if p.Tag != "" {
+			line += Mark(p.Tag)
+		} else {
+			line += p.Text
+		}
+	}
+	got := Spans(line)
+	want := []Span{{"plain ", "", false}, {"red ", "red", false}, {"hot", "red", true}, {" ", "", false},
+		{"cool", "turquoise", false}, {" end", "", false}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("%+v", got)
 	}
-	if s := StripTags("{blue}a{bright}b"); s != "ab" {
+	// braces a caller wrote are not tags
+	if got := Spans("{red}x"); len(got) != 1 || got[0].Color != "" {
+		t.Errorf("%+v", got)
+	}
+	if s := StripTags("{blue}a{bright}b" + Mark("on red") + "c"); s != "abc" {
 		t.Error(s)
 	}
 	if !strings.Contains(StripTags("{nope}"), "{nope}") {
 		t.Error("an unknown tag was taken")
+	}
+}
+
+func TestTags(t *testing.T) {
+	vars := func(c string) (string, bool) {
+		if c == "USER" {
+			return "{red}bob", true // a caller may be named so
+		}
+		return "", false
+	}
+	got := ExpandTags("{clear}{yellow}{on blue}Hi @USER@{default}{pause}{nope} {bright}x", vars)
+	want := []Piece{{Clear: true}, {Tag: "yellow"}, {Tag: "on blue"}, {Text: "Hi {red}bob"}, {Tag: "default"},
+		{Pause: true}, {Text: "{nope} "}, {Tag: "bright"}, {Text: "x"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("%+v", got)
+	}
+	// Expand leaves them be (ANSI art, whose braces are art)
+	if got := Expand("{red}a", nil); len(got) != 1 || got[0].Text != "{red}a" {
+		t.Errorf("%+v", got)
+	}
+	if s := String("{cls}{green}Hi @USER@{reset}", vars); s != "Hi {red}bob" {
+		t.Error(s)
+	}
+	m := Marked("{green}Hi @USER@{pause}{cls}", vars)
+	if m != Mark("green")+"Hi {red}bob"+Mark("clear") {
+		t.Errorf("%q", m)
+	}
+	// its marks dropped, the caller's braces kept
+	if s := Unmark(m); s != "Hi {red}bob" {
+		t.Errorf("%q", s)
+	}
+	for _, c := range []struct {
+		name string
+		n    int
+		ok   bool
+	}{{"black", 0, true}, {"white", 7, true}, {"pink", 5, true}, {"turquoise", 6, true}, {"teal", 0, false}} {
+		if n, ok := ColorNumber(c.name); n != c.n || ok != c.ok {
+			t.Errorf("%s: %d %v", c.name, n, ok)
+		}
 	}
 }

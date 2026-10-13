@@ -107,7 +107,6 @@ func (u *ui) Say(tn view.Tone, msg string) {
 
 func (u *ui) Menu(m *view.Menu) (string, error) {
 	msg := ""
-	vars := u.n.Vars()
 	for {
 		scr := u.frame(m.Title, "Enter=Select  PF3=Back", msg)
 		msg = ""
@@ -146,7 +145,7 @@ func (u *ui) Menu(m *view.Menu) (string, error) {
 		}
 		prompt := "Option ===>"
 		if m.Prompt != "" {
-			prompt = bbs.Trunc(screens.String(m.Prompt, vars), 20)
+			prompt = bbs.Trunc(screens.Unmark(m.Prompt), 20) // filled in already, tags marked for a text terminal
 		}
 		scr = append(scr, u.text(u.rows-3, 2, prompt, go3270.Turquoise, false))
 		scr = append(scr, u.input(u.rows-3, 4+len([]rune(prompt)), 2, "opt", false)...)

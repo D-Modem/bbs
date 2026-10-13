@@ -17,7 +17,7 @@ more files for different terminals:
 | file | what | shown to |
 |---|---|---|
 | `NAME.ans` | ANSI art in CP437, as ANSI editors (PabloDraw, Moebius, TheDraw) save it; a SAUCE record after ^Z is dropped | ANSI terminals |
-| `NAME.asc` | plain text (UTF-8 or ASCII), a page at a time | any text terminal; 3270s when there is no `.3270` |
+| `NAME.asc` | text (UTF-8 or ASCII) with [tags](#tags) for color, a page at a time | any text terminal; 3270s when there is no `.3270` |
 | `NAME.txt` | the same as `.asc` | the same |
 | `NAME.3270` | text with color tags (below) | 3270s |
 | `NAME.rip` | RIPscrip (graphics and ANSI) in CP437; its buttons send keys to the menu showing it | [RIP terminals](PETSCII-and-RIP) |
@@ -67,6 +67,44 @@ else between @s (an e-mail address) is left as it is.  The values are
 cleaned like anything a caller writes: no escape sequences get into art
 through a user's name.
 
+### Tags
+
+Text screens (`.asc`, `.txt`), the [strings](#strings) and a menu's
+`prompt =` take tags in braces: shortcuts for ANSI's escape sequences, as
+`.3270` files have for a 3270's colors.
+
+```
+{clear}{cyan}{bright}*** @BBS@ ***{reset}
+{yellow}1.{default} The board is open.   {on blue}{white} NEW {reset}
+{pause}
+```
+
+| tag | |
+|---|---|
+| `{clear}` `{cls}` | clear the screen (as `@CLS@`) |
+| `{pause}` | wait for a key (as `@PAUSE@`; in a string, dropped) |
+| `{home}` `{eol}` | the cursor to the top left; clear to the end of the line |
+| `{black}` `{red}` `{green}` `{yellow}` `{blue}` `{magenta}` `{cyan}` `{white}` | the color of the letters (`{pink}` and `{turquoise}`, the 3270's names, are magenta and cyan) |
+| `{on black}` ... `{on white}` | the color behind them |
+| `{bright}` `{bold}` / `{normal}` | bright, or not |
+| `{blink}` `{underline}` `{reverse}` | |
+| `{default}` `{reset}` | plain again |
+
+Each terminal gets what it can show: an ANSI terminal the escape
+sequences; one without color (`Mono`) bright, underline and the like but
+no colors; a Commodore its colors (no backgrounds, blink or underline); a
+VT52 the clears and the cursor's moves; a plain terminal nothing (a
+`{clear}` a new line).  A screen ends plain whatever its last color.  On
+a 3270 a text screen's colors are its colors (each change taking a
+column, below) and the other tags are dropped; where tags cannot be shown
+at all (a menu's title in Who's online) they are dropped too.  In a text
+screen a line holding only a `{clear}` or a `{pause}` (or `@CLS@`,
+`@PAUSE@`) leaves no blank line behind.
+
+Only the sysop's text has tags: a caller who calls themselves `{red}bob`
+is shown as `{red}bob`.  ANSI art (`.ans`) keeps its braces as they are:
+it has its own escape sequences.
+
 ### 3270 screens
 
 A `.3270` file is lines of text with tags that change the color for the
@@ -78,8 +116,10 @@ rest of the line:
 ```
 
 `{blue}` `{red}` `{pink}` `{green}` `{turquoise}` `{yellow}` `{white}`
-`{default}`, and `{bright}` / `{normal}`.  On a 3270 each change of color
-takes a blank column (an attribute byte, as 3270 fields work).
+`{default}`, and `{bright}` / `{normal}` (and `{clear}` and `{pause}` for a
+new page; the text terminals' names, `{magenta}`, `{cyan}`, `{reset}`, are
+taken too).  On a 3270 each change of color takes a blank column (an
+attribute byte, as 3270 fields work).
 
 ## Menus
 
@@ -144,7 +184,13 @@ logoff_confirm = "Leaving so soon, @USER@?"
 welcome = "Hi @USER@, @NEWMAIL@ new letters."
 ```
 
-Each takes @-codes; quote a value to keep spaces at its end.  `welcome`
-is the 3270 main menu's greeting too.
+Each takes @-codes and [tags](#tags); quote a value to keep spaces at its
+end.  `welcome` is the 3270 main menu's greeting too (shown without its
+tags, on both kinds of terminal).
+
+```
+command_prompt = "{yellow}@USER@{default} @ {cyan}@BBS@{default} > "
+pause = "{blue}-- more --{reset}"
+```
 
 **See also:** [Configuration](Configuration), [Doors](Doors)
