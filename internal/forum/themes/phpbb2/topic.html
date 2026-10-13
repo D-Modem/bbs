@@ -1,0 +1,77 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<div class="toprow"><div><a class="maintitle" href="/forum/topic/{{$b.Root.ID}}">{{$b.Root.Subject}}</a><br><span class="gensmall"><b>{{template "pages" $b.Pages}}</b>&nbsp;</span></div></div>
+<div class="toprow">
+  <div class="btnrow">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="pill"><span class="pi newtopic" aria-hidden="true"></span>new<em>topic</em></a> <a href="#reply" class="pill"><span class="pi reply" aria-hidden="true"></span>post<em>reply</em></a>{{end}} &nbsp; {{template "nav" .}}</div>
+</div>
+<table class="forumline">
+  <tr><td class="catHead right" colspan="2"><span class="nav"><a href="/forum/area/{{$b.Area.ID}}">Back to {{$b.Area.Name}}</a> :: <a href="#reply">Post a reply</a> &nbsp;</span></td></tr>
+  {{with $b.Poll}}
+  <tr><td class="row2 center" colspan="2">
+    <div class="poll">
+      <p class="gen"><b>{{$b.Root.Subject}}</b></p>
+      {{if or .Voted (not $me)}}
+      <table class="pollresults">{{range .Answers}}<tr><td><span class="gen">{{.Text}}</span></td><td class="bar"><meter min="0" max="100" value="{{.Pct}}"></meter></td><td class="center"><b><span class="gen">&nbsp;{{.Pct}}%&nbsp;</span></b></td><td class="center"><span class="gen">[ {{.Count}} ]</span></td></tr>{{end}}</table>
+      <p class="gen"><b>Total Votes : {{.Total}}</b>{{if not $me}} &nbsp; <span class="gensmall">(<a href="/forum/login">Log in</a> to vote)</span>{{end}}</p>
+      {{end}}
+      {{if $me}}
+      <form method="post" action="/forum/post/{{.ID}}/answer" class="poll-form">
+        <input type="hidden" name="csrf" value="{{$csrf}}">
+        {{range .Answers}}<label class="gen"><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label>{{end}}
+        <div><button class="button mainoption">{{if .Voted}}Change vote{{else}}Submit Vote{{end}}</button></div>
+      </form>
+      {{end}}
+    </div>
+  </td></tr>
+  {{end}}
+  <tr><th class="thLeft author">Author</th><th class="thRight">Message</th></tr>
+  {{range $b.Posts}}{{$row := "row1"}}{{if not (odd .Num)}}{{$row = "row2"}}{{end}}
+  <tr id="entry{{.M.ID}}">
+    <td class="{{$row}} author top"><span class="name"><b>{{.M.From}}</b></span><br>
+      <span class="postdetails">{{if .Author}}{{if .Author.Sysop}}Site Admin{{else}}{{group .Author}}{{end}}<br>{{template "avatar" (av .M.From "large")}}<br><br>Joined: {{subdate .Author.Created}}<br>Posts: {{num .Author.Posts}}{{if .Author.Location}}<br>Location: {{.Author.Location}}{{end}}{{else}}{{template "avatar" (av .M.From "large")}}{{if .Where}}<br><br>Location: {{.Where}}{{end}}{{end}}</span></td>
+    <td class="{{$row}} top">
+      <div class="posthead">
+        <span class="postdetails"><a href="/forum/post/{{.M.ID}}" class="minipost" title="Post"></a>Posted: {{subtime .M.Created}} &nbsp; &nbsp;Post subject: {{.M.Subject}}{{if and .M.To (ne .M.To "All")}} &nbsp; To: {{.M.To}}{{end}}</span>
+        <span class="tbtns">
+          {{if $b.CanPost}}<a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#reply" class="tbtn"><span class="pi quote" aria-hidden="true"></span>quote</a>{{end}}
+          {{if .CanDelete}}<form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="tbtn del" title="Delete this post">&#10006;</button></form>{{end}}
+        </span>
+      </div>
+      <hr>
+      <div class="postbody">{{body .M.Body}}</div>
+      {{if .Likes}}<p class="gensmall likes">_________________<br>{{plural .Likes "user likes" "users like"}} this post</p>{{end}}
+    </td>
+  </tr>
+  <tr>
+    <td class="{{$row}} author"><span class="nav"><a href="#top" class="nav">Back to top</a></span></td>
+    <td class="{{$row}} bottom">
+      {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="tbtn"><span class="pi profile" aria-hidden="true"></span>profile</a>{{end}}
+      {{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="tbtn"><span class="pi like" aria-hidden="true"></span>{{if .Liked}}unlike{{else}}like{{end}}</button></form>{{end}}
+    </td>
+  </tr>
+  <tr><td class="spaceRow" colspan="2"></td></tr>
+  {{end}}
+  <tr><td class="catBottom center" colspan="2"><span class="gensmall">{{plural $b.Count "post" "posts"}} in this topic</span></td></tr>
+</table>
+<div class="toprow">
+  <div class="btnrow">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="pill"><span class="pi newtopic" aria-hidden="true"></span>new<em>topic</em></a> <a href="#reply" class="pill"><span class="pi reply" aria-hidden="true"></span>post<em>reply</em></a>{{end}} &nbsp; {{template "nav" .}}</div>
+  <div class="right"><span class="gensmall">All times are server time</span><br><span class="nav">{{template "pages" $b.Pages}}</span></div>
+</div>
+<div>{{template "pagenum" $b.Pages}}</div>
+
+{{if $b.CanPost}}
+<form method="post" action="/forum/topic/{{$b.Root.ID}}/reply" id="reply">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+{{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+<table class="forumline">
+  <tr><th class="thHead" colspan="2">Post a reply</th></tr>
+  <tr><td class="row1 author top"><span class="gen"><b>Message body</b></span><br><span class="gensmall">Quote with &gt; at the start of a line. Links are made links.</span></td>
+    <td class="row2"><textarea name="body" rows="12" class="post" required aria-label="Message body">{{$b.Quote}}</textarea>
+      {{if $b.Aliases}}<br><label class="gen"><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label>{{end}}</td></tr>
+  <tr><td class="catBottom center" colspan="2"><button class="button mainoption">Submit</button></td></tr>
+</table>
+</form>
+{{else if not .User}}
+<p class="gen center"><a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">Log in</a> to reply to this topic.</p>
+{{end}}
+{{template "foot" .}}{{end}}

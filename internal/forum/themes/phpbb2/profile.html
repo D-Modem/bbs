@@ -1,0 +1,28 @@
+{{define "profile.html"}}{{template "head" .}}
+{{$u := .Body.U}}
+<div class="toprow"><div>{{template "nav" .}}</div></div>
+<table class="forumline">
+  <tr><th class="thHead" colspan="2">Viewing profile :: {{$u.Name}}</th></tr>
+  <tr><td class="catLeft center half"><b><span class="gen">Avatar</span></b></td><td class="catRight center"><b><span class="gen">All about {{$u.Name}}</span></b></td></tr>
+  <tr>
+    <td class="row1 center top">{{template "avatar" (av $u.Name "huge")}}<br><span class="postdetails">{{if $u.Sysop}}Site Admin{{else}}{{group $u}}{{end}}</span></td>
+    <td class="row1 top">
+      <table class="facts">
+        <tr><td class="key"><span class="gen">Joined:&nbsp;</span></td><td><b><span class="gen">{{subdate $u.Created}}</span></b></td></tr>
+        <tr><td class="key"><span class="gen">Total posts:&nbsp;</span></td><td><b><span class="gen">{{num $u.Posts}}</span></b><br><span class="genmed"><a href="#recent">Find all posts by {{$u.Name}}</a></span></td></tr>
+        <tr><td class="key"><span class="gen">Last visit:&nbsp;</span></td><td><b><span class="gen">{{subtime $u.LastLogin}}</span></b></td></tr>
+        <tr><td class="key"><span class="gen">Calls:&nbsp;</span></td><td><b><span class="gen">{{num $u.Logins}}</span></b></td></tr>
+        <tr><td class="key"><span class="gen">Location:&nbsp;</span></td><td><b><span class="gen">{{$u.Location}}</span></b></td></tr>
+        <tr><td class="key"><span class="gen">Interests:&nbsp;</span></td><td><b><span class="gen">{{$u.About}}</span></b></td></tr>
+        {{range .Body.On}}<tr><td class="key"><span class="gen">Online:&nbsp;</span></td><td><b><span class="gen">node {{.Num}} by {{.Via}}: {{.Activity}}</span></b></td></tr>{{end}}
+      </table>
+    </td>
+  </tr>
+</table>
+<table class="forumline" id="recent">
+  <tr><th class="thCornerL">Recent posts</th><th class="thCornerR lastcol">Posted</th></tr>
+  {{range .Body.Recent}}
+  <tr><td class="row1"><a href="/forum/post/{{.ID}}" class="topictitle">{{.Subject}}</a><br><span class="gensmall">{{snippet .Body 160}}</span></td><td class="row2 lastcol"><span class="postdetails">{{subtime .Created}}</span></td></tr>
+  {{else}}<tr><td class="row1 center" colspan="2"><span class="gen">No posts to show.</span></td></tr>{{end}}
+</table>
+{{template "foot" .}}{{end}}

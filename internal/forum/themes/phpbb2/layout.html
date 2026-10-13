@@ -1,0 +1,46 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.BBS}} :: {{.Title}}</title>
+<link rel="stylesheet" href="/forum/static/phpbb2.css">
+</head>
+<body id="top">
+<div class="bodyline">
+<div class="header">
+  <a href="/forum/" class="logo" title="{{.BBS}} Forum Index"><span class="logo-name">{{.BBS}}</span><span class="logo-sub">creating conversations</span></a>
+  <div class="headmid">
+    <span class="maintitle">{{.BBS}}</span><br><span class="gen">The forums of a bulletin board system</span>
+    <div class="mainmenu">
+      <a href="/forum/search"><span class="mi search" aria-hidden="true"></span>Search</a>
+      <a href="/forum/online"><span class="mi members" aria-hidden="true"></span>Who is Online</a>
+      {{if .Terminal}}<a href="/terminal"><span class="mi terminal" aria-hidden="true"></span>Terminal</a>{{end}}
+      {{if and (not .User) .Register}}<a href="/forum/register"><span class="mi register" aria-hidden="true"></span>Register</a>{{end}}
+    </div>
+    <div class="mainmenu">
+      {{if .User}}<a href="/forum/user/{{path .User.Name}}"><span class="mi profile" aria-hidden="true"></span>Profile</a>
+      <form method="post" action="/forum/logout" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish"><span class="mi login" aria-hidden="true"></span>Log out [ {{.User.Name}} ]</button></form>
+      {{else}}<a href="/forum/login"><span class="mi login" aria-hidden="true"></span>Log in</a>{{end}}
+    </div>
+  </div>
+</div>
+{{if eq .Notice "welcome"}}<div class="forumline notice"><div class="row1 center gen">Thank you for registering. Your account is made, and you are logged in.</div></div>{{end}}
+{{end}}
+
+{{define "nav"}}<span class="nav"><a href="/forum/">{{.BBS}} Forum Index</a>{{range .Crumbs}}{{if .URL}} -&gt; <a href="{{.URL}}">{{.Name}}</a>{{end}}{{end}}</span>{{end}}
+
+{{define "foot"}}
+<div class="footrow">
+  {{template "themepicker" .}}
+  <form action="/forum/search" method="get" class="quicksearch"><span class="gensmall">Search for:</span> <input type="search" name="q" class="post" aria-label="Search"> <button class="button liteoption">Go</button></form>
+</div>
+<div class="copyright">Powered by bbs-sec &middot; {{.BBS}}<br>The time now is {{longdate .Now}}</div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}<span class="pagination">Goto page {{if gt .Cur 1}}<a href="{{.URL .Prev}}" rel="prev">Previous</a>&nbsp;&nbsp;{{end}}{{$cur := .Cur}}{{$p := .}}{{range $i, $n := .Shown}}{{if $i}}, {{end}}{{if eq $n 0}}...{{else if eq $n $cur}}<b>{{$n}}</b>{{else}}<a href="{{$p.URL $n}}">{{$n}}</a>{{end}}{{end}}{{if .Next}}&nbsp;&nbsp;<a href="{{.URL .Next}}" rel="next">Next</a>{{end}}</span>{{end}}{{end}}
+
+{{define "pagenum"}}<span class="nav">Page <b>{{.Cur}}</b> of <b>{{.Total}}</b></span>{{end}}

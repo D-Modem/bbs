@@ -1,0 +1,37 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<div class="toprow">
+  <div><a class="maintitle" href="/forum/area/{{$b.Area.ID}}">{{$b.Area.Name}}</a>{{if $b.Area.Description}}<br><span class="gensmall"><b>{{$b.Area.Description}}</b></span>{{end}}</div>
+  <div class="right gensmall"><b>{{template "pages" $b.Pages}}</b></div>
+</div>
+<div class="toprow">
+  <div class="btnrow">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="pill"><span class="pi newtopic" aria-hidden="true"></span>new<em>topic</em></a>{{end}} &nbsp; {{template "nav" .}}</div>
+  <div class="right gensmall">{{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark all topics read</button></form>{{end}}</div>
+</div>
+<table class="forumline">
+  <tr><th colspan="2" class="thCornerL">&nbsp;Topics&nbsp;</th><th class="thTop num">&nbsp;Replies&nbsp;</th><th class="thTop author">&nbsp;Author&nbsp;</th><th class="thCornerR lastcol">&nbsp;Last Post&nbsp;</th></tr>
+  {{range $b.Topics}}
+  <tr>
+    <td class="row1 icon"><span class="folder{{if .Unread}} new{{end}}{{if ge .Replies 15}} hot{{end}}" title="{{if .Unread}}New posts{{else}}No new posts{{end}}"></span></td>
+    <td class="row1 wide"><span class="topictitle">{{if .Unread}}<a href="/forum/post/{{.Last.ID}}" class="newest" title="View newest post"></a>{{end}}<a href="/forum/topic/{{.Root.ID}}" class="topictitle">{{.Root.Subject}}</a></span>{{if gt .Pages 1}}<br><span class="gensmall">[ Goto page: {{$root := .Root.ID}}{{range $i, $n := (seq .Pages)}}{{if $i}}, {{end}}<a href="/forum/topic/{{$root}}{{if gt $n 1}}?page={{$n}}{{end}}">{{$n}}</a>{{end}} ]</span>{{end}}</td>
+    <td class="row2 num"><span class="postdetails">{{num .Replies}}</span></td>
+    <td class="row3 author"><span class="name">{{.Root.From}}</span></td>
+    <td class="row3Right lastcol"><span class="postdetails">{{subtime .Last.Created}}<br>{{.Last.From}} <a href="/forum/post/{{.Last.ID}}" class="latest" title="View latest post"></a></span></td>
+  </tr>
+  {{else}}
+  <tr><td class="row1 center" colspan="5"><span class="gen">There are no posts in this forum.{{if $b.CanPost}} Click on the <b>New Topic</b> button on this page to post one.{{end}}</span></td></tr>
+  {{end}}
+  <tr><td class="catBottom center" colspan="5"><span class="genmed">Showing {{plural $b.Count "topic" "topics"}}</span></td></tr>
+</table>
+<div class="toprow">
+  <div class="btnrow">{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="pill"><span class="pi newtopic" aria-hidden="true"></span>new<em>topic</em></a>{{end}} &nbsp; {{template "nav" .}}</div>
+  <div class="right"><span class="gensmall">All times are server time</span><br><span class="nav">{{template "pages" $b.Pages}}</span></div>
+</div>
+<div>{{template "pagenum" $b.Pages}}</div>
+<div class="legend">
+  <span class="folder new"></span> <span class="gensmall">New posts</span> &nbsp;&nbsp;
+  <span class="folder"></span> <span class="gensmall">No new posts</span> &nbsp;&nbsp;
+  <span class="folder new hot"></span> <span class="gensmall">New posts [ Popular ]</span> &nbsp;&nbsp;
+  <span class="folder hot"></span> <span class="gensmall">No new posts [ Popular ]</span>
+</div>
+{{template "foot" .}}{{end}}

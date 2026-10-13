@@ -53,6 +53,7 @@ var Themes = []Theme{
 	{"ipb1", "Retro (IPB 1 style)"},
 	{"ikon", "Grey (Ikonboard style)"},
 	{"phpbb1", "Dark (phpBB 1 style)"},
+	{"phpbb2", "Silver (phpBB 2 style)"},
 }
 
 // KnownTheme says whether there is a theme of the name.
