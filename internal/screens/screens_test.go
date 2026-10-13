@@ -132,3 +132,20 @@ func TestTags(t *testing.T) {
 		}
 	}
 }
+
+func TestFit(t *testing.T) {
+	for _, c := range []struct {
+		in   string
+		w    int
+		want string
+	}{
+		{"plain", 8, "plain   "},
+		{"toolong", 4, "tool"},
+		{Mark("red") + "Red" + Mark("default") + " x", 7, Mark("red") + "Red" + Mark("default") + " x" + Mark("reset") + "  "},
+		{"ab" + Mark("red") + "cdef" + Mark("blue") + "g", 4, "ab" + Mark("red") + "cd" + Mark("reset")},
+	} {
+		if got := Fit(c.in, c.w); got != c.want {
+			t.Errorf("Fit(%q, %d) = %q, want %q", c.in, c.w, got, c.want)
+		}
+	}
+}

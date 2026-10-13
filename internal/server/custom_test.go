@@ -143,6 +143,17 @@ func TestCustomText(t *testing.T) {
 	}
 }
 
+// tagMenus gives the main menu a title and a label with tags.
+func tagMenus(t *testing.T, b *bbs.BBS) {
+	m := b.Menus["main"]
+	m.Title = "{yellow}@BBS@{default} main"
+	it, err := bbs.ParseMenuItem("b", "screen:bulletin {red}Bulletin{reset}")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.Items[1] = it
+}
+
 // TestCustomTags: {tags} in a text screen, the strings and a menu's
 // prompt, as ANSI on an ANSI terminal, dropped on a plain one; a
 // caller's braces are not tags.
@@ -155,6 +166,7 @@ func TestCustomTags(t *testing.T) {
 		customizeBBS(t, b, top, files)
 		b.Text["command_prompt"] = "{green}Your choice{default}: "
 		b.Menus["extras"].Prompt = "{magenta}Extras{reset}> "
+		tagMenus(t, b)
 	}
 	e := startFull(t, ui3270.Graphics{}, nil, tags,
 		&Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "yes", UTF8: "no"},
@@ -166,6 +178,10 @@ func TestCustomTags(t *testing.T) {
 	d.expect("Secret word: ")
 	d.send("alicepass1\r")
 	d.expect("\x1b[2J\x1b[H\x1b[33m\x1b[1mHello alice\x1b[0m, node 1.")
+	// the menu's title in its cyan with the tag's yellow inside; the
+	// label in its red, padded to its column by what shows
+	d.expect("\x1b[1;36m\x1b[33mTest BBS\x1b[0m main\x1b[0m")
+	d.expect("\x1b[1;33m[B]\x1b[0m \x1b[31mBulletin\x1b[0m\x1b[0m" + strings.Repeat(" ", 14) + "\r\n")
 	d.expect("\x1b[32mYour choice\x1b[0m: ")
 	d.send("B")
 	d.expect("\x1b[31mRed\x1b[0m plain \x1b[44m\x1b[37mbox\x1b[0m")
@@ -187,6 +203,8 @@ func TestCustomTags(t *testing.T) {
 	p.expect("Secret word: ")
 	p.send("alicepass1\r")
 	p.expect("Hello alice, node 2.")
+	p.expect("Test BBS main")
+	p.expect("[B] Bulletin" + strings.Repeat(" ", 14) + "\r\n")
 	p.expect("Your choice: ")
 	p.send("B")
 	p.expect("Red plain box")
@@ -208,12 +226,14 @@ func TestCustom3270(t *testing.T) {
 		t.Skip("no s3270")
 	}
 	addr := freeTCP(t)
-	startFull(t, ui3270.Graphics{}, nil, customize(t, map[string]string{
+	prep := customize(t, map[string]string{
 		"logon.3270":   "{yellow}{bright}Welcome to @BBS@{normal} {blue}on a mainframe\n",
 		"welcome.3270": "{green}Hello @USER@.\n",
 		"bulletin.asc": "{yellow}A plain bulletin{blink}\n", // a text terminal's tags: a 3270 has blink none
 		"goodbye.3270": "{white}So long, @USER@.\n",
-	}), &Listener{Name: "telnet", Kind: "telnet", Address: addr, TN3270: true})
+	})
+	startFull(t, ui3270.Graphics{}, nil, func(b *bbs.BBS, top string) { prep(b, top); tagMenus(t, b) },
+		&Listener{Name: "telnet", Kind: "telnet", Address: addr, TN3270: true})
 	script := strings.Join([]string{
 		"Connect(" + addr + ")", "Wait(10,InputField)", "Ascii()",
 		`String("alice")`, "Tab()", `String("alicepass1")`, "Enter()", "Wait(5,InputField)", "Ascii()",

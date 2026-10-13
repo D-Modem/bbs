@@ -491,7 +491,8 @@ address = 127.0.0.1:2513
 ; KEY = ACTION Label: one character (not ; or #), then what it does:
 ;   areas mail who users profile info files doors chat page terminal
 ;   logoff back, or door:NAME menu:NAME screen:NAME area:NAME
-; Labels, titles and prompts take @-codes (@USER@, @NEWMAIL@, @BBS@ ...).
+; Labels, titles and prompts take @-codes (@USER@, @NEWMAIL@, @BBS@ ...)
+; and tags ({yellow}, {bright}, {reset} ...: docs/wiki/Customization.md).
 ; screen = NAME shows that display file instead of the list of items
 ;[menu main]
 ;title = @BBS@

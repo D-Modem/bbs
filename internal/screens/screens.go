@@ -297,6 +297,34 @@ func Mark(tag string) string { return "\x1e" + tag + "\x1f" }
 // cannot be shown.
 func Unmark(s string) string { return Marks.ReplaceAllString(s, "") }
 
+// Fit fits a marked text to width columns as bbs.Fit does a plain one:
+// its marks take none, the text past width is cut (and its marks with
+// it), and when it has any it ends with a {reset} before its padding, so
+// its colors stay in it.
+func Fit(s string, width int) string {
+	var b strings.Builder
+	n, marked := 0, false
+	last := 0
+	for _, m := range append(Marks.FindAllStringIndex(s, -1), []int{len(s), len(s)}) {
+		for _, r := range s[last:m[0]] {
+			if n == width {
+				break
+			}
+			b.WriteRune(r)
+			n++
+		}
+		if m[0] < m[1] && n < width {
+			b.WriteString(s[m[0]:m[1]])
+			marked = true
+		}
+		last = m[1]
+	}
+	if marked {
+		b.WriteString(Mark("reset"))
+	}
+	return b.String() + strings.Repeat(" ", width-n)
+}
+
 // Marks finds the marks in a text: [start, end, name start, name end].
 var Marks = regexp.MustCompile("\x1e([a-z ]+)\x1f")
 

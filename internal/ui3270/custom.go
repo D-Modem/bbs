@@ -82,13 +82,18 @@ func (u *ui) lineFields(sc *screens.Screen, row int, line string) go3270.Screen 
 	if sc.Format != screens.Color {
 		plain = go3270.Green
 	}
+	return u.spanFields(row, 1, u.cols-1, line, plain)
+}
+
+// spanFields draws a marked line (screens.Spans) at row from col to
+// before end, in plain where its tags give no color.
+func (u *ui) spanFields(row, col, end int, line string, plain go3270.Color) go3270.Screen {
 	var out go3270.Screen
-	col := 1
 	for _, sp := range screens.Spans(line) {
-		if col >= u.cols-1 {
+		if col >= end {
 			break
 		}
-		t := bbs.Clean(sp.Text, u.cols-col-2)
+		t := bbs.Clean(sp.Text, end-col-1)
 		if t == "" {
 			continue
 		}

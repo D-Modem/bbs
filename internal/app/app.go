@@ -294,15 +294,17 @@ func (s *Session) runMenu(full *bbs.Menu, depth int, intro []view.Line) error {
 		}
 		u := s.refresh()
 		m := s.B.MenuFor(full, u)
-		title := screens.String(m.Title, vars)
-		s.N.Doing(title)
+		// the title, labels and prompt with their tags marked, for the
+		// front ends to show (or drop); Who's online gets the title plain
+		title := screens.Marked(m.Title, vars)
+		s.N.Doing(screens.Unmark(title))
 		vm := &view.Menu{Title: title, Intro: intro, Screen: m.Screen, Brief: s.expert()}
 		intro = nil
 		for _, it := range m.Items {
-			vm.Items = append(vm.Items, view.Item{Key: it.Key, Label: screens.String(it.Label, vars)})
+			vm.Items = append(vm.Items, view.Item{Key: it.Key, Label: screens.Marked(it.Label, vars)})
 		}
 		if m.Prompt != "" {
-			vm.Prompt = screens.Marked(m.Prompt, vars) // its tags for a text terminal; a 3270 drops them
+			vm.Prompt = screens.Marked(m.Prompt, vars)
 		}
 		k, err := s.UI.Menu(vm)
 		if err != nil {

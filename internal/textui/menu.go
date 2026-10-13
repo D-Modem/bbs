@@ -3,8 +3,8 @@ package textui
 import (
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/rip"
+	"github.com/Neo-Desktop/bbs-sec/internal/screens"
 )
 
 // choice is a menu's item.
@@ -25,9 +25,9 @@ func (s *session) menu(title string, items []choice, prompt string, list bool) (
 		}
 		ri := make([]rip.Item, len(items))
 		for i, it := range items {
-			ri[i] = rip.Item{Key: it.key, Label: it.label}
+			ri[i] = rip.Item{Key: it.key, Label: screens.Unmark(it.label)}
 		}
-		scene, _ := rip.Menu(title, ri)
+		scene, _ := rip.Menu(screens.Unmark(title), ri)
 		t.RIPScene(scene)
 		t.Print(strings.TrimLeft(prompt, "\n"))
 	} else {
@@ -40,7 +40,7 @@ func (s *session) menu(title string, items []choice, prompt string, list bool) (
 			}
 			var cells []string
 			for _, it := range items {
-				cells = append(cells, t.C(Yellow, "["+it.key+"]")+" "+bbs.Fit(it.label, width))
+				cells = append(cells, t.C(Yellow, "["+it.key+"]")+" "+screens.Fit(it.label, width))
 			}
 			for i := 0; i < len(cells); i += cols {
 				t.Println("  " + strings.Join(cells[i:min(i+cols, len(cells))], ""))

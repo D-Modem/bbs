@@ -108,7 +108,7 @@ func (u *ui) Say(tn view.Tone, msg string) {
 func (u *ui) Menu(m *view.Menu) (string, error) {
 	msg := ""
 	for {
-		scr := u.frame(m.Title, "Enter=Select  PF3=Back", msg)
+		scr := u.frame(screens.Unmark(m.Title), "Enter=Select  PF3=Back", msg)
 		msg = ""
 		row := 2
 		for _, l := range m.Intro {
@@ -139,8 +139,8 @@ func (u *ui) Menu(m *view.Menu) (string, error) {
 			}
 			scr = append(scr, u.boxed(row, 2, row+len(m.Items)+1, 44, go3270.Blue)...)
 			for i, it := range m.Items {
-				scr = append(scr, u.text(row+1+i, 4, it.Key, go3270.Yellow, true),
-					u.text(row+1+i, 7, it.Label, go3270.Green, false))
+				scr = append(scr, u.text(row+1+i, 4, it.Key, go3270.Yellow, true))
+				scr = append(scr, u.spanFields(row+1+i, 7, 44, it.Label, go3270.Green)...) // its tags' colors
 			}
 		}
 		prompt := "Option ===>"

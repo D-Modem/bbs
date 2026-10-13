@@ -69,9 +69,9 @@ through a user's name.
 
 ### Tags
 
-Text screens (`.asc`, `.txt`), the [strings](#strings) and a menu's
-`prompt =` take tags in braces: shortcuts for ANSI's escape sequences, as
-`.3270` files have for a 3270's colors.
+Text screens (`.asc`, `.txt`), the [strings](#strings) and a
+[menu's](#menus) title, labels and prompt take tags in braces: shortcuts
+for ANSI's escape sequences, as `.3270` files have for a 3270's colors.
 
 ```
 {clear}{cyan}{bright}*** @BBS@ ***{reset}
@@ -92,14 +92,17 @@ Text screens (`.asc`, `.txt`), the [strings](#strings) and a menu's
 
 Each terminal gets what it can show: an ANSI terminal the escape
 sequences; one without color (`Mono`) bright, underline and the like but
-no colors; a Commodore its colors (no backgrounds, blink or underline); a
-VT52 the clears and the cursor's moves; a plain terminal nothing (a
+no colors; a Commodore its colors (no backgrounds, blink or underline);
+a VT52 the clears and the cursor's moves; a plain terminal nothing (a
 `{clear}` a new line).  A screen ends plain whatever its last color.  On
 a 3270 a text screen's colors are its colors (each change taking a
-column, below) and the other tags are dropped; where tags cannot be shown
-at all (a menu's title in Who's online) they are dropped too.  In a text
-screen a line holding only a `{clear}` or a `{pause}` (or `@CLS@`,
-`@PAUSE@`) leaves no blank line behind.
+column, below) and the other tags are dropped; a menu's labels show
+their colors the same way, its title and prompt plain.  Where tags
+cannot be shown at all (a RIP terminal's buttons, a menu's title in
+Who's online) they are dropped too.  A menu's label keeps to its column
+whatever its tags, and ends plain.  In a text screen a line holding only
+a `{clear}` or a `{pause}` (or `@CLS@`, `@PAUSE@`) leaves no blank line
+behind.
 
 Only the sysop's text has tags: a caller who calls themselves `{red}bob`
 is shown as `{red}bob`.  ANSI art (`.ans`) keeps its braces as they are:
@@ -129,11 +132,11 @@ reached from it (and from each other).
 
 ```
 [menu main]
-title = @BBS@
+title = {cyan}{bright}@BBS@{reset}
 screen = mainmenu          ; shown instead of the list of items (optional)
 prompt = "Command: "       ; (optional)
 m = areas Message areas
-e = mail E-mail (@NEWMAIL@ new)
+e = mail E-mail ({yellow}@NEWMAIL@{default} new)
 d = doors Doors
 l = door:lord Legend of the Red Dragon
 b = screen:bulletins Bulletins
