@@ -1,0 +1,59 @@
+{{define "index.html"}}{{template "head" .}}
+{{$st := .Body.Stats}}
+<section class="canvas-widget forum-list-container">
+  <h1 class="widget-header"><span class="widget-header__title">Forums</span></h1>
+  <table class="forum-list">
+    <thead><tr class="forum-list-header"><th class="cell-forum">Title</th><th class="cell-topics">Topics</th><th class="cell-posts">Posts</th><th class="cell-lastpost">Last Post</th></tr></thead>
+    {{range .Body.Categories}}
+    <tbody>
+      <tr class="category-header"><td colspan="4"><span class="category">{{.Name}}</span></td></tr>
+      {{range $f := .Forums}}
+      <tr class="forum-item{{if $f.Unread}} new{{end}}">
+        <td class="cell-forum">
+          <div class="forum-wrapper">
+            <span class="forum-icon{{if $f.Unread}} new{{end}}" title="{{if $f.Unread}}Contains unread posts{{else}}Contains no unread posts{{end}}" aria-hidden="true"></span>
+            <div class="forum-info">
+              <a href="/forum/area/{{$f.Area.ID}}" class="forum-title">{{$f.Area.Name}}</a>
+              {{if $f.Area.Description}}<div class="forum-desc">{{$f.Area.Description}}</div>{{end}}
+            </div>
+          </div>
+        </td>
+        <td class="cell-topics">{{num $f.Topics}}</td>
+        <td class="cell-posts">{{num $f.Area.Messages}}</td>
+        <td class="cell-lastpost">
+          {{with $f.Last}}
+          <div class="lastpost-wrapper">
+            {{template "avatar" (av .From "mini")}}
+            <div class="lastpost-info">
+              <a href="/forum/topic/{{$f.LastTopic.ID}}" class="lastpost-title" title="{{$f.LastTopic.Subject}}">{{truncate $f.LastTopic.Subject 32}}</a>
+              <div class="lastpost-by">by <a href="/forum/user/{{path .From}}">{{.From}}</a></div>
+              <div class="lastpost-date"><a href="/forum/post/{{.ID}}">{{vbdate .Created}}, {{vbtime .Created}}</a> <a href="/forum/post/{{.ID}}" class="go-to-last-post" title="Go to last post" aria-label="Go to last post"></a></div>
+            </div>
+          </div>
+          {{else}}<span class="lastpost-none">No posts yet</span>{{end}}
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+    {{end}}
+  </table>
+</section>
+
+<div class="widget-row">
+  <section class="canvas-widget">
+    <h2 class="widget-header"><span class="widget-header__title">Who's Online</span><span class="widget-header__aside">{{plural (len .Body.Online) "user" "users"}}</span></h2>
+    <div class="widget-content">{{range $i, $n := .Body.Online}}{{if $i}}, {{end}}<a href="/forum/user/{{path $n.User}}">{{$n.User}}</a>{{else}}<span class="muted">There are no users online right now.</span>{{end}}</div>
+  </section>
+  <section class="canvas-widget">
+    <h2 class="widget-header"><span class="widget-header__title">Forum Statistics</span></h2>
+    <div class="widget-content">
+      <ul class="stats-list">
+        <li><span class="stat-value">{{num $st.Topics}}</span><span class="stat-label">Topics</span></li>
+        <li><span class="stat-value">{{num $st.Posts}}</span><span class="stat-label">Posts</span></li>
+        <li><span class="stat-value">{{num $st.Members}}</span><span class="stat-label">Members</span></li>
+      </ul>
+      {{with $st.Newest}}<p class="newest">Welcome to our newest member, <a href="/forum/user/{{path .Name}}">{{.Name}}</a>.</p>{{end}}
+    </div>
+  </section>
+</div>
+{{template "foot" .}}{{end}}

@@ -214,11 +214,12 @@ address = 127.0.0.1:2513
 ; the forum's theme until a caller chooses (at the foot of each page):
 ; ipb3 (in the manner of Invision Power Board 3), ipb5 (fresh, as Invision
 ; Community 5), ipb4 (modern, as Invision Community 4), ipb2 (classic, as
-; IPB 2), ipb1 (retro, as IPB 1), ikon (grey, as Ikonboard 2), vb4
-; (steel, as vBulletin 4), vb3 (blue, as vBulletin 3), vb2 (purple, as
-; vBulletin 2), vblite (lavender, as vBulletin Lite), phpbb33, phpbb32,
-; phpbb31 and phpbb30 (prosilver, as phpBB 3.3, 3.2, 3.1 and 3.0), phpbb2
-; (silver, as phpBB 2) or phpbb1 (dark, as phpBB 1)
+; IPB 2), ipb1 (retro, as IPB 1), ikon (grey, as Ikonboard 2), vb5
+; (connect, as vBulletin 5), vb4 (steel, as vBulletin 4), vb3 (blue, as
+; vBulletin 3), vb2 (purple, as vBulletin 2), vblite (lavender, as
+; vBulletin Lite), phpbb33, phpbb32, phpbb31 and phpbb30 (prosilver, as
+; phpBB 3.3, 3.2, 3.1 and 3.0), phpbb2 (silver, as phpBB 2) or phpbb1
+; (dark, as phpBB 1)
 ;forum_theme = ipb3
 
 ; Access levels: a user's level (0-255) gets what the [level] at or

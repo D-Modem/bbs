@@ -55,6 +55,7 @@ var Themes = []Theme{
 	{"ipb2", "Classic (IPB 2 style)", ""},
 	{"ipb1", "Retro (IPB 1 style)", ""},
 	{"ikon", "Grey (Ikonboard style)", ""},
+	{"vb5", "Connect (vBulletin 5 style)", ""},
 	{"vb4", "Steel (vBulletin 4 style)", ""},
 	{"vb3", "Blue (vBulletin 3 style)", ""},
 	{"vb2", "Purple (vBulletin 2 style)", ""},

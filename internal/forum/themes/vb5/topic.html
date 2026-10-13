@@ -1,0 +1,96 @@
+{{define "topic.html"}}{{template "head" .}}
+{{$b := .Body}}{{$csrf := .CSRF}}{{$me := .User}}
+<section class="canvas-widget conversation-content">
+  <div class="widget-header widget-header--channel">
+    <div>
+      <h1 class="widget-header__title">{{$b.Root.Subject}}</h1>
+      <p class="channel-desc">Started by <a href="/forum/user/{{path $b.Root.From}}">{{$b.Root.From}}</a> in <a href="/forum/area/{{$b.Area.ID}}">{{$b.Area.Name}}</a> &middot; {{plural $b.Count "post" "posts"}}</p>
+    </div>
+    {{if $b.CanPost}}<a href="#reply" class="b-button b-button--primary"><span class="b-icon--reply" aria-hidden="true"></span> Reply</a>{{end}}
+  </div>
+  <div class="conversation-toolbar">
+    <div class="toolbar-filter"><a href="/forum/area/{{$b.Area.ID}}" class="filter"><span class="b-icon--prev" aria-hidden="true"></span> {{$b.Area.Name}}</a>{{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="filter">New Topic</a>{{end}}</div>
+    {{template "pages" $b.Pages}}
+  </div>
+
+  {{with $b.Poll}}
+  <div class="b-poll">
+    <h2 class="b-poll__title"><span class="b-icon--poll" aria-hidden="true"></span>Poll: {{$b.Root.Subject}}</h2>
+    {{if or .Voted (not $me)}}
+    <ul class="b-poll__results">
+      {{range $i, $a := .Answers}}<li{{if $a.Mine}} class="mine"{{end}}><div class="b-poll__option"><span>{{$a.Text}}{{if $a.Mine}} <em>(your vote)</em>{{end}}</span><span class="muted">{{$a.Count}} votes &middot; {{$a.Pct}}%</span></div><meter min="0" max="100" value="{{$a.Pct}}" class="pollbar{{add (mod5 $i) 1}}"></meter></li>{{end}}
+    </ul>
+    <p class="muted">{{plural .Total "vote" "votes"}}{{if not $me}} &middot; <a href="/forum/login">Log in</a> to vote{{end}}</p>
+    {{end}}
+    {{if $me}}
+    <form method="post" action="/forum/post/{{.ID}}/answer" class="b-poll__vote">
+      <input type="hidden" name="csrf" value="{{$csrf}}">
+      {{range .Answers}}<label><input type="radio" name="answer" value="{{.Index}}"{{if .Mine}} checked{{end}}> {{.Text}}</label>{{end}}
+      <button class="b-button b-button--secondary">{{if .Voted}}Change Vote{{else}}Vote{{end}}</button>
+    </form>
+    {{end}}
+  </div>
+  {{end}}
+
+  <ul class="conversation-list">
+    {{range $b.Posts}}
+    <li class="b-post{{if eq .Num 1}} b-post--first{{end}}" id="entry{{.M.ID}}">
+      <div class="b-post__grid">
+        <div class="b-userinfo">
+          <a class="b-avatar" {{if .Author}}href="/forum/user/{{path .Author.Name}}"{{end}}>{{template "avatar" (av .M.From "large")}}</a>
+          <div class="b-userinfo__details">
+            <div class="author">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"><strong>{{.M.From}}</strong></a>{{else}}<strong>{{.M.From}}</strong>{{end}}</div>
+            <div class="usertitle">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Senior Member{{else if ge .Author.Posts 30}}Member{{else}}Junior Member{{end}}{{else}}Guest{{end}}</div>
+            {{if .Author}}{{if .Author.Sysop}}<div class="b-userinfo__rank">Staff</div>{{end}}{{end}}
+            <ul class="b-userinfo__additional-info-block">
+              {{if .Author}}<li><label>Join Date:</label> <span>{{monthyear .Author.Created}}</span></li>
+              <li><label>Posts:</label> <span>{{num .Author.Posts}}</span></li>
+              {{if .Author.Location}}<li><label>Location:</label> <span>{{.Author.Location}}</span></li>{{end}}
+              {{else if .Where}}<li><label>Location:</label> <span>{{.Where}}</span></li>{{end}}
+            </ul>
+          </div>
+        </div>
+        <div class="b-post__body">
+          <div class="b-post__header">
+            <span class="b-post__timestamp"><a href="/forum/post/{{.M.ID}}">{{vbdate .M.Created}}, {{vbtime .M.Created}}</a></span>
+            <a href="/forum/post/{{.M.ID}}" class="b-post__count">#{{.Num}}</a>
+          </div>
+          {{if ne .Num 1}}<h2 class="b-post__title">{{.M.Subject}}</h2>{{end}}
+          <div class="b-post__content">{{body .M.Body}}</div>
+          {{if .Likes}}<div class="b-post__likes"><span class="b-icon--like" aria-hidden="true"></span>{{plural .Likes "person likes" "people like"}} this.</div>{{end}}
+          <div class="b-post__footer">
+            <ul class="b-comment-controls">
+              {{if $b.CanPost}}<li><a href="#reply" class="b-button b-button--secondary b-button--small">Reply</a></li>
+              <li><a href="/forum/topic/{{$b.Root.ID}}?quote={{.M.ID}}{{if gt $b.Pages.Cur 1}}&amp;page={{$b.Pages.Cur}}{{end}}#reply" class="b-button b-button--secondary b-button--small"><span class="b-icon--quote" aria-hidden="true"></span>Quote</a></li>{{end}}
+              {{if .CanLike}}<li><form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="b-button b-button--secondary b-button--small{{if .Liked}} b-button--on{{end}}"><span class="b-icon--like" aria-hidden="true"></span>{{if .Liked}}Liked{{else}}Like{{end}}</button></form></li>{{end}}
+              {{if .CanDelete}}<li><form method="post" action="/forum/post/{{.M.ID}}/delete" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><button class="b-button b-button--text b-button--small danger">Delete</button></form></li>{{end}}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </li>
+    {{end}}
+  </ul>
+  {{if gt $b.Pages.Total 1}}<div class="conversation-toolbar bottom">{{template "pages" $b.Pages}}</div>{{end}}
+</section>
+
+{{if $b.CanPost}}
+<section class="canvas-widget b-content-entry" id="reply">
+  <h2 class="widget-header"><span class="widget-header__title">Post a Reply</span></h2>
+  <form method="post" action="/forum/topic/{{$b.Root.ID}}/reply" class="b-editor">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    {{if $b.QuoteID}}<input type="hidden" name="reply_to" value="{{$b.QuoteID}}">{{end}}
+    <div class="b-editor__row">
+      {{template "avatar" (av $me.Name "mini")}}
+      <textarea name="body" rows="8" placeholder="Type your reply here..." required aria-label="Reply">{{$b.Quote}}</textarea>
+    </div>
+    <div class="b-editor__foot">
+      {{if $b.Aliases}}<label><input type="checkbox" name="alias"> Post as {{$me.Alias}}</label>{{else}}<span class="muted">Quote with &gt; at the start of a line.</span>{{end}}
+      <button class="b-button b-button--primary">Post Reply</button>
+    </div>
+  </form>
+</section>
+{{else if not .User}}
+<section class="canvas-widget login-prompt"><p>Please <a href="/forum/login?back={{urlq (printf "/forum/topic/%d" $b.Root.ID)}}">log in</a>{{if .Register}} or <a href="/forum/register">sign up</a>{{end}} to reply to this topic.</p></section>
+{{end}}
+{{template "foot" .}}{{end}}

@@ -1,0 +1,75 @@
+{{define "head"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if eq .Title .BBS}}{{.BBS}}{{else}}{{.Title}} - {{.BBS}}{{end}}</title>
+<link rel="stylesheet" href="/forum/static/vb5.css">
+</head>
+<body id="vb-page-body">
+<header id="header" class="b-top-menu">
+  <div class="h-wrap header-top">
+    <a href="/forum/" class="site-logo"><span class="site-logo__mark" aria-hidden="true"></span><span class="site-logo__name">{{.BBS}}</span></a>
+    <div class="b-top-menu__item-wrap">
+      {{if .User}}
+      <details class="b-top-menu__item b-top-menu__item--user">
+        <summary>{{template "avatar" (av .User.Name "mini")}} <span class="username">{{.User.Name}}</span> <span class="b-icon--arrow-down" aria-hidden="true"></span></summary>
+        <ul class="b-top-menu__sub">
+          <li><a href="/forum/user/{{path .User.Name}}">My Profile</a></li>
+          <li><a href="/forum/search">Search</a></li>
+          {{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}
+          <li class="sep"></li>
+          <li><form method="post" action="/forum/logout"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Log Out</button></form></li>
+        </ul>
+      </details>
+      {{else}}
+      <a href="/forum/login" class="b-top-menu__item js-login">Log in</a>
+      {{if .Register}}<a href="/forum/register" class="b-top-menu__item b-button b-button--special">Sign Up</a>{{end}}
+      {{end}}
+    </div>
+  </div>
+  <nav id="channel-tabbar" class="h-wrap channel-tabbar" aria-label="Main">
+    <ul>
+      <li{{if and (ne .Tab "online") (ne .Page "search.html")}} class="current"{{end}}><a href="/forum/">Forums</a></li>
+      <li{{if eq .Page "search.html"}} class="current"{{end}}><a href="/forum/search">Search</a></li>
+      <li{{if eq .Tab "online"}} class="current"{{end}}><a href="/forum/online">Who's Online</a></li>
+      {{if .Terminal}}<li><a href="/terminal">Terminal</a></li>{{end}}
+    </ul>
+    <form action="/forum/search" method="get" id="searchbox" class="searchbox"><input type="search" name="q" placeholder="Search" aria-label="Search"><button aria-label="Search"><span class="b-icon--search" aria-hidden="true"></span></button></form>
+  </nav>
+</header>
+<div class="subnavbar">
+  <ul class="h-wrap">
+    <li><a href="/forum/search">Today's Posts</a></li>
+    <li><a href="/forum/online">Member List</a></li>
+    {{if .User}}<li><a href="/forum/user/{{path .User.Name}}">My Profile</a></li>{{end}}
+    {{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}
+  </ul>
+</div>
+<main class="h-wrap main-content">
+  <ul id="breadcrumbs" class="breadcrumbs"><li><a href="/forum/"><span class="b-icon--home" aria-hidden="true"></span>Home</a></li><li><a href="/forum/">Forums</a></li>{{range .Crumbs}}<li>{{if .URL}}<a href="{{.URL}}">{{.Name}}</a>{{else}}<span>{{.Name}}</span>{{end}}</li>{{end}}</ul>
+  {{if and (eq .Notice "welcome") .User}}<div class="notice">Welcome to {{.BBS}}, {{.User.Name}}! You are now logged in.</div>{{end}}
+{{end}}
+
+{{define "foot"}}
+</main>
+<footer id="footer" class="footer">
+  <div class="h-wrap footer__top">
+    <div class="footer__select">{{template "themepicker" .}}</div>
+    <ul class="footer__links">
+      <li><a href="/forum/online">Who's Online</a></li>
+      {{if .Terminal}}<li><a href="/terminal">Web Terminal</a></li>{{end}}
+      <li><a href="/forum/">{{.BBS}}</a></li>
+      <li><a href="#vb-page-body">Go to top</a></li>
+    </ul>
+  </div>
+  <div class="h-wrap footer__copyright">
+    <p>Powered by bbs-sec</p>
+    <p>All times are server time. This page was generated at <span class="time">{{vbtime .Now}}</span>.</p>
+  </div>
+</footer>
+</body>
+</html>
+{{end}}
+
+{{define "pages"}}{{if gt .Total 1}}{{$cur := .Cur}}{{$p := .}}<div class="pagenav"><span class="pagenav__label">Page</span>{{if gt .Cur 1}}<a href="{{.URL .Prev}}" rel="prev" class="arrow" aria-label="Previous page"><span class="b-icon--prev" aria-hidden="true"></span></a>{{end}}{{range .Shown}}{{if eq . 0}}<span class="gap">…</span>{{else if eq . $cur}}<a class="current">{{.}}</a>{{else}}<a href="{{$p.URL .}}">{{.}}</a>{{end}}{{end}}{{if .Next}}<a href="{{.URL .Next}}" rel="next" class="arrow" aria-label="Next page"><span class="b-icon--next" aria-hidden="true"></span></a>{{end}}<span class="pagenav__label">of {{.Total}}</span></div>{{end}}{{end}}

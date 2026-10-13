@@ -1,0 +1,44 @@
+{{define "area.html"}}{{template "head" .}}
+{{$b := .Body}}
+<section class="canvas-widget channel-content">
+  <div class="widget-header widget-header--channel">
+    <div>
+      <h1 class="widget-header__title">{{$b.Area.Name}}</h1>
+      {{if $b.Area.Description}}<p class="channel-desc">{{$b.Area.Description}}</p>{{end}}
+    </div>
+    {{if $b.CanPost}}<a href="/forum/area/{{$b.Area.ID}}/new" class="b-button b-button--primary"><span class="b-icon--plus" aria-hidden="true">+</span> New Topic</a>{{end}}
+  </div>
+  <div class="conversation-toolbar">
+    <div class="toolbar-filter"><span class="filter current">Latest Activity</span>{{if .User}}<form method="post" action="/forum/area/{{$b.Area.ID}}/read" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="linkish">Mark Channel Read</button></form>{{end}}</div>
+    {{template "pages" $b.Pages}}
+  </div>
+  <table class="topic-list">
+    <thead><tr class="topic-list-header"><th class="cell-topic">Topics</th><th class="cell-count">Posts</th><th class="cell-lastpost">Last Post</th></tr></thead>
+    <tbody>
+    {{range $b.Topics}}
+    <tr class="topic-item{{if .Unread}} unread{{end}}{{if ge .Replies 15}} hot{{end}}">
+      <td class="cell-topic">
+        <div class="topic-wrapper">
+          {{template "avatar" (av .Root.From "small")}}
+          <div class="topic-info">
+            <h2 class="topic-title-wrap">{{if .Unread}}<a href="/forum/post/{{.Last.ID}}" class="go-to-first-unread" title="Go to first unread post" aria-label="Go to first unread post"></a>{{end}}<a href="/forum/topic/{{.Root.ID}}" class="topic-title">{{.Root.Subject}}</a>{{if ge .Replies 15}} <span class="topic-hot" title="Hot topic">Hot</span>{{end}}</h2>
+            <div class="topic-info-meta">Started by <a href="/forum/user/{{path .Root.From}}">{{.Root.From}}</a>, {{vbdate .Root.Created}}, {{vbtime .Root.Created}}{{if gt .Pages 1}} <span class="pagenav-mini">{{$root := .Root.ID}}{{range (seq .Pages)}}<a href="/forum/topic/{{$root}}{{if gt . 1}}?page={{.}}{{end}}">{{.}}</a>{{end}}</span>{{end}}</div>
+          </div>
+        </div>
+      </td>
+      <td class="cell-count"><span class="count">{{num (add .Replies 1)}}</span></td>
+      <td class="cell-lastpost">
+        <div class="lastpost-wrapper">
+          {{template "avatar" (av .Last.From "mini")}}
+          <div class="lastpost-info"><a href="/forum/user/{{path .Last.From}}" class="lastpost-by-name">{{.Last.From}}</a><div class="lastpost-date"><a href="/forum/post/{{.Last.ID}}">{{vbdate .Last.Created}}, {{vbtime .Last.Created}}</a> <a href="/forum/post/{{.Last.ID}}" class="go-to-last-post" title="Go to last post" aria-label="Go to last post"></a></div></div>
+        </div>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="3" class="no-topics">There are no topics in this forum yet.{{if $b.CanPost}} <a href="/forum/area/{{$b.Area.ID}}/new">Start one</a>.{{end}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{if gt $b.Pages.Total 1}}<div class="conversation-toolbar bottom">{{template "pages" $b.Pages}}</div>{{end}}
+</section>
+{{template "foot" .}}{{end}}
