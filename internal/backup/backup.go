@@ -24,10 +24,10 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
-// Source is a directory of the BBS's files: its name in the archive, and
-// where it is.
+// Source is a directory of the BBS's files, or a file of its own (an SSH
+// host key): its name in the archive, and where it is.
 type Source struct {
-	Name string // files, chan, fido, screens, scripts
+	Name string // files, chan, fido, screens, scripts; key.ssh_host_ed25519_key
 	Path string
 }
 
@@ -38,6 +38,7 @@ type Plan struct {
 	Config string       // the configuration file ("": none)
 	Store  *store.Store // the database (nil: none)
 	Dirs   []Source     // the files' directories (none: the files are not taken)
+	Keys   []Source     // files taken whatever Dirs says: the SSH host keys
 }
 
 // Archive is a backup made.
@@ -108,7 +109,7 @@ func (p *Plan) write(w io.Writer, now time.Time) error {
 	if p.Store != nil {
 		fmt.Fprintf(&m, "database = %s\n", p.Store.Engine())
 	}
-	for _, d := range p.Dirs {
+	for _, d := range append(append([]Source(nil), p.Dirs...), p.Keys...) {
 		if _, err := os.Stat(d.Path); err == nil {
 			fmt.Fprintf(&m, "%s = %s\n", d.Name, d.Path)
 		}
@@ -135,7 +136,7 @@ func (p *Plan) write(w io.Writer, now time.Time) error {
 			return fmt.Errorf("the database: %w", err)
 		}
 	}
-	for _, d := range p.Dirs {
+	for _, d := range append(append([]Source(nil), p.Dirs...), p.Keys...) {
 		if err := addDir(tw, d.Name, d.Path, p.Dir); err != nil {
 			return fmt.Errorf("%s: %w", d.Name, err)
 		}
@@ -175,10 +176,15 @@ func addFile(tw *tar.Writer, name, src string) error {
 }
 
 // addDir adds a directory's files and directories under name (not one it
-// is in itself: a backup directory kept among the files).
+// is in itself: a backup directory kept among the files); or a file, as
+// name.
 func addDir(tw *tar.Writer, name, dir, skip string) error {
-	if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+	fi, err := os.Stat(dir)
+	if errors.Is(err, os.ErrNotExist) {
 		return nil // nothing there yet
+	}
+	if err == nil && fi.Mode().IsRegular() {
+		return addFile(tw, name, dir)
 	}
 	skipAbs, _ := filepath.Abs(skip)
 	return filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {

@@ -45,7 +45,7 @@ func TestBackups(t *testing.T) {
 	os.MkdirAll(files, 0o700)
 	os.WriteFile(filepath.Join(files, "1"), []byte("x"), 0o600)
 	writeFile(p, "[general]\ndatabase = "+filepath.Join(dir, "bbs.db")+"\nfiles_dir = "+files+
-		"\n[listen t]\ntype = telnet\naddress = :2300\n[backup]\nkeep = 1\n")
+		"\n[listen t]\ntype = telnet\naddress = :2300\n[listen s]\ntype = ssh\naddress = :2222\n[backup]\nkeep = 1\n")
 	cfg, err := Load(p)
 	if err != nil {
 		t.Fatal(err)
@@ -56,6 +56,11 @@ func TestBackups(t *testing.T) {
 	}
 	defer st.Close()
 	b := bbs.New(cfg.Settings, st, log.New(io.Discard, "", 0))
+	for _, kp := range DefaultHostKeys(dir) {
+		if _, _, err := LoadHostKey(kp); err != nil { // made
+			t.Fatal(err)
+		}
+	}
 	k := NewBackups(cfg, p, b)
 	a, err := k.Run()
 	if err != nil {
@@ -74,8 +79,9 @@ func TestBackups(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m, _ := backup.Manifest(a2.Path); m["files"] != "" {
-		t.Errorf("files taken: %v", m)
+	// the files left out; the host keys not
+	if m, _ := backup.Manifest(a2.Path); m["files"] != "" || m["key.ssh_host_ed25519_key"] == "" || m["key.ssh_host_rsa_key"] == "" {
+		t.Errorf("manifest %v", m)
 	}
 	if as, _ := k.List(); len(as) != 1 || as[0].Path != a2.Path {
 		t.Errorf("list %+v", as)

@@ -20,7 +20,7 @@ import (
 type Targets struct {
 	Config   string            // the configuration file ("": not restored)
 	Database string            // the database's address ("": not restored)
-	Dirs     map[string]string // each directory's place, by its name (one not here: not restored)
+	Dirs     map[string]string // each directory's (or key file's) place, by its name (one not here: not restored)
 }
 
 // Restore puts an archive back, the BBS stopped.  Each file or directory
@@ -52,7 +52,7 @@ func Restore(archive string, to Targets, now time.Time, say func(string)) error 
 	// each thing read into a staging place beside where it goes (a rename
 	// then puts it there), the database into work
 	staged := map[string]string{} // top-level name: its staging path
-	stage := func(top string) (string, error) {
+	stage := func(top string, file bool) (string, error) {
 		if s, ok := staged[top]; ok {
 			return s, nil
 		}
@@ -65,6 +65,9 @@ func Restore(archive string, to Targets, now time.Time, say func(string)) error 
 		default:
 			s = to.Dirs[top] + ".restore-tmp"
 			os.RemoveAll(s) // a restore's that stopped half way
+			if file {
+				break
+			}
 			if err := os.MkdirAll(s, 0o700); err != nil {
 				return "", err
 			}
@@ -89,7 +92,7 @@ func Restore(archive string, to Targets, now time.Time, say func(string)) error 
 		case top != "bbs.conf" && top != "database.db" && to.Dirs[top] == "":
 			return nil
 		}
-		s, err := stage(top)
+		s, err := stage(top, rest == "" && h.Typeflag == tar.TypeReg)
 		if err != nil {
 			return err
 		}

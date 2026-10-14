@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"errors"
+	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
@@ -16,6 +18,7 @@ type Backups struct {
 	B      *bbs.BBS
 	Config string          // the configuration file ("": none)
 	Dirs   []backup.Source // the files' directories, as the BBS began with them
+	Keys   []backup.Source // the SSH host keys
 
 	mu sync.Mutex // one at a time
 }
@@ -23,7 +26,7 @@ type Backups struct {
 // NewBackups are the backups of a BBS begun with cfg (from the file at
 // path).
 func NewBackups(cfg *Config, path string, b *bbs.BBS) *Backups {
-	return &Backups{B: b, Config: path, Dirs: Sources(cfg)}
+	return &Backups{B: b, Config: path, Dirs: Sources(cfg), Keys: Keys(cfg)}
 }
 
 // Sources are the directories of files a configuration has.
@@ -41,6 +44,28 @@ func Sources(cfg *Config) []backup.Source {
 	return out
 }
 
+// Keys are the SSH listeners' host keys, key.NAME in an archive (one
+// name twice: key.NAME.2).
+func Keys(cfg *Config) []backup.Source {
+	var out []backup.Source
+	seen := map[string]bool{}
+	names := map[string]int{}
+	for _, l := range cfg.Listeners {
+		for _, k := range l.HostKeys {
+			if seen[k] {
+				continue
+			}
+			seen[k] = true
+			name := "key." + filepath.Base(k)
+			if names[name]++; names[name] > 1 {
+				name += "." + strconv.Itoa(names[name])
+			}
+			out = append(out, backup.Source{Name: name, Path: k})
+		}
+	}
+	return out
+}
+
 // Run makes a backup now, as [backup] says.
 func (k *Backups) Run() (*backup.Archive, error) {
 	k.mu.Lock()
@@ -49,7 +74,7 @@ func (k *Backups) Run() (*backup.Archive, error) {
 	if s.Dir == "" {
 		return nil, errors.New("no backup directory: [backup] dir")
 	}
-	p := &backup.Plan{Dir: s.Dir, Keep: s.Keep, Config: k.Config, Store: k.B.Store}
+	p := &backup.Plan{Dir: s.Dir, Keep: s.Keep, Config: k.Config, Store: k.B.Store, Keys: k.Keys}
 	if s.Files {
 		p.Dirs = k.Dirs
 	}

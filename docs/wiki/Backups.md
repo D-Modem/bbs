@@ -21,6 +21,7 @@ Each is `bbs-YYYYMMDD-HHMMSS.tar.gz` in the backup directory:
 | `MANIFEST` | when it was made, the database's engine, where each thing was |
 | `bbs.conf` | the configuration file the BBS runs by |
 | `database.db` | the database as a SQLite file, whatever its engine, taken whole at one moment: SQLite's by `VACUUM INTO`, a PostgreSQL or MySQL server's copied in one read-only transaction that sees nothing written after it began.  Callers may go on as it is taken |
+| `key.ssh_host_ed25519_key` ... | the SSH listeners' host keys (always, whatever `files` says): a BBS put back on another machine answers with the keys its callers know |
 | `files/`, `chan/`, `fido/`, `screens/`, `scripts/` | the file areas', image boards', FidoNet's, display files' and scripts' directories (with `files = yes`) |
 
 An archive is written beside its final name and renamed to it when it is
@@ -33,7 +34,7 @@ whole: one there is one made.  Past `keep`, the oldest are taken away.
 | `dir` | `backups` beside an SQLite database | where the archives go: better on another disk, or copied off the machine (a server's database has no default: say one) |
 | `at` | none | daily, at this time (`03:30`) |
 | `keep` | `7` | archives kept (0: all) |
-| `files` | `yes` | the files' directories too; `no`: the configuration and the database alone |
+| `files` | `yes` | the files' directories too; `no`: the configuration, the database and the host keys alone |
 
 They take effect at a reload (`systemctl reload bbs`) or when the
 Configuration screen saves them.

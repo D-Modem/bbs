@@ -40,12 +40,13 @@ func backupCmd(cfg *server.Config, path string, args []string) {
 			fatal(err)
 		}
 		to := backup.Targets{Config: path, Database: cfg.Database, Dirs: map[string]string{}}
-		for _, s := range server.Sources(cfg) {
+		sources := append(server.Sources(cfg), server.Keys(cfg)...)
+		for _, s := range sources {
 			to.Dirs[s.Name] = s.Path
 		}
 		fmt.Printf("%s: made %s (database %s)\n", words[1], m["made"], m["database"])
 		fmt.Printf("  configuration -> %s\n  database -> %s\n", or(to.Config, "(none: no -config)"), cfg.Database)
-		for _, s := range server.Sources(cfg) {
+		for _, s := range sources {
 			if m[s.Name] != "" {
 				fmt.Printf("  %s -> %s\n", s.Name, s.Path)
 			}

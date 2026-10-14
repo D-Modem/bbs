@@ -173,7 +173,8 @@ throttle_time = 600
 ;at = 03:30
 ; archives kept, the oldest taken away (0: all)
 ;keep = 7
-; the files' directories too (no: the configuration and database alone)
+; the files' directories too (no: the configuration, database and SSH host
+; keys alone)
 ;files = yes
 
 ; telnet and TN3270, for everyone (port 23 needs root or

@@ -33,7 +33,10 @@ func TestBackupAndRestore(t *testing.T) {
 	dir := t.TempDir()
 	conf, db, files, st := system(t, dir)
 	backups := filepath.Join(dir, "backups")
-	p := &Plan{Dir: backups, Keep: 2, Config: conf, Store: st, Dirs: []Source{{"files", files}, {"chan", filepath.Join(dir, "none")}}}
+	key := filepath.Join(dir, "ssh_host_ed25519_key")
+	os.WriteFile(key, []byte("the host key"), 0o600)
+	p := &Plan{Dir: backups, Keep: 2, Config: conf, Store: st, Dirs: []Source{{"files", files}, {"chan", filepath.Join(dir, "none")}},
+		Keys: []Source{{"key.ssh_host_ed25519_key", key}, {"key.ssh_host_rsa_key", filepath.Join(dir, "not-made-yet")}}}
 	t0 := time.Date(2026, 10, 14, 3, 30, 0, 0, time.Local)
 	a, err := p.Run(t0)
 	if err != nil {
@@ -43,7 +46,8 @@ func TestBackupAndRestore(t *testing.T) {
 		t.Errorf("archive %+v", a)
 	}
 	m, err := Manifest(a.Path)
-	if err != nil || m["database"] != "sqlite" || m["files"] != files || m["config"] != conf {
+	if err != nil || m["database"] != "sqlite" || m["files"] != files || m["config"] != conf ||
+		m["key.ssh_host_ed25519_key"] != key || m["chan"] != "" || m["key.ssh_host_rsa_key"] != "" {
 		t.Errorf("manifest %v %v", m, err)
 	}
 	// two more: the oldest goes
@@ -62,9 +66,11 @@ func TestBackupAndRestore(t *testing.T) {
 	st.Close()
 	os.WriteFile(conf, []byte("[general]\nname = Changed\n"), 0o640)
 	os.WriteFile(filepath.Join(files, "1", "8"), []byte("new"), 0o600)
+	os.WriteFile(key, []byte("a new key"), 0o600)
 	var said []string
 	now := t0.Add(5 * time.Hour)
-	err = Restore(as[1].Path, Targets{Config: conf, Database: db, Dirs: map[string]string{"files": files}}, now,
+	err = Restore(as[1].Path, Targets{Config: conf, Database: db,
+		Dirs: map[string]string{"files": files, "key.ssh_host_ed25519_key": key}}, now,
 		func(s string) { said = append(said, s) })
 	if err != nil {
 		t.Fatal(err)
@@ -79,6 +85,15 @@ func TestBackupAndRestore(t *testing.T) {
 		t.Error("a file made since is there")
 	}
 	stamp := ".before-restore-20261014-083000"
+	if data, _ := os.ReadFile(key); string(data) != "the host key" {
+		t.Errorf("key %q", data)
+	}
+	if fi, _ := os.Stat(key); fi.Mode().Perm() != 0o600 {
+		t.Errorf("key's mode %v", fi.Mode())
+	}
+	if data, _ := os.ReadFile(key + stamp); string(data) != "a new key" {
+		t.Errorf("the key set aside: %q", data)
+	}
 	if data, _ := os.ReadFile(conf + stamp); string(data) != "[general]\nname = Changed\n" {
 		t.Errorf("the config set aside: %q", data)
 	}
