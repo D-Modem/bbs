@@ -96,7 +96,7 @@ func setup(t *testing.T) *site {
 		t.Fatal(err)
 	}
 	set := Defaults()
-	set.Dir, set.ThreadWait, set.ReplyWait = filepath.Join(dir, "chan"), 0, 0
+	set.Dir, set.ThreadWait, set.ReplyWait, set.Captcha = filepath.Join(dir, "chan"), 0, 0, false
 	srv := &Server{B: b, Sessions: &sessions{b: b, m: map[string]int64{}}, S: set, TTL: time.Hour}
 	h, err := srv.Handler()
 	if err != nil {

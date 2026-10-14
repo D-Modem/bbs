@@ -148,7 +148,11 @@ func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
 		p.Email = email
 	}
 	if sub.User != nil {
-		p.UserID = sub.User.ID
+		p.UserID = sub.User.ID // marked as a member's post
+		if sub.Sign && !b.ForcedAnon {
+			// the account's own name: no one else's to type
+			p.Account, p.Name, p.Trip = sub.User.Name, "", ""
+		}
 	}
 	if staff != "" && sub.Capcode {
 		p.Capcode = staff
@@ -263,6 +267,19 @@ func (s *Server) post(q *req, b *store.Board) {
 		return
 	}
 	f := q.r.MultipartForm.Value
+	if q.needsCaptcha() {
+		tok, ans := "", ""
+		if v := f["ctok"]; len(v) > 0 {
+			tok = v[0]
+		}
+		if v := f["captcha"]; len(v) > 0 {
+			ans = v[0]
+		}
+		if err := s.CheckCaptcha(tok, ans); err != nil {
+			q.fail(http.StatusForbidden, err.Error()+" Go back, and type the letters shown.")
+			return
+		}
+	}
 	val := func(k string) string {
 		if v := f[k]; len(v) > 0 {
 			return v[0]
@@ -271,6 +288,7 @@ func (s *Server) post(q *req, b *store.Board) {
 	}
 	sub := &Submission{Board: b, Name: val("name"), Email: val("email"), Subject: val("sub"), Comment: val("com"),
 		Password: val("pwd"), Spoiler: val("spoiler") != "", Capcode: val("capcode") != "", IP: q.host(),
+		Sign: val("sign") != "",
 		User: q.user, Staff: q.staff(b)}
 	if v := val("resto"); v != "" {
 		var err error

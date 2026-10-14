@@ -280,6 +280,12 @@ func (s *Session) chanMessage(b *store.Board, op, p *store.BoardPost, posts []*s
 	if p.Trip != "" {
 		name += " " + p.Trip
 	}
+	switch {
+	case p.Account != "":
+		name = p.Account + " [signed]" // a user's own name, as no one else can post it
+	case p.UserID != 0:
+		name += " [member]" // posted by a signed-in user
+	}
 	if p.Capcode != "" {
 		name += " ## " + map[string]string{"admin": "Admin", "mod": "Mod"}[p.Capcode]
 	}
@@ -372,16 +378,22 @@ func (s *Session) chanPost(b *store.Board, op *store.BoardPost, quote string) (i
 		return 0, nil
 	}
 	sub := &bbs.ChanSubmission{Board: b, User: s.User, Staff: chanStaff(s.User, b), IP: s.posterAddress()}
+	var err error
 	if op != nil {
 		sub.Thread = op.No
 	}
-	// a name (and a tripcode), and options
+	// signed with the account's name, or a name (and a tripcode)
+	if !b.ForcedAnon {
+		if sub.Sign, err = s.UI.Confirm("Sign it as "+s.User.Name+"? (otherwise it is marked as a member's)", false); err != nil {
+			return 0, err
+		}
+	}
 	name := s.chanName
 	if name == "" {
 		name = b.DefaultName
 	}
 	fields := []view.Field{}
-	if !b.ForcedAnon {
+	if !b.ForcedAnon && !sub.Sign {
 		fields = append(fields, view.Field{Name: "name", Label: "Name", Value: name, Width: 60,
 			Prompt: "Name (Name#password for a tripcode)"})
 	}
@@ -391,9 +403,9 @@ func (s *Session) chanPost(b *store.Board, op *store.BoardPost, quote string) (i
 	if op != nil {
 		where = fmt.Sprintf("/%s/, thread No.%d", b.Dir, op.No)
 	}
-	vals, ok, err := s.UI.Form(&view.Form{Title: "Post to " + where, Fields: fields, Submit: "Next"})
-	if err != nil || !ok {
-		return 0, err
+	vals, ok, err2 := s.UI.Form(&view.Form{Title: "Post to " + where, Fields: fields, Submit: "Next"})
+	if err2 != nil || !ok {
+		return 0, err2
 	}
 	if v := strings.TrimSpace(vals["name"]); v != "" && v != b.DefaultName {
 		sub.Name = v

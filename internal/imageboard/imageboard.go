@@ -54,12 +54,13 @@ type Settings struct {
 	MaxComment int           // characters
 	Strip      bool          // JPEGs' metadata (EXIF: where a phone took it) taken out
 	Style      string        // the style callers get until they choose ("": by the board, as 4chan's)
+	Captcha    bool          // those not signed in answer a captcha to post
 }
 
 // Defaults are the settings unless bbs.conf says otherwise.
 func Defaults() Settings {
 	return Settings{Dir: "chan", MaxFile: 4 << 20, ThreadWait: 60 * time.Second, ReplyWait: 15 * time.Second,
-		MaxComment: 2000, Strip: true}
+		MaxComment: 2000, Strip: true, Captcha: true}
 }
 
 // Style is a look the boards can wear: a stylesheet.
@@ -95,12 +96,13 @@ type Server struct {
 	Secure   bool          // cookies only over TLS
 	TTL      time.Duration // a login's
 
-	tmpl    *template.Template
-	static  http.Handler
-	key     []byte // for tokens, passwords and secure tripcodes: kept in Dir
-	spoiler []byte
-	once    sync.Once
-	initErr error
+	tmpl     *template.Template
+	static   http.Handler
+	key      []byte // for tokens, passwords and secure tripcodes: kept in Dir
+	spoiler  []byte
+	once     sync.Once
+	initErr  error
+	captchas captchas
 }
 
 const (
@@ -112,7 +114,8 @@ const (
 
 // reserved are the names no board may have: the image boards' own.
 var reserved = map[string]bool{"static": true, "manage": true, "login": true, "logout": true, "banned": true,
-	"style": true, "boards.json": true}
+	"style": true, "boards.json": true,
+	"captcha": true, "captcha.png": true, "captcha.json": true}
 
 // ValidDir says what is wrong with a board's directory ("": nothing).
 func ValidDir(dir string) string {
@@ -235,6 +238,12 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) {
 		return
 	case len(seg) == 1 && seg[0] == "boards.json" && get:
 		s.boardsJSON(q)
+		return
+	case len(seg) == 1 && seg[0] == "captcha.png" && get:
+		s.captchaPNG(q)
+		return
+	case len(seg) == 1 && seg[0] == "captcha.json" && get:
+		s.captchaJSON(q)
 		return
 	case len(seg) == 1 && seg[0] == "login" && (get || post):
 		s.login(q)

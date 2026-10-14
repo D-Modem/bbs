@@ -85,7 +85,7 @@ func (f *fake) Table(t *view.Table) (view.Choice, error) {
 	return c, nil
 }
 func (f *fake) Message(m *view.Message) (string, error) {
-	f.shown = append(f.shown, "message "+m.Subject+": "+m.Body)
+	f.shown = append(f.shown, "message "+m.Subject+": "+m.Body+" | from "+m.From)
 	f.picture(m.Picture)
 	return get[string](f, "message"), nil
 }

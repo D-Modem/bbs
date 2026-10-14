@@ -31,6 +31,9 @@ func (c *Config) chanSection(s *config.Section) error {
 	if ch.Strip, err = s.Bool("strip_metadata", ch.Strip); err != nil {
 		return err
 	}
+	if ch.Captcha, err = s.Bool("captcha", ch.Captcha); err != nil {
+		return err
+	}
 	if ch.Style = s.String("style", ""); ch.Style != "" && !imageboard.KnownStyle(ch.Style) {
 		var names []string
 		for _, st := range imageboard.Styles {

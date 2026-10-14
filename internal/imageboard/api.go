@@ -40,6 +40,8 @@ type apiPost struct {
 	FileDeleted   int        `json:"filedeleted,omitempty"`
 	Replay        int        `json:"replay,omitempty"`  // an oekaki drawing, its strokes in its PNG
 	DrawMS        int64      `json:"draw_ms,omitempty"` // how long it took to draw
+	Member        int        `json:"member,omitempty"`  // posted by a signed-in user of the BBS
+	Account       string     `json:"account,omitempty"` // their account's name, if they signed with it
 	Spoiler       int        `json:"spoiler,omitempty"`
 	Replies       *int       `json:"replies,omitempty"`
 	Images        *int       `json:"images,omitempty"`
@@ -77,7 +79,8 @@ func semanticURL(p *store.BoardPost) string {
 func (q *req) apiPost(b *store.Board, v *postView) *apiPost {
 	p := v.BoardPost
 	a := &apiPost{No: p.No, Resto: p.Thread, Now: postDate(p.Created), Time: p.Created.Unix(),
-		Name: v.Name, Trip: p.Trip, Capcode: p.Capcode, Sub: p.Subject, Com: string(v.Comment)}
+		Name: v.Name, Trip: p.Trip, Capcode: p.Capcode, Sub: p.Subject, Com: string(v.Comment),
+		Member: flag(p.UserID != 0), Account: p.Account}
 	if p.Ext != "" {
 		a.Filename, a.Ext, a.Fsize, a.MD5, a.W, a.H, a.TnW, a.TnH, a.Tim = p.FileName, p.Ext, p.FileSize, p.MD5, p.W,
 			p.H, p.TnW, p.TnH, p.Tim

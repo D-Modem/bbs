@@ -145,7 +145,9 @@ func (q *req) view(b *store.Board, p *store.BoardPost, l *links, here int64, cut
 	if v.OP {
 		v.Thread = p.No
 	}
-	if v.Name == "" && p.Capcode == "" {
+	if p.Account != "" {
+		v.Name = p.Account
+	} else if v.Name == "" && p.Capcode == "" {
 		v.Name = b.DefaultName
 	}
 	text := p.Comment
@@ -344,8 +346,10 @@ type formView struct {
 	NeedLogin bool
 	Capcode   string // the staff's
 	MaxFile   int64
-	Image     bool // an image is needed
-	Oekaki    bool // the drawing board is offered
+	Image     bool   // an image is needed
+	Oekaki    bool   // the drawing board is offered
+	Captcha   string // a captcha's token, for one who is not signed in ("": none)
+	Account   string // the signed-in user's name, to sign with ("": none, or a forced_anon board)
 }
 
 func (q *req) form(b *store.Board, op *store.BoardPost) formView {
@@ -366,6 +370,12 @@ func (q *req) form(b *store.Board, op *store.BoardPost) formView {
 	}
 	f.Image = op == nil && !b.TextOnly
 	f.Oekaki = b.Oekaki
+	if q.user != nil && !b.ForcedAnon {
+		f.Account = q.user.Name
+	}
+	if f.CanPost && q.needsCaptcha() {
+		f.Captcha = q.s.NewCaptcha()
+	}
 	return f
 }
 

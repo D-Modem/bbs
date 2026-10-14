@@ -278,7 +278,8 @@ CREATE TABLE IF NOT EXISTS chan_posts (
 	file_deleted {bool} NOT NULL DEFAULT FALSE,
 	banned       {bool} NOT NULL DEFAULT FALSE,
 	replay       {bool} NOT NULL DEFAULT FALSE,
-	draw_ms      {int} NOT NULL DEFAULT 0
+	draw_ms      {int} NOT NULL DEFAULT 0,
+	account      {str} NOT NULL DEFAULT ''
 )`, `
 CREATE TABLE IF NOT EXISTS chan_bans (
 	id      {id},
@@ -367,6 +368,7 @@ var added = []struct{ table, column, decl string }{
 	{"chan_boards", "oekaki", "{bool} NOT NULL DEFAULT FALSE"},
 	{"chan_posts", "replay", "{bool} NOT NULL DEFAULT FALSE"},
 	{"chan_posts", "draw_ms", "{int} NOT NULL DEFAULT 0"},
+	{"chan_posts", "account", "{str} NOT NULL DEFAULT ''"},
 }
 
 // migrate makes the schema, or brings an older database up to it.

@@ -32,6 +32,7 @@ address = :8443
 ;max_comment = 2000      ; characters
 ;strip_metadata = yes    ; take EXIF (where a phone took it) out of JPEGs
 ;style = yotsuba-b       ; the style everyone gets until they choose
+;captcha = yes           ; those not signed in answer a captcha to post
 ```
 
 | setting | default | |
@@ -42,6 +43,7 @@ address = :8443
 | `thread_wait`, `reply_wait` | `60`, `15` | flood control: staff are not held to it |
 | `max_comment` | `2000` | characters in a comment (and 100 lines) |
 | `strip_metadata` | `yes` | JPEGs' EXIF, XMP and comments taken out before they are kept |
+| `captcha` | `yes` | those not signed in answer a captcha to post ([below](#captchas-and-members)) |
 | `style` | by the board | Yotsuba B on a worksafe board, Yotsuba on the rest, as 4chan does |
 
 ## On the terminals
@@ -104,6 +106,24 @@ first image and 125 for a reply's. The same image twice on a board is
 refused, with a link to where it is (by its MD5, as 4chan does). JPEGs
 lose their EXIF before they are kept, so a phone's photo does not say
 where it was taken.
+
+## Captchas and members
+
+Posters who are not signed in type the letters of a captcha under the
+form: drawn here, crooked over noise (no outside service sees the
+posters), good for one post and ten minutes; **New one** gives another.
+Its answer travels sealed in the form (AES-GCM, with the boards' secret),
+so nothing is kept of it but that it has been used. `captcha = no` in
+`[chan]` turns it off.
+
+The BBS's users sign in at `/chan/login` (**Sign in** at the top of each
+page) and post without one. Their posts are marked as a member's: a ✓
+beside the name, `"member": 1` in the JSON, whatever name they gave. They
+may also tick **Sign it as NAME**: the post then carries their account's
+name (underlined, a blue ✓, `"account"` in the JSON), which no one else
+can post under, as anyone can type a name. On a `forced_anon` board posts
+are marked, never signed. On the terminals every poster is signed in: no
+captcha, `[member]` by the name, and *Sign it as NAME?* before the post.
 
 ## Threads
 

@@ -46,6 +46,10 @@ Password <input type="password" name="pwd" value="{{$.Pass}}" maxlength="64" aut
 <tr><td>File</td><td><input type="file" name="upfile" accept="image/jpeg,image/png,image/gif,image/webp"{{if .Image}} required{{end}}> <label class="spoilerBox"><input type="checkbox" name="spoiler" value="on"> Spoiler?</label></td></tr>
 {{if .Oekaki}}<tr class="jsonly oekakiRow"><td>Draw</td><td><label>Width <input type="number" id="okW" value="400" min="50" max="1200" step="10"></label> <label>Height <input type="number" id="okH" value="400" min="50" max="1200" step="10"></label> <button type="button" id="okOpen">Open the drawing board</button> <span id="okStatus"></span></td></tr>{{end}}
 <tr><td>Password</td><td><input type="password" name="pwd" maxlength="64" value="{{$.Pass}}" autocomplete="off"> <span class="passNotice">(for deleting the post)</span></td></tr>
+{{with .Account}}<tr><td>Member</td><td><label><input type="checkbox" name="sign" value="on"> Sign it as <b>{{.}}</b></label> <span class="passNotice">(signed in: your post is marked &#10003; either way)</span></td></tr>{{end}}
+{{with .Captcha}}<tr class="captchaRow"><td>Verification</td><td><img src="/chan/captcha.png?t={{.}}" class="captcha" width="200" height="70" alt="Letters to type, crooked: sign in to post without them"><br>
+<input type="hidden" name="ctok" value="{{.}}"><input type="text" name="captcha" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" required placeholder="Type the letters">
+<button type="button" class="captchaNew jsonly">New one</button> <span class="passNotice">(<a href="/chan/login?back={{$.Path}}">sign in</a> to post without)</span></td></tr>{{end}}
 {{with .Capcode}}<tr><td>Staff</td><td><label><input type="checkbox" name="capcode" value="on"> Post as ## {{if eq . "admin"}}Admin{{else}}Mod{{end}}</label></td></tr>{{end}}
 <tr class="rules"><td colspan="2"><ul class="rules">
 {{if .Oekaki}}<li>This is an oekaki board: draw your picture with the drawing board, and it is posted with how you drew it, to be replayed.</li>{{end}}

@@ -79,6 +79,20 @@
     if (a) hide();
   });
 
+  // a captcha that cannot be read: another
+  document.querySelectorAll(".captchaNew").forEach(function (b) {
+    b.addEventListener("click", function () {
+      fetch("/chan/captcha.json").then(function (r) { return r.json(); }).then(function (j) {
+        var row = b.closest(".captchaRow");
+        row.querySelector("img.captcha").src = "/chan/captcha.png?t=" + j.token;
+        row.querySelector("input[name=ctok]").value = j.token;
+        var input = row.querySelector("input[name=captcha]");
+        input.value = "";
+        input.focus();
+      });
+    });
+  });
+
   // the style: chosen as it is picked
   document.querySelectorAll(".styleSwitch select").forEach(function (sel) {
     sel.addEventListener("change", function () { sel.form.submit(); });

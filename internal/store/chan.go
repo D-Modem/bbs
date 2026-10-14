@@ -46,7 +46,8 @@ type BoardPost struct {
 	Comment  string
 	Password string // a hash, to delete it by
 	IP       string
-	UserID   int64 // who posted, if logged in (0: anonymous)
+	UserID   int64  // who posted, if logged in (0: anonymous): marked as a member's
+	Account  string // the poster's account name, if they signed with it
 	Created  time.Time
 	Bumped   time.Time
 	Sticky   bool
@@ -183,14 +184,14 @@ func (s *Store) Boards() ([]*Board, error) {
 }
 
 const postCols = `id, board_id, num, thread, name, trip, capcode, email, subject, body, password, ip, user_id, created,
-	bumped, sticky, closed, file_name, ext, tim, file_size, w, h, tn_w, tn_h, md5, spoiler, file_deleted, banned, replay, draw_ms`
+	bumped, sticky, closed, file_name, ext, tim, file_size, w, h, tn_w, tn_h, md5, spoiler, file_deleted, banned, replay, draw_ms, account`
 
 func scanPost(row interface{ Scan(...any) error }, more ...any) (*BoardPost, error) {
 	var p BoardPost
 	var created, bumped int64
 	dest := []any{&p.ID, &p.BoardID, &p.No, &p.Thread, &p.Name, &p.Trip, &p.Capcode, &p.Email, &p.Subject, &p.Comment,
 		&p.Password, &p.IP, &p.UserID, &created, &bumped, &p.Sticky, &p.Closed, &p.FileName, &p.Ext, &p.Tim,
-		&p.FileSize, &p.W, &p.H, &p.TnW, &p.TnH, &p.MD5, &p.Spoiler, &p.FileDeleted, &p.Banned, &p.Replay, &p.DrawMS}
+		&p.FileSize, &p.W, &p.H, &p.TnW, &p.TnH, &p.MD5, &p.Spoiler, &p.FileDeleted, &p.Banned, &p.Replay, &p.DrawMS, &p.Account}
 	err := row.Scan(append(dest, more...)...)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -247,10 +248,10 @@ func (s *Store) AddPost(p *BoardPost, bump bool) error {
 	p.Created, p.Bumped = unix(t), unix(t)
 	if _, err := tx.insertID(`INSERT INTO chan_posts (board_id, num, thread, name, trip, capcode, email, subject, body,
 		password, ip, user_id, created, bumped, sticky, closed, file_name, ext, tim, file_size, w, h, tn_w, tn_h, md5,
-		spoiler, replay, draw_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		spoiler, replay, draw_ms, account) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		p.BoardID, p.No, p.Thread, p.Name, p.Trip, p.Capcode, p.Email, p.Subject, p.Comment, p.Password, p.IP,
 		p.UserID, t, t, p.Sticky, p.Closed, p.FileName, p.Ext, p.Tim, p.FileSize, p.W, p.H, p.TnW, p.TnH, p.MD5,
-		p.Spoiler, p.Replay, p.DrawMS); err != nil {
+		p.Spoiler, p.Replay, p.DrawMS, p.Account); err != nil {
 		return err
 	}
 	if p.Thread != 0 && bump {

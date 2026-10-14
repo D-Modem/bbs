@@ -252,6 +252,9 @@ address = 127.0.0.1:2513
 ;max_comment = 2000
 ; JPEGs' EXIF (where a phone took the photo) taken out
 ;strip_metadata = yes
+; those not signed in answer a captcha (made here) to post; the BBS's
+; users signed in at /chan/login, and callers on the terminals, do not
+;captcha = yes
 ; the style callers get until they choose: by the board (yotsuba-b if it
 ; is worksafe, else yotsuba), or yotsuba, yotsuba-b, futaba, burichan,
 ; photon, tomorrow

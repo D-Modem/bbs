@@ -32,6 +32,7 @@ type ChanSubmission struct {
 	FileName string // the image's, as uploaded
 	Spoiler  bool
 	Capcode  bool        // staff posting as staff
+	Sign     bool        // signed with the user's account name (not a typed one)
 	IP       string      // whom flood control and bans are of
 	User     *store.User // signed in (nil: no one)
 	Staff    string      // what the poster is on the board ("admin", "mod", "")

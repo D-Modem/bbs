@@ -35,11 +35,11 @@ func TestImageBoards(t *testing.T) {
 
 	f := &fake{t: t, b: b, upload: pngData.Bytes(), script: []any{
 		"B", view.Choice{Action: view.Pick, Row: 0}, // /b/
-		view.Choice{Action: "new"}, map[string]string{"name": "Anon#tea", "options": "none"},
+		view.Choice{Action: "new"}, false, map[string]string{"name": "Anon#tea", "options": "none"},
 		true, false, // an image, not a spoiler
 		draft{"", "Hello", []string{"first post"}},
 		view.Choice{Action: view.Pick, Row: 0}, // the thread
-		"reply", map[string]string{"name": "Random", "options": "sage"}, false, draft{"", "", []string{">>1", "nice"}},
+		"reply", true, map[string]string{"options": "sage"}, false, draft{"", "", []string{">>1", "nice"}},
 		"prev", // from the reply to the first post
 		"view", view.Back,
 		view.Back, view.Choice{Action: view.Back}, view.Choice{Action: view.Back},
@@ -55,7 +55,8 @@ func TestImageBoards(t *testing.T) {
 	has(t, "said", f.said, "Posted: /b/ No.1.")
 	has(t, "said", f.said, "Posted: /b/ No.2.")
 	has(t, "screens", f.shown, "table /b/ - Random: 1|0|0|Hello")
-	has(t, "screens", f.shown, "message : >>1\nnice")
+	has(t, "screens", f.shown, "message : >>1\nnice | from alice [signed]")
+	has(t, "screens", f.shown, "from Anon !WokonZwxw2 [member]")
 	has(t, "screens", f.shown, "message Hello: first post\n\nReplies: >>2")
 	// the thumbnail (250x125) fitted to 200x100, and the image whole
 	has(t, "screens", f.shown, "picture upload.png, 800x400, ")
@@ -65,7 +66,7 @@ func TestImageBoards(t *testing.T) {
 	op, _ := b.Store.ChanPost(bd.ID, 1)
 	reply, _ := b.Store.ChanPost(bd.ID, 2)
 	if op.Trip != "!WokonZwxw2" || op.Name != "Anon" || op.IP != "bbs:alice" || op.UserID != alice.User().ID ||
-		reply.Name != "Random" || reply.Thread != 1 || reply.HasFile() {
+		reply.Account != "alice" || reply.Name != "" || reply.Thread != 1 || reply.HasFile() {
 		t.Errorf("posts: %+v %+v", op, reply)
 	}
 	th, _ := b.Store.ChanThread(bd.ID, 1)

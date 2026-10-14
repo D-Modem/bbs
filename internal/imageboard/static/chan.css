@@ -133,3 +133,8 @@ label.reason { display: block; margin: 4px 0; }
 .okReplay { display: inline-block; margin: 3px 20px 5px; max-width: calc(100vw - 60px); }
 .okReplayBar { font-size: 8pt; margin-top: 3px; }
 .oekakiInfo { font-size: 8pt; }
+img.captcha { border: 1px solid #888; display: block; margin-bottom: 2px; }
+table.postForm input[name=captcha] { width: 150px; text-transform: uppercase; }
+.memberMark { font-size: 9pt; font-weight: bold; color: #2a8a2a; cursor: help; }
+.memberMark.signed { color: #2060c0; }
+.name.account { text-decoration: underline dotted; }
