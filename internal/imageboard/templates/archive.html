@@ -1,0 +1,17 @@
+{{define "archive.html"}}{{template "top" .}}
+{{template "banner" .}}
+<hr>
+{{$b := .Board}}{{with .Body}}
+<div class="navLinks">[<a href="/chan/{{$b.Dir}}/">Return</a>] [<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>]</div>
+<hr>
+<div class="archiveIntro">Threads that have fallen off the board's last page, read-only{{with .Keep}}, kept {{.}}{{end}}.</div>
+<table class="archive">
+<thead><tr><th>No.</th><th>Excerpt</th><th>Replies</th><th>Archived</th><th></th></tr></thead>
+<tbody>
+{{range .Rows}}<tr><td>{{.No}}</td><td class="teaser">{{with .Subject}}<b>{{.}}</b>: {{end}}{{.Excerpt}}</td><td>{{.Replies}}</td><td class="dateTime" title="{{iso .Archived}}">{{date .Archived}}</td><td>[<a href="/chan/{{$b.Dir}}/thread/{{.No}}">View</a>]</td></tr>
+{{else}}<tr><td colspan="5" class="empty">Nothing has been archived yet.</td></tr>{{end}}
+</tbody>
+</table>
+<hr>
+{{end}}
+{{template "bottom" .}}{{end}}

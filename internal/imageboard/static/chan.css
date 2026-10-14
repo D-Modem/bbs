@@ -43,6 +43,11 @@ ul.rules { margin: 4px 0 0; padding-left: 16px; font-size: 8pt; max-width: 420px
 .capcode-mod .name, .capcode-mod .capcode { color: #800080 !important; }
 .postNum a { color: inherit; }
 .badge { font-size: 8pt; border: 1px solid; padding: 0 3px; border-radius: 3px; }
+table.archive { border-collapse: collapse; margin: 6px auto; min-width: 60%; }
+table.archive th, table.archive td { padding: 3px 8px; text-align: left; vertical-align: top; }
+table.archive tbody tr:nth-child(odd) td { background: rgba(127, 127, 127, 0.08); }
+table.archive td.teaser { max-width: 40em; }
+.archiveIntro { text-align: center; font-size: 9pt; margin: 4px 0; }
 .reportLink, .modLink { font-size: 8pt; margin-left: 4px; }
 .backlink { font-size: 8pt; display: inline; }
 .backlink a { margin-left: 2px; }

@@ -20,6 +20,12 @@ func TestChanMediaConfig(t *testing.T) {
 	if err != nil || c.Chan.FFmpeg != "" || c.Chan.MaxVideo != 120*time.Second {
 		t.Fatalf("defaults: %+v %v", c.Chan, err)
 	}
+	if c.Chan.ArchiveFor != 72*time.Hour {
+		t.Errorf("archive_days by default: %v", c.Chan.ArchiveFor)
+	}
+	if c, err := load("[chan]\narchive_days = 0\n"); err != nil || c.Chan.ArchiveFor != 0 {
+		t.Errorf("archive_days 0: %v %v", c.Chan.ArchiveFor, err)
+	}
 	c, err = load("[chan]\nffmpeg = sh\nmax_video = 300\n")
 	if err != nil || !filepath.IsAbs(c.Chan.FFmpeg) || c.Chan.MaxVideo != 300*time.Second {
 		t.Fatalf("set: %q %v %v", c.Chan.FFmpeg, c.Chan.MaxVideo, err)

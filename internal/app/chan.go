@@ -118,6 +118,9 @@ func (s *Session) chanBoard(b *store.Board) error {
 		if s.mayPost(b, nil) {
 			t.Actions = append(t.Actions, view.Action{ID: "new", Label: "New thread", Key: 'N', PF: 5, Short: "New"})
 		}
+		if b.Archive {
+			t.Actions = append(t.Actions, view.Action{ID: "archive", Label: "Archive", Key: 'A', PF: 6})
+		}
 		for _, op := range ops {
 			subj := chanTeaser(op)
 			if op.Sticky {
@@ -147,6 +150,10 @@ func (s *Session) chanBoard(b *store.Board) error {
 			if _, err := s.chanPost(b, nil, ""); err != nil {
 				return err
 			}
+		case "archive":
+			if err := s.chanArchive(b); err != nil {
+				return err
+			}
 		case view.Pick:
 			var op *store.BoardPost
 			if c.Row >= 0 {
@@ -167,6 +174,50 @@ func (s *Session) chanBoard(b *store.Board) error {
 			if err := s.chanThread(b, op, 0); err != nil {
 				return err
 			}
+		}
+	}
+}
+
+// chanArchive lists a board's archived threads, to read.
+func (s *Session) chanArchive(b *store.Board) error {
+	for {
+		s.N.Doing("In /" + b.Dir + "/'s archive")
+		ops, err := s.B.Store.ChanArchive(b.ID)
+		if err != nil {
+			return err
+		}
+		t := &view.Table{Title: "/" + b.Dir + "/ - archive", Empty: "Nothing has been archived yet.",
+			Note: []view.Line{view.T(view.Dim, "Threads fallen off the board's last page, read-only")},
+			Pick: "Thread number",
+			Columns: []view.Column{{Title: "No.", Width: 8, Right: true}, {Title: "R", Width: 4, Right: true}, {Title: "Subject"},
+				{Title: "Archived", Width: 8, Wide: true}}}
+		for _, op := range ops {
+			t.Rows = append(t.Rows, view.Row{Num: strconv.FormatInt(op.No, 10),
+				Cells: []string{strconv.FormatInt(op.No, 10), strconv.Itoa(op.Replies), chanTeaser(op), ago(op.Archived)}})
+		}
+		c, err := s.UI.Table(t)
+		if err != nil || c.Action == view.Back {
+			return err
+		}
+		if c.Action != view.Pick {
+			continue
+		}
+		var op *store.BoardPost
+		if c.Row >= 0 && c.Row < len(ops) {
+			op = ops[c.Row]
+		} else if n, err := strconv.ParseInt(strings.TrimLeft(c.Num, ">#"), 10, 64); err == nil {
+			for _, o := range ops {
+				if o.No == n {
+					op = o
+				}
+			}
+		}
+		if op == nil {
+			s.UI.Say(view.Bad, "No such thread in the archive.")
+			continue
+		}
+		if err := s.chanThread(b, op, 0); err != nil {
+			return err
 		}
 	}
 }
@@ -210,7 +261,7 @@ func ago(t time.Time) string {
 // new one).
 func (s *Session) mayPost(b *store.Board, op *store.BoardPost) bool {
 	staff := chanStaff(s.User, b) != ""
-	return !(b.Locked && !staff) && !(op != nil && op.Closed && !staff)
+	return !(b.Locked && !staff) && !(op != nil && op.Closed && !staff) && !(op != nil && !op.Archived.IsZero())
 }
 
 // chanThread reads a thread a post at a time, from post i.
@@ -304,6 +355,9 @@ func (s *Session) chanMessage(b *store.Board, op, p *store.BoardPost, posts []*s
 	where := fmt.Sprintf("/%s/ No.%d  (%d of %d)", b.Dir, p.No, i+1, len(posts))
 	if op.Sticky {
 		where += "  Sticky"
+	}
+	if !op.Archived.IsZero() {
+		where += "  Archived"
 	}
 	if op.Closed {
 		where += "  Closed"

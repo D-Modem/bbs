@@ -49,7 +49,7 @@ func chanBoardCmd(cfg *server.Config, args []string) {
 			for name, on := range map[string]bool{"nsfw": !b.Worksafe, "forced anon": b.ForcedAnon, "locked": b.Locked,
 				"users post": b.LoginToPost && !b.LoginToRead, "users only": b.LoginToRead, "text only": b.TextOnly,
 				"oekaki": b.Oekaki, "ids": b.PosterIDs, "flags": b.Flags, "captcha " + b.Captcha: b.Captcha != "", "options " + b.Options: b.Options != "",
-				"files " + b.FileTypes: b.FileTypes != "", "sound": b.Sound} {
+				"files " + b.FileTypes: b.FileTypes != "", "sound": b.Sound, "no archive": !b.Archive} {
 				if on {
 					opts = append(opts, name)
 				}
@@ -219,10 +219,12 @@ func setBoard(b *store.Board, key, val string) error {
 		b.FileTypes = strings.Join(kinds, ",")
 	case "sound":
 		b.Sound, err = yes()
+	case "archive":
+		b.Archive, err = yes()
 	default:
 		return fmt.Errorf("%s: not a board's setting (title, description, default_name, mods, pages, per_page, "+
 			"bump_limit, image_limit, max_file, sort, nsfw, forced_anon, locked, login, text_only, oekaki, ids, flags, captcha, options, "+
-			"files, sound)", key)
+			"files, sound, archive)", key)
 	}
 	return err
 }

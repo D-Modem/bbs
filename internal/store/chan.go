@@ -32,6 +32,7 @@ type Board struct {
 	Flags       bool   // posts show their country's flag
 	FileTypes   string // files taken besides images: "webm,mp4,pdf" (as many as wanted)
 	Sound       bool   // videos may have sound
+	Archive     bool   // threads pruned are archived (read-only, for a while), not deleted
 	Mods        string
 	Sort        int
 	LastNo      int64
@@ -77,6 +78,8 @@ type BoardPost struct {
 	DrawMS      int64 // how long the drawing took
 	DurationMS  int64 // a video's length
 	PageCount   int   // a PDF's pages
+	// a thread's first post: when it was archived (zero: it is live)
+	Archived time.Time
 	// for a thread's first post, when listed
 	Replies, Images int
 }
@@ -109,7 +112,7 @@ type Report struct {
 
 const boardCols = `id, dir, title, description, max_file, pages, per_page, bump_limit, image_limit, forced_anon,
 	default_name, worksafe, locked, login_to_post, text_only, mods, sort, last_no, created, oekaki,
-	login_to_read, captcha, options, poster_ids, flags, file_types, sound`
+	login_to_read, captcha, options, poster_ids, flags, file_types, sound, archive`
 
 func scanBoard(row interface{ Scan(...any) error }) (*Board, error) {
 	var b Board
@@ -117,7 +120,7 @@ func scanBoard(row interface{ Scan(...any) error }) (*Board, error) {
 	err := row.Scan(&b.ID, &b.Dir, &b.Title, &b.Description, &b.MaxFile, &b.Pages, &b.PerPage, &b.BumpLimit,
 		&b.ImageLimit, &b.ForcedAnon, &b.DefaultName, &b.Worksafe, &b.Locked, &b.LoginToPost, &b.TextOnly,
 		&b.Mods, &b.Sort, &b.LastNo, &created, &b.Oekaki, &b.LoginToRead, &b.Captcha, &b.Options, &b.PosterIDs, &b.Flags,
-		&b.FileTypes, &b.Sound)
+		&b.FileTypes, &b.Sound, &b.Archive)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -130,11 +133,11 @@ func scanBoard(row interface{ Scan(...any) error }) (*Board, error) {
 func (s *Store) CreateBoard(b *Board) (*Board, error) {
 	id, err := s.db.insertID(`INSERT INTO chan_boards (dir, title, description, max_file, pages, per_page, bump_limit,
 		image_limit, forced_anon, default_name, worksafe, locked, login_to_post, text_only, mods, sort, created, oekaki,
-		login_to_read, captcha, options, poster_ids, flags, file_types, sound)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.Dir, b.Title, b.Description, b.MaxFile, b.Pages,
+		login_to_read, captcha, options, poster_ids, flags, file_types, sound, archive)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.Dir, b.Title, b.Description, b.MaxFile, b.Pages,
 		b.PerPage, b.BumpLimit, b.ImageLimit, b.ForcedAnon, b.DefaultName, b.Worksafe, b.Locked, b.LoginToPost,
 		b.TextOnly, b.Mods, b.Sort, now(), b.Oekaki, b.LoginToRead, b.Captcha, b.Options, b.PosterIDs, b.Flags,
-		b.FileTypes, b.Sound)
+		b.FileTypes, b.Sound, b.Archive)
 	if err != nil {
 		if isUnique(err) {
 			return nil, ErrExists
@@ -149,9 +152,9 @@ func (s *Store) UpdateBoard(b *Board) error {
 	_, err := s.db.Exec(`UPDATE chan_boards SET title = ?, description = ?, max_file = ?, pages = ?, per_page = ?,
 		bump_limit = ?, image_limit = ?, forced_anon = ?, default_name = ?, worksafe = ?, locked = ?, login_to_post = ?,
 		text_only = ?, mods = ?, sort = ?, oekaki = ?, login_to_read = ?, captcha = ?, options = ?,
-		poster_ids = ?, flags = ?, file_types = ?, sound = ? WHERE id = ?`, b.Title, b.Description, b.MaxFile, b.Pages, b.PerPage,
+		poster_ids = ?, flags = ?, file_types = ?, sound = ?, archive = ? WHERE id = ?`, b.Title, b.Description, b.MaxFile, b.Pages, b.PerPage,
 		b.BumpLimit, b.ImageLimit, b.ForcedAnon, b.DefaultName, b.Worksafe, b.Locked, b.LoginToPost, b.TextOnly,
-		b.Mods, b.Sort, b.Oekaki, b.LoginToRead, b.Captcha, b.Options, b.PosterIDs, b.Flags, b.FileTypes, b.Sound, b.ID)
+		b.Mods, b.Sort, b.Oekaki, b.LoginToRead, b.Captcha, b.Options, b.PosterIDs, b.Flags, b.FileTypes, b.Sound, b.Archive, b.ID)
 	return err
 }
 
@@ -202,20 +205,23 @@ func (s *Store) Boards() ([]*Board, error) {
 
 const postCols = `id, board_id, num, thread, name, trip, capcode, email, subject, body, password, ip, user_id, created,
 	bumped, sticky, closed, file_name, ext, tim, file_size, w, h, tn_w, tn_h, md5, spoiler, file_deleted, banned, replay, draw_ms, account, poster_id, country, country_name,
-	duration_ms, page_count`
+	duration_ms, page_count, archived_on`
 
 func scanPost(row interface{ Scan(...any) error }, more ...any) (*BoardPost, error) {
 	var p BoardPost
-	var created, bumped int64
+	var created, bumped, archived int64
 	dest := []any{&p.ID, &p.BoardID, &p.No, &p.Thread, &p.Name, &p.Trip, &p.Capcode, &p.Email, &p.Subject, &p.Comment,
 		&p.Password, &p.IP, &p.UserID, &created, &bumped, &p.Sticky, &p.Closed, &p.FileName, &p.Ext, &p.Tim,
 		&p.FileSize, &p.W, &p.H, &p.TnW, &p.TnH, &p.MD5, &p.Spoiler, &p.FileDeleted, &p.Banned, &p.Replay, &p.DrawMS, &p.Account, &p.PosterID, &p.Country, &p.CountryName,
-		&p.DurationMS, &p.PageCount}
+		&p.DurationMS, &p.PageCount, &archived}
 	err := row.Scan(append(dest, more...)...)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	p.Created, p.Bumped = unix(created), unix(bumped)
+	if archived != 0 {
+		p.Archived = unix(archived)
+	}
 	return &p, err
 }
 
@@ -236,8 +242,12 @@ func (s *Store) posts(q string, args ...any) ([]*BoardPost, error) {
 	return out, rows.Err()
 }
 
-// ErrThreadGone is a reply to a thread that is not there.
-var ErrThreadGone = errors.New("the thread is gone")
+// ErrThreadGone is a reply to a thread that is not there; ErrArchived to
+// one archived.
+var (
+	ErrThreadGone = errors.New("the thread is gone")
+	ErrArchived   = errors.New("the thread is archived")
+)
 
 // AddPost numbers a post and adds it to its board (to its thread, which
 // it bumps unless bump is false); its No and Created are set.
@@ -248,13 +258,16 @@ func (s *Store) AddPost(p *BoardPost, bump bool) error {
 	}
 	defer tx.Rollback()
 	if p.Thread != 0 {
-		var n int
-		if err := tx.QueryRow(`SELECT COUNT(*) FROM chan_posts WHERE board_id = ? AND num = ? AND thread = 0`,
-			p.BoardID, p.Thread).Scan(&n); err != nil {
-			return err
-		}
-		if n == 0 {
+		var archived int64
+		err := tx.QueryRow(`SELECT archived_on FROM chan_posts WHERE board_id = ? AND num = ? AND thread = 0`,
+			p.BoardID, p.Thread).Scan(&archived)
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
 			return ErrThreadGone
+		case err != nil:
+			return err
+		case archived != 0:
+			return ErrArchived
 		}
 	}
 	if _, err := tx.Exec(`UPDATE chan_boards SET last_no = last_no + 1 WHERE id = ?`, p.BoardID); err != nil {
@@ -315,8 +328,15 @@ func (s *Store) threads(q string, args ...any) ([]*BoardPost, error) {
 // ChanThreads lists a board's threads, stickies and the last bumped first,
 // with their counts: limit of them from offset.
 func (s *Store) ChanThreads(board int64, offset, limit int) ([]*BoardPost, error) {
-	return s.threads(`SELECT `+postCols+threadCounts+` FROM chan_posts WHERE board_id = ? AND thread = 0
+	return s.threads(`SELECT `+postCols+threadCounts+` FROM chan_posts WHERE board_id = ? AND thread = 0 AND archived_on = 0
 		ORDER BY sticky DESC, bumped DESC, num DESC LIMIT ? OFFSET ?`, board, limit, offset)
+}
+
+// ChanArchive lists a board's archived threads, the last archived first,
+// with their counts.
+func (s *Store) ChanArchive(board int64) ([]*BoardPost, error) {
+	return s.threads(`SELECT `+postCols+threadCounts+` FROM chan_posts WHERE board_id = ? AND thread = 0 AND archived_on <> 0
+		ORDER BY archived_on DESC, num DESC`, board)
 }
 
 // ChanThread is a thread's first post, with its counts.
@@ -332,10 +352,10 @@ func (s *Store) ChanThread(board, no int64) (*BoardPost, error) {
 	return ps[0], nil
 }
 
-// ChanThreadCount is how many threads a board has.
+// ChanThreadCount is how many live threads a board has.
 func (s *Store) ChanThreadCount(board int64) (int, error) {
 	var n int
-	err := s.db.QueryRow(`SELECT COUNT(*) FROM chan_posts WHERE board_id = ? AND thread = 0`, board).Scan(&n)
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM chan_posts WHERE board_id = ? AND thread = 0 AND archived_on = 0`, board).Scan(&n)
 	return n, err
 }
 
@@ -487,15 +507,45 @@ func (s *Store) SetChanThread(board, no int64, sticky, closed bool) error {
 	return err
 }
 
-// PruneChanThreads removes a board's threads past the first keep (stickies
-// kept): what was removed is returned, for their files.
-func (s *Store) PruneChanThreads(board int64, keep int) ([]*BoardPost, error) {
-	all, err := s.posts(`SELECT `+postCols+` FROM chan_posts WHERE board_id = ? AND thread = 0 AND sticky = ?
+// PruneChanThreads takes a board's live threads past the first keep
+// (stickies kept) off it: archived, if archive, else removed.  What was
+// removed is returned, for their files.
+func (s *Store) PruneChanThreads(board int64, keep int, archive bool) ([]*BoardPost, error) {
+	all, err := s.posts(`SELECT `+postCols+` FROM chan_posts WHERE board_id = ? AND thread = 0 AND sticky = ? AND archived_on = 0
 		ORDER BY bumped DESC, num DESC`, board, false)
 	if err != nil || len(all) <= keep {
 		return nil, err
 	}
 	old := all[keep:]
+	if archive {
+		t := now()
+		for _, p := range old {
+			if _, err := s.db.Exec(`UPDATE chan_posts SET archived_on = ? WHERE board_id = ? AND num = ? AND thread = 0`,
+				t, board, p.No); err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	}
+	var gone []*BoardPost
+	for _, t := range old {
+		g, err := s.DeleteChanPost(board, t.No)
+		if err != nil && !errors.Is(err, ErrNotFound) {
+			return gone, err
+		}
+		gone = append(gone, g...)
+	}
+	return gone, nil
+}
+
+// ExpireChanArchive removes a board's threads archived before a time:
+// what was removed is returned, for their files.
+func (s *Store) ExpireChanArchive(board int64, before time.Time) ([]*BoardPost, error) {
+	old, err := s.posts(`SELECT `+postCols+` FROM chan_posts WHERE board_id = ? AND thread = 0 AND archived_on <> 0
+		AND archived_on <= ?`, board, before.Unix())
+	if err != nil {
+		return nil, err
+	}
 	var gone []*BoardPost
 	for _, t := range old {
 		g, err := s.DeleteChanPost(board, t.No)

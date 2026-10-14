@@ -75,13 +75,16 @@ type Settings struct {
 	// Ruffle's self-hosted files (ruffle.js and its .wasm), to play Flash
 	// in the page ("": SWFs and FLVs are only downloaded)
 	Ruffle string
+	// how long a pruned thread stays in its board's archive (0: always)
+	ArchiveFor time.Duration
 }
 
 // Defaults are the settings unless bbs.conf says otherwise.
 func Defaults() Settings {
 	return Settings{Dir: "chan", MaxFile: 4 << 20, ThreadWait: 60 * time.Second, ReplyWait: 15 * time.Second,
 		MaxComment: 2000, Strip: true, Captcha: true, CaptchaLength: 6, CaptchaTTL: 10 * time.Minute,
-		CaptchaLevel: "normal", Options: true, MaxVideo: 120 * time.Second}
+		CaptchaLevel: "normal", Options: true, MaxVideo: 120 * time.Second,
+		ArchiveFor: 72 * time.Hour}
 }
 
 // Style is a look the boards can wear: a stylesheet.
@@ -330,7 +333,9 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) {
 	case len(rest) == 1 && rest[0] == "threads.json" && get:
 		s.threadsJSON(q, b)
 	case len(rest) == 1 && rest[0] == "archive" && get:
-		http.Redirect(w, r, Base+"/"+b.Dir+"/catalog", http.StatusFound)
+		s.archive(q, b)
+	case len(rest) == 1 && rest[0] == "archive.json" && get:
+		s.archiveJSON(q, b)
 	case len(rest) == 1 && rest[0] == "post" && post:
 		s.post(q, b)
 	case len(rest) == 1 && rest[0] == "delete" && post:
@@ -659,7 +664,22 @@ func (s *Server) RemoveBoard(b *store.Board) error {
 // posters Anonymous.
 func NewBoard(dir, title string) *store.Board {
 	return &store.Board{Dir: dir, Title: title, Pages: 10, PerPage: 10, BumpLimit: 300, ImageLimit: 150,
-		DefaultName: "Anonymous", Worksafe: true}
+		DefaultName: "Anonymous", Worksafe: true, Archive: true}
+}
+
+// expireArchive deletes a board's threads archived longer than [chan]
+// archive_days, with their files.
+func (s *Server) expireArchive(b *store.Board) {
+	if s.S.ArchiveFor <= 0 {
+		return
+	}
+	gone, err := s.B.Store.ExpireChanArchive(b.ID, time.Now().Add(-s.S.ArchiveFor))
+	if err != nil {
+		s.B.Log.Printf("chan: /%s/: the archive: %v", b.Dir, err)
+	}
+	if len(gone) > 0 {
+		s.removeFiles(b.Dir, gone)
+	}
 }
 
 // IsAsset says whether a request is for a stylesheet, a script, an image

@@ -465,7 +465,7 @@ func getJSON(t *testing.T, u string, v any) {
 // stickies stay.
 func TestPrune(t *testing.T) {
 	s := setup(t)
-	s.bd.Pages, s.bd.PerPage = 1, 2
+	s.bd.Pages, s.bd.PerPage, s.bd.Archive = 1, 2, false // pruned threads deleted
 	s.b.Store.UpdateBoard(s.bd)
 	br := s.browser()
 	var tims []int64

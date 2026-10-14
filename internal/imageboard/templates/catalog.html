@@ -2,7 +2,7 @@
 {{template "banner" .}}
 <hr>
 {{$b := .Board}}{{with .Body}}
-<div class="navLinks">[<a href="/chan/{{$b.Dir}}/">Return</a>] [<a href="/chan/{{$b.Dir}}/#postForm">Start a New Thread</a>]
+<div class="navLinks">[<a href="/chan/{{$b.Dir}}/">Return</a>] [<a href="/chan/{{$b.Dir}}/#postForm">Start a New Thread</a>]{{if $b.Archive}} [<a href="/chan/{{$b.Dir}}/archive">Archive</a>]{{end}}
 <span class="sortBy">Sort by: {{if .New}}<a href="/chan/{{$b.Dir}}/catalog">Bump order</a> &middot; <strong>Creation date</strong>{{else}}<strong>Bump order</strong> &middot; <a href="/chan/{{$b.Dir}}/catalog?order=new">Creation date</a>{{end}}</span></div>
 <hr>
 <div class="catalog">

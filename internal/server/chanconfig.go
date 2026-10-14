@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
 	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
@@ -78,6 +79,12 @@ func (c *Config) chanSection(s *config.Section) error {
 	if ch.MaxVideo, err = s.Seconds("max_video", int(ch.MaxVideo.Seconds()), 0, 86400); err != nil {
 		return err
 	}
+	// how long pruned threads stay in their boards' archives (0: always)
+	days, err := s.Int("archive_days", int(ch.ArchiveFor/(24*time.Hour)), 0, 3650)
+	if err != nil {
+		return err
+	}
+	ch.ArchiveFor = time.Duration(days) * 24 * time.Hour
 	// Ruffle's self-hosted package, unpacked: Flash played in the page
 	if ch.Ruffle = s.String("ruffle", ""); ch.Ruffle != "" {
 		if _, err := os.Stat(filepath.Join(ch.Ruffle, "ruffle.js")); err != nil {

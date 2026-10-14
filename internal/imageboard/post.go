@@ -116,6 +116,9 @@ func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
 		if op, err = s.B.Store.ChanThread(b.ID, sub.Thread); err != nil {
 			return nil, refuse(http.StatusNotFound, "That thread is not here: it has been pruned or deleted.")
 		}
+		if !op.Archived.IsZero() {
+			return nil, refuse(http.StatusForbidden, "You cannot reply to this thread anymore: it is archived.")
+		}
 		if op.Closed && staff == "" {
 			return nil, refuse(http.StatusForbidden, "You cannot reply to this thread anymore: it is closed.")
 		}
@@ -233,6 +236,9 @@ func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
 		if errors.Is(err, store.ErrThreadGone) {
 			return nil, refuse(http.StatusNotFound, "That thread is not here: it has been pruned or deleted.")
 		}
+		if errors.Is(err, store.ErrArchived) {
+			return nil, refuse(http.StatusForbidden, "You cannot reply to this thread anymore: it is archived.")
+		}
 		s.B.Log.Printf("chan: /%s/: posting: %v", b.Dir, err)
 		return nil, refuse(http.StatusInternalServerError, "The post could not be made: try again later.")
 	}
@@ -244,11 +250,12 @@ func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
 		}
 	}
 	if sub.Thread == 0 {
-		gone, err := s.B.Store.PruneChanThreads(b.ID, b.Pages*b.PerPage)
+		gone, err := s.B.Store.PruneChanThreads(b.ID, b.Pages*b.PerPage, b.Archive)
 		if err != nil {
 			s.B.Log.Printf("chan: /%s/: pruning: %v", b.Dir, err)
 		}
 		s.removeFiles(b.Dir, gone)
+		s.expireArchive(b)
 	}
 	what := "a reply in " + strconv.FormatInt(sub.Thread, 10)
 	if sub.Thread == 0 {
@@ -423,7 +430,7 @@ func (s *Server) delete(q *req, b *store.Board) {
 	if len(nos) > 50 {
 		nos = nos[:50]
 	}
-	var done, wrong int
+	var done, wrong, archived int
 	for _, n := range nos {
 		p, err := s.B.Store.ChanPost(b.ID, n)
 		if err != nil {
@@ -433,9 +440,18 @@ func (s *Server) delete(q *req, b *store.Board) {
 			wrong++
 			continue
 		}
+		if !staff && s.inArchive(b, p) {
+			// what is archived stays as it was
+			archived++
+			continue
+		}
 		if err := s.deletePost(b, p, fileOnly); err == nil {
 			done++
 		}
+	}
+	if archived > 0 && done == 0 {
+		q.fail(http.StatusForbidden, "That thread is archived: nothing in it can be deleted.")
+		return
 	}
 	if wrong > 0 && done == 0 {
 		q.fail(http.StatusForbidden, "Wrong password: nothing was deleted.")
@@ -514,4 +530,13 @@ func (s *Server) report(q *req, b *store.Board) {
 	}
 	q.render(http.StatusOK, "error.html", "Reported", b, map[string]any{"Message": "Thank you: staff will see it.",
 		"Done": true})
+}
+
+// inArchive says whether a post is in an archived thread.
+func (s *Server) inArchive(b *store.Board, p *store.BoardPost) bool {
+	if p.Thread == 0 {
+		return !p.Archived.IsZero()
+	}
+	op, err := s.B.Store.ChanPost(b.ID, p.Thread)
+	return err == nil && !op.Archived.IsZero()
 }

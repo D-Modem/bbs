@@ -44,6 +44,7 @@ address = :8443
 ;pdftoppm = pdftoppm     ; PDFs' thumbnails, the first page
 ;max_video = 120         ; seconds a video may run (0: any)
 ;ruffle = /usr/share/ruffle   ; Ruffle's self-hosted files: Flash played in the page
+;archive_days = 3        ; days a pruned thread stays in its board's archive (0: always)
 ```
 
 | setting | default | |
@@ -62,6 +63,7 @@ address = :8443
 | `style` | by the board | Yotsuba B on a worksafe board, Yotsuba on the rest, as 4chan does |
 | `ffmpeg`, `pdftoppm` | none | the programs that make videos' and PDFs' thumbnails (by name on the PATH, or a path); without them, a card saying what the file is ([below](#videos-and-pdfs)) |
 | `max_video` | `120` | seconds a video may run (0: any length) |
+| `archive_days` | `3` | days a pruned thread stays in its board's archive ([below](#the-archive)); 0 keeps them always |
 | `ruffle` | none | the directory of Ruffle's self-hosted package (`ruffle.js` and its `.wasm`): SWFs and FLVs played in the page ([below](#flash)); without it they are only downloaded |
 
 ## On the terminals
@@ -183,9 +185,29 @@ off leaves those already made as they were.
 A reply bumps its thread to the top of the board until the thread has
 `bump_limit` replies (300); a thread takes `image_limit` images (150).
 A board has `pages` pages of `per_page` threads (10 of 10); when a new
-thread pushes the last one past them, it is pruned, its images with it.
-Stickies stay at the top and are never pruned; closed threads take no
-replies (but staff's).
+thread pushes the last one past them, it is pruned: **archived**, or, on a
+board with `archive no`, deleted with its images. Stickies stay at the
+top and are never pruned; closed threads take no replies (but staff's).
+
+### The archive
+
+As 4chan's, a pruned thread goes to its board's archive
+(`/chan/b/archive`, *[Archive]* beside *[Catalog]*): off the board's
+pages and catalog, but whole, its files kept, and read-only. No one
+replies to it (staff neither: it is a record), and its posts are not
+deleted by their passwords (staff still delete them). Its page says
+*This thread is archived* in place of the reply form, and its first post
+wears an *Archived* badge. The archive lists the threads, the last
+archived first: number, subject and the start of the comment, replies,
+when; `archive.json` is 4chan's, the numbers, oldest first, and an
+archived thread's JSON has `"archived": 1` and `"archived_on"`.
+
+After `[chan] archive_days` (3) a thread is gone from the archive too,
+with its files (looked to when a thread is made and when the archive or
+the thread is looked at); `archive_days = 0` keeps them always. `bbs chan
+board set DIR archive no` prunes a board's threads as before, deleted at
+once. On the terminals the board's thread list has *Archive* (A): the
+archived threads, to read.
 
 The index shows each thread's first post and its last five replies (one
 under a sticky), with how many were left out; a comment longer than 15
@@ -249,6 +271,7 @@ bbs chan ban del ID
 | `flags` | no | posts show their country's flag (with `[chan] geoip`) |
 | `files` | none | files taken besides images: `webm`, `mp4`, `pdf`, `swf`, `flv`, as many as wanted (`webm,pdf`); `none` for images only ([below](#videos-and-pdfs)) |
 | `sound` | no | videos and Flash may have sound |
+| `archive` | yes | pruned threads are archived, read-only, for `archive_days` ([below](#the-archive)); `no` deletes them at once |
 | `locked` | no | only staff post |
 | `login` | `no` | `post`: only the BBS's users post (signed in at `/chan/login`); `all`: only they see the board at all (its pages, images and JSON; others are sent to sign in, and the front page marks it *(members)*) |
 | `captcha` | `default` | `yes` or `no` for this board, else `[chan]`'s |
@@ -412,17 +435,14 @@ has them, and `boards.json` its `user_ids` and `country_flags`. Beyond
 4chan's fields, `boards.json` says `"oekaki": 1` of an oekaki board, and
 a drawing that replays has `"replay": 1` and `"draw_ms"`. A board that
 takes videos or PDFs has `"file_types": ["webm", "pdf"]`, and with videos
-4chan's `webm_audio` and `max_webm_duration`; a video's post has
+4chan's `webm_audio` and `max_webm_duration`; `is_archived` is 1 of a
+board with an archive; a video's post has
 `"duration_ms"`, a PDF's `"page_count"`, beside 4chan's `ext`, `w`, `h`.
 
 A post's file is at `/chan/b/src/{tim}{ext}` and its thumbnail at
 `/chan/b/thumb/{tim}s.jpg` (where 4chan's are at `i.4cdn.org/b/`).
 kusaba's addresses go where they should: `/chan/b/res/123.html` to the
 thread, `/chan/b/1.html` to the index.
-
-## Not done
-
-The archive of pruned threads.
 
 Behind a reverse proxy, name it in `[http]`'s `trusted_proxies`: otherwise
 every poster has the proxy's address, and flood control and bans reach

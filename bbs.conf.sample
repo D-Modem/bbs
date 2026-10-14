@@ -295,6 +295,10 @@ address = 127.0.0.1:2513
 ; Flash (files swf,flv), played in the page by Ruffle: its self-hosted
 ; package's directory (make ruffle fetches it into ruffle/)
 ;ruffle = /opt/bbs/ruffle
+; days a thread pruned off a board's last page stays in its archive
+; (/chan/b/archive: read-only, its files kept; 0: always).  A board can
+; keep none: bbs chan board set DIR archive no
+;archive_days = 3
 ; a country database for the boards with flags (bbs chan board set DIR
 ; flags yes): a MaxMind DB (.mmdb: GeoLite2 Country, DB-IP Lite...) or a
 ; CSV of ranges; read again when it changes.  By default [general]'s

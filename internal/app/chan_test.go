@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
+	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/view"
 )
 
@@ -72,5 +73,47 @@ func TestImageBoards(t *testing.T) {
 	th, _ := b.Store.ChanThread(bd.ID, 1)
 	if !th.Bumped.Equal(op.Bumped) {
 		t.Error("sage bumped it")
+	}
+}
+
+// TestImageBoardArchive: a board's archive on a terminal, its threads
+// read there, no reply offered.
+func TestImageBoardArchive(t *testing.T) {
+	b, alice, _ := setup(t)
+	set := imageboard.Defaults()
+	set.Dir = filepath.Join(t.TempDir(), "chan")
+	b.ImageBoards = &imageboard.Server{B: b, S: set}
+	bd, err := b.Store.CreateBoard(imageboard.NewBoard("b", "Random"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sub := range []string{"Old one", "New one"} {
+		if err := b.Store.AddPost(&store.BoardPost{BoardID: bd.ID, Subject: sub, Comment: "about " + sub, IP: "x"}, true); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := b.Store.PruneChanThreads(bd.ID, 1, true); err != nil {
+		t.Fatal(err)
+	}
+	f := &fake{t: t, b: b, script: []any{
+		"B", view.Choice{Action: view.Pick, Row: 0}, // /b/
+		view.Choice{Action: "archive"},
+		view.Choice{Action: view.Pick, Row: 0}, // the archived thread
+		view.Back,
+		view.Choice{Action: view.Back}, view.Choice{Action: view.Back}, view.Choice{Action: view.Back},
+	}}
+	if err := Run(b, alice, f); err != ErrLogoff {
+		t.Fatalf("Run: %v; shown %q", err, f.shown)
+	}
+	if len(f.script) > 0 {
+		t.Errorf("left of the script: %v; shown %q", f.script, f.shown)
+	}
+	has(t, "screens", f.shown, "table /b/ - Random: 2|0|0|New one")
+	has(t, "screens", f.shown, "table /b/ - archive: 1|0|Old one|")
+	has(t, "screens", f.shown, "message Old one: about Old one")
+	op, _ := b.Store.ChanThread(bd.ID, 1)
+	s := &Session{B: b, User: alice.User()}
+	if s.mayPost(bd, op) || !s.mayPost(bd, nil) {
+		t.Error("an archived thread may be replied to")
 	}
 }

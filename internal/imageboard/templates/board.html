@@ -2,11 +2,11 @@
 {{template "banner" .}}
 <hr class="abovePostForm">
 {{$b := .Board}}{{with .Body}}
-{{if .Thread}}<div class="postingMode">Posting mode: Reply</div>
-<div class="navLinks">[<a href="/chan/{{$b.Dir}}/">Return</a>] [<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>] [<a href="#bottom">Bottom</a>]</div>{{end}}
+{{if .Thread}}{{if not .Form.Archived}}<div class="postingMode">Posting mode: Reply</div>{{end}}
+<div class="navLinks">[<a href="/chan/{{$b.Dir}}/">Return</a>] [<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>]{{if $b.Archive}} [<a href="/chan/{{$b.Dir}}/archive">Archive</a>]{{end}} [<a href="#bottom">Bottom</a>]</div>{{end}}
 {{template "form" $}}
 <hr>
-{{if not .Thread}}<div class="navLinks">[<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>]</div><hr>{{end}}
+{{if not .Thread}}<div class="navLinks">[<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>]{{if $b.Archive}} [<a href="/chan/{{$b.Dir}}/archive">Archive</a>]{{end}}</div><hr>{{end}}
 <div class="board">
 {{range .Threads}}<div class="thread" id="t{{.OP.No}}">
 {{template "post" .OP}}
@@ -17,7 +17,7 @@
 {{else}}<p class="empty">There are no threads here yet: start one.</p><hr>{{end}}
 </div>
 {{with .Thread}}<div class="threadStats">{{.OP.Replies}} {{if eq .OP.Replies 1}}reply{{else}}replies{{end}} / {{.OP.Images}} {{if eq .OP.Images 1}}image{{else}}images{{end}}{{if .BumpLimit}} &middot; <span class="warning">Bump limit reached.</span>{{end}}{{if .ImageLimit}} &middot; <span class="warning">Image limit reached.</span>{{end}}</div>
-<div class="navLinks">[<a href="/chan/{{$b.Dir}}/">Return</a>] [<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>] [<a href="#top">Top</a>]</div>{{end}}
+<div class="navLinks">[<a href="/chan/{{$b.Dir}}/">Return</a>] [<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>]{{if $b.Archive}} [<a href="/chan/{{$b.Dir}}/archive">Archive</a>]{{end}} [<a href="#top">Top</a>]</div>{{end}}
 <form id="delform" class="deleteForm" method="post" action="/chan/{{$b.Dir}}/delete">
 <input type="hidden" name="tok" value="{{$.Token}}"><input type="hidden" name="back" value="{{$.Path}}">
 Delete Post: <label>[<input type="checkbox" name="onlyimgdel" value="on"> File Only]</label>
@@ -28,7 +28,7 @@ Password <input type="password" name="pwd" value="{{$.Pass}}" maxlength="64" aut
 {{if gt .Page 1}}<a class="pageButton" href="/chan/{{$b.Dir}}/{{if gt .Page 2}}{{add .Page -1}}{{end}}">Previous</a>{{else}}<span class="pageButton">Previous</span>{{end}}
 <span class="pages">{{range seq .Pages}}[{{if eq . $.Body.Page}}<strong>{{.}}</strong>{{else}}<a href="/chan/{{$b.Dir}}/{{if gt . 1}}{{.}}{{end}}">{{.}}</a>{{end}}] {{end}}</span>
 {{if lt .Page .Pages}}<a class="pageButton" href="/chan/{{$b.Dir}}/{{add .Page 1}}">Next</a>{{else}}<span class="pageButton">Next</span>{{end}}
-<span class="pages">[<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>]</span>
+<span class="pages">[<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>]{{if $b.Archive}} [<a href="/chan/{{$b.Dir}}/archive">Archive</a>]{{end}}</span>
 </div>{{end}}
 {{end}}
 <div id="bottom"></div>
@@ -78,6 +78,7 @@ Password <input type="password" name="pwd" value="{{$.Pass}}" maxlength="64" aut
 <button type="button" id="okClose">Close</button></div>
 </div>{{end}}
 </form>
+{{else if .Archived}}<div class="closedNotice">This thread is archived.<br>You cannot reply anymore.</div>
 {{else if .Closed}}<div class="closedNotice">Thread closed.<br>You may not reply at this time.</div>
 {{else if .NeedLogin}}<div class="closedNotice">Only this BBS's users post here: <a href="/chan/login?back={{$.Path}}">sign in</a> first.</div>
 {{else}}<div class="closedNotice">This board is locked: only staff post here.</div>{{end}}

@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -331,6 +332,12 @@ func (s *Server) thread(q *req, b *store.Board, no int64) {
 		q.fail(http.StatusNotFound, "That thread is not here: it has been pruned or deleted.")
 		return
 	}
+	if !op.Archived.IsZero() && s.S.ArchiveFor > 0 && time.Since(op.Archived) > s.S.ArchiveFor {
+		// its time in the archive is up
+		s.expireArchive(b)
+		q.fail(http.StatusNotFound, "That thread is not here: it was archived, and has been deleted since.")
+		return
+	}
 	views, err := q.threadViews(b, []*store.BoardPost{op}, no)
 	if err != nil {
 		q.fail(http.StatusInternalServerError, "The thread could not be read.")
@@ -364,6 +371,7 @@ type formView struct {
 	Name      string
 	Quote     string
 	Closed    bool // no one but staff may reply
+	Archived  bool // no one may reply: the thread is archived
 	CanPost   bool
 	NeedLogin bool
 	Capcode   string // the staff's
@@ -387,6 +395,8 @@ func (q *req) form(b *store.Board, op *store.BoardPost) formView {
 		f.Quote = ">>" + strings.TrimLeft(n, ">") + "\n"
 	}
 	switch {
+	case op != nil && !op.Archived.IsZero():
+		f.Archived, f.CanPost = true, false
 	case op != nil && op.Closed && f.Capcode == "":
 		f.Closed, f.CanPost = true, false
 	case b.Locked && f.Capcode == "":
@@ -466,4 +476,53 @@ func (s *Server) catalog(q *req, b *store.Board) {
 	}
 	q.render(http.StatusOK, "catalog.html", "/"+b.Dir+"/ - "+b.Title+" - Catalog", b, map[string]any{"Threads": views,
 		"New": q.r.URL.Query().Get("order") == "new"})
+}
+
+// archiveRow is an archived thread as the archive lists it.
+type archiveRow struct {
+	No       int64
+	Subject  string
+	Excerpt  string
+	Archived time.Time
+	Replies  int
+}
+
+// archive is a board's archive: its threads pruned from its pages, the
+// last archived first, kept [chan] archive_days.
+func (s *Server) archive(q *req, b *store.Board) {
+	if !b.Archive {
+		q.fail(http.StatusNotFound, "This board keeps no archive.")
+		return
+	}
+	s.expireArchive(b)
+	ops, err := s.B.Store.ChanArchive(b.ID)
+	if err != nil {
+		q.fail(http.StatusInternalServerError, "The archive could not be read.")
+		return
+	}
+	rows := make([]archiveRow, len(ops))
+	for i, op := range ops {
+		text := strings.Join(strings.Fields(op.Comment), " ")
+		if r := []rune(text); len(r) > 120 {
+			text = string(r[:120]) + "..."
+		}
+		rows[i] = archiveRow{No: op.No, Subject: op.Subject, Excerpt: text, Archived: op.Archived, Replies: op.Replies}
+	}
+	keep := ""
+	if s.S.ArchiveFor > 0 {
+		keep = keepFor(s.S.ArchiveFor)
+	}
+	q.render(http.StatusOK, "archive.html", "/"+b.Dir+"/ - "+b.Title+" - Archive", b, map[string]any{"Rows": rows,
+		"Keep": keep})
+}
+
+// keepFor is how long the archive keeps a thread, in words.
+func keepFor(d time.Duration) string {
+	switch {
+	case d >= 48*time.Hour && d%(24*time.Hour) == 0:
+		return strconv.Itoa(int(d/(24*time.Hour))) + " days"
+	case d >= 2*time.Hour:
+		return strconv.Itoa(int(d/time.Hour)) + " hours"
+	}
+	return d.String()
 }

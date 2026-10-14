@@ -38,8 +38,10 @@ type apiPost struct {
 	TnH           int        `json:"tn_h,omitempty"`
 	Tim           int64      `json:"tim,omitempty"`
 	FileDeleted   int        `json:"filedeleted,omitempty"`
-	Replay        int        `json:"replay,omitempty"`      // an oekaki drawing, its strokes in its PNG
-	DrawMS        int64      `json:"draw_ms,omitempty"`     // how long it took to draw
+	Replay        int        `json:"replay,omitempty"`  // an oekaki drawing, its strokes in its PNG
+	DrawMS        int64      `json:"draw_ms,omitempty"` // how long it took to draw
+	Archived      int        `json:"archived,omitempty"`
+	ArchivedOn    int64      `json:"archived_on,omitempty"`
 	DurationMS    int64      `json:"duration_ms,omitempty"` // a video's length
 	PageCount     int        `json:"page_count,omitempty"`  // a PDF's pages
 	Member        int        `json:"member,omitempty"`      // posted by a signed-in user of the BBS
@@ -103,6 +105,9 @@ func (q *req) apiPost(b *store.Board, v *postView) *apiPost {
 	}
 	if p.Thread == 0 {
 		a.Sticky, a.Closed = flag(p.Sticky), flag(p.Closed)
+		if !p.Archived.IsZero() {
+			a.Archived, a.ArchivedOn = 1, p.Archived.Unix()
+		}
 		r, i := p.Replies, p.Images
 		a.Replies, a.Images = &r, &i
 		a.BumpLimit, a.ImageLimit = flag(r >= b.BumpLimit), flag(i >= b.ImageLimit)
@@ -173,7 +178,8 @@ func (s *Server) boardsJSON(q *req) {
 			Pages: b.Pages, MaxFilesize: s.maxFile(b), MaxCommentChars: s.S.MaxComment, ImageLimit: b.ImageLimit,
 			BumpLimit: b.BumpLimit, MetaDescription: b.Description, Cooldowns: cd, ForcedAnon: flag(b.ForcedAnon),
 			TextOnly: flag(b.TextOnly), Oekaki: flag(b.Oekaki), UserIDs: flag(b.PosterIDs),
-			CountryFlags: flag(b.Flags && s.S.GeoIP != ""), Login: loginOf(b), Captcha: flag(s.captchaOn(b)), Spoilers: 1, CodeTags: 1})
+			CountryFlags: flag(b.Flags && s.S.GeoIP != ""), Login: loginOf(b), Captcha: flag(s.captchaOn(b)), Spoilers: 1, CodeTags: 1,
+			IsArchived: flag(b.Archive)})
 		if bd := &out.Boards[len(out.Boards)-1]; b.FileTypes != "" {
 			for _, k := range FileKinds {
 				if takes(b, k) {
@@ -339,4 +345,24 @@ func loginOf(b *store.Board) string {
 		return "post"
 	}
 	return ""
+}
+
+// archiveJSON is 4chan's archive.json: the archived threads' numbers,
+// the oldest first.
+func (s *Server) archiveJSON(q *req, b *store.Board) {
+	if !b.Archive {
+		q.jsonFail(http.StatusNotFound)
+		return
+	}
+	s.expireArchive(b)
+	ops, err := s.B.Store.ChanArchive(b.ID)
+	if err != nil {
+		q.jsonFail(http.StatusInternalServerError)
+		return
+	}
+	nos := make([]int64, 0, len(ops))
+	for i := len(ops) - 1; i >= 0; i-- {
+		nos = append(nos, ops[i].No)
+	}
+	q.json(nos)
 }
