@@ -1,8 +1,11 @@
 package store
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -35,6 +38,11 @@ func columns(table string) ([]string, map[string]string) {
 // Copy copies every table of src into dst, which must be empty (a new
 // database: Open makes its tables).  progress is told each table's rows.
 func Copy(src, dst *Store, progress func(table string, rows int)) error {
+	return copyTables(src.db.Query, dst, progress)
+}
+
+// copyTables copies every table read by query into dst.
+func copyTables(query func(string, ...any) (*sql.Rows, error), dst *Store, progress func(table string, rows int)) error {
 	var n int
 	if err := dst.db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&n); err != nil {
 		return err
@@ -49,7 +57,7 @@ func Copy(src, dst *Store, progress func(table string, rows int)) error {
 	defer t.Rollback()
 	for _, table := range copyOrder {
 		cols, kinds := columns(table)
-		rows, err := src.db.Query(`SELECT ` + strings.Join(cols, ", ") + ` FROM ` + table)
+		rows, err := query(`SELECT ` + strings.Join(cols, ", ") + ` FROM ` + table)
 		if err != nil {
 			return fmt.Errorf("%s: %w", table, err)
 		}
@@ -121,4 +129,29 @@ func convert(v any, kind string) any {
 		}
 	}
 	return v
+}
+
+// Snapshot writes the whole database as it is at one moment into a new
+// SQLite file at path (not there yet), while it is in use: SQLite's by
+// VACUUM INTO, a server's copied in one read-only transaction that sees
+// nothing written after it began.
+func (s *Store) Snapshot(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("%s is there already", path)
+	}
+	if s.db.d.name == SQLite {
+		_, err := s.db.DB.Exec(`VACUUM INTO ?`, path)
+		return err
+	}
+	dst, err := Open("sqlite:" + path)
+	if err != nil {
+		return err
+	}
+	defer dst.Close()
+	t, err := s.db.DB.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	if err != nil {
+		return err
+	}
+	defer t.Rollback()
+	return copyTables(func(q string, args ...any) (*sql.Rows, error) { return t.Query(s.db.d.query(q), args...) }, dst, nil)
 }

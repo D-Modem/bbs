@@ -60,10 +60,10 @@ terminal with neither.
 | Connections and modems | modem lines and every listener; callers at once, logins, time-outs, lock-outs; the caller ID country and GeoIP |
 | Services | telnet, TN3270, SSH and RLogin listeners; finger, gopher, FTP, IRC, news, the web (API, forum, image boards); MRC, FidoNet, QWK networks, doors |
 | Users and groups | the accounts (level, flags, sysop, locked, a new password; new ones; deleted ones) and the access levels |
-| Maintenance | disk space; what message areas keep, old messages taken out; the image boards' archive; backups |
+| Maintenance | disk space; what message areas keep, old messages taken out; the image boards' archive; backups: one now, those made, `[backup]` ([Backups](Backups)) |
 
-Running as another user and group, PAM and LDAP logins, and backups of
-the database and files are shown as not available yet: they are to come.
+Running as another user and group, and PAM and LDAP logins, are shown as
+not available yet: they are to come.
 
 | key | |
 |---|---|
@@ -114,6 +114,7 @@ rest, which wait for a restart:
 |---|---|
 | `[general]` | `name`, `sysop`, `location`, `postal_address`, `phone`, `addresses`, `banner`, `banner_file`, `motd`, `motd_file`, `goodbye`, `new_users`, `max_nodes`, `attempts`, `fail_delay`, `login_timeout`, `idle_timeout`, `throttle_failures`, `throttle_time`, `page_command`, `qwk_id`, `geoip`, `geoip_credit`, `geoip_credit_url`, `phone_country`, `new_user_level`, `validated_level` |
 | `[level N]` | all, and levels added or taken out |
+| `[backup]` | all ([Backups](Backups)) |
 | `[menu NAME]`, `[strings]` | all (a caller in a menu has it until they leave it) |
 | `[chan]` | all but `dir` |
 | `[http]` | `forum_guests`, `forum_theme`, `forum_flags` |

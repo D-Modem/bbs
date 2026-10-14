@@ -7,6 +7,7 @@
 - [Sysop tools](Sysop-Tools)
 - [Configuration](Configuration)
 - [Databases](Databases)
+- [Backups](Backups)
 - [Customization](Customization)
 - [Scripting](Scripting)
 - [Access levels](Access-Levels)

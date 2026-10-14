@@ -74,6 +74,8 @@ var labels = map[string]string{
 	"security.deny_file": "Addresses refused (file)", "security.name_deny_file": "Names refused (file)",
 	"security.hack_log": "Hack log", "security.ban_minutes": "Ban after a lock-out (min)",
 	"chan.dir": "Image boards' files", "fido.dir": "FidoNet's packets",
+	"backup.dir": "Backup directory", "backup.at": "Daily at (HH:MM)", "backup.keep": "Backups kept",
+	"backup.files": "With the files",
 }
 
 func labelOf(kind, key string) string {

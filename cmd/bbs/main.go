@@ -4,6 +4,7 @@
 //	bbs [-config FILE] [serve]         answer callers
 //	bbs [-config FILE] check           check the configuration
 //	bbs -config FILE config [get|set|unset SECTION KEY [VALUE]]   edit it
+//	bbs [-config FILE] backup [list | restore ARCHIVE -yes]
 //	bbs [-config FILE] init            make the database, with a first area
 //	bbs [-config FILE] user add NAME [-sysop]
 //	bbs [-config FILE] user passwd|lock|unlock|sysop|unsysop|del NAME
@@ -85,6 +86,9 @@ func usage() {
   bbs -config FILE config set SECTION KEY VALUE   (SECTION: general, "listen telnet" ...)
   bbs -config FILE config unset SECTION KEY       checked as the BBS would read it; kill -HUP
                                                   (systemctl reload bbs) puts the live keys in force
+  bbs [-config FILE] backup                         a backup now: the configuration, database, files ([backup])
+  bbs [-config FILE] backup list                    the backups there are
+  bbs [-config FILE] backup restore ARCHIVE -yes    put one back, the BBS stopped (what is there renamed aside)
   bbs [-config FILE] init            make the database, with a first area
   bbs [-config FILE] user add NAME [-sysop]
   bbs [-config FILE] user passwd|lock|unlock|sysop|unsysop|del NAME
@@ -288,6 +292,8 @@ func main() {
 		sshKeyCmd(cfg, args)
 	case "db":
 		dbCmd(cfg, args)
+	case "backup":
+		backupCmd(cfg, *configPath, args)
 	case "filearea":
 		fileAreaCmd(cfg, args)
 	case "file":
@@ -504,7 +510,9 @@ func serve(cfg *server.Config, path string) int {
 		if as != nil {
 			rl.Forum = as.ReconfigureForum
 		}
-		b.Config = &bbs.ConfigTools{Path: path, Check: server.Check, Reload: rl.Reload}
+		bk := server.NewBackups(cfg, path, b)
+		b.Config = &bbs.ConfigTools{Path: path, Check: server.Check, Reload: rl.Reload, Backup: bk.Run, Backups: bk.List}
+		go bk.Schedule(ctx)
 		hup := make(chan os.Signal, 1)
 		signal.Notify(hup, syscall.SIGHUP)
 		go func() {

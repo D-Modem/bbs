@@ -155,6 +155,9 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.securitySection(cf.Get("security", "")); err != nil {
 		return nil, fmt.Errorf("[security] %w", err)
 	}
+	if err := c.backupSection(cf.Get("backup", "")); err != nil {
+		return nil, fmt.Errorf("[backup] %w", err)
+	}
 	for _, sec := range cf.All("event") {
 		e, err := c.event(sec)
 		if err != nil {
@@ -191,7 +194,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "mrc", "menu", "strings", "http", "level", "chan":
+		case "general", "security", "backup", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "mrc", "menu", "strings", "http", "level", "chan":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}
@@ -340,6 +343,30 @@ func (c *Config) event(sec *config.Section) (*events.Event, error) {
 		return nil, err
 	}
 	return e, nil
+}
+
+// backupSection reads [backup]: where backups go (beside an SQLite
+// database by default), when, how many are kept.
+func (c *Config) backupSection(sec *config.Section) error {
+	b := &c.Settings.Backup
+	def := "" // a server's database: none, said when one is made
+	if store.IsFile(c.Database) {
+		def = filepath.Join(c.DataDir(), "backups")
+	}
+	b.Dir = sec.String("dir", def)
+	if b.At = sec.String("at", ""); b.At != "" {
+		if err := events.ParseAt(b.At); err != nil {
+			return fmt.Errorf("at: %w", err)
+		}
+	}
+	var err error
+	if b.Keep, err = sec.Int("keep", 7, 0, 10000); err != nil {
+		return err
+	}
+	if b.Files, err = sec.Bool("files", true); err != nil {
+		return err
+	}
+	return nil
 }
 
 // securitySection reads [security]: the deny files, the hack log, bans.

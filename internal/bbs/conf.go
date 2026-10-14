@@ -1,5 +1,7 @@
 package bbs
 
+import "github.com/Neo-Desktop/bbs-sec/internal/backup"
+
 // Conf is the settings in force: those the BBS began with, or the last
 // Reconfigure's.  It is not to be changed: Reconfigure makes another.
 func (b *BBS) Conf() *Settings {
@@ -54,4 +56,8 @@ type ConfigTools struct {
 	// Reload puts the file in force again (nil: the BBS is not running):
 	// the changes that took effect, and those that wait for a restart
 	Reload func() (applied, restart []string, err error)
+	// Backup makes a backup now; Backups lists those there are, the
+	// newest first (nil: none here)
+	Backup  func() (*backup.Archive, error)
+	Backups func() ([]backup.Archive, error)
 }

@@ -20,14 +20,16 @@ Validating new users stays on the main menu (`V`, when some wait).
 
 ```
 ; bbs.conf
-[event backup]
-command = /usr/local/bin/bbs-backup --to "/var/backups/bbs"
-at = 03:30          ; every day, at this local time
+; every day, at this local time
+[event nodelist]
+command = /usr/local/bin/get-nodelist --to "/var/lib/bbs/fido/nodelist"
+at = 03:30
 
+; every 60 minutes, for at most 300 seconds (default 600)
 [event fidopoll]
 command = /usr/local/bin/bbs fido poll
-every = 60          ; minutes
-timeout = 300       ; seconds it may take (default 600)
+every = 60
+timeout = 300
 ```
 
 An event is a program and its arguments (words parted by spaces; `"..."`

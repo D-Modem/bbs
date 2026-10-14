@@ -517,3 +517,30 @@ func TestMessageBaseDepth(t *testing.T) {
 		t.Error("an old one kept")
 	}
 }
+
+// TestSnapshot: a database (whatever its engine: open's) written whole
+// into a SQLite file, which opens as the same; not over a file there.
+func TestSnapshot(t *testing.T) {
+	src := open(t)
+	u, _ := src.CreateUser("Alice", "alicepass1", "Here", true)
+	a, _ := src.CreateArea("General", "", false)
+	src.Post(&Message{AreaID: a.ID, FromID: u.ID, From: "Alice", Subject: "s", Body: "b", MessageID: "<m@x>"})
+	p := filepath.Join(t.TempDir(), "snap.db")
+	if err := src.Snapshot(p); err != nil {
+		t.Fatal(err)
+	}
+	if err := src.Snapshot(p); err == nil {
+		t.Error("written over a file there")
+	}
+	snap, err := Open("sqlite:" + p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer snap.Close()
+	if _, err := snap.CheckPassword("Alice", "alicepass1"); err != nil {
+		t.Errorf("password: %v", err)
+	}
+	if m, err := snap.MessageByMessageID("<m@x>"); err != nil || m.Body != "b" {
+		t.Errorf("message: %+v %v", m, err)
+	}
+}

@@ -6,6 +6,7 @@
 | `internal/server` | listeners, session headers, rlogin, SSH, telling 3270s from the rest |
 | `internal/telnet` | the server side of telnet: options, terminal type, window size, the handoff to go3270 |
 | `internal/confedit` | bbs.conf edited as a sysop would by hand, comments kept; the catalog of keys read from bbs.conf.sample (embedded by the root package), and which take effect at a reload |
+| `internal/backup` | backups: the configuration, a database snapshot and the files in one tar.gz; listing, pruning, restoring |
 | `internal/confui` | the configuration menus (sheets of internal/view), for `bbs config` and the sysop's tools: changes held until saved |
 | `internal/view` | what the screens show, described once: menus, tables, messages, forms, panels, drafts |
 | `internal/script` | the sysop's JavaScript (goja): screens of internal/view, the BBS as the caller, data kept, the time a script may compute |

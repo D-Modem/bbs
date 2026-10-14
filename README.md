@@ -122,6 +122,7 @@ The documentation is in the [wiki](https://github.com/Neo-Desktop/bbs-sec/wiki/)
 | [Running](https://github.com/Neo-Desktop/bbs-sec/wiki/Running) | first start, systemd, the defaults |
 | [Administration](https://github.com/Neo-Desktop/bbs-sec/wiki/Administration) | the bbs command: users, areas, files, mail exchange |
 | [Databases](https://github.com/Neo-Desktop/bbs-sec/wiki/Databases) | SQLite, PostgreSQL, MySQL, MariaDB; moving between them |
+| [Backups](https://github.com/Neo-Desktop/bbs-sec/wiki/Backups) | the configuration, database and files, daily or now; putting one back |
 | [Configuration](https://github.com/Neo-Desktop/bbs-sec/wiki/Configuration) | bbs.conf: its sections, listeners; the configuration screens, reloading |
 | [Access levels](https://github.com/Neo-Desktop/bbs-sec/wiki/Access-Levels) | levels, flags, what areas, doors and menus require, daily limits, validation |
 | [Customization](https://github.com/Neo-Desktop/bbs-sec/wiki/Customization) | screens (ANSI art, 3270), menus, prompts |

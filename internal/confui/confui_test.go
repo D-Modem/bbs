@@ -8,8 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	bbssec "github.com/Neo-Desktop/bbs-sec"
+	"github.com/Neo-Desktop/bbs-sec/internal/backup"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/view"
@@ -382,3 +384,39 @@ func TestEveryMenu(t *testing.T) {
 }
 
 var currentUI *script
+
+// TestBackUpNow: Back up now makes one at once (nothing to save), and
+// Backups made lists them; [backup]'s keys wait for the save as any.
+func TestBackUpNow(t *testing.T) {
+	p := writeConf(t)
+	var made []backup.Archive
+	tools := bbs.ConfigTools{Path: p,
+		Backup: func() (*backup.Archive, error) {
+			a := backup.Archive{Path: "/b/bbs-20261014-033000.tar.gz", Time: time.Date(2026, 10, 14, 3, 30, 0, 0, time.Local), Size: 2048}
+			made = append(made, a)
+			return &a, nil
+		},
+		Backups: func() ([]backup.Archive, error) { return made, nil }}
+	ui := &script{t: t, steps: []step{
+		open("Maintenance"),
+		expect("Backups made", "none yet", false, open("Back up now")),
+		func(t *testing.T, sh *view.Sheet) view.SheetResult {
+			if !strings.Contains(sh.Status, "Backed up: bbs-20261014-033000.tar.gz, 2.0 KB.") {
+				t.Errorf("status %q", sh.Status)
+			}
+			return expect("Backups made", "1, the last 2026-10-14 03:30", false, open("Backups made"))(t, sh)
+		},
+		expect("2026-10-14 03:30", "2.0 KB  bbs-20261014-033000.tar.gz", false, back),
+		set("Daily at (HH:MM)", "04:15"), back,
+		save,
+	}}
+	if err := (&Editor{UI: ui, Tools: tools}).Run(); err != nil {
+		t.Fatal(err)
+	}
+	if len(made) != 1 {
+		t.Errorf("%d backups", len(made))
+	}
+	if data, _ := os.ReadFile(p); !strings.Contains(string(data), "[backup]\nat = 04:15\n") {
+		t.Errorf("written:\n%s", data)
+	}
+}

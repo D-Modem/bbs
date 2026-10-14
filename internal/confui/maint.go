@@ -37,13 +37,61 @@ func (e *Editor) maintenanceMenu() page {
 			return nil
 		}
 		out = append(out, purge, e.field(sec("chan"), "archive_days", "Image boards' archive (days)"))
-		out = append(out, heading("Backups"),
-			item{Entry: view.Entry{Kind: view.EntryInfo, Label: "Configuration",
-				Value: filepath.Base(e.Tools.Path) + ".bak, at each save"}},
-			notYet("Database", "A copy of the database, now or on a schedule: to come.  Today: bbs db copy."),
-			notYet("Files", "A copy of the file areas', image boards' and FidoNet's files: to come."))
+		out = append(out, heading("Backups: the configuration, the database, the files"))
+		now := action("Back up now", e.backupNow)
+		now.Help = "Made at once (it changes nothing to save), as the saved [backup] says."
+		if e.Tools.Backup == nil {
+			now.Disabled, now.Note = true, "not here"
+		}
+		out = append(out, now)
+		if e.Tools.Backups != nil {
+			v := ""
+			if as, err := e.Tools.Backups(); err == nil && len(as) > 0 {
+				v = fmt.Sprintf("%d, the last %s", len(as), as[0].Time.Format("2006-01-02 15:04"))
+			} else if err == nil {
+				v = "none yet"
+			}
+			out = append(out, menu("Backups made", v, func() error { return e.show(e.backupsPage()) }))
+		}
+		b := sec("backup")
+		out = append(out, e.fields(b, "dir", "at", "keep", "files")...)
+		out = append(out, item{Entry: view.Entry{Kind: view.EntryInfo, Label: "Configuration's last",
+			Value: filepath.Base(e.Tools.Path) + ".bak, at each save"}})
 		return out
 	}}
+}
+
+// backupNow makes a backup at once.
+func (e *Editor) backupNow() error {
+	a, err := e.Tools.Backup()
+	if err != nil {
+		e.say(view.Bad, "No backup: "+err.Error()+".")
+		return nil
+	}
+	e.log("backup by %s: %s", e.who(), a.Path)
+	e.say(view.Good, fmt.Sprintf("Backed up: %s, %s.", filepath.Base(a.Path), bytesText(a.Size)))
+	return nil
+}
+
+// backupsPage is the backups there are, the newest first.
+func (e *Editor) backupsPage() page {
+	return page{title: "Backups made",
+		note: []view.Line{view.T(view.Dim, "To put one back: bbs backup restore ARCHIVE, with the BBS stopped.")},
+		items: func() []item {
+			as, err := e.Tools.Backups()
+			if err != nil {
+				return []item{{Entry: view.Entry{Kind: view.EntryInfo, Label: "Backups", Value: err.Error(), Disabled: true}}}
+			}
+			var out []item
+			for _, a := range as {
+				out = append(out, item{Entry: view.Entry{Kind: view.EntryInfo, Label: a.Time.Format("2006-01-02 15:04"),
+					Value: bytesText(a.Size) + "  " + filepath.Base(a.Path)}})
+			}
+			if len(out) == 0 {
+				out = append(out, item{Entry: view.Entry{Kind: view.EntryInfo, Label: "None yet."}})
+			}
+			return out
+		}}
 }
 
 // retentionPage is each message area's keeping: the newest N, N days.

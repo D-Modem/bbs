@@ -52,9 +52,19 @@ type Settings struct {
 	GeoCreditURL  string        // and where it links
 	PhoneCountry  string        // the country (ISO 3166) whose national caller IDs these are ("": none)
 
+	Backup BackupSettings // [backup]
+
 	Levels         []Level // [level N], by number
 	NewUserLevel   int     // a new user's level
 	ValidatedLevel int     // a validated user's
+}
+
+// BackupSettings are [backup]'s: where backups go, when, how many kept.
+type BackupSettings struct {
+	Dir   string // where the archives are kept
+	At    string // HH:MM, daily ("": only when asked)
+	Keep  int    // archives kept (0: all)
+	Files bool   // the file areas', image boards', FidoNet's files too
 }
 
 // Defaults are the settings without a configuration.

@@ -65,10 +65,9 @@ SQLite to PostgreSQL, MySQL to SQLite, PostgreSQL to MySQL.
 
 ## Backups
 
-- SQLite: `sqlite3 bbs.db ".backup bbs-backup.db"` (or copy the file while
-  the BBS is stopped); `bbs db copy /path/to/backup.db` does it too.
-- PostgreSQL: `pg_dump`; MySQL: `mysqldump --single-transaction`.
-
-And `files_dir`, in every case.
+`bbs backup` (and `[backup]`'s `at`, daily) takes the database whole while
+callers are on, with the configuration and the files: see
+[Backups](Backups).  A server's own tools do as well: `pg_dump`,
+`mysqldump --single-transaction`.
 
 **See also:** [Configuration](Configuration), [Running](Running), [Development](Development)

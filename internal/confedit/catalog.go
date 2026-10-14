@@ -255,7 +255,7 @@ var liveKeys = map[string]map[string]bool{
 }
 
 // kinds all of whose keys are live (but chan's dir)
-var liveKinds = set("level", "menu", "strings", "chan")
+var liveKinds = set("level", "menu", "strings", "chan", "backup")
 
 func set(ks ...string) map[string]bool {
 	m := map[string]bool{}
