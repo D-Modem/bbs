@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
@@ -128,7 +129,8 @@ type Server struct {
 	initErr  error
 	captchas captchas
 	geo      *geoip.File
-	geoOnce  sync.Once
+	geoMu    sync.Mutex
+	live     atomic.Pointer[Settings] // Reconfigure's
 }
 
 const (
@@ -178,10 +180,10 @@ func (s *Server) init() error {
 		return err
 	}
 	s.tmpl = t
-	if err := os.MkdirAll(s.S.Dir, 0700); err != nil {
+	if err := os.MkdirAll(s.conf().Dir, 0700); err != nil {
 		return err
 	}
-	if s.key, err = loadKey(filepath.Join(s.S.Dir, "secret")); err != nil {
+	if s.key, err = loadKey(filepath.Join(s.conf().Dir, "secret")); err != nil {
 		return err
 	}
 	static, _ := fs.Sub(content, "static")
@@ -476,11 +478,11 @@ type page struct {
 
 func (q *req) render(status int, name, title string, b *store.Board, body any) {
 	q.ensurePass()
-	p := page{Title: title, BBS: q.s.B.Name, Board: b, User: q.user, Staff: q.staff(b), AnyStaff: q.anyStaff(),
+	p := page{Title: title, BBS: q.s.B.Conf().Name, Board: b, User: q.user, Staff: q.staff(b), AnyStaff: q.anyStaff(),
 		Style: q.style(b), Styles: Styles, Token: q.token(), Pass: q.pass, Path: q.r.URL.RequestURI(),
 		Notice: q.r.URL.Query().Get("notice"), Body: body}
-	if q.s.S.GeoIP != "" {
-		p.GeoCredit, p.GeoCreditURL = q.s.S.GeoCredit, q.s.S.GeoCreditURL
+	if q.s.conf().GeoIP != "" {
+		p.GeoCredit, p.GeoCreditURL = q.s.conf().GeoCredit, q.s.conf().GeoCreditURL
 	}
 	p.Boards, _ = q.s.B.Store.Boards()
 	var buf strings.Builder
@@ -501,8 +503,8 @@ func (q *req) style(b *store.Board) string {
 	if c, err := q.r.Cookie(styleCookie); err == nil && KnownStyle(c.Value) {
 		return c.Value
 	}
-	if KnownStyle(q.s.S.Style) {
-		return q.s.S.Style
+	if KnownStyle(q.s.conf().Style) {
+		return q.s.conf().Style
 	}
 	if b != nil && !b.Worksafe {
 		return "yotsuba"
@@ -605,7 +607,7 @@ func (s *Server) file(q *req, b *store.Board, kind, name string) {
 			return
 		}
 	}
-	f, err := os.Open(filepath.Join(s.S.Dir, b.Dir, kind, name))
+	f, err := os.Open(filepath.Join(s.conf().Dir, b.Dir, kind, name))
 	if err != nil {
 		q.notFound()
 		return
@@ -634,11 +636,11 @@ func (s *Server) file(q *req, b *store.Board, kind, name string) {
 
 // paths are where a board's files are kept.
 func (s *Server) srcPath(dir string, tim int64, ext string) string {
-	return filepath.Join(s.S.Dir, dir, "src", strconv.FormatInt(tim, 10)+ext)
+	return filepath.Join(s.conf().Dir, dir, "src", strconv.FormatInt(tim, 10)+ext)
 }
 
 func (s *Server) thumbPath(dir string, tim int64) string {
-	return filepath.Join(s.S.Dir, dir, "thumb", strconv.FormatInt(tim, 10)+"s.jpg")
+	return filepath.Join(s.conf().Dir, dir, "thumb", strconv.FormatInt(tim, 10)+"s.jpg")
 }
 
 // removeFiles takes away posts' files.
@@ -656,7 +658,7 @@ func (s *Server) RemoveBoard(b *store.Board) error {
 	if err := s.B.Store.DeleteBoard(b.ID); err != nil {
 		return err
 	}
-	return os.RemoveAll(filepath.Join(s.S.Dir, b.Dir))
+	return os.RemoveAll(filepath.Join(s.conf().Dir, b.Dir))
 }
 
 // NewBoard is a board as 4chan sets one up: ten pages of ten threads, a
@@ -670,10 +672,10 @@ func NewBoard(dir, title string) *store.Board {
 // expireArchive deletes a board's threads archived longer than [chan]
 // archive_days, with their files.
 func (s *Server) expireArchive(b *store.Board) {
-	if s.S.ArchiveFor <= 0 {
+	if s.conf().ArchiveFor <= 0 {
 		return
 	}
-	gone, err := s.B.Store.ExpireChanArchive(b.ID, time.Now().Add(-s.S.ArchiveFor))
+	gone, err := s.B.Store.ExpireChanArchive(b.ID, time.Now().Add(-s.conf().ArchiveFor))
 	if err != nil {
 		s.B.Log.Printf("chan: /%s/: the archive: %v", b.Dir, err)
 	}
@@ -690,4 +692,19 @@ func IsAsset(r *http.Request) bool {
 	}
 	seg := strings.Split(strings.TrimPrefix(r.URL.Path, Base+"/"), "/")
 	return len(seg) == 2 && (seg[0] == "static" || seg[0] == "ruffle") || len(seg) == 3 && (seg[1] == "src" || seg[1] == "thumb")
+}
+
+// conf is the settings in force: S, or the last Reconfigure's.
+func (s *Server) conf() *Settings {
+	if c := s.live.Load(); c != nil {
+		return c
+	}
+	return &s.S
+}
+
+// Reconfigure puts settings in force while the boards run (but where the
+// files are kept: that is S's, as the boards began).
+func (s *Server) Reconfigure(set Settings) {
+	set.Dir = s.S.Dir
+	s.live.Store(&set)
 }

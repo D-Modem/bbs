@@ -310,9 +310,9 @@ func (s *Server) system(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"name": s.B.Name, "sysop": s.B.Sysop, "location": s.B.Location, "motd": s.B.MOTDText(),
+		"name": s.B.Conf().Name, "sysop": s.B.Conf().Sysop, "location": s.B.Conf().Location, "motd": s.B.MOTDText(),
 		"users": len(us), "messages": msgs, "areas": len(areas), "online": on,
-		"max_nodes": s.B.MaxNodes, "new_users": s.B.NewUsers,
+		"max_nodes": s.B.Conf().MaxNodes, "new_users": s.B.Conf().NewUsers,
 		"features": map[string]bool{"files": s.B.Files != nil, "fido": s.Fido != nil, "news": s.News != nil,
 			"doors": len(s.B.Doors) > 0, "netmail": s.B.Netmail != nil},
 		"version": "bbs-sec/1"})
@@ -344,7 +344,7 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 		"downloads_today": u.DownloadsToday(), "minutes_today": u.TimeToday() / 60,
 		"post": lvl.Post, "mail": lvl.Mail, "chat": lvl.Chat, "page": lvl.Page,
 		"download": lvl.Download, "upload": lvl.Upload, "doors": lvl.Doors,
-		"validated": u.Sysop || u.Level >= s.B.ValidatedLevel}
+		"validated": u.Sysop || u.Level >= s.B.Conf().ValidatedLevel}
 	if lvl.Downloads > 0 {
 		access["downloads_per_day"] = lvl.Downloads
 	}

@@ -33,7 +33,7 @@ func setup(t *testing.T, areas string, withFiles bool) *site {
 	}
 	t.Cleanup(func() { st.Close() })
 	b := bbs.New(bbs.Defaults(), st, log.New(&bytes.Buffer{}, "", 0))
-	b.Name = "Test BBS"
+	b.Settings.Name = "Test BBS"
 	u, _ := st.CreateUser("alice", "password1", "", true)
 	pub, _ := st.CreateArea("General", "Talk", false)
 	priv, _ := st.CreateArea("Private", "Members only", false)

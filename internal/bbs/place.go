@@ -54,7 +54,7 @@ func (b *BBS) Locate(c *Caller) Place {
 		return Place{}
 	}
 	if c.CallerID != "" {
-		if n, err := phone.Parse(c.CallerID, b.PhoneCountry); err == nil {
+		if n, err := phone.Parse(c.CallerID, b.Conf().PhoneCountry); err == nil {
 			return Place{Country: n.Country, Name: n.CountryName(), Region: n.Region, Number: n.String(),
 				Service: n.Service, Kind: string(n.Kind)}
 		}
@@ -70,12 +70,16 @@ func (b *BBS) Locate(c *Caller) Place {
 // Geo is the country (or city) database, kept up to date (nil: none).
 // Others with the same file (the image boards) share it.
 func (b *BBS) Geo() *geoip.File {
-	if b.GeoIP == "" {
+	path := b.Conf().GeoIP
+	if path == "" {
 		return nil
 	}
-	b.geoOnce.Do(func() {
-		b.geo = &geoip.File{Path: b.GeoIP, Log: func(err error) { b.Log.Printf("the country database: %v", err) }}
-	})
+	b.geoMu.Lock()
+	defer b.geoMu.Unlock()
+	if b.geo == nil || b.geo.Path != path {
+		// the first time, or the setting changed while the BBS ran
+		b.geo = &geoip.File{Path: path, Log: func(err error) { b.Log.Printf("the country database: %v", err) }}
+	}
 	return b.geo
 }
 

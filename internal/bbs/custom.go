@@ -79,7 +79,7 @@ var Strings = map[string]string{
 // the node and its tags ({red}: screens.Tags) dropped; and whether the
 // sysop set it.
 func (n *Node) Str(key string) (string, bool) {
-	v, set := n.b.Text[key]
+	v, set := n.b.text()[key]
 	if !set {
 		v = Strings[key]
 	}
@@ -89,7 +89,7 @@ func (n *Node) Str(key string) (string, bool) {
 // StrMarked is Str with its tags kept, marked (screens.Marked), for a
 // text terminal to print.
 func (n *Node) StrMarked(key string) (string, bool) {
-	v, set := n.b.Text[key]
+	v, set := n.b.text()[key]
 	if !set {
 		v = Strings[key]
 	}
@@ -109,11 +109,11 @@ func (n *Node) Vars() screens.Vars {
 		v := ""
 		switch code {
 		case "BBS":
-			v = n.b.Name
+			v = n.b.Conf().Name
 		case "SYSOP":
-			v = n.b.Sysop
+			v = n.b.Conf().Sysop
 		case "LOCATION":
-			v = n.b.Location
+			v = n.b.Conf().Location
 		case "NODE":
 			v = fmt.Sprint(n.Num)
 		case "VIA":

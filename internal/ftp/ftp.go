@@ -162,7 +162,7 @@ func (s *Server) ClientConnected(cc ftpserver.ClientContext) (string, error) {
 	s.clients++
 	s.perIP[h]++
 	cc.SetExtra(h)
-	return s.B.Name + " file areas.  Log in with your BBS name and password.", nil
+	return s.B.Conf().Name + " file areas.  Log in with your BBS name and password.", nil
 }
 
 // ClientDisconnected counts the client out.

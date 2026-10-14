@@ -422,8 +422,8 @@ func (c *client) login() bool {
 
 func (c *client) welcome() {
 	s := c.s
-	c.reply(RPL_WELCOME, fmt.Sprintf("Welcome to %s, %s", s.B.Name, c.source()))
-	c.reply(RPL_YOURHOST, fmt.Sprintf("Your host is %s, the chat of %s", s.S.ServerName, s.B.Name))
+	c.reply(RPL_WELCOME, fmt.Sprintf("Welcome to %s, %s", s.B.Conf().Name, c.source()))
+	c.reply(RPL_YOURHOST, fmt.Sprintf("Your host is %s, the chat of %s", s.S.ServerName, s.B.Conf().Name))
 	c.reply(RPL_CREATED, "This server was started "+s.created.Format(time.RFC1123))
 	c.reply(RPL_MYINFO, s.S.ServerName, "bbs-sec", "io", "nt")
 	for _, line := range s.support.CachedReply {

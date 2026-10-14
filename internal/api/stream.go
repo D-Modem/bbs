@@ -234,7 +234,7 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request, binary bool) {
 			return
 		}
 		if wh, err = s.byToken(auth.Token); err != nil {
-			time.Sleep(s.B.FailDelay)
+			time.Sleep(s.B.Conf().FailDelay)
 			wc.send(ctx, errMsg(m.Id, "unauthorized", err.Error()))
 			c.Close(websocket.StatusPolicyViolation, "unauthorized")
 			return
@@ -257,7 +257,7 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request, binary bool) {
 		scopes = append(scopes, k)
 	}
 	if err := wc.send(ctx, &pb.ServerMessage{Body: &pb.ServerMessage_Welcome{Welcome: &pb.Welcome{
-		Bbs: s.B.Name, User: wh.user.Name, Node: int32(n.Num), Scopes: scopes}}}); err != nil {
+		Bbs: s.B.Conf().Name, User: wh.user.Name, Node: int32(n.Num), Scopes: scopes}}}); err != nil {
 		return
 	}
 

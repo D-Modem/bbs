@@ -139,7 +139,7 @@ func (u *ui) screen(name string) (bool, error) {
 func (u *ui) bye() {
 	pages, sc, ok := u.screenPages("goodbye", u.rows-3)
 	if !ok || len(pages) == 0 {
-		u.goodbye(u.b.Goodbye)
+		u.goodbye(u.b.Conf().Goodbye)
 		return
 	}
 	scr := u.frame("Goodbye", "", "")

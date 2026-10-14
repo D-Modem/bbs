@@ -39,7 +39,7 @@ func Run(b *bbs.BBS, n *bbs.Node, t *Term, o Options) error {
 	s := &session{b: b, n: n, t: t, c: n.Caller, o: o}
 	t.SetEcho(n.Echo)
 	n.SetEchoing()
-	t.Idle = b.IdleTimeout
+	t.Idle = b.Conf().IdleTimeout
 	err := s.run()
 	if errors.Is(err, errHangup) {
 		err = nil
@@ -79,11 +79,11 @@ func (s *session) logon() error {
 		return err
 	} else if !shown {
 		if t.Sixel {
-			t.Picture(sixelLogo(t, s.b.Name, s.o.LogoFile))
+			t.Picture(sixelLogo(t, s.b.Conf().Name, s.o.LogoFile))
 		}
-		t.Println(t.C(Cyan, s.b.Name))
-		if s.b.Banner != "" {
-			t.Println(s.b.Banner)
+		t.Println(t.C(Cyan, s.b.Conf().Name))
+		if s.b.Conf().Banner != "" {
+			t.Println(s.b.Conf().Banner)
 		}
 		via := "Node " + strconv.Itoa(s.n.Num) + ", " + s.c.Via
 		if baud := s.c.Baud(); baud != "" {
@@ -151,7 +151,7 @@ func (s *session) namePrompt() string {
 	if v, set := s.n.StrMarked("name_prompt"); set {
 		p = v
 	}
-	if s.b.NewUsers {
+	if s.b.Conf().NewUsers {
 		p = "Name" + t.C(Dim, " (or NEW)") + ": "
 		if v, set := s.n.StrMarked("new_name_prompt"); set {
 			p = v
@@ -182,9 +182,9 @@ func (s *session) login() error {
 		}
 	}
 
-	t.SetDeadline(time.Now().Add(s.b.LoginTimeout))
+	t.SetDeadline(time.Now().Add(s.b.Conf().LoginTimeout))
 	defer t.SetDeadline(time.Time{})
-	for try := 0; try < s.b.Attempts; try++ {
+	for try := 0; try < s.b.Conf().Attempts; try++ {
 		t.Print(s.namePrompt())
 		l, err := t.ReadLine(LineOpts{Max: bbs.MaxNameLen, Initial: s.c.LoginUser})
 		s.c.LoginUser = ""
@@ -209,7 +209,7 @@ func (s *session) login() error {
 			}
 		}
 		if strings.EqualFold(name, "new") {
-			if !s.b.NewUsers {
+			if !s.b.Conf().NewUsers {
 				t.Println(t.C(Red, "This system takes no new users."))
 				continue
 			}

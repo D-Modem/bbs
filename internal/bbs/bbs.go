@@ -117,10 +117,14 @@ func (c *Caller) Describe() string {
 
 // BBS is the running system.
 type BBS struct {
-	Settings
-	Store *store.Store
-	Files *files.Store // nil: no file areas
-	Log   *log.Logger
+	// Settings are the settings it began with; Conf is what is in force
+	// (Reconfigure changes it while callers are on)
+	Settings Settings
+	live     atomic.Pointer[Settings]
+	custom   atomic.Pointer[custom] // ReconfigureCustom's
+	Store    *store.Store
+	Files    *files.Store // nil: no file areas
+	Log      *log.Logger
 	// FTPAddress is where users are told to fetch files ("": no FTP)
 	FTPAddress string
 	// News is how articles made here are signed (newsgroup areas)
@@ -158,7 +162,7 @@ type BBS struct {
 	hubOnce  sync.Once
 	chat     *hub
 	relay    Relay // a chat network's rooms (MRC)
-	geoOnce  sync.Once
+	geoMu    sync.Mutex
 	geo      *geoip.File
 }
 
@@ -196,7 +200,7 @@ var ErrBusy = errors.New("all lines are busy")
 func (b *BBS) Enter(c *Caller, kick func()) (*Node, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if len(b.nodes) >= b.MaxNodes {
+	if len(b.nodes) >= b.Conf().MaxNodes {
 		return nil, ErrBusy
 	}
 	n := 1
@@ -325,12 +329,12 @@ var (
 
 // throttled reports whether source has failed too often lately.
 func (b *BBS) throttled(source string) bool {
-	if source == "" || b.ThrottleFails <= 0 {
+	if source == "" || b.Conf().ThrottleFails <= 0 {
 		return false
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	cut := time.Now().Add(-b.ThrottleTime)
+	cut := time.Now().Add(-b.Conf().ThrottleTime)
 	f := b.failures[source]
 	for len(f) > 0 && f[0].Before(cut) {
 		f = f[1:]
@@ -340,7 +344,7 @@ func (b *BBS) throttled(source string) bool {
 	} else {
 		b.failures[source] = f
 	}
-	return len(f) >= b.ThrottleFails
+	return len(f) >= b.Conf().ThrottleFails
 }
 
 // Refuse says whether a connection to service (finger, nntp, [listen
@@ -405,7 +409,7 @@ func (b *BBS) Authenticate(who, source, name, pw string) (*store.User, error) {
 		b.Log.Printf("%s: %s: login refused, throttled", who, source)
 		b.Guard.Hack("%s %s: login refused, throttled", source, who)
 		b.ban(source, "too many failed logins")
-		time.Sleep(b.FailDelay)
+		time.Sleep(b.Conf().FailDelay)
 		return nil, ErrThrottled
 	}
 	u, err := b.Store.CheckPassword(name, pw)
@@ -417,7 +421,7 @@ func (b *BBS) Authenticate(who, source, name, pw string) (*store.User, error) {
 		if b.throttled(source) {
 			b.ban(source, "too many failed logins")
 		}
-		time.Sleep(b.FailDelay)
+		time.Sleep(b.Conf().FailDelay)
 		return nil, ErrBadLogin
 	}
 	if err != nil {
@@ -427,7 +431,7 @@ func (b *BBS) Authenticate(who, source, name, pw string) (*store.User, error) {
 	if u.Locked {
 		b.Log.Printf("%s: %s: %s is locked", who, source, u.Name)
 		b.Guard.Hack("%s %s: login as %s, a locked account", source, who, u.Name)
-		time.Sleep(b.FailDelay)
+		time.Sleep(b.Conf().FailDelay)
 		return nil, ErrLocked
 	}
 	return u, nil
@@ -497,7 +501,7 @@ func (n *Node) CheckNewName(name string) string {
 // Register makes a new account for the node's caller and logs it in.
 func (n *Node) Register(name, pw, location string) (*store.User, error) {
 	b := n.b
-	if !b.NewUsers {
+	if !b.Conf().NewUsers {
 		return nil, ErrNoNew
 	}
 	if msg := ValidName(name); msg != "" {
@@ -521,10 +525,10 @@ func (n *Node) Register(name, pw, location string) (*store.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := b.Store.SetLevel(u.ID, b.NewUserLevel); err != nil {
+	if err := b.Store.SetLevel(u.ID, b.Conf().NewUserLevel); err != nil {
 		return nil, err
 	}
-	u.Level = b.NewUserLevel
+	u.Level = b.Conf().NewUserLevel
 	// a new account counts against the source like a failure, so that
 	// one caller cannot make thousands
 	b.failed(n.Caller.Source)
@@ -534,9 +538,9 @@ func (n *Node) Register(name, pw, location string) (*store.User, error) {
 
 // MOTDText is the message of the day: MOTD, then MOTDFile.
 func (b *BBS) MOTDText() string {
-	text := b.MOTD
-	if b.MOTDFile != "" {
-		if data, err := os.ReadFile(b.MOTDFile); err == nil {
+	text := b.Conf().MOTD
+	if b.Conf().MOTDFile != "" {
+		if data, err := os.ReadFile(b.Conf().MOTDFile); err == nil {
 			if len(data) > 8192 {
 				data = data[:8192]
 			}
@@ -674,7 +678,7 @@ func (n *Node) ChangePassword(old, pw string) error {
 		return errors.New("your password is kept by the system you came from")
 	}
 	if _, err := n.b.Store.CheckPassword(u.Name, old); err != nil {
-		time.Sleep(n.b.FailDelay)
+		time.Sleep(n.b.Conf().FailDelay)
 		return errors.New("that is not your password")
 	}
 	if msg := ValidPassword(pw, u.Name); msg != "" {

@@ -190,9 +190,9 @@ func (s *Server) serve(c net.Conn) {
 	ss.r = bufio.NewReaderSize(ss.c, 4096)
 	ss.w = bufio.NewWriterSize(ss.c, 16384)
 	if ss.canPost() {
-		ss.reply(200, s.Svc.B.Name+" news server ready, posting allowed")
+		ss.reply(200, s.Svc.B.Conf().Name+" news server ready, posting allowed")
 	} else {
-		ss.reply(201, s.Svc.B.Name+" news server ready, no posting")
+		ss.reply(201, s.Svc.B.Conf().Name+" news server ready, no posting")
 	}
 	for {
 		ss.w.Flush()

@@ -61,7 +61,7 @@ func pageHeaders(w http.ResponseWriter, r *http.Request) {
 func (s *Server) terminalPage(w http.ResponseWriter, r *http.Request) {
 	pageHeaders(w, r)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	page.Execute(w, struct{ Name string }{s.B.Name})
+	page.Execute(w, struct{ Name string }{s.B.Conf().Name})
 }
 
 func (s *Server) terminalAsset(w http.ResponseWriter, r *http.Request) {

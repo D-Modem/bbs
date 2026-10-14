@@ -165,7 +165,7 @@ func (q *req) view(b *store.Board, p *store.BoardPost, l *links, here int64, cut
 	if p.HasFile() {
 		v.SrcURL = fmt.Sprintf("%s/%s/src/%d%s", Base, b.Dir, p.Tim, p.Ext)
 		v.ThumbURL = fmt.Sprintf("%s/%s/thumb/%ds.jpg", Base, b.Dir, p.Tim)
-		v.Play = fileKind(p.Ext) == "flash" && q.s.S.Ruffle != ""
+		v.Play = fileKind(p.Ext) == "flash" && q.s.conf().Ruffle != ""
 	}
 	v.Staff = q.staff(b) != ""
 	v.Index = here == 0
@@ -204,7 +204,7 @@ func (s *Server) front(q *req) {
 			Thumb: fmt.Sprintf("%s/%s/thumb/%ds.jpg", Base, b.Dir, p.Tim), Title: b.Title, TnW: w, TnH: h})
 	}
 	posts, bytes, _ := s.B.Store.ChanStats()
-	q.render(http.StatusOK, "front.html", s.B.Name, nil, map[string]any{"Boards": boards, "Recent": thumbs,
+	q.render(http.StatusOK, "front.html", s.B.Conf().Name, nil, map[string]any{"Boards": boards, "Recent": thumbs,
 		"Posts": posts, "Bytes": bytes})
 }
 
@@ -332,7 +332,7 @@ func (s *Server) thread(q *req, b *store.Board, no int64) {
 		q.fail(http.StatusNotFound, "That thread is not here: it has been pruned or deleted.")
 		return
 	}
-	if !op.Archived.IsZero() && s.S.ArchiveFor > 0 && time.Since(op.Archived) > s.S.ArchiveFor {
+	if !op.Archived.IsZero() && s.conf().ArchiveFor > 0 && time.Since(op.Archived) > s.conf().ArchiveFor {
 		// its time in the archive is up
 		s.expireArchive(b)
 		q.fail(http.StatusNotFound, "That thread is not here: it was archived, and has been deleted since.")
@@ -425,10 +425,10 @@ func (q *req) form(b *store.Board, op *store.BoardPost) formView {
 	}
 	switch {
 	case !video:
-	case q.s.S.MaxVideo > 0 && b.Sound:
-		f.VideoRule = "Videos may be up to " + clock(q.s.S.MaxVideo.Milliseconds()) + " long."
-	case q.s.S.MaxVideo > 0:
-		f.VideoRule = "Videos may be up to " + clock(q.s.S.MaxVideo.Milliseconds()) + " long, without sound."
+	case q.s.conf().MaxVideo > 0 && b.Sound:
+		f.VideoRule = "Videos may be up to " + clock(q.s.conf().MaxVideo.Milliseconds()) + " long."
+	case q.s.conf().MaxVideo > 0:
+		f.VideoRule = "Videos may be up to " + clock(q.s.conf().MaxVideo.Milliseconds()) + " long, without sound."
 	case !b.Sound:
 		f.VideoRule = "Videos may not have sound."
 	}
@@ -447,7 +447,7 @@ func (s *Server) maxFile(b *store.Board) int64 {
 	if b.MaxFile > 0 {
 		return b.MaxFile
 	}
-	return s.S.MaxFile
+	return s.conf().MaxFile
 }
 
 // catalog is a board's threads at a glance: each first post's thumbnail,
@@ -509,8 +509,8 @@ func (s *Server) archive(q *req, b *store.Board) {
 		rows[i] = archiveRow{No: op.No, Subject: op.Subject, Excerpt: text, Archived: op.Archived, Replies: op.Replies}
 	}
 	keep := ""
-	if s.S.ArchiveFor > 0 {
-		keep = keepFor(s.S.ArchiveFor)
+	if s.conf().ArchiveFor > 0 {
+		keep = keepFor(s.conf().ArchiveFor)
 	}
 	q.render(http.StatusOK, "archive.html", "/"+b.Dir+"/ - "+b.Title+" - Archive", b, map[string]any{"Rows": rows,
 		"Keep": keep})

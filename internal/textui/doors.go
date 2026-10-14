@@ -56,7 +56,7 @@ func (s *session) OpenDoor(d *door.Door) error {
 	in := &door.Info{Node: s.n.Num, UserID: u.ID, UserName: u.Name, Location: u.Location,
 		Sysop: u.Sysop, Logins: u.Logins, Posts: u.Posts, LastLogin: u.LastLogin,
 		ANSI: t.ANSI, Rows: t.Rows, Cols: t.Cols, Baud: baud(s.c),
-		BBSName: s.b.Name, SysopName: s.b.Sysop, Level: u.Level}
+		BBSName: s.b.Conf().Name, SysopName: s.b.Conf().Sysop, Level: u.Level}
 	if left, ok := s.n.TimeLeft(); ok {
 		in.TimeLeft = max(left, time.Minute)
 	}
@@ -88,6 +88,6 @@ func (s *session) OpenDoor(d *door.Door) error {
 	if res.TimeUp {
 		t.Println(t.C(Red, "Your time in "+d.Name+" is up."))
 	}
-	t.Println(t.C(Green, "Back on "+s.b.Name+"."))
+	t.Println(t.C(Green, "Back on "+s.b.Conf().Name+"."))
 	return nil
 }

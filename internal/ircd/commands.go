@@ -88,14 +88,14 @@ func (c *client) command(m *ircmsg.Message) {
 	case "LUSERS":
 		c.lusers()
 	case "VERSION":
-		c.reply(RPL_VERSION, "bbs-sec", c.s.S.ServerName, "the chat of "+c.s.B.Name)
+		c.reply(RPL_VERSION, "bbs-sec", c.s.S.ServerName, "the chat of "+c.s.B.Conf().Name)
 		for _, line := range c.s.support.CachedReply {
 			c.reply(RPL_ISUPPORT, append(line, "are supported by this server")...)
 		}
 	case "TIME":
 		c.reply(RPL_TIME, c.s.S.ServerName, time.Now().Format(time.RFC1123))
 	case "INFO":
-		c.reply(RPL_INFO, c.s.B.Name+": the BBS's chat rooms are its channels")
+		c.reply(RPL_INFO, c.s.B.Conf().Name+": the BBS's chat rooms are its channels")
 		c.reply(RPL_ENDOFINFO, "End of INFO")
 	case "KICK", "INVITE", "OPER", "KILL", "KNOCK":
 		c.reply(ERR_NOPRIVILEGES, "Permission denied: the BBS's rooms are everyone's")
@@ -294,7 +294,7 @@ func (c *client) whois(nick string) {
 		if len(chans) > 0 {
 			c.reply(RPL_WHOISCHANNELS, svc.Name, strings.Join(chans, " "))
 		}
-		c.reply(RPL_WHOISSERVER, svc.Name, c.s.S.ServerName, c.s.B.Name)
+		c.reply(RPL_WHOISSERVER, svc.Name, c.s.S.ServerName, c.s.B.Conf().Name)
 		c.reply(RPL_ENDOFWHOIS, svc.Name, "End of /WHOIS list")
 		return
 	}
@@ -312,7 +312,7 @@ func (c *client) whois(nick string) {
 		real += ", " + u.Location
 	}
 	c.reply(RPL_WHOISUSER, nick, n.Via, fmt.Sprintf("node%d", n.Num), "*", real)
-	c.reply(RPL_WHOISSERVER, nick, c.s.S.ServerName, c.s.B.Name)
+	c.reply(RPL_WHOISSERVER, nick, c.s.S.ServerName, c.s.B.Conf().Name)
 	for _, o := range ns {
 		c.reply(RPL_WHOISSPECIAL, nick, fmt.Sprintf("is on node %d by %s: %s", o.Num, o.Via, o.Activity))
 	}

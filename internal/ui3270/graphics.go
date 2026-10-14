@@ -224,7 +224,7 @@ func (u *ui) setupGraphics() {
 		if w == 0 || h == 0 {
 			w, h = 9, 16
 		}
-		img, err := logoImage(g, u.b.Name, 2, h)
+		img, err := logoImage(g, u.b.Conf().Name, 2, h)
 		if err != nil {
 			u.b.Log.Printf("node %d: logo: %v", u.n.Num, err)
 			return
@@ -240,7 +240,7 @@ func (u *ui) setupGraphics() {
 	if !ok {
 		return
 	}
-	img, err := logoImage(g, u.b.Name, 2, ch)
+	img, err := logoImage(g, u.b.Conf().Name, 2, ch)
 	if err == nil {
 		img = fitLogo(img, (u.cols-4)*cw, maxLogoRows*ch)
 	}

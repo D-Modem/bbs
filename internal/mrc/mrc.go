@@ -138,7 +138,7 @@ func New(b *bbs.BBS, s Settings) (*Client, error) {
 		s.Prefix = "mrc-"
 	}
 	if s.SystemName == "" {
-		s.SystemName = b.Name
+		s.SystemName = b.Conf().Name
 	}
 	if s.ReconnectDelay <= 0 {
 		s.ReconnectDelay = 30 * time.Second
@@ -150,7 +150,7 @@ func New(b *bbs.BBS, s Settings) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("mrc: require: %v", err)
 	}
-	return &Client{B: b, S: s, site: SanitizeName(Strip(b.Name)), req: req, users: map[string]*user{}}, nil
+	return &Client{B: b, S: s, site: SanitizeName(Strip(b.Conf().Name)), req: req, users: map[string]*user{}}, nil
 }
 
 // Site is the BBS's name on MRC.

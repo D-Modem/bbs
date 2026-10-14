@@ -154,9 +154,9 @@ func (s *Server) handle(c net.Conn) {
 }
 
 func (s *Server) root(c io.Writer) {
-	items := []item{{'i', s.B.Name, ""}}
-	if s.B.Location != "" {
-		items = append(items, item{'i', s.B.Location, ""})
+	items := []item{{'i', s.B.Conf().Name, ""}}
+	if s.B.Conf().Location != "" {
+		items = append(items, item{'i', s.B.Conf().Location, ""})
 	}
 	items = append(items, item{'i', "", ""},
 		item{'0', "About this system", "/about"},
@@ -171,11 +171,11 @@ func (s *Server) root(c io.Writer) {
 }
 
 func (s *Server) about() []string {
-	out := []string{s.B.Name}
-	if s.B.Location != "" {
-		out = append(out, s.B.Location)
+	out := []string{s.B.Conf().Name}
+	if s.B.Conf().Location != "" {
+		out = append(out, s.B.Conf().Location)
 	}
-	out = append(out, "Sysop: "+s.B.Sysop, "")
+	out = append(out, "Sysop: "+s.B.Conf().Sysop, "")
 	if us, err := s.B.Store.Users(); err == nil {
 		out = append(out, fmt.Sprintf("%d users", len(us)))
 	}
@@ -223,7 +223,7 @@ func (s *Server) area(id int64) *store.Area {
 
 func (s *Server) areas(c io.Writer) {
 	as, _ := s.B.Store.Areas()
-	items := []item{{'i', "Message areas of " + s.B.Name, ""}, {'i', "", ""}}
+	items := []item{{'i', "Message areas of " + s.B.Conf().Name, ""}, {'i', "", ""}}
 	for _, a := range as {
 		if s.open(a) {
 			items = append(items, item{'1', fmt.Sprintf("%s (%d)  %s", a.Name, a.Messages, a.Description),
@@ -273,7 +273,7 @@ func (s *Server) fileAreas(c io.Writer) {
 		return
 	}
 	fas, _ := s.B.Store.FileAreas()
-	items := []item{{'i', "File areas of " + s.B.Name, ""}, {'i', "", ""}}
+	items := []item{{'i', "File areas of " + s.B.Conf().Name, ""}, {'i', "", ""}}
 	for _, fa := range fas {
 		items = append(items, item{'1', fmt.Sprintf("%s (%d)  %s", fa.Name, fa.Files, fa.Description),
 			fmt.Sprintf("/files/%d", fa.ID)})

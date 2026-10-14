@@ -130,9 +130,9 @@ func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
 		if err != nil {
 			return nil, refuse(http.StatusInternalServerError, "The system is in trouble: try again later.")
 		}
-		wait := s.S.ReplyWait - time.Since(last)
+		wait := s.conf().ReplyWait - time.Since(last)
 		if sub.Thread == 0 {
-			wait = max(wait, s.S.ThreadWait-time.Since(lastThread))
+			wait = max(wait, s.conf().ThreadWait-time.Since(lastThread))
 		}
 		if wait > 0 {
 			return nil, refuse(http.StatusTooManyRequests, "Flood detected: wait %d seconds before posting again.",
@@ -173,8 +173,8 @@ func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
 		p.PosterID = s.posterID(sub.IP, b.Dir, sub.Thread)
 	}
 	p.Comment = cleanComment(sub.Comment)
-	if n := utf8.RuneCountInString(p.Comment); n > s.S.MaxComment {
-		return nil, refuse(http.StatusBadRequest, "Your comment is too long: %d characters, at most %d.", n, s.S.MaxComment)
+	if n := utf8.RuneCountInString(p.Comment); n > s.conf().MaxComment {
+		return nil, refuse(http.StatusBadRequest, "Your comment is too long: %d characters, at most %d.", n, s.conf().MaxComment)
 	}
 	if strings.Count(p.Comment, "\n") >= maxLines {
 		return nil, refuse(http.StatusBadRequest, "Your comment has too many lines: at most %d.", maxLines)
@@ -376,7 +376,7 @@ func (s *Server) post(q *req, b *store.Board) {
 // in milliseconds (4chan's tim), the next free one.
 func (s *Server) keepFiles(dir string, p *store.BoardPost, pic *picture) error {
 	for _, d := range []string{"src", "thumb"} {
-		if err := os.MkdirAll(filepath.Join(s.S.Dir, dir, d), 0700); err != nil {
+		if err := os.MkdirAll(filepath.Join(s.conf().Dir, dir, d), 0700); err != nil {
 			return err
 		}
 	}

@@ -173,12 +173,12 @@ func (s *Server) boardsJSON(q *req) {
 		Boards []board `json:"boards"`
 	}{Boards: []board{}}
 	for _, b := range bs {
-		cd := cooldowns{int(s.S.ThreadWait.Seconds()), int(s.S.ReplyWait.Seconds()), int(s.S.ReplyWait.Seconds())}
+		cd := cooldowns{int(s.conf().ThreadWait.Seconds()), int(s.conf().ReplyWait.Seconds()), int(s.conf().ReplyWait.Seconds())}
 		out.Boards = append(out.Boards, board{Board: b.Dir, Title: b.Title, WSBoard: flag(b.Worksafe), PerPage: b.PerPage,
-			Pages: b.Pages, MaxFilesize: s.maxFile(b), MaxCommentChars: s.S.MaxComment, ImageLimit: b.ImageLimit,
+			Pages: b.Pages, MaxFilesize: s.maxFile(b), MaxCommentChars: s.conf().MaxComment, ImageLimit: b.ImageLimit,
 			BumpLimit: b.BumpLimit, MetaDescription: b.Description, Cooldowns: cd, ForcedAnon: flag(b.ForcedAnon),
 			TextOnly: flag(b.TextOnly), Oekaki: flag(b.Oekaki), UserIDs: flag(b.PosterIDs),
-			CountryFlags: flag(b.Flags && s.S.GeoIP != ""), Login: loginOf(b), Captcha: flag(s.captchaOn(b)), Spoilers: 1, CodeTags: 1,
+			CountryFlags: flag(b.Flags && s.conf().GeoIP != ""), Login: loginOf(b), Captcha: flag(s.captchaOn(b)), Spoilers: 1, CodeTags: 1,
 			IsArchived: flag(b.Archive)})
 		if bd := &out.Boards[len(out.Boards)-1]; b.FileTypes != "" {
 			for _, k := range FileKinds {
@@ -187,7 +187,7 @@ func (s *Server) boardsJSON(q *req) {
 				}
 			}
 			if takes(b, "webm") || takes(b, "mp4") {
-				bd.WebmAudio, bd.MaxWebmDuration = flag(b.Sound), int(s.S.MaxVideo.Seconds())
+				bd.WebmAudio, bd.MaxWebmDuration = flag(b.Sound), int(s.conf().MaxVideo.Seconds())
 			}
 		}
 	}

@@ -11,7 +11,7 @@ import (
 func TestQWK(t *testing.T) {
 	b, ns := chatBBS(t)
 	alice, bob := ns["alice"], ns["bob"]
-	b.Name = "The Test Board"
+	b.Settings.Name = "The Test Board"
 	if b.BBSID() != "THETESTB" {
 		t.Errorf("BBSID %q", b.BBSID())
 	}

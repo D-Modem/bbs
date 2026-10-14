@@ -473,7 +473,7 @@ func taken(b *store.Board) error {
 // a video or PDF, and makes its thumbnail.
 func (s *Server) prepareFile(b *store.Board, data []byte, side int, bg color.Color) (*picture, error) {
 	if sniff(data) != "" {
-		return prepare(data, side, bg, s.S.Strip)
+		return prepare(data, side, bg, s.conf().Strip)
 	}
 	ext := sniffMedia(data)
 	if ext == "" || !takes(b, mediaTypes[ext].kind) {
@@ -508,10 +508,10 @@ func (s *Server) prepareFile(b *store.Board, data []byte, side int, bg color.Col
 			return nil, fmt.Errorf("That video is too large: at most %d by %d pixels.", maxVideoSide, maxVideoSide)
 		case m.Sound && !b.Sound:
 			return nil, errors.New("This board takes videos without sound: take its audio track out.")
-		case s.S.MaxVideo > 0 && m.DurationMS == 0:
+		case s.conf().MaxVideo > 0 && m.DurationMS == 0:
 			return nil, errors.New("That video does not say how long it is.")
-		case s.S.MaxVideo > 0 && time.Duration(m.DurationMS)*time.Millisecond > s.S.MaxVideo:
-			return nil, fmt.Errorf("That video is too long: at most %s.", clock(s.S.MaxVideo.Milliseconds()))
+		case s.conf().MaxVideo > 0 && time.Duration(m.DurationMS)*time.Millisecond > s.conf().MaxVideo:
+			return nil, fmt.Errorf("That video is too long: at most %s.", clock(s.conf().MaxVideo.Milliseconds()))
 		}
 	}
 	img, err := s.frame(data, ext)
@@ -565,9 +565,9 @@ func (s *Server) frame(data []byte, ext string) (image.Image, error) {
 	var tool string
 	switch ext {
 	case ".webm", ".mp4", ".flv":
-		tool = s.S.FFmpeg
+		tool = s.conf().FFmpeg
 	case ".pdf":
-		tool = s.S.PDFToPPM
+		tool = s.conf().PDFToPPM
 	}
 	if tool == "" {
 		return nil, nil

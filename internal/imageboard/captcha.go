@@ -79,12 +79,12 @@ func (s *Server) captchaAEAD() cipher.AEAD {
 
 // NewCaptcha is a new captcha's token.
 func (s *Server) NewCaptcha() string {
-	n := min(max(s.S.CaptchaLength, MinCaptchaLength), MaxCaptchaLength)
+	n := min(max(s.conf().CaptchaLength, MinCaptchaLength), MaxCaptchaLength)
 	answer := make([]byte, n)
 	for i := range answer {
 		answer[i] = captchaLetters[mrand.IntN(len(captchaLetters))]
 	}
-	ttl := s.S.CaptchaTTL
+	ttl := s.conf().CaptchaTTL
 	if ttl <= 0 {
 		ttl = 10 * time.Minute
 	}
@@ -215,7 +215,7 @@ func (s *Server) captchaPNG(q *req) {
 	h.Set("Content-Type", "image/png")
 	h.Set("Cache-Control", "no-store")
 	h.Set("Content-Security-Policy", "default-src 'none'")
-	q.w.Write(captchaImage(answer, s.S.CaptchaLevel))
+	q.w.Write(captchaImage(answer, s.conf().CaptchaLevel))
 }
 
 // captchaJSON is a new captcha's token, for the page's script ("new one").
@@ -232,7 +232,7 @@ func (s *Server) captchaOn(b *store.Board) bool {
 	case "no":
 		return false
 	}
-	return s.S.Captcha
+	return s.conf().Captcha
 }
 
 // needsCaptcha says whether the caller must answer a captcha to post on a
@@ -250,5 +250,5 @@ func (s *Server) ShowOptions(b *store.Board) bool {
 	case "no":
 		return false
 	}
-	return s.S.Options
+	return s.conf().Options
 }

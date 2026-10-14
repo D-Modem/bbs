@@ -42,7 +42,7 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 		}
 		put("bbs_nodes_by_via", "gauge", help, byVia[v], "via", v)
 	}
-	put("bbs_max_nodes", "gauge", "Nodes there are.", s.B.MaxNodes)
+	put("bbs_max_nodes", "gauge", "Nodes there are.", s.B.Conf().MaxNodes)
 	if us, err := s.B.Store.Users(); err == nil {
 		put("bbs_users", "gauge", "User accounts.", len(us))
 	}

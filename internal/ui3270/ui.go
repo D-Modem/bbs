@@ -128,7 +128,7 @@ func (u *ui) show(scr go3270.Screen, vals map[string]string) (go3270.Response, m
 	}
 	for {
 		u.g.n = 0
-		d := time.Now().Add(u.b.IdleTimeout)
+		d := time.Now().Add(u.b.Conf().IdleTimeout)
 		if !u.deadline.IsZero() && u.deadline.Before(d) {
 			d = u.deadline
 		}
@@ -197,7 +197,7 @@ func (u *ui) input(row, col, width int, name string, hidden bool) []go3270.Field
 // frame is a screen's title line, message line and key line.
 func (u *ui) frame(title, keys, msg string) go3270.Screen {
 	node := "Node " + strconv.Itoa(u.n.Num)
-	name := bbs.Trunc(u.b.Name, 30)
+	name := bbs.Trunc(u.b.Conf().Name, 30)
 	mid := u.cols - 1 - 30 - len(node)
 	head := bbs.Fit(name, 30) + bbs.Fit(centre(title, mid), mid) + node
 	color := go3270.Red
@@ -238,13 +238,13 @@ func (u *ui) logon() error {
 		return nil
 	}
 
-	u.deadline = time.Now().Add(u.b.LoginTimeout)
+	u.deadline = time.Now().Add(u.b.Conf().LoginTimeout)
 	defer func() { u.deadline = time.Time{} }()
 	msg := ""
 	vals := map[string]string{}
-	for try := 0; try < u.b.Attempts; {
+	for try := 0; try < u.b.Conf().Attempts; {
 		keys := "Enter=Log on  PF3=Exit"
-		if u.b.NewUsers {
+		if u.b.Conf().NewUsers {
 			keys += "  PF5=New user"
 		}
 		scr := u.frame("Logon", keys, msg)
@@ -259,7 +259,7 @@ func (u *ui) logon() error {
 				row++
 			}
 		} else {
-			for _, l := range strings.Split(strings.TrimRight(u.b.Banner, "\n"), "\n") {
+			for _, l := range strings.Split(strings.TrimRight(u.b.Conf().Banner, "\n"), "\n") {
 				if row > u.rows-10 {
 					break
 				}
@@ -279,7 +279,7 @@ func (u *ui) logon() error {
 		scr = append(scr, u.input(r, 16, bbs.MaxNameLen, "name", false)...)
 		scr = append(scr, u.text(r+1, 2, "Password ===>", go3270.Turquoise, false))
 		scr = append(scr, u.input(r+1, 16, 32, "password", true)...)
-		if u.b.NewUsers {
+		if u.b.Conf().NewUsers {
 			scr = append(scr, u.text(r+3, 2, "New here?  Press PF5 to make an account.", go3270.White, false))
 		}
 		vals["password"] = ""
@@ -293,7 +293,7 @@ func (u *ui) logon() error {
 			u.bye()
 			return errLogoff
 		case go3270.AIDPF5:
-			if !u.b.NewUsers {
+			if !u.b.Conf().NewUsers {
 				continue
 			}
 			ok, err := u.register()

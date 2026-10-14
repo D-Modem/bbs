@@ -76,7 +76,7 @@ func (s *Server) handle(c net.Conn) {
 // online lists the callers on.
 func (s *Server) online() []string {
 	if !s.S.Online {
-		return []string{"Who is on " + s.B.Name + " is not told by finger."}
+		return []string{"Who is on " + s.B.Conf().Name + " is not told by finger."}
 	}
 	ns := s.B.Nodes()
 	on := 0
@@ -85,7 +85,7 @@ func (s *Server) online() []string {
 			on++
 		}
 	}
-	out := []string{fmt.Sprintf("%s: %d %s on", s.B.Name, on, map[bool]string{true: "caller", false: "callers"}[on == 1]), ""}
+	out := []string{fmt.Sprintf("%s: %d %s on", s.B.Conf().Name, on, map[bool]string{true: "caller", false: "callers"}[on == 1]), ""}
 	if on == 0 {
 		return out[:1]
 	}

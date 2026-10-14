@@ -505,7 +505,7 @@ func TestMailAndWho(t *testing.T) {
 
 func TestProfileAndValidate(t *testing.T) {
 	b, alice, sysop := setup(t)
-	b.ValidatedLevel, b.NewUserLevel = 20, 10
+	b.Conf().ValidatedLevel, b.Settings.NewUserLevel = 20, 10
 	zed, err := b.Store.CreateUser("zed", "password1", "Mars", false)
 	if err != nil {
 		t.Fatal(err)

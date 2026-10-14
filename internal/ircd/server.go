@@ -72,7 +72,7 @@ func New(b *bbs.BBS, s Settings) (*Server, error) {
 				return '-'
 			}
 			return r
-		}, b.Name)
+		}, b.Conf().Name)
 	}
 	if s.Service == "" {
 		s.Service = "BBSServ"

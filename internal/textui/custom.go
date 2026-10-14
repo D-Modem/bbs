@@ -138,7 +138,7 @@ func (s *session) Logoff() (bool, error) {
 	}
 	t.Println("")
 	if shown, err := s.screen("goodbye"); err != nil || !shown {
-		t.Println(s.b.Goodbye)
+		t.Println(s.b.Conf().Goodbye)
 	}
 	return true, nil
 }

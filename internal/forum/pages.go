@@ -132,7 +132,7 @@ func (s *Server) index(q *req) {
 			}
 		}
 	}
-	q.render(http.StatusOK, "index.html", s.B.Name, nil, map[string]any{
+	q.render(http.StatusOK, "index.html", s.B.Conf().Name, nil, map[string]any{
 		"Categories": cats, "Stats": st, "Online": onlineUsers(s.B)})
 }
 
@@ -280,7 +280,7 @@ func (s *Server) topic(q *req) {
 		if pm.FromID == 0 {
 			pv.Where = origin(pm.Origin)
 		}
-		if s.Flags {
+		if s.opts().Flags {
 			pv.Flag, pv.Country = flagOf(pm.Country)
 		}
 		up, _, mine, _ := s.B.Store.Votes(pm.ID, uid)
@@ -509,7 +509,7 @@ func (s *Server) deletePost(q *req) {
 
 func (s *Server) profile(q *req) {
 	u, err := s.B.Store.UserByName(q.r.PathValue("name"))
-	if err != nil || q.user == nil && !s.Guests {
+	if err != nil || q.user == nil && !s.opts().Guests {
 		if err == nil {
 			q.needLogin()
 			return
@@ -543,7 +543,7 @@ func (s *Server) profile(q *req) {
 func (s *Server) online(q *req) {
 	nodes := s.B.Nodes()
 	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Num < nodes[j].Num })
-	q.render(http.StatusOK, "online.html", "Online Users", []crumb{{"Online Users", ""}}, map[string]any{"Nodes": nodes, "Flags": s.Flags})
+	q.render(http.StatusOK, "online.html", "Online Users", []crumb{{"Online Users", ""}}, map[string]any{"Nodes": nodes, "Flags": s.opts().Flags})
 }
 
 type hit struct {
@@ -620,7 +620,7 @@ func (s *Server) logout(q *req) {
 }
 
 func (s *Server) register(q *req) {
-	if !s.B.NewUsers {
+	if !s.B.Conf().NewUsers {
 		q.fail(http.StatusForbidden, "New members are not being taken.")
 		return
 	}

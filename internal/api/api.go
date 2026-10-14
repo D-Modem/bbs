@@ -283,7 +283,7 @@ func (s *Server) wrap(rt route) http.HandlerFunc {
 			return
 		}
 		if err != nil {
-			time.Sleep(s.B.FailDelay)
+			time.Sleep(s.B.Conf().FailDelay)
 			fail(w, http.StatusUnauthorized, err.Error())
 			return
 		}

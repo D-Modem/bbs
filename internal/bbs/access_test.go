@@ -67,12 +67,12 @@ func TestRequire(t *testing.T) {
 
 func levelBBS(t *testing.T) (*BBS, map[string]*Node) {
 	b, nodes := chatBBS(t)
-	b.NewUserLevel, b.ValidatedLevel = 10, 20
+	b.Conf().NewUserLevel, b.Settings.ValidatedLevel = 10, 20
 	newbie := AllowAll(10, "New")
 	newbie.Post, newbie.Mail, newbie.Chat = false, false, false
 	newbie.Time, newbie.Downloads = 30*time.Minute, 1
-	b.Levels = []Level{newbie, AllowAll(20, "Member")}
-	b.Levels[1].Downloads = 3
+	b.Settings.Levels = []Level{newbie, AllowAll(20, "Member")}
+	b.Settings.Levels[1].Downloads = 3
 	for name, n := range nodes {
 		u := n.User()
 		u.Level = map[string]int{"alice": 10, "bob": 20, "sysop": 0}[name]
@@ -134,7 +134,7 @@ func TestLevels(t *testing.T) {
 	if _, err := nodes["alice"].JoinRoom("main"); err != ErrNotAllowed {
 		t.Errorf("alice chatted: %v", err)
 	}
-	b.Levels[0].Page = false
+	b.Settings.Levels[0].Page = false
 	if _, _, err := nodes["alice"].PageSysop("hi"); err != ErrNotAllowed {
 		t.Errorf("alice paged: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestTimeLimit(t *testing.T) {
 	b, _ := levelBBS(t)
 	minCallTime = 300 * time.Millisecond
 	t.Cleanup(func() { minCallTime = time.Minute })
-	b.Levels[0].Time = 100 * time.Millisecond
+	b.Settings.Levels[0].Time = 100 * time.Millisecond
 	kicked := make(chan bool, 1)
 	n, err := b.Enter(&Caller{Via: "test"}, func() { kicked <- true })
 	if err != nil {
@@ -221,7 +221,7 @@ func TestDownloadRatio(t *testing.T) {
 	b, ns := chatBBS(t)
 	l := AllowAll(20, "Member")
 	l.Ratio, l.RatioFree, l.Downloads = 2, 3, 10
-	b.Levels = []Level{l}
+	b.Settings.Levels = []Level{l}
 	u := ns["alice"].Refresh()
 	u.Level = 20
 	if left, _ := b.DownloadsLeft(u); left != 3 {
@@ -252,7 +252,7 @@ func TestGuardedLogins(t *testing.T) {
 	names := filepath.Join(dir, "names")
 	os.WriteFile(names, []byte("*spam*\n"), 0644)
 	b.Guard = &guard.Guard{HackLog: filepath.Join(dir, "hack.log"), NameDenyFile: names, BanTime: time.Hour}
-	b.ThrottleFails, b.ThrottleTime, b.FailDelay, b.NewUsers = 3, time.Minute, 0, true
+	b.Conf().ThrottleFails, b.Conf().ThrottleTime, b.Conf().FailDelay, b.Settings.NewUsers = 3, time.Minute, 0, true
 	addr := &net.TCPAddr{IP: net.ParseIP("192.0.2.9"), Port: 4000}
 	for i := 0; i < 3; i++ {
 		if _, err := b.Authenticate("node 9", "ip:192.0.2.9", "root", "x"); err != ErrBadLogin {

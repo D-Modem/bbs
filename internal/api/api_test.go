@@ -540,7 +540,7 @@ func TestWebSocketRefusals(t *testing.T) {
 		t.Errorf("ping before auth: %v", e)
 	}
 	// all lines busy
-	s.b.MaxNodes = 0
+	s.b.Settings.MaxNodes = 0
 	w = s.ws(false, s.login("alice", "alicepass1"), true)
 	if e := w.recv().GetError(); e.GetCode() != "unavailable" {
 		t.Errorf("busy: %v", e)
@@ -654,7 +654,7 @@ func TestSSHKeys(t *testing.T) {
 // change their own access.
 func TestAccess(t *testing.T) {
 	s := setup(t, Settings{})
-	s.b.ValidatedLevel = 20
+	s.b.Settings.ValidatedLevel = 20
 	alice, sysop := s.login("alice", "alicepass1"), s.login("sysop", "sysoppass1")
 	// no raising one's own level or flags
 	for _, body := range []map[string]any{{"level": 255}, {"flags": "ABC"}} {

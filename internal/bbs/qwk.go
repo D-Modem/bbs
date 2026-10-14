@@ -26,10 +26,10 @@ const (
 
 // BBSID is the name of the BBS's QWK packets.
 func (b *BBS) BBSID() string {
-	if b.QWKID != "" {
-		return b.QWKID
+	if b.Conf().QWKID != "" {
+		return b.Conf().QWKID
 	}
-	return qwk.MakeID(b.Name)
+	return qwk.MakeID(b.Conf().Name)
 }
 
 // QWKOut is a packet made for a user.  Its messages count as read (the
@@ -54,7 +54,7 @@ func (n *Node) QWKPacket() (*QWKOut, error) {
 		return nil, errors.New("not logged in")
 	}
 	b := n.b
-	p := &qwk.Packet{BBSID: b.BBSID(), BBSName: b.Name, Location: b.Location, Sysop: b.Sysop,
+	p := &qwk.Packet{BBSID: b.BBSID(), BBSName: b.Conf().Name, Location: b.Conf().Location, Sysop: b.Conf().Sysop,
 		User: u.Name, Created: time.Now(), Welcome: b.MOTDText(),
 		Confs: []qwk.Conference{{Number: 0, Name: "Mail"}}}
 	out := &QWKOut{Name: p.BBSID + ".QWK"}

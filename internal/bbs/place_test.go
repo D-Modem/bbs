@@ -9,8 +9,8 @@ import (
 // keeps the poster's country.
 func TestPlace(t *testing.T) {
 	b, nodes := chatBBS(t)
-	b.GeoIP = filepath.Join("..", "geoip", "testdata", "test-24.mmdb")
-	b.PhoneCountry = "US"
+	b.Settings.GeoIP = filepath.Join("..", "geoip", "testdata", "test-24.mmdb")
+	b.Settings.PhoneCountry = "US"
 	for _, c := range []struct {
 		caller Caller
 		want   Place
@@ -52,7 +52,7 @@ func TestPlace(t *testing.T) {
 // A city database: the region and city of callers by address.
 func TestPlaceCity(t *testing.T) {
 	b, _ := chatBBS(t)
-	b.GeoIP = filepath.Join("..", "geoip", "testdata", "test-city.mmdb")
+	b.Settings.GeoIP = filepath.Join("..", "geoip", "testdata", "test-city.mmdb")
 	for _, c := range []struct {
 		ip   string
 		want Place

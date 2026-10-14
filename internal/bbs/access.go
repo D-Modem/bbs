@@ -212,9 +212,9 @@ func (b *BBS) LevelOf(u *store.User) Level {
 		return AllowAll(u.Level, "Sysop")
 	}
 	var out *Level
-	for i := range b.Levels {
-		if b.Levels[i].Num <= u.Level {
-			out = &b.Levels[i]
+	for i := range b.Conf().Levels {
+		if b.Conf().Levels[i].Num <= u.Level {
+			out = &b.Conf().Levels[i]
 		}
 	}
 	if out == nil {
@@ -306,7 +306,7 @@ func (b *BBS) CanDoor(u *store.User, d *door.Door) bool {
 // Validate raises a waiting user to the validated level (no lower than
 // they are).
 func (b *BBS) Validate(u *store.User, by string) error {
-	level := max(b.ValidatedLevel, u.Level)
+	level := max(b.Conf().ValidatedLevel, u.Level)
 	if err := b.Store.SetLevel(u.ID, level); err != nil {
 		return err
 	}

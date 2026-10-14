@@ -332,7 +332,7 @@ func TestPostingAndReading(t *testing.T) {
 
 func TestRegister(t *testing.T) {
 	s := setup(t)
-	s.b.NewUsers = true
+	s.b.Settings.NewUsers = true
 	br := s.browser()
 	_, _, body := br.post("", "/forum/register", url.Values{"name": {"newbie"}, "password": {"password9"}, "password2": {"password8"}})
 	has(t, "differ", body, "The passwords differ.")
@@ -344,7 +344,7 @@ func TestRegister(t *testing.T) {
 	if u, err := s.b.Store.UserByName("newbie"); err != nil || u.Location != "Mars" {
 		t.Errorf("user %+v %v", u, err)
 	}
-	s.b.NewUsers = false
+	s.b.Settings.NewUsers = false
 	if code, _, _ := s.browser().get("/forum/register"); code != 403 {
 		t.Errorf("closed: %d", code)
 	}
@@ -536,7 +536,7 @@ func TestFlags(t *testing.T) {
 	hasNot(t, "flags off", body, flag)
 
 	s.fs.Flags = true
-	s.b.GeoIP, s.b.GeoCredit, s.b.GeoCreditURL = "countries.mmdb", "DB-IP", "https://db-ip.com"
+	s.b.Settings.GeoIP, s.b.Settings.GeoCredit, s.b.Settings.GeoCreditURL = "countries.mmdb", "DB-IP", "https://db-ip.com"
 	for _, th := range Themes {
 		guest.post("", "/forum/theme", url.Values{"theme": {th.Name}, "back": {topic}})
 		_, _, body := guest.get(topic)

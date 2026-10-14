@@ -348,9 +348,9 @@ func (r *run) uiObject() *goja.Object {
 
 func (r *run) bbsObject() *goja.Object {
 	o := r.vm.NewObject()
-	o.Set("name", r.b.Name)
-	o.Set("sysop", r.b.Sysop)
-	o.Set("location", r.b.Location)
+	o.Set("name", r.b.Conf().Name)
+	o.Set("sysop", r.b.Conf().Sysop)
+	o.Set("location", r.b.Conf().Location)
 	o.Set("log", func(text string) {
 		r.b.Log.Printf("node %d: script %s: %s", r.n.Num, r.name, bbs.Clean(text, 400))
 	})

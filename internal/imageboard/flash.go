@@ -445,11 +445,11 @@ var ruffleName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*\.(js|wasm|map)$
 // frame is sandboxed, of no origin, so they are fetched from elsewhere:
 // anyone may (they are Ruffle's, the same for every site).
 func (s *Server) serveRuffle(q *req, name string) {
-	if s.S.Ruffle == "" || !ruffleName.MatchString(name) {
+	if s.conf().Ruffle == "" || !ruffleName.MatchString(name) {
 		q.notFound()
 		return
 	}
-	f, err := os.Open(filepath.Join(s.S.Ruffle, name))
+	f, err := os.Open(filepath.Join(s.conf().Ruffle, name))
 	if err != nil {
 		q.notFound()
 		return
@@ -483,7 +483,7 @@ const flashPage = `<!doctype html>
 `
 
 func (s *Server) serveFlashPage(q *req) {
-	if s.S.Ruffle == "" {
+	if s.conf().Ruffle == "" {
 		q.notFound()
 		return
 	}

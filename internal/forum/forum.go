@@ -18,6 +18,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
@@ -125,7 +126,27 @@ type Server struct {
 
 	tmpl map[string]*template.Template // by theme
 	key  []byte                        // for forms' CSRF tokens
+	live atomic.Pointer[Options]       // Reconfigure's
 }
+
+// Options are the forum's settings that can change while it runs.
+type Options struct {
+	Guests bool
+	Theme  string
+	Flags  bool
+}
+
+// opts is the options in force: the Server's own, or the last
+// Reconfigure's.
+func (s *Server) opts() Options {
+	if o := s.live.Load(); o != nil {
+		return *o
+	}
+	return Options{Guests: s.Guests, Theme: s.Theme, Flags: s.Flags}
+}
+
+// Reconfigure puts options in force while the forum runs.
+func (s *Server) Reconfigure(o Options) { s.live.Store(&o) }
 
 // Base is where the forum is.
 const Base = "/forum"
@@ -275,7 +296,7 @@ func (q *req) node() *bbs.Node {
 // canRead: the user (or a guest) may read the area.
 func (q *req) canRead(a *store.Area) bool {
 	if q.user == nil {
-		return q.s.Guests && a.ReadReq == ""
+		return q.s.opts().Guests && a.ReadReq == ""
 	}
 	return q.s.B.CanRead(q.user, a)
 }
@@ -327,11 +348,11 @@ type crumb struct {
 
 // render shows a page.
 func (q *req) render(status int, name, title string, crumbs []crumb, body any) {
-	p := page{Title: title, BBS: q.s.B.Name, User: q.user, CSRF: q.csrf(), Crumbs: crumbs, Terminal: q.s.Terminal,
-		Register: q.user == nil && q.s.B.NewUsers, Now: time.Now(), Body: body, Notice: q.r.URL.Query().Get("notice"),
+	p := page{Title: title, BBS: q.s.B.Conf().Name, User: q.user, CSRF: q.csrf(), Crumbs: crumbs, Terminal: q.s.Terminal,
+		Register: q.user == nil && q.s.B.Conf().NewUsers, Now: time.Now(), Body: body, Notice: q.r.URL.Query().Get("notice"),
 		Theme: q.theme(), Themes: Themes, Path: q.r.URL.RequestURI(), Page: name}
-	if q.s.Flags && q.s.B.GeoIP != "" {
-		p.GeoCredit, p.GeoCreditURL = q.s.B.GeoCredit, q.s.B.GeoCreditURL
+	if q.s.opts().Flags && q.s.B.Conf().GeoIP != "" {
+		p.GeoCredit, p.GeoCreditURL = q.s.B.Conf().GeoCredit, q.s.B.Conf().GeoCreditURL
 	}
 	switch {
 	case strings.HasPrefix(name, "online"):
@@ -363,8 +384,8 @@ func (q *req) theme() string {
 	if c, err := q.r.Cookie(themeCookie); err == nil && KnownTheme(c.Value) {
 		return c.Value
 	}
-	if KnownTheme(q.s.Theme) {
-		return q.s.Theme
+	if KnownTheme(q.s.opts().Theme) {
+		return q.s.opts().Theme
 	}
 	return Themes[0].Name
 }

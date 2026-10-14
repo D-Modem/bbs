@@ -117,7 +117,7 @@ func Run(b *bbs.BBS, n *bbs.Node, ui Frontend) error {
 			return err
 		}
 	}
-	if m := b.Menus["main"]; m != nil {
+	if m := b.Menu("main"); m != nil {
 		return s.runMenu(m, 0, intro)
 	}
 	return s.mainMenu(intro)
@@ -150,7 +150,7 @@ func (s *Session) welcome(shown bool) []view.Line {
 	if left, ok := s.N.TimeLeft(); ok {
 		out = append(out, view.T(view.Dim, fmt.Sprintf("You have %d minutes today.", int(left.Round(time.Minute).Minutes()))))
 	}
-	if !u.Sysop && u.Level < s.B.ValidatedLevel {
+	if !u.Sysop && u.Level < s.B.Conf().ValidatedLevel {
 		out = append(out, view.T(view.Warn, "Your account waits for the sysop's validation; mail the sysop if you like."))
 	}
 	if motd := s.B.MOTDText(); motd != "" {
@@ -201,8 +201,8 @@ func (s *Session) mainMenu(intro []view.Line) error {
 			items = append(items, view.Item{Key: "S", Label: "Page the sysop"})
 		}
 		waiting := 0
-		if u.Sysop && s.B.ValidatedLevel > s.B.NewUserLevel {
-			w, _ := s.B.Store.UsersBelow(s.B.ValidatedLevel)
+		if u.Sysop && s.B.Conf().ValidatedLevel > s.B.Conf().NewUserLevel {
+			w, _ := s.B.Store.UsersBelow(s.B.Conf().ValidatedLevel)
 			if waiting = len(w); waiting > 0 {
 				items = append(items, view.Item{Key: "V", Label: fmt.Sprintf("Validate users (%d)", waiting)})
 			}
@@ -411,7 +411,7 @@ func (s *Session) do(it *bbs.MenuItem, depth int) error {
 			s.UI.Say(view.Bad, "Menus nest too deep.")
 			return nil
 		}
-		sub := s.B.Menus[strings.ToLower(it.Arg)]
+		sub := s.B.Menu(strings.ToLower(it.Arg))
 		if !bbs.MustRequire(sub.Require).Allows(s.User) {
 			s.UI.Say(view.Bad, "That menu is not for you.")
 			return nil

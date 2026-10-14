@@ -195,7 +195,7 @@ func (s *Server) sshConfig(l *Listener, caller *bbs.Caller) *ssh.ServerConfig {
 	}
 	cfg.NoClientAuth = true
 	cfg.NoClientAuthCallback = func(cm ssh.ConnMetadata) (*ssh.Permissions, error) {
-		if strings.EqualFold(cm.User(), sshNewUser) && s.B.NewUsers {
+		if strings.EqualFold(cm.User(), sshNewUser) && s.B.Conf().NewUsers {
 			return &ssh.Permissions{}, nil
 		}
 		return nil, bbs.ErrBadLogin

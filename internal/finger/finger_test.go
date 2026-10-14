@@ -24,7 +24,7 @@ func setup(t *testing.T, set Settings, addr string) (*bbs.BBS, string) {
 	}
 	t.Cleanup(func() { st.Close() })
 	b := bbs.New(bbs.Defaults(), st, log.New(&bytes.Buffer{}, "", 0))
-	b.Name = "Test BBS"
+	b.Settings.Name = "Test BBS"
 	u, _ := st.CreateUser("alice", "password1", "Zürich", false)
 	st.CreateUser("locked", "password1", "", false)
 	l, _ := st.UserByName("locked")

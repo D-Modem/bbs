@@ -558,7 +558,7 @@ func (n *Node) PageSysop(reason string) (string, int, error) {
 	}
 	n.b.Stats.Pages.Add(1)
 	n.b.Log.Printf("node %d: %s paged the sysop (%d told): %s", n.Num, u.Name, told, reason)
-	if told == 0 && len(n.b.PageCommand) > 0 {
+	if told == 0 && len(n.b.Conf().PageCommand) > 0 {
 		n.b.runPageCommand(u.Name, n.Num, reason)
 	}
 	return pageRoom(n.Num), told, nil
@@ -569,8 +569,8 @@ func (n *Node) PageSysop(reason string) (string, int, error) {
 // typed is run).
 func (b *BBS) runPageCommand(user string, node int, reason string) {
 	r := strings.NewReplacer("{user}", user, "{node}", fmt.Sprint(node), "{reason}", reason)
-	args := make([]string, len(b.PageCommand))
-	for i, w := range b.PageCommand {
+	args := make([]string, len(b.Conf().PageCommand))
+	for i, w := range b.Conf().PageCommand {
 		args[i] = r.Replace(w)
 	}
 	cmd := exec.Command(args[0], args[1:]...)

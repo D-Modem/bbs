@@ -191,14 +191,14 @@ func (s *Session) info() error {
 	}
 	us, _ := b.Store.Users()
 	var lines []view.Line
-	if b.Location != "" {
-		lines = append(lines, view.V("Location:", b.Location))
+	if b.Conf().Location != "" {
+		lines = append(lines, view.V("Location:", b.Conf().Location))
 	}
 	lines = append(lines,
-		view.V("Sysop:", b.Sysop),
+		view.V("Sysop:", b.Conf().Sysop),
 		view.V("Users:", strconv.Itoa(len(us))),
 		view.V("Messages:", fmt.Sprintf("%d in %d areas", msgs, len(areas))),
-		view.V("Nodes:", fmt.Sprintf("%d of %d in use", len(b.Nodes()), b.MaxNodes)),
+		view.V("Nodes:", fmt.Sprintf("%d of %d in use", len(b.Nodes()), b.Conf().MaxNodes)),
 		view.V("Software:", "bbs-sec: telnet, SSH, TN3270, rlogin, modems; ANSI, RIP, PETSCII"))
 	if len(areas) > 0 {
 		lines = append(lines, view.L(""), view.T(view.Bright, "Messages by area:"))
@@ -214,7 +214,7 @@ func (s *Session) info() error {
 			lines = append(lines, view.Line{Label: a.Name, Text: strconv.Itoa(a.Messages), Bar: share})
 		}
 	}
-	return s.UI.Show(b.Name, lines)
+	return s.UI.Show(b.Conf().Name, lines)
 }
 
 func (s *Session) profile() error {
@@ -475,7 +475,7 @@ func (s *Session) sshKeys() error {
 
 // validate: the sysop goes through the users waiting to be validated.
 func (s *Session) validate() error {
-	waiting, err := s.B.Store.UsersBelow(s.B.ValidatedLevel)
+	waiting, err := s.B.Store.UsersBelow(s.B.Conf().ValidatedLevel)
 	if err != nil {
 		return err
 	}
@@ -487,7 +487,7 @@ func (s *Session) validate() error {
 			view.T(view.Dim, fmt.Sprintf("from %q, since %s, %d calls, level %d",
 				w.Location, w.Created.Format("2006-01-02"), w.Logins, w.Level))},
 			Actions: []view.Action{
-				{ID: "validate", Label: fmt.Sprintf("Validate (level %d)", s.B.ValidatedLevel), Key: 'V', PF: 5, Short: "Validate"},
+				{ID: "validate", Label: fmt.Sprintf("Validate (level %d)", s.B.Conf().ValidatedLevel), Key: 'V', PF: 5, Short: "Validate"},
 				{ID: "level", Label: "Level...", Key: 'L', PF: 6, Short: "Level"},
 				{ID: "lock", Label: "lock", Key: 'K', PF: 9, Short: "Lock"},
 				{ID: "skip", Label: "Skip", Key: 'S', PF: 8}}})
@@ -556,7 +556,7 @@ func (s *Session) page() error {
 	}
 	s.N.CancelPage()
 	msg := "The sysop is not available just now."
-	if len(s.B.PageCommand) > 0 {
+	if len(s.B.Conf().PageCommand) > 0 {
 		msg += "  They have been told you called for them."
 	}
 	s.UI.Say(view.Plain, msg)

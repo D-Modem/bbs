@@ -146,7 +146,7 @@ func TestPaging(t *testing.T) {
 	// a busy sysop is not told; with no sysop, the page command runs
 	sysop.SetBusy(true)
 	mark := filepath.Join(t.TempDir(), "paged")
-	b.PageCommand = []string{"sh", "-c", `printf '%s|%s|%s' "$1" "$2" "$BBS_PAGE_REASON" > ` + mark, "sh", "{user}", "{node}"}
+	b.Settings.PageCommand = []string{"sh", "-c", `printf '%s|%s|%s' "$1" "$2" "$BBS_PAGE_REASON" > ` + mark, "sh", "{user}", "{node}"}
 	if _, told, err := alice.PageSysop("are you there? $(rm -rf /)"); err != nil || told != 0 {
 		t.Fatal(told, err)
 	}
