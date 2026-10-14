@@ -86,10 +86,9 @@ func (e *Editor) systemMenu() page {
 		out = append(out, e.field(sec("chan"), "dir"), e.field(sec("fido"), "dir"))
 		out = append(out, heading("Security"))
 		out = append(out, e.fields(sec("security"), "deny_file", "name_deny_file", "hack_log", "ban_minutes")...)
-		out = append(out, heading("The process and logins"))
+		out = append(out, heading("The process"))
 		out = append(out, e.fields(g, "user", "group")...)
 		out = append(out,
-			notYet("LDAP", "Passwords (and accounts) checked by an LDAP server: to come."),
 			heading("More"),
 			menu("Scheduled events", e.count("event", nil, "event"), func() error {
 				return e.show(e.listPage("Scheduled events", "event", "event", nil, func(s confedit.Section) string {

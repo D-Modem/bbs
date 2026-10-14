@@ -62,8 +62,8 @@ terminal with neither.
 | Users and groups | the accounts (level, flags, sysop, locked, a new password; new ones; deleted ones) and the access levels |
 | Maintenance | disk space; what message areas keep, old messages taken out; the image boards' archive; backups: one now, those made, `[backup]` ([Backups](Backups)) |
 
-LDAP logins are shown as not available yet: they are to come (system
-passwords, PAM's, are modemmenu's: [Modem callers](Modem-Callers)).
+System passwords (PAM, LDAP) are modemmenu's to check: it logs callers in
+and hands them to the BBS ([Modem callers](Modem-Callers)).
 Running as a user of its own (System configuration's Run as user) is in
 [Running](Running#running-as-a-user-of-its-own).
 

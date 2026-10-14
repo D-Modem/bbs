@@ -173,12 +173,6 @@ func action(label string, do func() error) item {
 	return item{Entry: view.Entry{ID: "do " + label, Kind: view.EntryAction, Label: label}, do: do}
 }
 
-// notYet is a menu entry for what is to come.
-func notYet(label, what string) item {
-	return item{Entry: view.Entry{ID: "later " + label, Kind: view.EntryInfo, Label: label, Value: "not available yet",
-		Disabled: true, Help: what}}
-}
-
 // fields are items for keys of a section.
 func (e *Editor) fields(s confedit.Section, keys ...string) []item {
 	var out []item
