@@ -30,10 +30,10 @@ import (
 	"net"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/racingmars/go3270"
@@ -177,30 +177,55 @@ func (s *Server) listen(l *Listener) (net.Listener, error) {
 			return nil, err
 		}
 	}
-	// made private, then opened up to socket_mode: no moment in between
-	// when others could connect
-	old := syscall.Umask(0177)
-	ln, err := net.Listen("unix", path)
-	syscall.Umask(old)
+	// made in a directory of its own that only this user can reach, given
+	// its mode and group there, then moved into place: no moment when
+	// others could connect, and no umask changed (the whole process's:
+	// files others make meanwhile would lose their modes)
+	tmp, err := os.MkdirTemp(filepath.Dir(path), ".s")
 	if err != nil {
 		return nil, err
 	}
-	if err := os.Chmod(path, l.SocketMode); err != nil {
-		ln.Close()
+	defer os.RemoveAll(tmp)
+	made := filepath.Join(tmp, "s")
+	ln, err := net.Listen("unix", made)
+	if err != nil {
 		return nil, err
+	}
+	ul := ln.(*net.UnixListener)
+	ul.SetUnlinkOnClose(false) // the name it was made under is gone
+	fail := func(err error) (net.Listener, error) {
+		ul.Close()
+		return nil, err
+	}
+	if err := os.Chmod(made, l.SocketMode); err != nil {
+		return fail(err)
 	}
 	if l.SocketGroup != "" {
 		g, err := user.LookupGroup(l.SocketGroup)
 		if err == nil {
 			gid, _ := strconv.Atoi(g.Gid)
-			err = os.Chown(path, -1, gid)
+			err = os.Chown(made, -1, gid)
 		}
 		if err != nil {
-			ln.Close()
-			return nil, fmt.Errorf("socket_group %s: %w", l.SocketGroup, err)
+			return fail(fmt.Errorf("socket_group %s: %w", l.SocketGroup, err))
 		}
 	}
-	return ln, nil
+	if err := os.Rename(made, path); err != nil {
+		return fail(err)
+	}
+	return &unixListener{ul, path}, nil
+}
+
+// unixListener removes its socket when it is closed.
+type unixListener struct {
+	*net.UnixListener
+	path string
+}
+
+func (u *unixListener) Close() error {
+	err := u.UnixListener.Close()
+	os.Remove(u.path)
+	return err
 }
 
 func (s *Server) accept(ln net.Listener, l *Listener) {

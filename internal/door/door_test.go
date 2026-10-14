@@ -183,3 +183,21 @@ func TestPTY(t *testing.T) {
 		t.Errorf("output post-processed: %q", out)
 	}
 }
+
+// All a door writes reaches the caller, though it exits at once and the
+// caller is slow to read: the end of its output was lost when Wait closed
+// the pipe under the reader.
+func TestOutputAfterExit(t *testing.T) {
+	d := script(t, `i=0
+while [ $i -lt 200 ]; do printf '%0999d\n' $i; i=$((i+1)); done
+printf 'END\r\n'
+`)
+	d.Charset = ""
+	c, done := caller(t, d, false, 0)
+	time.Sleep(300 * time.Millisecond) // the door has exited; its last 64 KB wait in the pipe
+	out, _ := io.ReadAll(c)
+	if !strings.HasSuffix(string(out), "END\r\n") || len(out) != 200*1000+5 {
+		t.Errorf("%d bytes, ending %q", len(out), out[max(0, len(out)-20):])
+	}
+	<-done
+}

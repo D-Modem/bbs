@@ -226,11 +226,18 @@ func (d *Door) Run(line Line, in *Info, utf8Term bool, idle time.Duration, logf 
 		if err != nil {
 			return res, err
 		}
-		r, err := cmd.StdoutPipe()
+		// a pipe of our own, not StdoutPipe's: Wait closes that when the
+		// door exits, and what the door wrote last but was not yet read
+		// would be lost.  This one is read to its end (every writer gone).
+		r, pw, err := os.Pipe()
 		if err != nil {
 			return res, err
 		}
-		if err := cmd.Start(); err != nil {
+		defer r.Close()
+		cmd.Stdout = pw
+		err = cmd.Start()
+		pw.Close()
+		if err != nil {
 			return res, err
 		}
 		toDoor, fromDoor = w, r
