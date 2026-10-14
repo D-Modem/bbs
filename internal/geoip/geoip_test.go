@@ -129,3 +129,72 @@ func TestFlag(t *testing.T) {
 		t.Error("a nil reader found a country")
 	}
 }
+
+// A City database's region and city, from a MaxMind DB and from the CSVs
+// of DB-IP's and IP2Location's city lists.
+func TestCity(t *testing.T) {
+	r, err := Open(filepath.Join("testdata", "test-city.mmdb"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		ip   string
+		want Location
+	}{
+		{"81.2.69.160", Location{"GB", "United Kingdom", "England", "London"}},
+		{"198.51.100.1", Location{"DE", "Germany", "Land Berlin", "Berlin"}},
+		{"203.0.113.9", Location{"NZ", "New Zealand", "", ""}},
+		{"192.0.2.1", Location{"US", "United States", "California", ""}},
+		{"2001:db8::1", Location{"JP", "Japan", "Tokyo", "Shinjuku"}},
+	} {
+		if l, ok := r.Lookup(net.ParseIP(c.ip)); !ok || l != c.want {
+			t.Errorf("%s: %+v %v, want %+v", c.ip, l, ok, c.want)
+		}
+	}
+	if _, ok := r.Lookup(net.ParseIP("10.0.0.1")); ok {
+		t.Error("10.0.0.1 has a place")
+	}
+
+	for name, csv := range map[string]string{
+		"dbip": "1.0.0.0,1.0.0.255,OC,AU,Queensland,South Brisbane,-27.4767,153.017\n" +
+			"2001:db8::,2001:db8:ffff:ffff:ffff:ffff:ffff:ffff,AS,JP,Tokyo,Shinjuku,35.69,139.70\n" +
+			"5.0.0.0,5.0.0.255,EU,ZZ,,,0,0\n" +
+			"8.8.8.0,8.8.8.255,NA,US,California,\"Mountain View, CA\",37.4,-122.1\n",
+		"ip2location": "\"16777216\",\"16777471\",\"AU\",\"Australia\",\"Queensland\",\"South Brisbane\",\"-27.47\",\"153.02\"\n" +
+			"\"42540766411282592856903984951653826560\",\"42540766490510755371168322545197776895\",\"JP\",\"Japan\",\"Tokyo\",\"Shinjuku\"\n" +
+			"\"83886080\",\"83886335\",\"-\",\"-\",\"-\",\"-\"\n" +
+			"\"134744064\",\"134744319\",\"US\",\"United States of America\",\"California\",\"Mountain View, CA\"\n",
+	} {
+		r, err := Open(writeTemp(t, name+".csv", []byte(csv)))
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		us := "United States"
+		if name == "ip2location" {
+			us = "United States of America"
+		}
+		for _, c := range []struct {
+			ip   string
+			want Location
+			ok   bool
+		}{
+			{"1.0.0.7", Location{"AU", "Australia", "Queensland", "South Brisbane"}, true},
+			{"2001:db8::1", Location{"JP", "Japan", "Tokyo", "Shinjuku"}, true},
+			{"5.0.0.1", Location{}, false},
+			{"8.8.8.8", Location{"US", us, "California", "Mountain View, CA"}, true},
+		} {
+			if l, ok := r.Lookup(net.ParseIP(c.ip)); ok != c.ok || l != c.want {
+				t.Errorf("%s %s: %+v %v, want %+v", name, c.ip, l, ok, c.want)
+			}
+		}
+	}
+}
+
+func writeTemp(t *testing.T, name string, b []byte) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), name)
+	if err := os.WriteFile(p, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}

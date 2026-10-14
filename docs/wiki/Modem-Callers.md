@@ -122,6 +122,39 @@ Who's online shows callers' countries (by caller ID, else by address with
 (and whether it is a mobile's) and place too. Posts keep the poster's
 country for the [web forum's flags](Web-Forum#flags).
 
+### By address: countries, regions and cities
+
+Callers by telnet, SSH, the web terminal and the forum are placed by
+their address in `[general] geoip`. A country database places them in
+a country; a **city** database in a region (state, province, county) and
+city too, which the log and the sysop's node list show (*Mountain View,
+California, United States*); who's online, the API and the forum's flags
+still show only the country. Either kind, in either format:
+
+| | country | city |
+|---|---|---|
+| MaxMind DB (`.mmdb`, gzipped or not) | GeoLite2/GeoIP2 Country, DB-IP *IP to Country Lite*, IPinfo's | GeoLite2/GeoIP2 City, DB-IP *IP to City Lite* |
+| CSV of ranges (gzipped or not) | DB-IP's (`start,end,CC`), IP2Location LITE DB1 | DB-IP's city (`start,end,continent,CC,region,city,lat,lon`), IP2Location LITE DB3, DB5, DB9, DB11 |
+
+```ini
+[general]
+geoip = /var/lib/bbs/dbip-city-lite.mmdb
+geoip_credit = IP geolocation by DB-IP
+geoip_credit_url = https://db-ip.com
+```
+
+DB-IP's free city database is a monthly download
+(`https://download.db-ip.com/free/dbip-city-lite-YYYY-MM.mmdb.gz`, 60 MB;
+gzipped as it comes is fine). It takes some 120 MB of memory, its CSV
+(86 MB gzipped, 7.8 million ranges) 135 MB and some 15 seconds to
+read; the `.mmdb` reads at once. Replace the file and it is read again
+within a minute, in the background, the old one answering meanwhile;
+the BBS reads it when it starts, not at the first call. The reader was
+checked against MaxMind's own on DB-IP's city database of October 2026,
+both formats: the same country, region and city for 200,000 addresses.
+The image boards' flags use the same file (read once) when `[chan]
+geoip` is not set otherwise.
+
 The plans are Google's [libphonenumber](https://github.com/google/libphonenumber)'s
 (Apache License 2.0), and North America's area codes NANPA's own
 ([its area code report](https://nanpa.com/reports/npa-reports)): an

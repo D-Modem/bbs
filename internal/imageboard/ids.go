@@ -35,13 +35,17 @@ func idClass(id string) string {
 }
 
 // country is an address's country (code, name), if the boards have a
-// database and it says.
+// database and it says.  The BBS's, if it is the same file.
 func (s *Server) country(addr string) (string, string) {
 	if s.S.GeoIP == "" {
 		return "", ""
 	}
 	s.geoOnce.Do(func() {
-		s.geo = &geoip.File{Path: s.S.GeoIP, Log: func(err error) { s.B.Log.Printf("chan: the country database: %v", err) }}
+		if s.B.GeoIP == s.S.GeoIP {
+			s.geo = s.B.Geo()
+		} else {
+			s.geo = &geoip.File{Path: s.S.GeoIP, Log: func(err error) { s.B.Log.Printf("chan: the country database: %v", err) }}
+		}
 	})
 	code, name, _ := s.geo.Country(net.ParseIP(addr))
 	return code, name

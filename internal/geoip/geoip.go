@@ -1,10 +1,12 @@
-// Package geoip finds the country of an address, from a database the
-// sysop has: a MaxMind DB file (.mmdb: MaxMind's GeoLite2 and GeoIP2
-// Country and City, DB-IP's IP to Country Lite, IPinfo's and others in its
-// format), or a CSV of ranges (DB-IP's "start,end,CC", IP2Location LITE's
-// "from","to","CC","Country", by addresses or by their numbers), plain
-// or gzipped.  It reads them itself: nothing is fetched, nothing else is
-// needed.
+// Package geoip finds the country of an address, and with a city
+// database its region and city, from a database the sysop has: a MaxMind
+// DB file (.mmdb: MaxMind's GeoLite2 and GeoIP2 Country and City, DB-IP's
+// IP to Country Lite and IP to City Lite, IPinfo's and others in its
+// format), or a CSV of ranges (DB-IP's "start,end,CC" and its city
+// lite's "start,end,continent,CC,region,city,lat,lon"; IP2Location
+// LITE's "from","to","CC","Country"[,"Region","City",...], by addresses
+// or by their numbers), plain or gzipped.  It reads them itself: nothing
+// is fetched, nothing else is needed.
 package geoip
 
 import (
@@ -19,118 +21,175 @@ import (
 	"math/big"
 	"net"
 	"os"
-	"sort"
 	"strings"
 )
 
 // Reader is a country database.
 type Reader struct {
-	mmdb   *mmdb
-	ranges []span // a CSV's, by start
+	mmdb *mmdb
+	csv  *csvDB
 }
 
-// span is a CSV's range of addresses (as 16 bytes) and its country.
-type span struct {
-	start, end [16]byte
-	code, name string
+// Location is where an address is, as far as the database says.
+type Location struct {
+	Code   string // ISO 3166-1 (upper case)
+	Name   string // the country's name in English
+	Region string // the state, province or the like ("": not said)
+	City   string // ("": not said)
 }
 
-// maxFile is the largest database read (a City database is some 70 MB).
+// maxFile is the largest MaxMind DB read (a City database is some 130 MB;
+// CSVs stream, and are kept smaller than they are).
 const maxFile = 512 << 20
 
-// Open reads a database file.
+// Open reads a database file: a MaxMind DB (read whole), or a CSV of
+// ranges (read as it streams in, for a city list's millions of lines),
+// either gzipped or not.
 func Open(path string) (*Reader, error) {
-	fi, err := os.Stat(path)
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	if fi.Size() > maxFile {
-		return nil, fmt.Errorf("%s: bigger than %d MB", path, maxFile>>20)
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	if bytes.HasPrefix(data, []byte{0x1f, 0x8b}) {
-		zr, err := gzip.NewReader(bytes.NewReader(data))
-		if err != nil {
-			return nil, err
-		}
-		if data, err = io.ReadAll(io.LimitReader(zr, maxFile+1)); err != nil {
-			return nil, err
-		}
-		if len(data) > maxFile {
-			return nil, fmt.Errorf("%s: bigger than %d MB unpacked", path, maxFile>>20)
-		}
-	}
-	if bytes.Contains(data[max(0, len(data)-128<<10):], metaMarker) {
-		m, err := openMMDB(data)
+	defer f.Close()
+	b := bufio.NewReaderSize(f, 64<<10)
+	gzipped := false
+	if magic, _ := b.Peek(2); bytes.Equal(magic, []byte{0x1f, 0x8b}) {
+		gzipped = true
+		zr, err := gzip.NewReader(b)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", path, err)
 		}
-		return &Reader{mmdb: m}, nil
+		defer zr.Close()
+		b = bufio.NewReaderSize(zr, 64<<10)
 	}
-	ranges, err := readCSV(data)
+	head, _ := b.Peek(512)
+	if len(head) == 0 {
+		return nil, fmt.Errorf("%s: empty", path)
+	}
+	if text(head) {
+		db, err := readCSV(b)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
+		return &Reader{csv: db}, nil
+	}
+	var data []byte
+	if gzipped {
+		data, err = io.ReadAll(io.LimitReader(b, maxFile+1))
+	} else if fi, serr := f.Stat(); serr == nil && fi.Size() > maxFile {
+		data = make([]byte, maxFile+1)
+	} else {
+		data, err = os.ReadFile(path)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
-	return &Reader{ranges: ranges}, nil
+	if len(data) > maxFile {
+		return nil, fmt.Errorf("%s: bigger than %d MB", path, maxFile>>20)
+	}
+	if !bytes.Contains(data[max(0, len(data)-128<<10):], metaMarker) {
+		return nil, fmt.Errorf("%s: not a MaxMind DB, nor a CSV of ranges (start,end,country)", path)
+	}
+	m, err := openMMDB(data)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	return &Reader{mmdb: m}, nil
+}
+
+// text says whether the start of a file is text (a CSV), not a MaxMind
+// DB's binary search tree.
+func text(b []byte) bool {
+	for _, c := range b {
+		if c < 0x20 && c != '\t' && c != '\r' && c != '\n' || c == 0x7f {
+			return false
+		}
+	}
+	return true
 }
 
 // Country is an address's country: its ISO 3166 code (upper case) and
 // name in English; ok false if the database does not say.
 func (r *Reader) Country(ip net.IP) (code, name string, ok bool) {
+	l, ok := r.Lookup(ip)
+	return l.Code, l.Name, ok
+}
+
+// Lookup is where an address is: its country, and the region and city
+// where the database has them (a City database); ok false if it does not
+// say the country.
+func (r *Reader) Lookup(ip net.IP) (Location, bool) {
+	var l Location
 	if r == nil || ip == nil {
-		return "", "", false
+		return l, false
 	}
 	if r.mmdb != nil {
 		v, err := r.mmdb.lookup(ip)
 		if err != nil || v == nil {
-			return "", "", false
+			return l, false
 		}
-		code, name = countryOf(v)
+		l = locationOf(v)
 	} else {
-		code, name = r.lookupCSV(ip)
+		l = r.csv.lookup(ip)
 	}
-	code = strings.ToUpper(code)
-	if unknown[code] || len(code) != 2 || code[0] < 'A' || code[0] > 'Z' || code[1] < 'A' || code[1] > 'Z' {
-		return "", "", false
+	l.Code = strings.ToUpper(l.Code)
+	if c := l.Code; unknown[c] || len(c) != 2 || c[0] < 'A' || c[0] > 'Z' || c[1] < 'A' || c[1] > 'Z' {
+		return Location{}, false
 	}
-	if name == "" {
-		name = Names[code]
+	if l.Name == "" {
+		l.Name = Names[l.Code]
 	}
-	if name == "" {
-		name = code
+	if l.Name == "" {
+		l.Name = l.Code
 	}
-	return code, name, true
+	return l, true
 }
 
 // unknown are the codes that say no country: ZZ (DB-IP's reserved and
 // unknown ranges), XX, and --.
 var unknown = map[string]bool{"ZZ": true, "XX": true, "--": true}
 
-// countryOf is a record's country (or, without one, its registered
-// country's): GeoIP2's and its likes' shape.
-func countryOf(v any) (string, string) {
+// locationOf is a record's place: its country (or, without one, its
+// registered country), and its first subdivision and city if it has them
+// (GeoIP2's and its likes' shape).
+func locationOf(v any) Location {
 	rec, _ := v.(map[string]any)
+	var l Location
 	for _, key := range []string{"country", "registered_country"} {
 		c, _ := rec[key].(map[string]any)
-		code, _ := c["iso_code"].(string)
-		if code == "" {
-			continue
-		}
-		names, _ := c["names"].(map[string]any)
-		name, _ := names["en"].(string)
-		return code, name
-	}
-	// flat ones: {"country_code": "NZ", "country_name": "..."} (IPinfo's)
-	for _, key := range []string{"country_code", "country", "iso_code"} {
-		if code, _ := rec[key].(string); code != "" {
-			name, _ := rec["country_name"].(string)
-			return code, name
+		if code, _ := c["iso_code"].(string); code != "" {
+			l.Code, l.Name = code, english(c)
+			break
 		}
 	}
-	return "", ""
+	if l.Code == "" {
+		// flat ones: {"country_code": "NZ", "country_name": "...",
+		// "region": "...", "city": "..."} (IPinfo's)
+		for _, key := range []string{"country_code", "country", "iso_code"} {
+			if code, _ := rec[key].(string); code != "" {
+				l.Code = code
+				l.Name, _ = rec["country_name"].(string)
+				l.Region, _ = rec["region"].(string)
+				l.City, _ = rec["city"].(string)
+				return l
+			}
+		}
+		return Location{}
+	}
+	if subs, _ := rec["subdivisions"].([]any); len(subs) > 0 {
+		s, _ := subs[0].(map[string]any)
+		l.Region = english(s)
+	}
+	c, _ := rec["city"].(map[string]any)
+	l.City = english(c)
+	return l
+}
+
+// english is a GeoIP2 record's English name.
+func english(rec map[string]any) string {
+	names, _ := rec["names"].(map[string]any)
+	n, _ := names["en"].(string)
+	return n
 }
 
 // Flag is a country's flag as an emoji: its code's two regional
@@ -397,41 +456,6 @@ func embedded(ip net.IP) net.IP {
 
 // ---- CSV ----
 
-// readCSV reads ranges: "start,end,CC[,name...]", by addresses or by
-// their numbers, quoted or not; lines that are not are passed over.
-func readCSV(b []byte) ([]span, error) {
-	var out []span
-	sc := bufio.NewScanner(bytes.NewReader(b))
-	sc.Buffer(make([]byte, 0, 4096), 1<<20)
-	for sc.Scan() {
-		f := strings.Split(sc.Text(), ",")
-		if len(f) < 3 {
-			continue
-		}
-		for i := range f {
-			f[i] = strings.Trim(strings.TrimSpace(f[i]), `"`)
-		}
-		start, ok1 := address(f[0])
-		end, ok2 := address(f[1])
-		if !ok1 || !ok2 || len(f[2]) != 2 || f[2] == "-" {
-			continue
-		}
-		sp := span{start: start, end: end, code: strings.ToUpper(f[2])}
-		if len(f) >= 4 && f[3] != "" && f[3] != "-" {
-			sp.name = strings.Join(f[3:], ",")
-		}
-		out = append(out, sp)
-	}
-	if err := sc.Err(); err != nil {
-		return nil, err
-	}
-	if len(out) == 0 {
-		return nil, errors.New("not a MaxMind DB, nor a CSV of ranges (start,end,country)")
-	}
-	sort.Slice(out, func(i, j int) bool { return bytes.Compare(out[i].start[:], out[j].start[:]) < 0 })
-	return out, nil
-}
-
 // address is an address, or an address's number (IPv4 under 2^32, else
 // IPv6), as 16 bytes.
 func address(s string) ([16]byte, bool) {
@@ -451,19 +475,4 @@ func address(s string) ([16]byte, bool) {
 	}
 	n.FillBytes(a[:])
 	return a, true
-}
-
-func (r *Reader) lookupCSV(ip net.IP) (string, string) {
-	ip = embedded(ip)
-	var a [16]byte
-	copy(a[:], ip.To16())
-	i := sort.Search(len(r.ranges), func(i int) bool { return bytes.Compare(r.ranges[i].start[:], a[:]) > 0 })
-	if i == 0 {
-		return "", ""
-	}
-	sp := r.ranges[i-1]
-	if bytes.Compare(a[:], sp.end[:]) > 0 {
-		return "", ""
-	}
-	return sp.code, sp.name
 }

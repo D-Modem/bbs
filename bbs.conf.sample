@@ -78,9 +78,13 @@ throttle_time = 600
 ; where callers are.  geoip: a country database, a MaxMind DB (.mmdb:
 ; GeoLite2 Country, DB-IP Lite...) or a CSV of ranges, read again when it
 ; changes; with it the log, who's online and the web forum's flags give
-; callers' countries.  geoip_credit: the credit its licence asks for, at
-; the foot of the pages that show it.  See docs/wiki/Modem-Callers.md
+; callers' countries.  A city database (GeoLite2 City, DB-IP City Lite,
+; IP2Location DB3 and up) gives the log and the sysop their region and
+; city too (some 120 MB of memory).  geoip_credit: the credit its licence
+; asks for, at the foot of the pages that show it.  See
+; docs/wiki/Modem-Callers.md
 ;geoip = /var/lib/bbs/dbip-country-lite.mmdb
+;geoip = /var/lib/bbs/dbip-city-lite.mmdb
 ;geoip_credit = IP geolocation by DB-IP
 ;geoip_credit_url = https://db-ip.com
 ; phone_country: the country (ISO 3166: US, GB, DE) whose national numbers

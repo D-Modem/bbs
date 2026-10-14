@@ -48,3 +48,26 @@ func TestPlace(t *testing.T) {
 		}
 	}
 }
+
+// A city database: the region and city of callers by address.
+func TestPlaceCity(t *testing.T) {
+	b, _ := chatBBS(t)
+	b.GeoIP = filepath.Join("..", "geoip", "testdata", "test-city.mmdb")
+	for _, c := range []struct {
+		ip   string
+		want Place
+		str  string
+	}{
+		{"81.2.69.160", Place{Country: "GB", Name: "United Kingdom", Region: "England", City: "London"}, "London, England, United Kingdom"},
+		{"192.0.2.1", Place{Country: "US", Name: "United States", Region: "California"}, "California, United States"},
+		{"203.0.113.9", Place{Country: "NZ", Name: "New Zealand"}, "New Zealand"},
+	} {
+		p := b.Locate(&Caller{Source: "ip:" + c.ip})
+		if p != c.want || p.String() != c.str {
+			t.Errorf("%s: %+v %q", c.ip, p, p.String())
+		}
+	}
+	if s := (Place{Country: "JP", Name: "Japan", Region: "Tokyo", City: "Tokyo"}).String(); s != "Tokyo, Japan" {
+		t.Errorf("Tokyo: %q", s)
+	}
+}

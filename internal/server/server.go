@@ -101,6 +101,8 @@ func New(b *bbs.BBS, ls []*Listener) *Server {
 
 // Run listens until ctx is done, then hangs up every caller.
 func (s *Server) Run(ctx context.Context) error {
+	// the country (or city) database is read now, not on the first call
+	go s.B.Geo().Refresh()
 	var lns []net.Listener
 	closeAll := func() {
 		for _, ln := range lns {
