@@ -73,6 +73,7 @@ type Config struct {
 	Warnings   []string
 	Guard      *guard.Guard     // [security]
 	RunAs      *sockets.Account // [general] user and group: who serve becomes, its ports bound (nil: as it is started)
+	MenuAuth   *MenuAuth        // [modemmenu]: passwords asked of modemmenu (nil: none)
 	Events     []*events.Event
 }
 
@@ -160,6 +161,9 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.backupSection(cf.Get("backup", "")); err != nil {
 		return nil, fmt.Errorf("[backup] %w", err)
 	}
+	if err := c.modemmenuSection(cf.Get("modemmenu", "")); err != nil {
+		return nil, fmt.Errorf("[modemmenu] %w", err)
+	}
 	for _, sec := range cf.All("event") {
 		e, err := c.event(sec)
 		if err != nil {
@@ -196,7 +200,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "backup", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "mrc", "menu", "strings", "http", "level", "chan":
+		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "mrc", "menu", "strings", "http", "level", "chan":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}
@@ -352,6 +356,37 @@ func (c *Config) event(sec *config.Section) (*events.Event, error) {
 		return nil, err
 	}
 	return e, nil
+}
+
+// MenuAuth is [modemmenu]'s: modemmenu's auth socket, asked for the
+// passwords of the accounts it logs in.
+type MenuAuth struct {
+	Socket  string
+	Create  bool          // a user modemmenu knows and the BBS does not gets an account
+	Timeout time.Duration // for its answer
+}
+
+// modemmenuSection reads [modemmenu].
+func (c *Config) modemmenuSection(sec *config.Section) error {
+	if sec == nil {
+		return nil
+	}
+	m := &MenuAuth{Socket: sec.String("auth_socket", "")}
+	if m.Socket == "" {
+		return nil
+	}
+	if !strings.HasPrefix(m.Socket, "/") {
+		return fmt.Errorf("auth_socket: %q: a unix socket's path", m.Socket)
+	}
+	var err error
+	if m.Create, err = sec.Bool("create_users", true); err != nil {
+		return err
+	}
+	if m.Timeout, err = sec.Seconds("timeout", 15, 1, 300); err != nil {
+		return err
+	}
+	c.MenuAuth = m
+	return nil
 }
 
 // backupSection reads [backup]: where backups go (beside an SQLite

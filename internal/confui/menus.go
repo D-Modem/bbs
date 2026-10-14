@@ -136,6 +136,8 @@ func (e *Editor) connectionsMenu() page {
 		}
 		out = append(out, e.fields(g, "max_nodes", "attempts", "fail_delay", "login_timeout", "idle_timeout",
 			"throttle_failures", "throttle_time", "page_command")...)
+		out = append(out, heading("Passwords by modemmenu (its auth socket)"))
+		out = append(out, e.fields(sec("modemmenu"), "auth_socket", "create_users", "timeout")...)
 		out = append(out, heading("Caller ID and where callers are"))
 		out = append(out, e.fields(g, "phone_country", "geoip", "geoip_credit", "geoip_credit_url")...)
 		return out

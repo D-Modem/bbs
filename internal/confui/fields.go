@@ -75,7 +75,9 @@ var labels = map[string]string{
 	"security.hack_log": "Hack log", "security.ban_minutes": "Ban after a lock-out (min)",
 	"chan.dir": "Image boards' files", "fido.dir": "FidoNet's packets",
 	"general.user": "Run as user", "general.group": "and group",
-	"backup.dir": "Backup directory", "backup.at": "Daily at (HH:MM)", "backup.keep": "Backups kept",
+	"modemmenu.auth_socket": "modemmenu's auth socket", "modemmenu.create_users": "Make accounts it knows",
+	"modemmenu.timeout": "Its answer within (s)",
+	"backup.dir":        "Backup directory", "backup.at": "Daily at (HH:MM)", "backup.keep": "Backups kept",
 	"backup.files": "With the files",
 }
 

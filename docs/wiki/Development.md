@@ -6,6 +6,7 @@
 | `internal/server` | listeners, session headers, rlogin, SSH, telling 3270s from the rest |
 | `internal/telnet` | the server side of telnet: options, terminal type, window size, the handoff to go3270 |
 | `internal/confedit` | bbs.conf edited as a sysop would by hand, comments kept; the catalog of keys read from bbs.conf.sample (embedded by the root package), and which take effect at a reload |
+| `internal/menuauth` | modemmenu's auth socket: passwords of the accounts it logs in, asked of its backends |
 | `internal/sockets` | ports bound as root and handed down: the BBS becomes its user, the same process |
 | `internal/backup` | backups: the configuration, a database snapshot and the files in one tar.gz; listing, pruning, restoring |
 | `internal/confui` | the configuration menus (sheets of internal/view), for `bbs config` and the sysop's tools: changes held until saved |

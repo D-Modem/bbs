@@ -152,6 +152,13 @@ type BBS struct {
 	Nodelist func() *ftn.Nodelist
 	// ImageBoards are the image boards, for the terminals (nil: none)
 	ImageBoards ImageBoards
+	// MenuAuth checks the passwords of accounts modemmenu logs in (its
+	// auth socket): external accounts, and with MenuAuthCreate new ones
+	// (nil: none)
+	MenuAuth interface {
+		Check(user, pw string) (ok bool, backend string, err error)
+	}
+	MenuAuthCreate bool
 	// Config edits the configuration file, on the sysop's menu (nil: none)
 	Config *ConfigTools
 	// Doors are the door programs (for text callers)
@@ -428,6 +435,9 @@ func (b *BBS) Authenticate(who, source, name, pw string) (*store.User, error) {
 		return nil, ErrThrottled
 	}
 	u, err := b.Store.CheckPassword(name, pw)
+	if errors.Is(err, store.ErrNotFound) && b.MenuAuth != nil {
+		u, err = b.menuLogin(who, name, pw)
+	}
 	if errors.Is(err, store.ErrNotFound) {
 		b.failed(source)
 		b.Stats.LoginFailures.Add(1)
@@ -449,6 +459,42 @@ func (b *BBS) Authenticate(who, source, name, pw string) (*store.User, error) {
 		time.Sleep(b.Conf().FailDelay)
 		return nil, ErrLocked
 	}
+	return u, nil
+}
+
+// menuLogin asks modemmenu whether pw is the password of an account it
+// logs in: an external one here, or (MenuAuthCreate) one not here yet,
+// made then.  An account with a password of its own here is not
+// modemmenu's to answer for.  store.ErrNotFound: no.
+func (b *BBS) menuLogin(who, name, pw string) (*store.User, error) {
+	u, err := b.Store.UserByName(name)
+	switch {
+	case err == nil && !u.External:
+		return nil, store.ErrNotFound
+	case err == nil:
+		name = u.Name
+	case !errors.Is(err, store.ErrNotFound):
+		return nil, err
+	case !b.MenuAuthCreate || ValidName(name) != "" || b.Guard.NameDenied(name):
+		return nil, store.ErrNotFound
+	}
+	ok, backend, err := b.MenuAuth.Check(name, pw)
+	if err != nil {
+		return nil, fmt.Errorf("modemmenu's auth socket: %w", err)
+	}
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	if u == nil {
+		if u, err = b.Store.CreateUser(name, "", "", false); errors.Is(err, store.ErrExists) {
+			u, err = b.Store.UserByName(name) // made meanwhile
+		}
+		if err != nil {
+			return nil, err
+		}
+		b.Log.Printf("%s: new external user %s (modemmenu, %s)", who, u.Name, backend)
+	}
+	b.Log.Printf("%s: %s's password by modemmenu (%s)", who, u.Name, backend)
 	return u, nil
 }
 

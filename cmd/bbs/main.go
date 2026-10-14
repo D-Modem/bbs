@@ -68,6 +68,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
 	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
 	"github.com/Neo-Desktop/bbs-sec/internal/ircd"
+	"github.com/Neo-Desktop/bbs-sec/internal/menuauth"
 	"github.com/Neo-Desktop/bbs-sec/internal/mrc"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
@@ -389,6 +390,10 @@ func serve(cfg *server.Config, path string) int {
 	b.Doors = cfg.Doors
 	b.Screens, b.Menus, b.Text, b.ScriptsDir = cfg.Screens, cfg.Menus, cfg.Text, cfg.ScriptsDir
 	b.Guard = cfg.Guard
+	if m := cfg.MenuAuth; m != nil {
+		b.MenuAuth = &menuauth.Client{Socket: m.Socket, Timeout: m.Timeout}
+		b.MenuAuthCreate = m.Create
+	}
 	if len(cfg.Events) > 0 {
 		b.Events = &events.Scheduler{Events: cfg.Events, Log: b.Log}
 	}

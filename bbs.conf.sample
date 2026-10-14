@@ -234,6 +234,18 @@ address = 127.0.0.1:2513
 ;socket_mode = 0660
 ;socket_group = asterisk
 
+; modemmenu's auth socket ([authd] there): the accounts modemmenu logs in
+; (no password here) log in by telnet, SSH, the web ... with their
+; modemmenu password, asked of modemmenu's backends.  See
+; docs/wiki/Modem-Callers.md
+;[modemmenu]
+;auth_socket = /run/modemmenu/auth.sock
+; a user modemmenu knows and the BBS does not gets an account at their
+; first login, any way in
+;create_users = yes
+; seconds for its answer
+;timeout = 15
+
 ; The HTTP API (REST, server-sent events, and WebSockets in JSON and
 ; protobuf): see docs/wiki/HTTP-API.md.  Tokens: POST /api/v1/login, or
 ; bbs token add USER -scope read,post.  Without this section there is none

@@ -54,7 +54,8 @@ address = 127.0.0.1:2513
 **A unix socket with the session header**: modemmenu has checked the
 caller, and the BBS believes it (`trust_user`).  Callers need no account
 of their own here first: `create_users = yes` makes one for each new name
-(it has no password; it logs in only this way).  The header's rate,
+(it has no password of its own here: it logs in this way, or by
+modemmenu's password, below).  The header's rate,
 caller ID and number show in the log and who's online.
 
 ```
@@ -87,6 +88,41 @@ check` warns about a trusting socket or port that others can reach.
 client says it is an `ANSI` terminal, and the caller logs in again.
 
 **See also:** [Configuration](Configuration), [File transfers](File-Transfers)
+
+## The same password for telnet, SSH and the web
+
+Accounts modemmenu logs in have no password here.  With modemmenu's auth
+socket, the same people log in to the BBS any other way (telnet, SSH,
+TN3270, the web forum and terminal, the API, FTP, NNTP, IRC) with their
+modemmenu password: the BBS asks modemmenu, and modemmenu asks its
+backends (its users file, LDAP, SQL, the system's accounts by PAM) as at
+its own login prompt.  Nothing of the password is kept here.
+
+```
+; modemmenu.conf: answered by modemmenu -serve, or modemmenu -authd alone
+[authd]
+listen = /run/modemmenu/auth.sock
+socket_mode = 0660
+socket_group = bbs
+allow_users = bbs
+
+; bbs.conf
+[modemmenu]
+auth_socket = /run/modemmenu/auth.sock
+```
+
+| `[modemmenu]` key | default | |
+|---|---|---|
+| `auth_socket` | none | modemmenu's `[authd] listen` |
+| `create_users` | `yes` | a user modemmenu knows and the BBS does not gets an account at their first login (any way in), as `create_users` does for a listener: a name the BBS takes, not refused by `name_deny_file` |
+| `timeout` | `15` | seconds for modemmenu's answer (a wrong password comes after its `fail_delay`) |
+
+Only accounts modemmenu made (external ones, with no password here) are
+asked of it: an account with a password of its own here keeps it, and
+modemmenu's password does not open it.  A wrong password counts as a failed
+login here (throttling, the hack log) as any other; modemmenu not
+answering is said to the caller as trouble, and not counted against them.
+Changing such a password is modemmenu's (its backend's), not the BBS's.
 
 ## Where callers are
 
