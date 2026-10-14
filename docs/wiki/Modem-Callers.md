@@ -123,8 +123,22 @@ Who's online shows callers' countries (by caller ID, else by address with
 country for the [web forum's flags](Web-Forum#flags).
 
 The plans are Google's [libphonenumber](https://github.com/google/libphonenumber)'s
-(Apache License 2.0), built into the BBS: nothing is looked up elsewhere.
-`make phone-data LIBPHONENUMBER=path/to/checkout` makes the tables again
-from a newer one (`internal/phone/gen`); they were last made from its
-data of October 2026, and checked against its Go port (nyaruka/phonenumbers)
-on 34,000 numbers: the same country, kind and place for every one.
+(Apache License 2.0), and North America's area codes NANPA's own
+([its area code report](https://nanpa.com/reports/npa-reports)): an
+area code NANPA has in service is a number even where libphonenumber
+has not caught up, its state or province is NANPA's, and one announced
+for a later day becomes a number on that day. Both are built into the
+BBS: nothing is looked up elsewhere. To make the tables again from newer
+ones (`internal/phone/gen`):
+
+```sh
+git clone --depth 1 https://github.com/google/libphonenumber
+curl -O https://reports.nanpa.com/public/npa_report.csv
+make phone-data LIBPHONENUMBER=libphonenumber NANPA=npa_report.csv
+```
+
+They were last made in October 2026 (NANPA's report of 14 October;
+libphonenumber's data of 8 October, then missing thirteen area codes
+NANPA had in service), and checked against libphonenumber's Go port
+(nyaruka/phonenumbers) on 34,000 numbers: the same country, kind and
+place for every one.

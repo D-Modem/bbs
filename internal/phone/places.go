@@ -83,8 +83,8 @@ func (byKey) Swap(i, j int) {
 }
 
 // placeOf is where a number (its calling code and on) is, by its longest
-// known prefix ("": not known).
-func placeOf(digits string) string {
+// known prefix ("": not known), and the prefix's length.
+func placeOf(digits string) (string, int) {
 	loadPlaces()
 	for l := min(len(digits), placeMax); l > 0; l-- {
 		k, ok := key(digits[:l])
@@ -92,8 +92,8 @@ func placeOf(digits string) string {
 			continue
 		}
 		if i := sort.Search(len(placeKeys), func(i int) bool { return placeKeys[i] >= k }); i < len(placeKeys) && placeKeys[i] == k {
-			return placeDesc[placeIdx[i]]
+			return placeDesc[placeIdx[i]], l
 		}
 	}
-	return ""
+	return "", 0
 }

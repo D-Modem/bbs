@@ -10,6 +10,7 @@ package phone
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
 )
@@ -41,6 +42,9 @@ var (
 // withheld are what caller IDs say for no number.
 var withheld = map[string]bool{"": true, "anonymous": true, "unknown": true, "private": true,
 	"restricted": true, "unavailable": true, "withheld": true, "p": true, "o": true, "out of area": true}
+
+// Today is the day area codes are in service on (a variable for tests).
+var Today = time.Now
 
 // Known says whether a country is one Parse reads national numbers for.
 func Known(home string) bool {
@@ -150,6 +154,17 @@ func international(d string) (Number, error) {
 		}
 	}
 	n.E164 = "+" + d
+	// NANPA's area codes: those in service before libphonenumber has them
+	// are numbers still, and its states and provinces are the area codes'
+	var area nanpArea
+	if n.Code == "1" && len(n.National) == 10 {
+		area, _ = nanpAreaOf(n.National[:3], Today())
+		if n.Kind == "" && area.country != "" && area.service == "" {
+			if t := byID[area.country]; t != nil {
+				n.t, n.Kind = t, FixedLineOrMobile
+			}
+		}
+	}
 	if n.t.id != "001" {
 		n.Country = n.t.id
 	}
@@ -158,11 +173,15 @@ func international(d string) (Number, error) {
 		n.Service = nonGeographic[n.Code]
 	case n.Kind != "" && !n.Kind.placed():
 		n.Service = string(n.Kind)
-	case n.Kind == "" && n.Code == "1" && len(n.National) == 10:
-		n.Service = nanpServices[n.National[:3]]
+	case n.Kind == "" && area.service != "":
+		n.Service = area.service
 	}
 	if n.Country != "" && n.Service == "" {
-		if r := placeOf(d); r != "" && r != n.CountryName() {
+		r, l := placeOf(d)
+		if n.Code == "1" && l <= 4 && area.country == n.Country {
+			r = area.region // the area's, as NANPA has it now
+		}
+		if r != n.CountryName() {
 			n.Region = r
 		}
 	}

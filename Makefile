@@ -30,9 +30,11 @@ proto:
 
 # regenerates internal/phone's tables from a checkout of Google's
 # libphonenumber (git clone --depth 1 https://github.com/google/libphonenumber)
+# and NANPA's area code report (curl -O https://reports.nanpa.com/public/npa_report.csv)
 LIBPHONENUMBER ?= ../libphonenumber
+NANPA ?= npa_report.csv
 phone-data:
-	$(GO) run ./internal/phone/gen -src $(LIBPHONENUMBER)
+	$(GO) run ./internal/phone/gen -src $(LIBPHONENUMBER) -nanpa $(NANPA)
 
 clean:
 	rm -f bbs

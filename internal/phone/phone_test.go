@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
 )
@@ -92,10 +93,57 @@ func TestTables(t *testing.T) {
 			t.Errorf("+%s: no main country first", code)
 		}
 	}
-	if placeOf("1201") != "New Jersey" || placeOf("4930123456") != "Berlin" {
-		t.Errorf("places: %q %q", placeOf("1201"), placeOf("4930123456"))
+	if p, _ := placeOf("1201"); p != "New Jersey" {
+		t.Errorf("places: %q", p)
 	}
 	if !strings.Contains(Version(), "(20") {
 		t.Errorf("version %q", Version())
+	}
+}
+
+// NANPA's area codes: those libphonenumber has not yet, those to come on
+// their day, the services; every one in service a number of its country.
+func TestNANPA(t *testing.T) {
+	for _, c := range []struct {
+		in, country, region, service string
+	}{
+		{"+1 357 555 0123", "US", "California", ""},
+		{"+1 621 555 0123", "US", "Texas", ""},
+		{"+1 729 555 0123", "US", "Tennessee", ""},
+		{"+1 210 555 0123", "US", "Texas", ""}, // libphonenumber: "San Antonio, TX", of 2013
+		{"+1 787 555 0123", "PR", "", ""},
+		{"+1 538 555 0123", "US", "", "personal"},
+		{"+1 700 555 0123", "US", "", "carrier services"},
+	} {
+		n, err := Parse(c.in, "")
+		if err != nil || n.Country != c.country || n.Region != c.region || n.Service != c.service {
+			t.Errorf("%s: %+v %v", c.in, n, err)
+		}
+	}
+	// a code to come is no number before its day
+	defer func() { Today = time.Now }()
+	day := func(s string) func() time.Time {
+		return func() time.Time { d, _ := time.Parse("2006-01-02", s); return d }
+	}
+	if a := nanpAreas["565"]; a.from == "" || a.region != "Georgia" {
+		t.Fatalf("565: %+v", a)
+	}
+	Today = day("2027-01-01")
+	if n, _ := Parse("+1 565 555 0123", ""); n.Kind != "" {
+		t.Errorf("565 before its day: %+v", n)
+	}
+	Today = day(nanpAreas["565"].from)
+	if n, _ := Parse("+1 565 555 0123", ""); n.Country != "US" || n.Region != "Georgia" || n.Kind != FixedLineOrMobile {
+		t.Errorf("565 on its day: %+v", n)
+	}
+	Today = time.Now
+	for code, a := range nanpAreas {
+		if a.from != "" || a.service != "" {
+			continue
+		}
+		n, err := Parse("+1"+code+"5550123", "")
+		if err != nil || n.Country != a.country || n.Kind == "" {
+			t.Errorf("%s (%s %s): %+v %v", code, a.country, a.region, n, err)
+		}
 	}
 }

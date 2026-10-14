@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 )
 
 // The tables are libphonenumber's (metadata.go, places.gz: go run
@@ -199,9 +200,24 @@ var nonGeographic = map[string]string{
 	"979": "international premium",
 }
 
-// nanpServices are the NANP's service codes libphonenumber has no plan
-// for.
-var nanpServices = map[string]string{"700": "carrier services", "710": "US government"}
+// nanpArea is a North American area code as NANPA has it (nanpa.go):
+// whose, where, what for if it is no place's, and from when if it is not
+// in service yet ("YYYY-MM-DD").
+type nanpArea struct {
+	country, region, service, from string
+}
+
+// nanpAreaOf is an area code in service on the day.
+func nanpAreaOf(code string, day time.Time) (nanpArea, bool) {
+	a, ok := nanpAreas[code]
+	if !ok || a.from > day.Format("2006-01-02") {
+		return nanpArea{}, false
+	}
+	return a, true
+}
+
+// NANPADate is the day of the NANPA report the area codes are from.
+func NANPADate() string { return nanpaDate }
 
 // Version is the libphonenumber the tables are from.
 func Version() string { return strings.TrimSpace(dataVersion) }
