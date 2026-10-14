@@ -21,6 +21,23 @@ type Targets struct {
 	Config   string            // the configuration file ("": not restored)
 	Database string            // the database's address ("": not restored)
 	Dirs     map[string]string // each directory's (or key file's) place, by its name (one not here: not restored)
+	// Owner: what is restored (but the configuration) is given to this
+	// user and group (a restore as root for a BBS that runs as its own)
+	Owner    bool
+	UID, GID int
+}
+
+// own gives p (and all under it) to the owner, if there is one.
+func (to Targets) own(p string) error {
+	if !to.Owner {
+		return nil
+	}
+	return filepath.WalkDir(p, func(q string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		return os.Lchown(q, to.UID, to.GID)
+	})
 }
 
 // Restore puts an archive back, the BBS stopped.  Each file or directory
@@ -125,6 +142,11 @@ func Restore(archive string, to Targets, now time.Time, say func(string)) error 
 		if err := restoreDB(s, to.Database, stamp, say); err != nil {
 			return fmt.Errorf("the database: %w", err)
 		}
+		if store.IsFile(to.Database) {
+			if err := to.own(strings.TrimPrefix(to.Database, "sqlite:")); err != nil {
+				return err
+			}
+		}
 	}
 	for top, s := range staged {
 		if top == "database.db" {
@@ -139,6 +161,11 @@ func Restore(archive string, to Targets, now time.Time, say func(string)) error 
 		}
 		if err := os.Rename(s, dst); err != nil {
 			return err
+		}
+		if top != "bbs.conf" {
+			if err := to.own(dst); err != nil {
+				return err
+			}
 		}
 		say(fmt.Sprintf("%s restored to %s", top, dst))
 	}

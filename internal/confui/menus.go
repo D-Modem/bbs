@@ -86,8 +86,9 @@ func (e *Editor) systemMenu() page {
 		out = append(out, e.field(sec("chan"), "dir"), e.field(sec("fido"), "dir"))
 		out = append(out, heading("Security"))
 		out = append(out, e.fields(sec("security"), "deny_file", "name_deny_file", "hack_log", "ban_minutes")...)
-		out = append(out, heading("The process and logins"),
-			notYet("Run as user and group", "Binding the ports as root, then running as another user and group: to come.  Today systemd's User= and Group= do it (bbs.service.sample)."),
+		out = append(out, heading("The process and logins"))
+		out = append(out, e.fields(g, "user", "group")...)
+		out = append(out,
 			notYet("PAM", "Passwords checked by PAM: to come."),
 			notYet("LDAP", "Passwords (and accounts) checked by an LDAP server: to come."),
 			heading("More"),

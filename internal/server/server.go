@@ -40,6 +40,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
 	"github.com/Neo-Desktop/bbs-sec/internal/telnet"
 	"github.com/Neo-Desktop/bbs-sec/internal/textui"
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
@@ -156,7 +157,7 @@ func (s *Server) listen(l *Listener) (net.Listener, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tls: %w", err)
 		}
-		ln, err := net.Listen("tcp", l.Address)
+		ln, err := sockets.Listen("tcp", l.Address)
 		if err != nil {
 			return nil, err
 		}
@@ -164,8 +165,21 @@ func (s *Server) listen(l *Listener) (net.Listener, error) {
 			MinVersion: tls.VersionTLS12}), nil
 	}
 	if !l.Unix() {
-		return net.Listen("tcp", l.Address)
+		return sockets.Listen("tcp", l.Address)
 	}
+	if ln, ok := sockets.Take("unix", l.path()).(*net.UnixListener); ok {
+		return &unixListener{ln, l.path()}, nil // made before the BBS gave up root
+	}
+	u, err := ListenUnix(l)
+	if err != nil {
+		return nil, err // not a nil *unixListener in an interface
+	}
+	return u, nil
+}
+
+// ListenUnix makes a listener's unix socket, its mode and group as the
+// listener says.
+func ListenUnix(l *Listener) (*unixListener, error) {
 	path := l.path()
 	if _, err := os.Lstat(path); err == nil {
 		// a live server keeps its socket; a dead one's is replaced
@@ -193,7 +207,7 @@ func (s *Server) listen(l *Listener) (net.Listener, error) {
 	}
 	ul := ln.(*net.UnixListener)
 	ul.SetUnlinkOnClose(false) // the name it was made under is gone
-	fail := func(err error) (net.Listener, error) {
+	fail := func(err error) (*unixListener, error) {
 		ul.Close()
 		return nil, err
 	}

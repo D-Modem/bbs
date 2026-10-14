@@ -56,14 +56,15 @@ terminal with neither.
 | menu | what is in it |
 |---|---|
 | Board configuration | the BBS's name, the sysop's, the location, postal address, dial-in numbers and internet addresses; the banner, message of the day, goodbye, logo; menus and prompts |
-| System configuration | the database and log; where files are kept and how large they may be; deny lists, the hack log, bans; scheduled events; every section of the file as it is |
+| System configuration | the user and group it runs as; the database and log; where files are kept and how large they may be; deny lists, the hack log, bans; scheduled events; every section of the file as it is |
 | Connections and modems | modem lines and every listener; callers at once, logins, time-outs, lock-outs; the caller ID country and GeoIP |
 | Services | telnet, TN3270, SSH and RLogin listeners; finger, gopher, FTP, IRC, news, the web (API, forum, image boards); MRC, FidoNet, QWK networks, doors |
 | Users and groups | the accounts (level, flags, sysop, locked, a new password; new ones; deleted ones) and the access levels |
 | Maintenance | disk space; what message areas keep, old messages taken out; the image boards' archive; backups: one now, those made, `[backup]` ([Backups](Backups)) |
 
-Running as another user and group, and PAM and LDAP logins, are shown as
-not available yet: they are to come.
+PAM and LDAP logins are shown as not available yet: they are to come.
+Running as a user of its own (System configuration's Run as user) is in
+[Running](Running#running-as-a-user-of-its-own).
 
 | key | |
 |---|---|

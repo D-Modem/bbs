@@ -17,6 +17,13 @@ sysop = Sysop
 ;postal_address = "1 Main St, Springfield"
 ;phone = "+1 555 0100 (300-33600), +1 555 0101 (V.92)"
 ;addresses = "telnet bbs.example.org, ssh bbs.example.org:2222, https://bbs.example.org/"
+;; started as root, serve binds its ports (23, 79 ...) and sockets, then
+; runs as this user (and its group, or group; with the user's other groups,
+; for socket_group and docker): what it makes is that user's.  Other bbs
+; commands run as root become it too (but check, config, backup restore).
+; Under systemd: no User= then.  See docs/wiki/Running.md
+;user = bbs
+;group = bbs
 ; the database: SQLite's file, or a PostgreSQL, MySQL or MariaDB server (whose
 ; password then lives here: keep this file 0640).  bbs db copy moves one
 ; into another.  See docs/wiki/Databases.md

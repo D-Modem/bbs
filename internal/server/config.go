@@ -32,6 +32,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
 	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
+	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
 )
@@ -70,7 +71,8 @@ type Config struct {
 	Log        string // syslog, stderr, none, or a file
 	Listeners  []*Listener
 	Warnings   []string
-	Guard      *guard.Guard // [security]
+	Guard      *guard.Guard     // [security]
+	RunAs      *sockets.Account // [general] user and group: who serve becomes, its ports bound (nil: as it is started)
 	Events     []*events.Event
 }
 
@@ -247,6 +249,13 @@ func (c *Config) general(g *config.Section) error {
 	}
 	if s.PhoneCountry = strings.ToUpper(g.String("phone_country", "")); s.PhoneCountry != "" && !phone.Known(s.PhoneCountry) {
 		return fmt.Errorf("phone_country: %q is not a country with a calling code (an ISO 3166 code: US, GB, DE)", s.PhoneCountry)
+	}
+	if u := g.String("user", ""); u != "" {
+		if c.RunAs, err = sockets.Lookup(u, g.String("group", "")); err != nil {
+			return err
+		}
+	} else if g.Has("group") {
+		return errors.New("group: with user only")
 	}
 	s.QWKID = strings.ToUpper(g.String("qwk_id", s.QWKID))
 	if s.QWKID != "" && !qwk.ValidID(s.QWKID) {

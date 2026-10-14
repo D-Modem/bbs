@@ -74,6 +74,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
 	"github.com/Neo-Desktop/bbs-sec/internal/script"
 	"github.com/Neo-Desktop/bbs-sec/internal/server"
+	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -165,6 +166,18 @@ func main() {
 	cmd := "serve"
 	if len(args) > 0 {
 		cmd, args = args[0], args[1:]
+	}
+	if cfg.RunAs != nil && os.Geteuid() == 0 {
+		// what the BBS makes (the database, backups, keys) is its user's,
+		// not root's: serve gives up root itself, after binding its ports;
+		// check reads; a restore puts things back as root and gives them
+		// to the user
+		restore := cmd == "backup" && len(args) > 0 && args[0] == "restore"
+		if cmd != "serve" && cmd != "check" && !restore {
+			if err := sockets.Drop(cfg.RunAs); err != nil {
+				fatal(err)
+			}
+		}
 	}
 	switch cmd {
 	case "serve":
@@ -339,6 +352,27 @@ func logger(spec string) (*log.Logger, error) {
 }
 
 func serve(cfg *server.Config, path string) int {
+	if a := cfg.RunAs; a != nil {
+		switch {
+		case os.Geteuid() == 0:
+			// the ports bound as root, then this program again as the user
+			socks, err := server.Bind(cfg)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "bbs:", err)
+				return 1
+			}
+			err = sockets.Become(a, socks)
+			fmt.Fprintf(os.Stderr, "bbs: becoming %s: %v\n", a.User, err)
+			return 1
+		case os.Geteuid() != a.UID:
+			fmt.Fprintf(os.Stderr, "bbs: user = %s, but started as uid %d (start it as root, or as %s)\n", a.User, os.Geteuid(), a.User)
+			return 1
+		}
+	}
+	if err := sockets.Inherit(); err != nil {
+		fmt.Fprintln(os.Stderr, "bbs:", err)
+		return 1
+	}
 	lg, err := logger(cfg.Log)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "bbs: log:", err)
@@ -527,6 +561,17 @@ func serve(cfg *server.Config, path string) int {
 				}
 			}
 		}()
+	}
+	go func() {
+		// sockets bound as root that no server took (the file changed
+		// between): closed, and said
+		time.Sleep(10 * time.Second)
+		for _, k := range sockets.Left() {
+			lg.Printf("a socket bound for %s was not taken: closed", k)
+		}
+	}()
+	if a := cfg.RunAs; a != nil {
+		lg.Printf("running as %s (uid %d, gid %d)", a.User, os.Getuid(), os.Getgid())
 	}
 	if err := srv.Run(ctx); err != nil {
 		lg.Printf("%v", err)

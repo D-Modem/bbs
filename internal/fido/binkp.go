@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
+	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
 )
 
 // binkp (FTS-1026) commands.
@@ -302,7 +303,7 @@ type Server struct {
 
 // Run listens until ctx is done.
 func (sv *Server) Run(ctx context.Context) error {
-	ln, err := net.Listen("tcp", sv.Address)
+	ln, err := sockets.Listen("tcp", sv.Address)
 	if err != nil {
 		return fmt.Errorf("binkp: %w", err)
 	}

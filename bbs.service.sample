@@ -9,6 +9,10 @@ ExecStart=/usr/local/bin/bbs -config /etc/bbs/bbs.conf serve
 ExecReload=/bin/kill -HUP $MAINPID
 User=bbs
 Group=bbs
+# or: started as root, the BBS binds its ports and becomes [general] user
+# itself (docs/wiki/Running.md): then no User= and Group= here, nor
+# AmbientCapabilities, and RuntimeDirectory's directory is root's (put
+# unix sockets where the user may write, or give them a socket_group)
 # for [listen menu]'s socket_group = asterisk
 SupplementaryGroups=asterisk
 # for DOS doors in Docker (README, "Doors"): the docker group is as good as

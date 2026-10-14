@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -155,7 +156,13 @@ func configScreens(path string) {
 				if err != nil {
 					return nil, err
 				}
-				return server.NewBackups(ocfg, path, b).Run()
+				a, err := server.NewBackups(ocfg, path, b).Run()
+				if u := ocfg.RunAs; err == nil && u != nil && os.Geteuid() == 0 {
+					// made as root for a BBS that runs as its own user: its
+					os.Chown(filepath.Dir(a.Path), u.UID, u.GID)
+					os.Chown(a.Path, u.UID, u.GID)
+				}
+				return a, err
 			},
 			Backups: func() ([]backup.Archive, error) {
 				cfg, err := server.Load(path)

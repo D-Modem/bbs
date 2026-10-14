@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
+	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -67,7 +68,7 @@ func NewServer(svc *Service, set ServerSettings, peers []*Peer) (*Server, error)
 
 // Run serves until ctx is done.
 func (s *Server) Run(ctx context.Context) error {
-	ln, err := net.Listen("tcp", s.Set.Address)
+	ln, err := sockets.Listen("tcp", s.Set.Address)
 	if err != nil {
 		return fmt.Errorf("nntp: %w", err)
 	}

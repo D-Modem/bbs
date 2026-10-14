@@ -22,6 +22,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/ircd/isupport"
+	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
 	"github.com/Neo-Desktop/bbs-sec/internal/tcpserv"
 )
 
@@ -116,7 +117,7 @@ func (s *Server) Run(ctx context.Context) error {
 		Refuse: func(c net.Conn) bool { return s.B.Refuse("irc", c.RemoteAddr()) }}
 	var lns []net.Listener
 	if s.S.Address != "" {
-		ln, err := net.Listen("tcp", s.S.Address)
+		ln, err := sockets.Listen("tcp", s.S.Address)
 		if err != nil {
 			return fmt.Errorf("irc: %w", err)
 		}
@@ -127,8 +128,10 @@ func (s *Server) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("irc: certificate: %w", err)
 		}
-		ln, err := tls.Listen("tcp", s.S.TLSAddress, &tls.Config{Certificates: []tls.Certificate{cert},
-			MinVersion: tls.VersionTLS12})
+		ln, err := sockets.Listen("tcp", s.S.TLSAddress)
+		if err == nil {
+			ln = tls.NewListener(ln, &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12})
+		}
 		if err != nil {
 			for _, l := range lns {
 				l.Close()

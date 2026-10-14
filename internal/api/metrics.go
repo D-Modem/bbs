@@ -3,11 +3,12 @@ package api
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
 )
 
 // metrics writes the Prometheus text format.
@@ -77,7 +78,7 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 func (s *Server) serveMetrics(ctx context.Context) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /metrics", s.metrics)
-	ln, err := net.Listen("tcp", s.S.Metrics)
+	ln, err := sockets.Listen("tcp", s.S.Metrics)
 	if err != nil {
 		s.B.Log.Printf("http: metrics: %v", err)
 		return

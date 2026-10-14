@@ -40,6 +40,9 @@ func backupCmd(cfg *server.Config, path string, args []string) {
 			fatal(err)
 		}
 		to := backup.Targets{Config: path, Database: cfg.Database, Dirs: map[string]string{}}
+		if a := cfg.RunAs; a != nil && os.Geteuid() == 0 {
+			to.Owner, to.UID, to.GID = true, a.UID, a.GID
+		}
 		sources := append(server.Sources(cfg), server.Keys(cfg)...)
 		for _, s := range sources {
 			to.Dirs[s.Name] = s.Path

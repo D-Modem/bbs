@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
 	"github.com/Neo-Desktop/bbs-sec/internal/tcpserv"
 )
 
@@ -31,7 +32,7 @@ type Server struct {
 
 // Run listens until ctx is done.
 func (s *Server) Run(ctx context.Context) error {
-	ln, err := net.Listen("tcp", s.S.Address)
+	ln, err := sockets.Listen("tcp", s.S.Address)
 	if err != nil {
 		return fmt.Errorf("finger: %w", err)
 	}

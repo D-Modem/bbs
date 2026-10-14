@@ -25,6 +25,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/files"
+	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -58,6 +59,7 @@ type Server struct {
 	Set Settings
 
 	tlsConfig *tls.Config
+	inherited net.Listener // the socket handed down for Address, if any
 	mu        sync.Mutex
 	clients   int
 	perIP     map[string]int
@@ -81,6 +83,10 @@ func New(b *bbs.BBS, set Settings) (*Server, error) {
 
 // Run serves until ctx is done.
 func (s *Server) Run(ctx context.Context) error {
+	s.inherited = sockets.Take("tcp", s.Set.Address)
+	if s.inherited != nil && s.Set.TLS == TLSImplicit {
+		s.inherited = tls.NewListener(s.inherited, s.tlsConfig)
+	}
 	srv := ftpserver.NewFtpServer(s)
 	srv.Logger = slog.New(slog.NewTextHandler(s.B.Log.Writer(), &slog.HandlerOptions{Level: slog.LevelError}))
 	if err := srv.Listen(); err != nil {
@@ -105,6 +111,7 @@ func (s *Server) Run(ctx context.Context) error {
 func (s *Server) GetSettings() (*ftpserver.Settings, error) {
 	set := &ftpserver.Settings{
 		ListenAddr:             s.Set.Address,
+		Listener:               s.inherited, // bound before the BBS gave up root (nil: none)
 		PublicHost:             s.Set.PublicHost,
 		Banner:                 s.Set.Banner,
 		IdleTimeout:            int(s.Set.IdleTimeout / time.Second),

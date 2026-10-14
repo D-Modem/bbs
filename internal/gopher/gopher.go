@@ -15,6 +15,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
+	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/tcpserv"
 )
@@ -41,7 +42,7 @@ const PerPage = 50
 
 // Run listens until ctx is done.
 func (s *Server) Run(ctx context.Context) error {
-	ln, err := net.Listen("tcp", s.S.Address)
+	ln, err := sockets.Listen("tcp", s.S.Address)
 	if err != nil {
 		return fmt.Errorf("gopher: %w", err)
 	}
