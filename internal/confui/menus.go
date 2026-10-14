@@ -89,7 +89,6 @@ func (e *Editor) systemMenu() page {
 		out = append(out, heading("The process and logins"))
 		out = append(out, e.fields(g, "user", "group")...)
 		out = append(out,
-			notYet("PAM", "Passwords checked by PAM: to come."),
 			notYet("LDAP", "Passwords (and accounts) checked by an LDAP server: to come."),
 			heading("More"),
 			menu("Scheduled events", e.count("event", nil, "event"), func() error {
