@@ -28,6 +28,7 @@
 <div class="footer">
 <div class="boardList">[{{range $i, $b := .Boards}}{{if $i}} / {{end}}<a href="/chan/{{$b.Dir}}/" title="{{$b.Title}}">{{$b.Dir}}</a>{{end}}]</div>
 <div class="credit">{{.BBS}} &middot; image boards after kusaba&nbsp;x and 4chan &middot; all posts are the responsibility of their posters</div>
+{{with .GeoCredit}}<div class="credit geoCredit">{{if $.GeoCreditURL}}<a href="{{$.GeoCreditURL}}" rel="noopener">{{.}}</a>{{else}}{{.}}{{end}}</div>{{end}}
 </div>
 </body>
 </html>

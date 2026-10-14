@@ -64,7 +64,7 @@ func flip(b []byte, i int) []byte {
 
 func TestCSV(t *testing.T) {
 	dir := t.TempDir()
-	dbip := "1.0.0.0,1.0.0.255,AU\n203.0.113.0,203.0.113.255,NZ\n2001:db8::,2001:db8:ffff:ffff:ffff:ffff:ffff:ffff,FR\n"
+	dbip := "0.0.0.0,0.255.255.255,ZZ\n1.0.0.0,1.0.0.255,AU\n203.0.113.0,203.0.113.255,NZ\n2001:db8::,2001:db8:ffff:ffff:ffff:ffff:ffff:ffff,FR\n"
 	ip2l := "\"16777216\",\"16777471\",\"AU\",\"Australia\"\n\"3405803776\",\"3405804031\",\"NZ\",\"New Zealand (Aotearoa)\"\n" +
 		"\"0\",\"16777215\",\"-\",\"-\"\n"
 	var gz bytes.Buffer
@@ -94,6 +94,12 @@ func TestCSV(t *testing.T) {
 		}
 		if _, _, ok := r.Country(net.ParseIP("0.1.2.3")); ok {
 			t.Errorf("%s: a range of no country found", name)
+		}
+		// IPv4 in IPv6: 6to4's 2002:cb00:7109::, Teredo's inverted client
+		for _, a := range []string{"2002:cb00:7109::1", "2001:0:4136:e378:8000:63bf:34ff:8ef6"} {
+			if code, _, _ := r.Country(net.ParseIP(a)); code != "NZ" {
+				t.Errorf("%s: %s: %q", name, a, code)
+			}
 		}
 	}
 	if code, _, _ := mustOpen(t, dir, "dbip.csv").Country(net.ParseIP("2001:db8::5")); code != "FR" {

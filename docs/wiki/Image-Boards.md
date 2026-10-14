@@ -38,6 +38,8 @@ address = :8443
 ;captcha_lifetime = 600  ; seconds one lasts
 ;options = yes           ; the post form's Options line (sage, nonoko)
 ;geoip = /var/lib/bbs/GeoLite2-Country.mmdb   ; for the boards with flags
+;geoip_credit = IP geolocation by DB-IP       ; its licence's credit, at each page's foot
+;geoip_credit_url = https://db-ip.com
 ```
 
 | setting | default | |
@@ -157,7 +159,12 @@ country database the sysop has, `[chan] geoip`:
   IP2Location LITE DB1's (`"from","to","CC","Country"`, by numbers).
 
 The BBS reads them itself (nothing is fetched); replace the file and it
-is read again within a minute. Posts from no address (a modem's caller)
+is read again within a minute. DB-IP's free one, for instance, is a
+monthly download (`https://download.db-ip.com/free/dbip-country-lite-YYYY-MM.mmdb.gz`,
+gzipped as it comes is fine); it was checked against MaxMind's own reader,
+200,000 addresses alike. Its licence (CC BY 4.0), as GeoLite2's, asks
+for a credit: `geoip_credit` and `geoip_credit_url` put it at the foot of
+each page. Posts from no address (a modem's caller)
 or one the database does not know have no flag. Behind a reverse proxy
 name it in `trusted_proxies`, or every poster is the proxy and has its ID
 and its flag. Both are kept with each post when it is made: turning them

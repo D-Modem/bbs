@@ -1,6 +1,7 @@
 package imageboard
 
 import (
+	"html"
 	"strings"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 func TestIDsAndFlags(t *testing.T) {
 	s := setup(t)
 	s.srv.S.GeoIP = "../geoip/testdata/test-24.mmdb"
+	s.srv.S.GeoCredit, s.srv.S.GeoCreditURL = "IP geolocation by DB-IP", "https://db-ip.com"
 	s.bd.PosterIDs, s.bd.Flags, s.bd.TextOnly = true, true, true
 	s.b.Store.UpdateBoard(s.bd)
 	post := func(ip string, thread int64, com string) *store.BoardPost {
@@ -40,10 +42,12 @@ func TestIDsAndFlags(t *testing.T) {
 
 	br := s.browser()
 	_, _, body := br.get("/chan/b/thread/1")
+	body = html.UnescapeString(body) // an ID's + is &#43; in an attribute
 	for _, want := range []string{`data-id="` + op.PosterID + `"`,
 		`(ID: <span class="hand ` + idClass(op.PosterID) + `" data-id="` + op.PosterID + `" title="2 posts by this ID; click to highlight them">`,
 		`<span class="flag" title="New Zealand">` + "\U0001F1F3\U0001F1FF" + `</span>`,
-		`<span class="flag" title="Germany">`} {
+		`<span class="flag" title="Germany">`,
+		`<div class="credit geoCredit"><a href="https://db-ip.com" rel="noopener">IP geolocation by DB-IP</a></div>`} {
 		if !strings.Contains(body, want) {
 			t.Errorf("no %s", want)
 		}

@@ -63,6 +63,9 @@ type Settings struct {
 	CaptchaLevel  string
 	Options       bool   // the post form has an Options line (sage, nonoko; a board may say otherwise)
 	GeoIP         string // the country database (geoip.Open's: .mmdb, or a CSV of ranges), for flags
+	// the credit its licence asks for, at the foot of each page ("IP
+	// geolocation by DB-IP", https://db-ip.com)
+	GeoCredit, GeoCreditURL string
 }
 
 // Defaults are the settings unless bbs.conf says otherwise.
@@ -443,6 +446,8 @@ type page struct {
 	Path     string
 	Notice   string
 	Body     any
+	// the country database's credit (when there is one to give)
+	GeoCredit, GeoCreditURL string
 }
 
 func (q *req) render(status int, name, title string, b *store.Board, body any) {
@@ -450,6 +455,9 @@ func (q *req) render(status int, name, title string, b *store.Board, body any) {
 	p := page{Title: title, BBS: q.s.B.Name, Board: b, User: q.user, Staff: q.staff(b), AnyStaff: q.anyStaff(),
 		Style: q.style(b), Styles: Styles, Token: q.token(), Pass: q.pass, Path: q.r.URL.RequestURI(),
 		Notice: q.r.URL.Query().Get("notice"), Body: body}
+	if q.s.S.GeoIP != "" {
+		p.GeoCredit, p.GeoCreditURL = q.s.S.GeoCredit, q.s.S.GeoCreditURL
+	}
 	p.Boards, _ = q.s.B.Store.Boards()
 	var buf strings.Builder
 	if err := q.s.tmpl.ExecuteTemplate(&buf, name, p); err != nil {

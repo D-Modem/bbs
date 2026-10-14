@@ -267,6 +267,9 @@ address = 127.0.0.1:2513
 ; flags yes): a MaxMind DB (.mmdb: GeoLite2 Country, DB-IP Lite...) or a
 ; CSV of ranges; read again when it changes
 ;geoip = /var/lib/bbs/GeoLite2-Country.mmdb
+; the credit its licence asks for, at the foot of each page
+;geoip_credit = IP geolocation by DB-IP
+;geoip_credit_url = https://db-ip.com
 ; the style callers get until they choose: by the board (yotsuba-b if it
 ; is worksafe, else yotsuba), or yotsuba, yotsuba-b, futaba, burichan,
 ; photon, tomorrow

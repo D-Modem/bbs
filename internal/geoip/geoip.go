@@ -93,7 +93,7 @@ func (r *Reader) Country(ip net.IP) (code, name string, ok bool) {
 		code, name = r.lookupCSV(ip)
 	}
 	code = strings.ToUpper(code)
-	if len(code) != 2 || code[0] < 'A' || code[0] > 'Z' || code[1] < 'A' || code[1] > 'Z' {
+	if unknown[code] || len(code) != 2 || code[0] < 'A' || code[0] > 'Z' || code[1] < 'A' || code[1] > 'Z' {
 		return "", "", false
 	}
 	if name == "" {
@@ -104,6 +104,10 @@ func (r *Reader) Country(ip net.IP) (code, name string, ok bool) {
 	}
 	return code, name, true
 }
+
+// unknown are the codes that say no country: ZZ (DB-IP's reserved and
+// unknown ranges), XX, and --.
+var unknown = map[string]bool{"ZZ": true, "XX": true, "--": true}
 
 // countryOf is a record's country (or, without one, its registered
 // country's): GeoIP2's and its likes' shape.
@@ -374,6 +378,23 @@ func (d decoder) decode(off uint, depth int) (any, uint, error) {
 	return nil, 0, fmt.Errorf("a value of type %d", typ)
 }
 
+// embedded is the IPv4 address an IPv6 one carries, where it is one that
+// does (6to4, 2002::/16; Teredo, 2001::/32, the client's inverted), as a
+// MaxMind DB's tree has them; else the address as it is.
+func embedded(ip net.IP) net.IP {
+	if ip.To4() != nil {
+		return ip
+	}
+	b := ip.To16()
+	switch {
+	case b[0] == 0x20 && b[1] == 0x02:
+		return net.IPv4(b[2], b[3], b[4], b[5])
+	case b[0] == 0x20 && b[1] == 0x01 && b[2] == 0 && b[3] == 0:
+		return net.IPv4(^b[12], ^b[13], ^b[14], ^b[15])
+	}
+	return ip
+}
+
 // ---- CSV ----
 
 // readCSV reads ranges: "start,end,CC[,name...]", by addresses or by
@@ -433,6 +454,7 @@ func address(s string) ([16]byte, bool) {
 }
 
 func (r *Reader) lookupCSV(ip net.IP) (string, string) {
+	ip = embedded(ip)
 	var a [16]byte
 	copy(a[:], ip.To16())
 	i := sort.Search(len(r.ranges), func(i int) bool { return bytes.Compare(r.ranges[i].start[:], a[:]) > 0 })
