@@ -122,7 +122,7 @@ the choice of posting as `## Admin` or `## Mod`.
 From the command line:
 
 ```
-bbs chan board add DIR TITLE [DESCRIPTION] [-nsfw] [-forced-anon] [-text-only] [-locked] [-login]
+bbs chan board add DIR TITLE [DESCRIPTION] [-nsfw] [-forced-anon] [-text-only] [-locked] [-login] [-oekaki]
 bbs chan board set DIR KEY VALUE
 bbs chan board list
 bbs chan board del DIR            ; its posts and images too
@@ -141,10 +141,55 @@ bbs chan ban del ID
 | `nsfw` | no | not worksafe: Yotsuba, and left off the front page's images |
 | `forced_anon` | no | no names or tripcodes |
 | `text_only` | no | threads need no image |
+| `oekaki` | no | posters can draw their pictures in the page ([below](#oekaki)) |
 | `locked` | no | only staff post |
 | `login` | no | only the BBS's users post (signed in at `/chan/login`) |
 | `mods` | | users who moderate it, by name |
 | `sort` | 0 | where it comes in the lists of boards |
+
+## Oekaki
+
+An oekaki board (お絵かき, doodling: `bbs chan board set oe oekaki yes`)
+has a drawing board in its post form, as Futaba's boards had their Java
+painters. Choose the canvas's size (50 to 1200 pixels a side) and **Open
+the drawing board**:
+
+- **Pen**, **Eraser** and **Fill**, a colour (or one from the palette), a
+  brush size;
+- **Undo** and **Redo** (Ctrl+Z, Ctrl+Y), **Clear**;
+- **Use this drawing**, or just post: the drawing goes as the post's image,
+  a PNG.
+
+The PNG carries how it was drawn: every stroke, with its timing, in a
+chunk of its own (`okST`) that other programs pass over, so the picture
+looks the same anywhere. Under a drawing, **Replay** draws it again
+stroke by stroke, at 1× to 32× (pauses cut short), ending as the picture
+is; the post says how long the drawing took. On an oekaki board **Draw
+over** starts a reply from the drawing's strokes, to add to it: the new
+drawing's replay has both. Since the strokes are in the file, a drawing
+saved and posted again (on any board) still replays; programs that
+rewrite PNGs may drop the chunk.
+
+The drawing board and the replays need JavaScript (the boards' only
+pages that do); without it, an oekaki board is an image board.
+
+What the server takes is checked: a replay must be of this picture's
+size, its strokes on the canvas, at most a million numbers and 32 MB
+unpacked, and well formed. One that is not is taken out of the PNG, which
+is kept as a picture. The format, for programs that want to make or read
+it, is zlib-compressed JSON:
+
+```json
+{"v": 1, "w": 300, "h": 200, "bg": "#ffffff",
+ "s": [{"t": "p", "c": "#000000", "z": 4, "p": [0, 80, 180, 33, 80, 150]},
+       {"t": "f", "c": "#22b14c", "z": 1, "p": [900, 150, 150]}]}
+```
+
+A stroke is the pen (`p`), the eraser (`e`: the pen in the background's
+colour) or a fill (`f`, one point); `z` is its size, and `p` its points as
+`dt, x, y`, `dt` the milliseconds since the point before (for a stroke's
+first point, since the stroke before ended). The drawing's time is the
+sum of them.
 
 ## Styles
 
@@ -172,6 +217,9 @@ The boards can be read as JSON, in the shapes of 4chan's read-only API
 | `/chan/b/1.json` | a page of the index |
 | `/chan/b/thread/123.json` | a thread |
 
+Beyond 4chan's fields, `boards.json` says `"oekaki": 1` of an oekaki
+board, and a drawing that replays has `"replay": 1` and `"draw_ms"`.
+
 A post's image is at `/chan/b/src/{tim}{ext}` and its thumbnail at
 `/chan/b/thumb/{tim}s.jpg` (where 4chan's are at `i.4cdn.org/b/`).
 kusaba's addresses go where they should: `/chan/b/res/123.html` to the
@@ -180,7 +228,7 @@ thread, `/chan/b/1.html` to the index.
 ## Not done
 
 Video and other files (WebM, PDF: 4chan's needs ffmpeg), the archive of
-pruned threads, poster IDs, country flags, captchas, and Oekaki.
+pruned threads, poster IDs, country flags and captchas.
 
 Behind a reverse proxy, name it in `[http]`'s `trusted_proxies`: otherwise
 every poster has the proxy's address, and flood control and bans reach

@@ -44,15 +44,34 @@ Password <input type="password" name="pwd" value="{{$.Pass}}" maxlength="64" aut
 <tr><td>Subject</td><td><input name="sub" type="text" maxlength="100"> <button type="submit">{{if .Reply}}Post{{else}}New Thread{{end}}</button></td></tr>
 <tr><td>Comment</td><td><textarea name="com" id="com" cols="48" rows="4">{{.Quote}}</textarea></td></tr>
 <tr><td>File</td><td><input type="file" name="upfile" accept="image/jpeg,image/png,image/gif,image/webp"{{if .Image}} required{{end}}> <label class="spoilerBox"><input type="checkbox" name="spoiler" value="on"> Spoiler?</label></td></tr>
+{{if .Oekaki}}<tr class="jsonly oekakiRow"><td>Draw</td><td><label>Width <input type="number" id="okW" value="400" min="50" max="1200" step="10"></label> <label>Height <input type="number" id="okH" value="400" min="50" max="1200" step="10"></label> <button type="button" id="okOpen">Open the drawing board</button> <span id="okStatus"></span></td></tr>{{end}}
 <tr><td>Password</td><td><input type="password" name="pwd" maxlength="64" value="{{$.Pass}}" autocomplete="off"> <span class="passNotice">(for deleting the post)</span></td></tr>
 {{with .Capcode}}<tr><td>Staff</td><td><label><input type="checkbox" name="capcode" value="on"> Post as ## {{if eq . "admin"}}Admin{{else}}Mod{{end}}</label></td></tr>{{end}}
 <tr class="rules"><td colspan="2"><ul class="rules">
+{{if .Oekaki}}<li>This is an oekaki board: draw your picture with the drawing board, and it is posted with how you drew it, to be replayed.</li>{{end}}
 <li>Supported file types are JPG, PNG, GIF and WebP{{if .Image}}; a thread starts with one{{end}}.</li>
 <li>Maximum file size allowed is {{size .MaxFile}}. Images greater than {{if .Reply}}125x125{{else}}250x250{{end}} are thumbnailed.</li>
 <li>Name#password signs a post with a tripcode; Name##password with a secure one. "sage" does not bump the thread.</li>
 <li>&gt;greentext, &gt;&gt;123 quotes a post, &gt;&gt;&gt;/{{$b.Dir}}/ links a board; [spoiler]hides text[/spoiler]; [code]code[/code].</li>
 </ul></td></tr>
 </tbody></table>
+{{if .Oekaki}}<div id="oekaki" class="oekaki" hidden>
+<div class="okTools">
+<label><input type="radio" name="okTool" value="p" checked> Pen</label>
+<label><input type="radio" name="okTool" value="e"> Eraser</label>
+<label><input type="radio" name="okTool" value="f"> Fill</label>
+<label>Colour <input type="color" id="okColor" value="#000000"></label>
+<span class="okPalette" id="okPalette"></span>
+<label>Size <input type="range" id="okSize" min="1" max="40" value="3"> <span id="okSizeShown">3</span></label>
+<button type="button" id="okUndo" title="Undo (Ctrl+Z)">Undo</button>
+<button type="button" id="okRedo" title="Redo (Ctrl+Y)">Redo</button>
+<button type="button" id="okClear">Clear</button>
+</div>
+<canvas id="okCanvas" width="400" height="400"></canvas>
+<div class="okActions"><span id="okTime"></span>
+<button type="button" id="okUse">Use this drawing</button>
+<button type="button" id="okClose">Close</button></div>
+</div>{{end}}
 </form>
 {{else if .Closed}}<div class="closedNotice">Thread closed.<br>You may not reply at this time.</div>
 {{else if .NeedLogin}}<div class="closedNotice">Only this BBS's users post here: <a href="/chan/login?back={{$.Path}}">sign in</a> first.</div>

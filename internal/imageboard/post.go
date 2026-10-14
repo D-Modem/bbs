@@ -210,6 +210,7 @@ func (s *Server) post(q *req, b *store.Board) {
 		}
 		p.Ext, p.W, p.H, p.TnW, p.TnH, p.MD5 = pic.Ext, pic.W, pic.H, pic.TnW, pic.TnH, pic.MD5
 		p.FileSize = int64(len(pic.Data))
+		p.Replay, p.DrawMS = pic.Replay, pic.DrawMS
 		p.Spoiler = val("spoiler") != ""
 	}
 	switch {

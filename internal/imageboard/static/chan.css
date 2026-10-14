@@ -116,3 +116,20 @@ label.reason { display: block; margin: 4px 0; }
   form.deleteForm { float: none; }
   ul.boards { columns: 1; }
 }
+/* what only works with the script */
+.jsonly { display: none; }
+.js .jsonly { display: revert; }
+/* oekaki: the drawing board, and replays */
+.oekaki { margin: 6px auto; text-align: center; }
+.okTools { display: flex; flex-wrap: wrap; gap: 6px 12px; justify-content: center; align-items: center; font-size: 9pt; margin-bottom: 6px; }
+.okTools input[type=color] { width: 32px; height: 20px; padding: 0; border: 1px solid #888; vertical-align: middle; }
+.okTools input[type=range] { width: 90px; vertical-align: middle; }
+.okPalette { display: inline-flex; flex-wrap: wrap; gap: 2px; max-width: 200px; }
+.okPalette button { width: 16px; height: 16px; padding: 0; border: 1px solid #888; cursor: pointer; }
+#okCanvas, .okReplay canvas { border: 1px solid #888; max-width: 100%; height: auto; display: block; margin: 0 auto; }
+#okCanvas { cursor: crosshair; touch-action: none; }
+.okActions { margin-top: 6px; font-size: 9pt; }
+.okActions #okTime { margin-right: 12px; }
+.okReplay { display: inline-block; margin: 3px 20px 5px; max-width: calc(100vw - 60px); }
+.okReplayBar { font-size: 8pt; margin-top: 3px; }
+.oekakiInfo { font-size: 8pt; }

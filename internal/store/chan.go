@@ -24,6 +24,7 @@ type Board struct {
 	Locked      bool // no one but staff posts
 	LoginToPost bool // only the BBS's users post
 	TextOnly    bool // threads need no image
+	Oekaki      bool // its posters can draw their pictures in the page
 	Mods        string
 	Sort        int
 	LastNo      int64
@@ -60,7 +61,9 @@ type BoardPost struct {
 	MD5         string // base64, as 4chan has it
 	Spoiler     bool
 	FileDeleted bool
-	Banned      bool // its poster was banned for it, as it says
+	Banned      bool  // its poster was banned for it, as it says
+	Replay      bool  // its image is a drawing that carries its strokes
+	DrawMS      int64 // how long the drawing took
 	// for a thread's first post, when listed
 	Replies, Images int
 }
@@ -92,14 +95,14 @@ type Report struct {
 }
 
 const boardCols = `id, dir, title, description, max_file, pages, per_page, bump_limit, image_limit, forced_anon,
-	default_name, worksafe, locked, login_to_post, text_only, mods, sort, last_no, created`
+	default_name, worksafe, locked, login_to_post, text_only, mods, sort, last_no, created, oekaki`
 
 func scanBoard(row interface{ Scan(...any) error }) (*Board, error) {
 	var b Board
 	var created int64
 	err := row.Scan(&b.ID, &b.Dir, &b.Title, &b.Description, &b.MaxFile, &b.Pages, &b.PerPage, &b.BumpLimit,
 		&b.ImageLimit, &b.ForcedAnon, &b.DefaultName, &b.Worksafe, &b.Locked, &b.LoginToPost, &b.TextOnly,
-		&b.Mods, &b.Sort, &b.LastNo, &created)
+		&b.Mods, &b.Sort, &b.LastNo, &created, &b.Oekaki)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -111,10 +114,10 @@ func scanBoard(row interface{ Scan(...any) error }) (*Board, error) {
 // aside).
 func (s *Store) CreateBoard(b *Board) (*Board, error) {
 	id, err := s.db.insertID(`INSERT INTO chan_boards (dir, title, description, max_file, pages, per_page, bump_limit,
-		image_limit, forced_anon, default_name, worksafe, locked, login_to_post, text_only, mods, sort, created)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.Dir, b.Title, b.Description, b.MaxFile, b.Pages,
+		image_limit, forced_anon, default_name, worksafe, locked, login_to_post, text_only, mods, sort, created, oekaki)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.Dir, b.Title, b.Description, b.MaxFile, b.Pages,
 		b.PerPage, b.BumpLimit, b.ImageLimit, b.ForcedAnon, b.DefaultName, b.Worksafe, b.Locked, b.LoginToPost,
-		b.TextOnly, b.Mods, b.Sort, now())
+		b.TextOnly, b.Mods, b.Sort, now(), b.Oekaki)
 	if err != nil {
 		if isUnique(err) {
 			return nil, ErrExists
@@ -128,9 +131,9 @@ func (s *Store) CreateBoard(b *Board) (*Board, error) {
 func (s *Store) UpdateBoard(b *Board) error {
 	_, err := s.db.Exec(`UPDATE chan_boards SET title = ?, description = ?, max_file = ?, pages = ?, per_page = ?,
 		bump_limit = ?, image_limit = ?, forced_anon = ?, default_name = ?, worksafe = ?, locked = ?, login_to_post = ?,
-		text_only = ?, mods = ?, sort = ? WHERE id = ?`, b.Title, b.Description, b.MaxFile, b.Pages, b.PerPage,
+		text_only = ?, mods = ?, sort = ?, oekaki = ? WHERE id = ?`, b.Title, b.Description, b.MaxFile, b.Pages, b.PerPage,
 		b.BumpLimit, b.ImageLimit, b.ForcedAnon, b.DefaultName, b.Worksafe, b.Locked, b.LoginToPost, b.TextOnly,
-		b.Mods, b.Sort, b.ID)
+		b.Mods, b.Sort, b.Oekaki, b.ID)
 	return err
 }
 
@@ -180,14 +183,14 @@ func (s *Store) Boards() ([]*Board, error) {
 }
 
 const postCols = `id, board_id, num, thread, name, trip, capcode, email, subject, body, password, ip, user_id, created,
-	bumped, sticky, closed, file_name, ext, tim, file_size, w, h, tn_w, tn_h, md5, spoiler, file_deleted, banned`
+	bumped, sticky, closed, file_name, ext, tim, file_size, w, h, tn_w, tn_h, md5, spoiler, file_deleted, banned, replay, draw_ms`
 
 func scanPost(row interface{ Scan(...any) error }, more ...any) (*BoardPost, error) {
 	var p BoardPost
 	var created, bumped int64
 	dest := []any{&p.ID, &p.BoardID, &p.No, &p.Thread, &p.Name, &p.Trip, &p.Capcode, &p.Email, &p.Subject, &p.Comment,
 		&p.Password, &p.IP, &p.UserID, &created, &bumped, &p.Sticky, &p.Closed, &p.FileName, &p.Ext, &p.Tim,
-		&p.FileSize, &p.W, &p.H, &p.TnW, &p.TnH, &p.MD5, &p.Spoiler, &p.FileDeleted, &p.Banned}
+		&p.FileSize, &p.W, &p.H, &p.TnW, &p.TnH, &p.MD5, &p.Spoiler, &p.FileDeleted, &p.Banned, &p.Replay, &p.DrawMS}
 	err := row.Scan(append(dest, more...)...)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -244,10 +247,10 @@ func (s *Store) AddPost(p *BoardPost, bump bool) error {
 	p.Created, p.Bumped = unix(t), unix(t)
 	if _, err := tx.insertID(`INSERT INTO chan_posts (board_id, num, thread, name, trip, capcode, email, subject, body,
 		password, ip, user_id, created, bumped, sticky, closed, file_name, ext, tim, file_size, w, h, tn_w, tn_h, md5,
-		spoiler) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		spoiler, replay, draw_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		p.BoardID, p.No, p.Thread, p.Name, p.Trip, p.Capcode, p.Email, p.Subject, p.Comment, p.Password, p.IP,
 		p.UserID, t, t, p.Sticky, p.Closed, p.FileName, p.Ext, p.Tim, p.FileSize, p.W, p.H, p.TnW, p.TnH, p.MD5,
-		p.Spoiler); err != nil {
+		p.Spoiler, p.Replay, p.DrawMS); err != nil {
 		return err
 	}
 	if p.Thread != 0 && bump {

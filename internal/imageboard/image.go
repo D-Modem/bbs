@@ -59,6 +59,8 @@ type picture struct {
 	MD5      string
 	Thumb    []byte // a JPEG
 	TnW, TnH int
+	Replay   bool  // a drawing that carries its strokes (oekaki.go)
+	DrawMS   int64 // how long it took to draw
 }
 
 var (
@@ -98,6 +100,11 @@ func prepare(data []byte, side int, bg color.Color, strip bool) (*picture, error
 	if cfg.Width < 1 || cfg.Height < 1 || cfg.Width > maxSide || cfg.Height > maxSide || cfg.Width*cfg.Height > maxPixels {
 		return nil, errTooLarge
 	}
+	var replayed bool
+	var drawMS int64
+	if ext == ".png" {
+		data, drawMS, replayed = pngReplay(data, cfg.Width, cfg.Height)
+	}
 	decodeSlots <- struct{}{}
 	defer func() { <-decodeSlots }()
 	var img image.Image
@@ -115,7 +122,8 @@ func prepare(data []byte, side int, bg color.Color, strip bool) (*picture, error
 		return nil, errNotImage
 	}
 	sum := md5.Sum(data)
-	p := &picture{Data: data, Ext: ext, W: cfg.Width, H: cfg.Height, MD5: base64.StdEncoding.EncodeToString(sum[:])}
+	p := &picture{Data: data, Ext: ext, W: cfg.Width, H: cfg.Height, MD5: base64.StdEncoding.EncodeToString(sum[:]),
+		Replay: replayed, DrawMS: drawMS}
 	p.TnW, p.TnH = fit(cfg.Width, cfg.Height, side)
 	tn := image.NewRGBA(image.Rect(0, 0, p.TnW, p.TnH))
 	draw.Draw(tn, tn.Bounds(), image.NewUniform(bg), image.Point{}, draw.Src)

@@ -38,6 +38,8 @@ type apiPost struct {
 	TnH           int        `json:"tn_h,omitempty"`
 	Tim           int64      `json:"tim,omitempty"`
 	FileDeleted   int        `json:"filedeleted,omitempty"`
+	Replay        int        `json:"replay,omitempty"`  // an oekaki drawing, its strokes in its PNG
+	DrawMS        int64      `json:"draw_ms,omitempty"` // how long it took to draw
 	Spoiler       int        `json:"spoiler,omitempty"`
 	Replies       *int       `json:"replies,omitempty"`
 	Images        *int       `json:"images,omitempty"`
@@ -80,6 +82,9 @@ func (q *req) apiPost(b *store.Board, v *postView) *apiPost {
 		a.Filename, a.Ext, a.Fsize, a.MD5, a.W, a.H, a.TnW, a.TnH, a.Tim = p.FileName, p.Ext, p.FileSize, p.MD5, p.W,
 			p.H, p.TnW, p.TnH, p.Tim
 		a.Spoiler, a.FileDeleted = flag(p.Spoiler), flag(p.FileDeleted)
+		if p.Replay && !p.FileDeleted {
+			a.Replay, a.DrawMS = 1, p.DrawMS
+		}
 		if p.FileDeleted {
 			a.Filename, a.Ext, a.Fsize, a.MD5, a.W, a.H, a.TnW, a.TnH, a.Tim = "", "", 0, "", 0, 0, 0, 0, 0
 		}
@@ -135,6 +140,7 @@ func (s *Server) boardsJSON(q *req) {
 		Cooldowns       cooldowns `json:"cooldowns"`
 		ForcedAnon      int       `json:"forced_anon,omitempty"`
 		TextOnly        int       `json:"text_only,omitempty"`
+		Oekaki          int       `json:"oekaki,omitempty"`
 		Spoilers        int       `json:"spoilers"`
 		CodeTags        int       `json:"code_tags"`
 		IsArchived      int       `json:"is_archived"`
@@ -147,7 +153,7 @@ func (s *Server) boardsJSON(q *req) {
 		out.Boards = append(out.Boards, board{Board: b.Dir, Title: b.Title, WSBoard: flag(b.Worksafe), PerPage: b.PerPage,
 			Pages: b.Pages, MaxFilesize: s.maxFile(b), MaxCommentChars: s.S.MaxComment, ImageLimit: b.ImageLimit,
 			BumpLimit: b.BumpLimit, MetaDescription: b.Description, Cooldowns: cd, ForcedAnon: flag(b.ForcedAnon),
-			TextOnly: flag(b.TextOnly), Spoilers: 1, CodeTags: 1})
+			TextOnly: flag(b.TextOnly), Oekaki: flag(b.Oekaki), Spoilers: 1, CodeTags: 1})
 	}
 	q.json(out)
 }

@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="/chan/static/chan.css">
 <link rel="stylesheet" href="/chan/static/{{.Style}}.css" id="stylesheet">
 <script src="/chan/static/chan.js" defer></script>
+<script src="/chan/static/oekaki.js" defer></script>
 </head>
 <body class="{{.Style}}{{with .Board}} board-{{.Dir}}{{end}}">
 <div class="boardNav">
@@ -39,7 +40,7 @@
 
 {{define "file"}}<div class="file" id="f{{.No}}">
 {{if .FileDeleted}}<span class="fileDeleted">File deleted.</span>
-{{else}}<div class="fileText">File: <a href="{{.SrcURL}}" target="_blank" title="{{.FileName}}{{.Ext}}">{{short (print .FileName .Ext)}}</a> ({{if .Spoiler}}Spoiler Image, {{end}}{{size .FileSize}}, {{.W}}x{{.H}})</div>
+{{else}}<div class="fileText">File: <a href="{{.SrcURL}}" target="_blank" title="{{.FileName}}{{.Ext}}">{{short (print .FileName .Ext)}}</a> ({{if .Spoiler}}Spoiler Image, {{end}}{{size .FileSize}}, {{.W}}x{{.H}}){{if .Replay}} <span class="oekakiInfo">&middot; drawn in {{dur .DrawMS}} <span class="jsonly">[<a href="{{.SrcURL}}" class="replayLink" data-no="{{.No}}">Replay</a>]{{if .Draw}} [<a href="/chan/{{.Dir}}/thread/{{.Thread}}?draw={{.No}}#postForm" class="drawOver" data-src="{{.SrcURL}}" data-thread="{{.Thread}}">Draw over</a>]{{end}}</span></span>{{end}}</div>
 <a class="fileThumb{{if .Spoiler}} imgspoiler{{end}}" href="{{.SrcURL}}" target="_blank">{{if .Spoiler}}<img src="/chan/static/spoiler.png" alt="Spoiler Image" width="100" height="100">{{else}}<img src="{{.ThumbURL}}" alt="{{size .FileSize}}" width="{{.TnW}}" height="{{.TnH}}" loading="lazy">{{end}}</a>
 {{end}}</div>{{end}}
 

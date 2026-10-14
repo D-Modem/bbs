@@ -83,7 +83,7 @@ See [Files and FTP](Files-and-FTP).
 
 ```
 bbs chan board add DIR TITLE [DESCRIPTION] [-nsfw]   # /DIR/ at /chan/DIR/
-bbs chan board set DIR KEY VALUE    # pages, per_page, bump_limit, mods, nsfw...
+bbs chan board set DIR KEY VALUE    # pages, per_page, bump_limit, mods, nsfw, oekaki...
 bbs chan board list
 bbs chan board del DIR              # its posts and images too
 bbs chan ban add ADDRESS DAYS [BOARD|-] [REASON...]

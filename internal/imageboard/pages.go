@@ -17,6 +17,7 @@ var funcs = template.FuncMap{
 	"iso":   func(t time.Time) string { return t.UTC().Format(time.RFC3339) },
 	"add":   func(a, b int) int { return a + b },
 	"short": shortName,
+	"dur":   drawTime,
 	"seq": func(n int) []int {
 		out := make([]int, n)
 		for i := range out {
@@ -28,6 +29,18 @@ var funcs = template.FuncMap{
 
 // postDate is when a post was made, as 4chan writes it.
 func postDate(t time.Time) string { return t.Local().Format("01/02/06(Mon)15:04:05") }
+
+// drawTime is how long a drawing took: 45s, 3m12s, 1h05m.
+func drawTime(ms int64) string {
+	s := ms / 1000
+	switch {
+	case s >= 3600:
+		return fmt.Sprintf("%dh%02dm", s/3600, s%3600/60)
+	case s >= 60:
+		return fmt.Sprintf("%dm%02ds", s/60, s%60)
+	}
+	return fmt.Sprintf("%ds", s)
+}
 
 // humanSize is a file's size as 4chan shows it.
 func humanSize(n int64) string {
@@ -63,6 +76,7 @@ type postView struct {
 	ThumbURL  string
 	Staff     bool // the viewer may moderate it
 	Index     bool // shown on a board's index (a thread's first gets [Reply])
+	Draw      bool // its board is an oekaki board: its drawing can be drawn over
 }
 
 // threadView is a thread as a board's index or its own page shows it.
@@ -145,6 +159,7 @@ func (q *req) view(b *store.Board, p *store.BoardPost, l *links, here int64, cut
 	}
 	v.Staff = q.staff(b) != ""
 	v.Index = here == 0
+	v.Draw = b.Oekaki
 	return v
 }
 
@@ -330,6 +345,7 @@ type formView struct {
 	Capcode   string // the staff's
 	MaxFile   int64
 	Image     bool // an image is needed
+	Oekaki    bool // the drawing board is offered
 }
 
 func (q *req) form(b *store.Board, op *store.BoardPost) formView {
@@ -349,6 +365,7 @@ func (q *req) form(b *store.Board, op *store.BoardPost) formView {
 		f.CanPost, f.NeedLogin = false, true
 	}
 	f.Image = op == nil && !b.TextOnly
+	f.Oekaki = b.Oekaki
 	return f
 }
 

@@ -45,7 +45,7 @@ func chanBoardCmd(cfg *server.Config, args []string) {
 		for _, b := range bs {
 			var opts []string
 			for name, on := range map[string]bool{"nsfw": !b.Worksafe, "forced anon": b.ForcedAnon, "locked": b.Locked,
-				"users only": b.LoginToPost, "text only": b.TextOnly} {
+				"users only": b.LoginToPost, "text only": b.TextOnly, "oekaki": b.Oekaki} {
 				if on {
 					opts = append(opts, name)
 				}
@@ -67,6 +67,7 @@ func chanBoardCmd(cfg *server.Config, args []string) {
 		}
 		b.Worksafe = !flags["nsfw"]
 		b.ForcedAnon, b.Locked, b.LoginToPost, b.TextOnly = flags["forced-anon"], flags["locked"], flags["login"], flags["text-only"]
+		b.Oekaki = flags["oekaki"]
 		if _, err := st.CreateBoard(b); errors.Is(err, store.ErrExists) {
 			fatal(fmt.Errorf("there is a /%s/ already", b.Dir))
 		} else if err != nil {
@@ -164,9 +165,11 @@ func setBoard(b *store.Board, key, val string) error {
 		b.LoginToPost, err = yes()
 	case "text_only":
 		b.TextOnly, err = yes()
+	case "oekaki":
+		b.Oekaki, err = yes()
 	default:
 		return fmt.Errorf("%s: not a board's setting (title, description, default_name, mods, pages, per_page, "+
-			"bump_limit, image_limit, max_file, sort, nsfw, forced_anon, locked, login, text_only)", key)
+			"bump_limit, image_limit, max_file, sort, nsfw, forced_anon, locked, login, text_only, oekaki)", key)
 	}
 	return err
 }

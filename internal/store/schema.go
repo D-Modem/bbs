@@ -244,7 +244,8 @@ CREATE TABLE IF NOT EXISTS chan_boards (
 	mods          {str} NOT NULL DEFAULT '',
 	sort          {int} NOT NULL DEFAULT 0,
 	last_no       {int} NOT NULL DEFAULT 0,
-	created       {int} NOT NULL
+	created       {int} NOT NULL,
+	oekaki        {bool} NOT NULL DEFAULT FALSE
 )`, `
 CREATE TABLE IF NOT EXISTS chan_posts (
 	id           {id},
@@ -275,7 +276,9 @@ CREATE TABLE IF NOT EXISTS chan_posts (
 	md5          {key} NOT NULL DEFAULT '',
 	spoiler      {bool} NOT NULL DEFAULT FALSE,
 	file_deleted {bool} NOT NULL DEFAULT FALSE,
-	banned       {bool} NOT NULL DEFAULT FALSE
+	banned       {bool} NOT NULL DEFAULT FALSE,
+	replay       {bool} NOT NULL DEFAULT FALSE,
+	draw_ms      {int} NOT NULL DEFAULT 0
 )`, `
 CREATE TABLE IF NOT EXISTS chan_bans (
 	id      {id},
@@ -361,6 +364,9 @@ var added = []struct{ table, column, decl string }{
 	{"messages", "thread", "{int} NOT NULL DEFAULT 0"},
 	{"file_areas", "fileecho", "{key}"},
 	{"files", "origin", "{str} NOT NULL DEFAULT ''"},
+	{"chan_boards", "oekaki", "{bool} NOT NULL DEFAULT FALSE"},
+	{"chan_posts", "replay", "{bool} NOT NULL DEFAULT FALSE"},
+	{"chan_posts", "draw_ms", "{int} NOT NULL DEFAULT 0"},
 }
 
 // migrate makes the schema, or brings an older database up to it.
