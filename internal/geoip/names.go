@@ -5,6 +5,7 @@ package geoip
 // a few made plain, as the databases name them): for databases that give
 // codes alone.
 var Names = map[string]string{
+	"AC": "Ascension Island", // ITU, not ISO 3166-1: a calling code of its own
 	"AD": "Andorra",
 	"AE": "United Arab Emirates",
 	"AF": "Afghanistan",
@@ -218,6 +219,7 @@ var Names = map[string]string{
 	"SX": "Sint Maarten",
 	"SY": "Syria",
 	"SZ": "Eswatini",
+	"TA": "Tristan da Cunha", // ITU, as AC
 	"TC": "Turks and Caicos Islands",
 	"TD": "Chad",
 	"TF": "French Southern Territories",

@@ -86,7 +86,8 @@ throttle_time = 600
 ; phone_country: the country (ISO 3166: US, GB, DE) whose national numbers
 ; modem caller IDs are, as the exchange sends them ("4155550123",
 ; "02071234567"); international ones (+44..., 011 44...) are read anyway.
-; A caller ID gives the country, and in North America the state or province
+; A caller ID gives the country, the kind of number and, where the plan
+; says, the place (by libphonenumber's tables, built in)
 ;phone_country = US
 
 ; A listener:

@@ -1,7 +1,9 @@
 // Package phone reads the numbers modem callers call from (the caller ID
-// a modem or Asterisk gives): their country, by the ITU's calling codes,
-// and in North America the state or province, by the area code.  Numbers
-// as a telephone exchange gives them are often national ("4155550123",
+// a modem or Asterisk gives): their country, what kind of number it is
+// and the place it is in, by Google's libphonenumber's tables of every
+// country's numbering plan (metadata.go and places.gz, made by
+// gen: Apache License 2.0, LICENSE.libphonenumber).  Numbers as a
+// telephone exchange gives them are often national ("4155550123",
 // "02071234567"): those are read as the BBS's home country dials.
 package phone
 
@@ -18,8 +20,11 @@ type Number struct {
 	Code     string // the country calling code: "1", "44"
 	National string // the number after it
 	Country  string // ISO 3166-1 ("": no country's, or not known)
-	Region   string // the state or province (the NANP's), if known
+	Region   string // the place in the country, if known: "Jersey City, NJ", "Berlin"
+	Kind     Kind   // what it is, as the plan says ("": not a number the plan has)
 	Service  string // what a number that is no place's is: "toll-free", "Inmarsat"
+
+	t *territory
 }
 
 var (
@@ -37,21 +42,12 @@ var (
 var withheld = map[string]bool{"": true, "anonymous": true, "unknown": true, "private": true,
 	"restricted": true, "unavailable": true, "withheld": true, "p": true, "o": true, "out of area": true}
 
-// codeOf is the calling code of each country.
-var codeOf = func() map[string]string {
-	m := map[string]string{}
-	for code, cs := range countryCodes {
-		for _, c := range cs {
-			if _, ok := m[c]; !ok || len(code) < len(m[c]) {
-				m[c] = code
-			}
-		}
-	}
-	return m
-}()
-
 // Known says whether a country is one Parse reads national numbers for.
-func Known(home string) bool { _, ok := codeOf[strings.ToUpper(home)]; return ok }
+func Known(home string) bool {
+	compile()
+	_, ok := byID[strings.ToUpper(home)]
+	return ok
+}
 
 // Parse reads a caller ID: an international number ("+44 20 7123 4567"),
 // one dialed from home ("011 44 20...", "00 44 20..."), or a national one
@@ -83,38 +79,27 @@ func Parse(s, home string) (Number, error) {
 	if len(digits) < 3 || len(digits) > 18 {
 		return Number{}, ErrNotNumber
 	}
-	home = strings.ToUpper(home)
-	var intl string
+	compile()
+	t := byID[strings.ToUpper(home)]
 	switch {
 	case plus:
-		intl = digits
-	case home != "" && codeOf[home] != "":
-		d, ok := dialingOf[home]
-		if !ok {
-			d = dialing{"00", "0"}
+		return international(digits)
+	case t != nil:
+		if m := t.prepare().intlRE.FindStringIndex(digits); m != nil && m[1] < len(digits) {
+			return international(digits[m[1]:])
 		}
-		if p, ok := strings.CutPrefix(digits, d.intl); ok {
-			intl = p
-			break
-		}
-		cc := codeOf[home]
-		national := digits
-		if d.trunk != "" {
-			national = strings.TrimPrefix(digits, d.trunk)
-		}
-		if cc == "1" && len(national) == 7 {
+		national := t.stripNational(digits)
+		if t.code == "1" && len(national) == 7 {
 			// a local number, without its area code: home's, and no more
-			return Number{Code: "1", National: national, Country: home}, nil
+			return Number{Code: "1", National: national, Country: t.id, t: t}, nil
 		}
-		intl = cc + national
+		return international(t.code + national)
 	case strings.HasPrefix(digits, "00"):
-		intl = digits[2:]
+		return international(digits[2:])
 	case strings.HasPrefix(digits, "011"):
-		intl = digits[3:]
-	default:
-		return Number{}, ErrNational
+		return international(digits[3:])
 	}
-	return international(intl)
+	return Number{}, ErrNational
 }
 
 // international reads a number in full (its calling code and on).
@@ -123,13 +108,10 @@ func international(d string) (Number, error) {
 		return Number{}, ErrNotNumber
 	}
 	var n Number
+	var ts []*territory
 	for l := 1; l <= 3 && l < len(d); l++ {
-		if _, ok := countryCodes[d[:l]]; ok {
+		if ts = byCode[d[:l]]; ts != nil {
 			n.Code = d[:l]
-			break
-		}
-		if svc, ok := nonGeographic[d[:l]]; ok {
-			n.Code, n.Service = d[:l], svc
 			break
 		}
 	}
@@ -137,30 +119,51 @@ func international(d string) (Number, error) {
 		return Number{}, ErrNotNumber
 	}
 	n.National = d[len(n.Code):]
-	if len(n.National) < 4 {
-		return Number{}, ErrNotNumber
+	// whose: a shared code's country by how its numbers begin, else the
+	// first whose plan has the number
+	for _, t := range ts {
+		if t.prepare().leadingRE != nil && t.leadingRE.MatchString(n.National) {
+			n.t = t
+			break
+		}
 	}
-	n.E164 = "+" + d
-	if n.Service != "" {
-		return n, nil
+	if n.t != nil {
+		n.Kind = n.t.kindOf(n.National)
+	} else {
+		for _, t := range ts {
+			if k := t.kindOf(n.National); k != "" {
+				n.t, n.Kind = t, k
+				break
+			}
+		}
 	}
-	if n.Code == "1" {
-		if len(n.National) != 10 {
+	if n.t == nil {
+		// not a number any of them has: one of its length, still
+		for _, t := range ts {
+			if t.prepare().generalRE.MatchString(n.National) {
+				n.t = t
+				break
+			}
+		}
+		if n.t == nil {
 			return Number{}, ErrNotNumber
 		}
-		area := n.National[:3]
-		if p, ok := areaPlace[area]; ok {
-			n.Country, n.Region = p.country, p.region
-		} else {
-			n.Service = nanpServices[area]
-		}
-		return n, nil
 	}
-	n.Country = countryCodes[n.Code][0]
-	best := 0
-	for prefix, c := range shared[n.Code] {
-		if len(prefix) > best && strings.HasPrefix(n.National, prefix) {
-			n.Country, best = c, len(prefix)
+	n.E164 = "+" + d
+	if n.t.id != "001" {
+		n.Country = n.t.id
+	}
+	switch {
+	case nonGeographic[n.Code] != "":
+		n.Service = nonGeographic[n.Code]
+	case n.Kind != "" && !n.Kind.placed():
+		n.Service = string(n.Kind)
+	case n.Kind == "" && n.Code == "1" && len(n.National) == 10:
+		n.Service = nanpServices[n.National[:3]]
+	}
+	if n.Country != "" && n.Service == "" {
+		if r := placeOf(d); r != "" && r != n.CountryName() {
+			n.Region = r
 		}
 	}
 	return n, nil
@@ -178,23 +181,23 @@ func (n Number) CountryName() string {
 }
 
 // Where says where the number is, in a few words: "California, United
-// States", "United Kingdom", "toll-free", "North America".
+// States", "Berlin, Germany", "United States (toll-free)", "Inmarsat".
 func (n Number) Where() string {
 	switch {
 	case n.Country != "" && n.Region != "":
 		return n.Region + ", " + n.CountryName()
+	case n.Country != "" && n.Service != "":
+		return n.CountryName() + " (" + n.Service + ")"
 	case n.Country != "":
 		return n.CountryName()
 	case n.Service != "":
 		return n.Service
-	case n.Code == "1":
-		return "North America"
 	}
 	return ""
 }
 
 // String is the number as it is written abroad: "+1 415-555-0123", "+44
-// 2071234567"; a local number as it is.
+// 20 7123 4567"; a local number as it is.
 func (n Number) String() string {
 	switch {
 	case n.E164 == "":
@@ -202,8 +205,18 @@ func (n Number) String() string {
 			return n.National[:3] + "-" + n.National[3:]
 		}
 		return n.National
-	case n.Code == "1":
-		return "+1 " + n.National[:3] + "-" + n.National[3:6] + "-" + n.National[6:]
+	case n.t != nil:
+		f := n.t.formatIntl(n.National)
+		if f == "" && len(n.t.formats) == 0 {
+			// a country without formats of its own writes them as the
+			// code's own country does
+			if ts := byCode[n.Code]; len(ts) > 0 {
+				f = ts[0].formatIntl(n.National)
+			}
+		}
+		if f != "" {
+			return "+" + n.Code + " " + f
+		}
 	}
 	return "+" + n.Code + " " + n.National
 }

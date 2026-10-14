@@ -462,14 +462,18 @@ func (s *Session) eventsScreen() error {
 }
 
 // placeOf is where a caller is, as the sysop sees it: the number a modem
-// caller called from, and the place.
+// caller called from (and that it is a mobile's), and the place.
 func placeOf(p bbs.Place) string {
 	where := p.String()
+	num := p.Number
+	if num != "" && p.Kind == "mobile" {
+		num += " (mobile)"
+	}
 	switch {
-	case p.Number == "":
+	case num == "":
 		return where
 	case where == "":
-		return p.Number
+		return num
 	}
-	return p.Number + ", " + where
+	return num + ", " + where
 }

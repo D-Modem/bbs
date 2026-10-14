@@ -28,7 +28,13 @@ doors-image:
 proto:
 	protoc --go_out=. --go_opt=module=github.com/Neo-Desktop/bbs-sec proto/bbs.proto
 
+# regenerates internal/phone's tables from a checkout of Google's
+# libphonenumber (git clone --depth 1 https://github.com/google/libphonenumber)
+LIBPHONENUMBER ?= ../libphonenumber
+phone-data:
+	$(GO) run ./internal/phone/gen -src $(LIBPHONENUMBER)
+
 clean:
 	rm -f bbs
 
-.PHONY: all bbs test install clean doors-image proto
+.PHONY: all bbs test install clean doors-image proto phone-data

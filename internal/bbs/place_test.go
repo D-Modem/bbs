@@ -18,15 +18,17 @@ func TestPlace(t *testing.T) {
 		{Caller{Source: "ip:198.51.100.200"}, Place{Country: "DE", Name: "Germany"}},
 		{Caller{Source: "ip:127.0.0.1"}, Place{}},
 		{Caller{Source: "ip:127.0.0.1", CallerID: "4155550123"},
-			Place{Country: "US", Name: "United States", Region: "California", Number: "+1 415-555-0123"}},
-		{Caller{CallerID: "8005550123"}, Place{Number: "+1 800-555-0123", Service: "toll-free"}},
+			Place{Country: "US", Name: "United States", Region: "San Francisco, CA", Number: "+1 415-555-0123",
+				Kind: "fixed line or mobile"}},
+		{Caller{CallerID: "8005550123"}, Place{Country: "US", Name: "United States", Number: "+1 800-555-0123",
+			Service: "toll-free", Kind: "toll-free"}},
 		{Caller{Source: "ip:81.2.69.160", CallerID: "anonymous"}, Place{Country: "GB", Name: "United Kingdom"}},
 	} {
 		if got := b.Locate(&c.caller); got != c.want {
 			t.Errorf("%+v: %+v, want %+v", c.caller, got, c.want)
 		}
 	}
-	if s := (Place{Country: "US", Name: "United States", Region: "Ohio"}).String(); s != "Ohio, United States" {
+	if s := (Place{Country: "US", Name: "United States", Service: "toll-free"}).String(); s != "United States (toll-free)" {
 		t.Errorf("place: %q", s)
 	}
 

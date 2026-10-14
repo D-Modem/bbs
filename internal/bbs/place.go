@@ -13,17 +13,20 @@ import (
 type Place struct {
 	Country string // ISO 3166-1 ("": not known)
 	Name    string // the country's name
-	Region  string // the state or province, if known (a caller ID's)
+	Region  string // the place in the country, if known (a caller ID's): "Jersey City, NJ"
 	Number  string // the caller's number as it is written abroad, if read
 	Service string // what a number that is no place's is ("toll-free")
+	Kind    string // what the number is ("mobile", "fixed line"), if read
 }
 
-// String is the place in a few words: "California, United States",
-// "Germany", "toll-free"; "" if nothing is known.
+// String is the place in a few words: "Jersey City, NJ, United States",
+// "Germany", "United States (toll-free)"; "" if nothing is known.
 func (p Place) String() string {
 	switch {
 	case p.Region != "" && p.Name != "":
 		return p.Region + ", " + p.Name
+	case p.Name != "" && p.Service != "":
+		return p.Name + " (" + p.Service + ")"
 	case p.Name != "":
 		return p.Name
 	}
@@ -42,7 +45,8 @@ func (b *BBS) Locate(c *Caller) Place {
 	}
 	if c.CallerID != "" {
 		if n, err := phone.Parse(c.CallerID, b.PhoneCountry); err == nil {
-			return Place{Country: n.Country, Name: n.CountryName(), Region: n.Region, Number: n.String(), Service: n.Service}
+			return Place{Country: n.Country, Name: n.CountryName(), Region: n.Region, Number: n.String(),
+				Service: n.Service, Kind: string(n.Kind)}
 		}
 	}
 	if ip, ok := strings.CutPrefix(c.Source, "ip:"); ok {

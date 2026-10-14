@@ -90,15 +90,19 @@ client says it is an `ANSI` terminal, and the caller logs in again.
 
 ## Where callers are
 
-`[general] phone_country` reads modem callers' numbers: the country by
-the ITU's calling codes (the shared ones told apart: Jersey from Britain,
-Kazakhstan from Russia, Jamaica from the US) and, in the North American
-Numbering Plan, the state or province by the area code; toll-free and
-the like are said as such. International numbers (`+44 20...`) are read
-whatever it is; national ones, as exchanges mostly send them, are read
-as that country dials (`4155550123`, `1 415 555 0123` and `011 44...`
-with `US`; `020 7123 4567` and `00 1 415...` with `GB`). A local number
-with no area code gives the country alone; withheld numbers nothing.
+`[general] phone_country` reads modem callers' numbers by every
+country's numbering plan: the country (the shared calling codes told
+apart: Jersey from Britain, Kazakhstan from Russia, Jamaica from the US),
+what the number is (fixed line, mobile, toll-free, premium rate, VoIP...)
+and the place it is in, to the exchange where the plan says (*Jersey
+City, NJ*, *Ontario*, *London*, *Berlin*, *Tokyo*: 151 calling codes have
+places). International numbers (`+44 20...`) are read whatever it is;
+national ones, as exchanges mostly send them, are read as that country
+dials, its trunk and international prefixes taken off (`4155550123`,
+`1 415 555 0123` and `011 44...` with `US`; `020 7123 4567` and
+`00 1 415...` with `GB`; `8 495 ...` and `810 ...` with `RU`). A local
+number with no area code gives the country alone; withheld numbers
+nothing.
 
 ```ini
 [general]
@@ -106,15 +110,21 @@ phone_country = US
 ;geoip = /var/lib/bbs/dbip-country-lite.mmdb   ; for callers by address
 ```
 
-The log says it with the call:
+The log says it with the call, the number as it is written abroad:
 
 ```
-node 3: modem on [listen modem]: rate 33600/31200, from 4155550123 (+1 415-555-0123), in California, United States
+node 3: modem on [listen modem]: rate 33600/31200, from 4155550123 (+1 415-555-0123), in San Francisco, CA, United States
+node 4: modem on [listen modem]: rate 26400/26400, from 08005550123 (+44 800 555 0123), in United Kingdom (toll-free)
 ```
 
 Who's online shows callers' countries (by caller ID, else by address with
 `[general] geoip`); the sysop's node list (spy, chat, kick) their number
-and state too. Posts keep the poster's country for the [web forum's
-flags](Web-Forum#flags). The tables are the BBS's own (the NANP's area
-codes as assigned by 2026); nothing is looked up elsewhere.
+(and whether it is a mobile's) and place too. Posts keep the poster's
+country for the [web forum's flags](Web-Forum#flags).
 
+The plans are Google's [libphonenumber](https://github.com/google/libphonenumber)'s
+(Apache License 2.0), built into the BBS: nothing is looked up elsewhere.
+`make phone-data LIBPHONENUMBER=path/to/checkout` makes the tables again
+from a newer one (`internal/phone/gen`); they were last made from its
+data of October 2026, and checked against its Go port (nyaruka/phonenumbers)
+on 34,000 numbers: the same country, kind and place for every one.

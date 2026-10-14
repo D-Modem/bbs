@@ -365,7 +365,11 @@ func callDetails(c *bbs.Caller, p bbs.Place) string {
 	case p.Name != "":
 		parts = append(parts, "in "+p.String())
 	case p.Service != "":
-		parts = append(parts, "a "+p.Service+" number")
+		a := "a "
+		if strings.ContainsRune("aeiouAEIOU", rune(p.Service[0])) {
+			a = "an "
+		}
+		parts = append(parts, a+p.Service+" number")
 	}
 	if c.Dialed != "" {
 		parts = append(parts, "to "+c.Dialed)
