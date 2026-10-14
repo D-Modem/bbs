@@ -27,4 +27,12 @@ func TestChanMediaConfig(t *testing.T) {
 	if _, err := load("[chan]\npdftoppm = no-such-helper-here\n"); err == nil || !strings.Contains(err.Error(), "pdftoppm") {
 		t.Errorf("a helper not there: %v", err)
 	}
+	dir := t.TempDir()
+	if _, err := load("[chan]\nruffle = " + dir + "\n"); err == nil || !strings.Contains(err.Error(), "no ruffle.js") {
+		t.Errorf("ruffle without its files: %v", err)
+	}
+	os.WriteFile(filepath.Join(dir, "ruffle.js"), []byte("//"), 0644)
+	if c, err := load("[chan]\nruffle = " + dir + "\n"); err != nil || c.Chan.Ruffle != dir {
+		t.Errorf("ruffle: %v", err)
+	}
 }

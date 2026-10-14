@@ -129,7 +129,7 @@ func usage() {
   bbs [-config FILE] file del AREA NAME
   bbs [-config FILE] chan board add DIR TITLE [DESCRIPTION] [-nsfw] [-forced-anon] [-text-only] [-locked] [-login] [-oekaki]
                      [-ids] [-flags]
-  bbs [-config FILE] chan board set DIR KEY VALUE   (pages, per_page, mods, nsfw, login, captcha, options, files, sound...)
+  bbs [-config FILE] chan board set DIR KEY VALUE   (pages, per_page, mods, nsfw, login, captcha, options, files, sound...: files webm,mp4,pdf,swf,flv)
   bbs [-config FILE] chan board list | del DIR      del takes its posts and images too
   bbs [-config FILE] chan ban add ADDRESS DAYS [BOARD|-] [REASON...]   (0 days: for ever)
   bbs [-config FILE] chan ban list | del ID

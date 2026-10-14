@@ -40,10 +40,15 @@ var mediaTypes = map[string]struct{ mime, kind string }{
 	".webm": {"video/webm", "webm"},
 	".mp4":  {"video/mp4", "mp4"},
 	".pdf":  {"application/pdf", "pdf"},
+	".swf":  {"application/x-shockwave-flash", "swf"},
+	".flv":  {"video/x-flv", "flv"},
 }
 
 // FileKinds are the file types a board may take besides images.
-var FileKinds = []string{"webm", "mp4", "pdf"}
+var FileKinds = []string{"webm", "mp4", "pdf", "swf", "flv"}
+
+// kindNames are the kinds as the post form says them.
+var kindNames = map[string]string{"webm": "WebM", "mp4": "MP4", "pdf": "PDF", "swf": "SWF", "flv": "FLV"}
 
 // fileType is any file's MIME type by its extension ("": none kept).
 func fileType(ext string) string {
@@ -63,6 +68,10 @@ func sniffMedia(b []byte) string {
 		return ".mp4"
 	case bytes.HasPrefix(b, []byte("%PDF-")):
 		return ".pdf"
+	case len(b) >= 8 && (string(b[:3]) == "FWS" || string(b[:3]) == "CWS" || string(b[:3]) == "ZWS"):
+		return ".swf"
+	case bytes.HasPrefix(b, []byte("FLV\x01")):
+		return ".flv"
 	}
 	return ""
 }
@@ -451,7 +460,7 @@ func taken(b *store.Board) error {
 	kinds := "JPEG, PNG, GIF, WebP"
 	for _, k := range FileKinds {
 		if takes(b, k) {
-			kinds += ", " + map[string]string{"webm": "WebM", "mp4": "MP4", "pdf": "PDF"}[k]
+			kinds += ", " + kindNames[k]
 		}
 	}
 	if i := strings.LastIndex(kinds, ", "); i >= 0 {
@@ -479,11 +488,18 @@ func (s *Server) prepareFile(b *store.Board, data []byte, side int, bg color.Col
 		m, err = readMP4(data)
 	case ".pdf":
 		m, err = readPDF(data)
+	case ".swf":
+		m, err = readSWF(data)
+	case ".flv":
+		m, err = readFLV(data)
 	}
 	if err != nil {
 		return nil, err
 	}
-	video := ext != ".pdf"
+	if ext == ".swf" && m.Sound && !b.Sound {
+		return nil, errors.New("This board takes Flash without sound.")
+	}
+	video := fileKind(ext) == "video" || ext == ".flv"
 	if video {
 		switch {
 		case m.W < 1 || m.H < 1:
@@ -509,13 +525,12 @@ func (s *Server) prepareFile(b *store.Board, data []byte, side int, bg color.Col
 	}
 	if img == nil {
 		w, h := fit(m.W, m.H, side)
-		if video {
-			label := "WEBM"
-			if ext == ".mp4" {
-				label = "MP4"
-			}
-			img = card(w, h, label, clock(m.DurationMS))
-		} else {
+		switch {
+		case ext == ".swf":
+			img = card(w, h, "FLASH", fmt.Sprintf("%dx%d", m.W, m.H))
+		case video:
+			img = card(w, h, strings.ToUpper(strings.TrimPrefix(ext, ".")), clock(m.DurationMS))
+		default:
 			pages := "PDF"
 			if m.Pages > 0 {
 				pages = strconv.Itoa(m.Pages) + " " + plural(m.Pages, "page", "pages")
@@ -549,7 +564,7 @@ const helperTimeout = 30 * time.Second
 func (s *Server) frame(data []byte, ext string) (image.Image, error) {
 	var tool string
 	switch ext {
-	case ".webm", ".mp4":
+	case ".webm", ".mp4", ".flv":
 		tool = s.S.FFmpeg
 	case ".pdf":
 		tool = s.S.PDFToPPM
@@ -576,7 +591,7 @@ func (s *Server) frame(data []byte, ext string) (image.Image, error) {
 		cmd = exec.CommandContext(ctx, tool, "-f", "1", "-l", "1", "-png", "-scale-to", "500", "-singlefile", in, out)
 	} else {
 		// the container named, not guessed: nothing but the file is read
-		format := map[string]string{".webm": "matroska", ".mp4": "mov"}[ext]
+		format := map[string]string{".webm": "matroska", ".mp4": "mov", ".flv": "flv"}[ext]
 		cmd = exec.CommandContext(ctx, tool, "-nostdin", "-v", "error", "-protocol_whitelist", "file",
 			"-f", format, "-i", in, "-frames:v", "1", "-an", "-vf", "scale='min(500,iw)':-2", "-f", "image2", out+".png")
 	}
@@ -627,6 +642,8 @@ func fileKind(ext string) string {
 		return "video"
 	case ".pdf":
 		return "pdf"
+	case ".swf", ".flv":
+		return "flash"
 	}
 	return "image"
 }

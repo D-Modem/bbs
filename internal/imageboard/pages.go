@@ -82,6 +82,7 @@ type postView struct {
 	Index     bool // shown on a board's index (a thread's first gets [Reply])
 	Draw      bool // its board is an oekaki board: its drawing can be drawn over
 	IDCount   int  // the posts by its poster's ID in the thread (on a thread's page)
+	Play      bool // its file is Flash, and Ruffle is here to play it
 }
 
 // threadView is a thread as a board's index or its own page shows it.
@@ -163,6 +164,7 @@ func (q *req) view(b *store.Board, p *store.BoardPost, l *links, here int64, cut
 	if p.HasFile() {
 		v.SrcURL = fmt.Sprintf("%s/%s/src/%d%s", Base, b.Dir, p.Tim, p.Ext)
 		v.ThumbURL = fmt.Sprintf("%s/%s/thumb/%ds.jpg", Base, b.Dir, p.Tim)
+		v.Play = fileKind(p.Ext) == "flash" && q.s.S.Ruffle != ""
 	}
 	v.Staff = q.staff(b) != ""
 	v.Index = here == 0
@@ -400,8 +402,8 @@ func (q *req) form(b *store.Board, op *store.BoardPost) formView {
 	for _, k := range FileKinds {
 		if takes(b, k) {
 			f.Accept += "," + mediaTypes["."+k].mime
-			words = append(words, map[string]string{"webm": "WebM", "mp4": "MP4", "pdf": "PDF"}[k])
-			video = video || k != "pdf"
+			words = append(words, kindNames[k])
+			video = video || k == "webm" || k == "mp4" || k == "flv"
 		}
 	}
 	for i, w := range words {

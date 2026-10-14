@@ -186,7 +186,7 @@ func TestMediaPosts(t *testing.T) {
 // Whatever is uploaded, reading it ends: an answer or a refusal, never a
 // panic or a hang.
 func FuzzReadMedia(f *testing.F) {
-	for _, name := range []string{"quiet.webm", "sound.webm", "live.webm", "quiet.mp4", "hevc.mp4", "plain.mkv", "two.pdf"} {
+	for _, name := range []string{"quiet.webm", "sound.webm", "live.webm", "quiet.mp4", "hevc.mp4", "plain.mkv", "two.pdf", "tiny.swf", "tiny.flv"} {
 		b, _ := os.ReadFile(filepath.Join("testdata", name))
 		f.Add(b)
 	}
@@ -194,5 +194,7 @@ func FuzzReadMedia(f *testing.F) {
 		readWebM(b)
 		readMP4(b)
 		readPDF(b)
+		readSWF(b)
+		readFLV(b)
 	})
 }

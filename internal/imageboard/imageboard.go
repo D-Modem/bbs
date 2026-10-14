@@ -72,6 +72,9 @@ type Settings struct {
 	// and a video's longest length (0: any)
 	FFmpeg, PDFToPPM string
 	MaxVideo         time.Duration
+	// Ruffle's self-hosted files (ruffle.js and its .wasm), to play Flash
+	// in the page ("": SWFs and FLVs are only downloaded)
+	Ruffle string
 }
 
 // Defaults are the settings unless bbs.conf says otherwise.
@@ -134,7 +137,7 @@ const (
 
 // reserved are the names no board may have: the image boards' own.
 var reserved = map[string]bool{"static": true, "manage": true, "login": true, "logout": true, "banned": true,
-	"style": true, "boards.json": true,
+	"style": true, "boards.json": true, "ruffle": true, "flash": true, "flvplayer.swf": true,
 	"captcha": true, "captcha.png": true, "captcha.json": true}
 
 // ValidDir says what is wrong with a board's directory ("": nothing).
@@ -255,6 +258,15 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		http.StripPrefix(Base+"/static/", s.static).ServeHTTP(w, r)
+		return
+	case seg[0] == "ruffle" && len(seg) == 2 && get:
+		s.serveRuffle(q, seg[1])
+		return
+	case len(seg) == 1 && seg[0] == "flash" && get:
+		s.serveFlashPage(q)
+		return
+	case len(seg) == 1 && seg[0] == "flvplayer.swf" && get:
+		s.serveFLVPlayer(q)
 		return
 	case len(seg) == 1 && seg[0] == "boards.json" && get:
 		s.boardsJSON(q)
@@ -657,5 +669,5 @@ func IsAsset(r *http.Request) bool {
 		return false
 	}
 	seg := strings.Split(strings.TrimPrefix(r.URL.Path, Base+"/"), "/")
-	return len(seg) == 2 && seg[0] == "static" || len(seg) == 3 && (seg[1] == "src" || seg[1] == "thumb")
+	return len(seg) == 2 && (seg[0] == "static" || seg[0] == "ruffle") || len(seg) == 3 && (seg[1] == "src" || seg[1] == "thumb")
 }

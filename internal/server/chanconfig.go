@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
@@ -76,6 +77,12 @@ func (c *Config) chanSection(s *config.Section) error {
 	}
 	if ch.MaxVideo, err = s.Seconds("max_video", int(ch.MaxVideo.Seconds()), 0, 86400); err != nil {
 		return err
+	}
+	// Ruffle's self-hosted package, unpacked: Flash played in the page
+	if ch.Ruffle = s.String("ruffle", ""); ch.Ruffle != "" {
+		if _, err := os.Stat(filepath.Join(ch.Ruffle, "ruffle.js")); err != nil {
+			return fmt.Errorf("ruffle: %s has no ruffle.js (Ruffle's self-hosted package, unpacked): %w", ch.Ruffle, err)
+		}
 	}
 	if ch.Style = s.String("style", ""); ch.Style != "" && !imageboard.KnownStyle(ch.Style) {
 		var names []string

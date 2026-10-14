@@ -43,6 +43,7 @@ address = :8443
 ;ffmpeg = ffmpeg         ; videos' thumbnails, a frame (else a card saying what it is)
 ;pdftoppm = pdftoppm     ; PDFs' thumbnails, the first page
 ;max_video = 120         ; seconds a video may run (0: any)
+;ruffle = /usr/share/ruffle   ; Ruffle's self-hosted files: Flash played in the page
 ```
 
 | setting | default | |
@@ -61,6 +62,7 @@ address = :8443
 | `style` | by the board | Yotsuba B on a worksafe board, Yotsuba on the rest, as 4chan does |
 | `ffmpeg`, `pdftoppm` | none | the programs that make videos' and PDFs' thumbnails (by name on the PATH, or a path); without them, a card saying what the file is ([below](#videos-and-pdfs)) |
 | `max_video` | `120` | seconds a video may run (0: any length) |
+| `ruffle` | none | the directory of Ruffle's self-hosted package (`ruffle.js` and its `.wasm`): SWFs and FLVs played in the page ([below](#flash)); without it they are only downloaded |
 
 ## On the terminals
 
@@ -245,8 +247,8 @@ bbs chan ban del ID
 | `oekaki` | no | posters can draw their pictures in the page ([below](#oekaki)) |
 | `ids` | no | each poster has an ID in a thread ([below](#poster-ids-and-flags)) |
 | `flags` | no | posts show their country's flag (with `[chan] geoip`) |
-| `files` | none | files taken besides images: `webm`, `mp4`, `pdf`, as many as wanted (`webm,pdf`); `none` for images only ([below](#videos-and-pdfs)) |
-| `sound` | no | videos may have sound (an audio track) |
+| `files` | none | files taken besides images: `webm`, `mp4`, `pdf`, `swf`, `flv`, as many as wanted (`webm,pdf`); `none` for images only ([below](#videos-and-pdfs)) |
+| `sound` | no | videos and Flash may have sound |
 | `locked` | no | only staff post |
 | `login` | `no` | `post`: only the BBS's users post (signed in at `/chan/login`); `all`: only they see the board at all (its pages, images and JSON; others are sent to sign in, and the front page marks it *(members)*) |
 | `captcha` | `default` | `yes` or `no` for this board, else `[chan]`'s |
@@ -291,6 +293,49 @@ failing on a file refuses it (a browser would not show it either).
 Without them, the thumbnail is a card saying what it is (*WEBM 0:05*,
 *PDF 2 pages*). On the terminals a video or PDF shows as its thumbnail;
 the file itself is for the browser.
+
+## Flash
+
+A board can take Flash too, as 4chan's /f/ did, played by
+[Ruffle](https://ruffle.rs), the Flash Player emulator, in the page:
+
+```
+make ruffle                      # Ruffle's self-hosted package, into ruffle/ (or unpack a release's)
+bbs chan board set f files swf,flv
+bbs chan board set f sound yes
+```
+
+```ini
+[chan]
+ruffle = /opt/bbs/ruffle         ; the directory with ruffle.js (some 30 MB, not in the BBS)
+```
+
+| | read for | |
+|---|---|---|
+| SWF (`FWS`, `CWS`, `ZWS`) | its stage's size, frames and rate, sounds | compressed ones are walked as they unpack, nothing kept (a small file that unpacks to much is refused at no cost); an LZMA one (`ZWS`) Ruffle unpacks, so it is taken as 550x400 with sound |
+| FLV | its `onMetaData` (size, length), its tags (sound, the video's codec: Sorenson H.263, Screen, VP6, VP6 alpha, H.264) | without metadata its length is its last tag's time, its size Flash's 320x240 |
+
+A movie or FLV with sound needs the board's `sound`; an FLV is held to
+`max_video` as videos are. The thumbnail of an FLV is its first frame
+with `[chan] ffmpeg`; a movie's is a card (*FLASH 550x400*): nothing here
+draws Flash but the browser.
+
+Clicking the thumbnail plays it in place, with *[Close]*. The player is a
+frame of `/chan/flash`, **sandboxed** (`allow-scripts` alone, by its
+Content Security Policy as by the frame): it has no origin of the
+site's, so no cookies, and nothing of the page. The page fetches the file
+(with its own cookies, so a board for members only works) and hands its
+bytes to the frame, which hands them to Ruffle with the network,
+scripting and links off (`allowNetworking: "none"`, `allowScriptAccess:
+false`, `openUrlMode: "deny"`). Ruffle does not play an FLV by itself,
+as Flash Player did not: the BBS makes a small movie of its own
+(`/chan/flvplayer.swf?w=&h=`, a `NetStream` played into a `Video` of the
+FLV's size) that plays it from a `blob:` of the frame's. Ruffle's files
+are served at `/chan/ruffle/` to anyone (the frame has no origin to send),
+only those of the package (`.js`, `.wasm`, `.map`, no directories).
+Ruffle decodes H.264 with the browser's own decoder (WebCodecs), which
+Chrome, Edge and Safari have; Sorenson, VP6 and Screen video it decodes
+itself.
 
 ## Oekaki
 

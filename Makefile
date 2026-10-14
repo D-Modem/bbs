@@ -36,7 +36,15 @@ NANPA ?= npa_report.csv
 phone-data:
 	$(GO) run ./internal/phone/gen -src $(LIBPHONENUMBER) -nanpa $(NANPA)
 
+# fetches Ruffle's self-hosted package (Flash for the image boards: [chan]
+# ruffle = ./ruffle) from npm, unpacked into ruffle/
+RUFFLE_VERSION ?= 0.7.1
+ruffle:
+	rm -rf ruffle && mkdir ruffle
+	curl -fsSL https://registry.npmjs.org/@ruffle-rs/ruffle/-/ruffle-$(RUFFLE_VERSION).tgz | tar xz -C ruffle --strip-components=1
+	@ls ruffle/ruffle.js
+
 clean:
 	rm -f bbs
 
-.PHONY: all bbs test install clean doors-image proto phone-data
+.PHONY: all bbs test install clean doors-image proto phone-data ruffle

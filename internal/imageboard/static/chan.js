@@ -48,12 +48,53 @@
       file.querySelector(".fileText").append(close);
       return;
     }
+    // Flash: Ruffle, in a sandboxed frame of no origin, handed the movie
+    // (fetched here, with this page's cookies) and nothing else
+    if (a.classList.contains("flashThumb") && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
+      e.preventDefault();
+      var ffile = a.closest(".file");
+      var w = +a.dataset.w || 550, h = +a.dataset.h || 400;
+      var room = Math.min(window.innerWidth - 80, w * 2), scale = Math.min(1, room / w, (window.innerHeight * 0.85) / h);
+      var frame = document.createElement("iframe");
+      frame.className = "expandedFlash";
+      frame.setAttribute("sandbox", "allow-scripts");
+      frame.setAttribute("allow", "autoplay; fullscreen");
+      frame.width = Math.round(w * scale);
+      frame.height = Math.round(h * scale);
+      frame.src = "/chan/flash";
+      var flv = a.dataset.flash === ".flv";
+      var files = [fetch(a.href, {credentials: "same-origin"}).then(function (r) { return r.arrayBuffer(); })];
+      if (flv) files.push(fetch("/chan/flvplayer.swf?w=" + w + "&h=" + h).then(function (r) { return r.arrayBuffer(); }));
+      var onMessage = function (m) {
+        if (m.source !== frame.contentWindow || m.data !== "ready") return;
+        window.removeEventListener("message", onMessage);
+        Promise.all(files).then(function (got) {
+          var msg = flv ? {flv: got[0], player: got[1]} : {swf: got[0]};
+          frame.contentWindow.postMessage(msg, "*", got);
+        });
+      };
+      window.addEventListener("message", onMessage);
+      a.hidden = true;
+      a.after(frame);
+      var fclose = document.createElement("span");
+      fclose.className = "videoClose";
+      fclose.append(" [");
+      var fx = document.createElement("a");
+      fx.href = "#";
+      fx.className = "closeVideo";
+      fx.textContent = "Close";
+      fclose.append(fx, "]");
+      ffile.querySelector(".fileText").append(fclose);
+      return;
+    }
     if (a.classList.contains("closeVideo")) {
       e.preventDefault();
       var f = a.closest(".file");
       var vid = f.querySelector("video.expandedVideo");
       if (vid) { vid.pause(); vid.remove(); }
-      f.querySelector(".videoThumb").hidden = false;
+      var fl = f.querySelector("iframe.expandedFlash");
+      if (fl) fl.remove();
+      f.querySelector(".fileThumb").hidden = false;
       a.closest(".videoClose").remove();
       return;
     }
