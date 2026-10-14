@@ -191,7 +191,7 @@ func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
 			side = replyThumb
 		}
 		var err error
-		if pic, err = prepare(sub.Image, side, thumbBG(b), s.S.Strip); err != nil {
+		if pic, err = s.prepareFile(b, sub.Image, side, thumbBG(b)); err != nil {
 			return nil, refuse(http.StatusBadRequest, "%s", err.Error())
 		}
 		if dup, err := s.B.Store.PostByMD5(b.ID, pic.MD5); err == nil {
@@ -205,11 +205,12 @@ func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
 		name := filepath.Base(strings.ReplaceAll(sub.FileName, "\\", "/"))
 		name = strings.TrimSuffix(name, filepath.Ext(name))
 		if p.FileName = field(name, 100); p.FileName == "" || p.FileName == "." {
-			p.FileName = "image"
+			p.FileName = map[bool]string{true: "image", false: "file"}[imageTypes[pic.Ext] != ""]
 		}
 		p.Ext, p.W, p.H, p.TnW, p.TnH, p.MD5 = pic.Ext, pic.W, pic.H, pic.TnW, pic.TnH, pic.MD5
 		p.FileSize = int64(len(pic.Data))
 		p.Replay, p.DrawMS = pic.Replay, pic.DrawMS
+		p.DurationMS, p.PageCount = pic.DurationMS, pic.Pages
 		p.Spoiler = sub.Spoiler
 	}
 	switch {

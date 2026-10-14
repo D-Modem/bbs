@@ -284,6 +284,14 @@ address = 127.0.0.1:2513
 ; the post form's Options line (sage: no bump; nonoko); a board may say
 ; otherwise: bbs chan board set DIR options yes|no|default
 ;options = yes
+; files besides images, on the boards that take them (bbs chan board set
+; DIR files webm,mp4,pdf; sound yes): the programs that make their
+; thumbnails (a video's first frame, a PDF's first page; without them a
+; card saying what the file is), and the longest a video may run, in
+; seconds (0: any)
+;ffmpeg = ffmpeg
+;pdftoppm = pdftoppm
+;max_video = 120
 ; a country database for the boards with flags (bbs chan board set DIR
 ; flags yes): a MaxMind DB (.mmdb: GeoLite2 Country, DB-IP Lite...) or a
 ; CSV of ranges; read again when it changes.  By default [general]'s

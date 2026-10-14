@@ -251,7 +251,9 @@ CREATE TABLE IF NOT EXISTS chan_boards (
 	captcha       {str} NOT NULL DEFAULT '',
 	options       {str} NOT NULL DEFAULT '',
 	poster_ids    {bool} NOT NULL DEFAULT FALSE,
-	flags         {bool} NOT NULL DEFAULT FALSE
+	flags         {bool} NOT NULL DEFAULT FALSE,
+	file_types    {str} NOT NULL DEFAULT '',
+	sound         {bool} NOT NULL DEFAULT FALSE
 )`, `
 CREATE TABLE IF NOT EXISTS chan_posts (
 	id           {id},
@@ -288,7 +290,9 @@ CREATE TABLE IF NOT EXISTS chan_posts (
 	account      {str} NOT NULL DEFAULT '',
 	poster_id    {key} NOT NULL DEFAULT '',
 	country      {str} NOT NULL DEFAULT '',
-	country_name {str} NOT NULL DEFAULT ''
+	country_name {str} NOT NULL DEFAULT '',
+	duration_ms  {int} NOT NULL DEFAULT 0,
+	page_count   {int} NOT NULL DEFAULT 0
 )`, `
 CREATE TABLE IF NOT EXISTS chan_bans (
 	id      {id},
@@ -387,6 +391,10 @@ var added = []struct{ table, column, decl string }{
 	{"chan_posts", "country", "{str} NOT NULL DEFAULT ''"},
 	{"chan_posts", "country_name", "{str} NOT NULL DEFAULT ''"},
 	{"messages", "country", "{str} NOT NULL DEFAULT ''"},
+	{"chan_boards", "file_types", "{str} NOT NULL DEFAULT ''"},
+	{"chan_boards", "sound", "{bool} NOT NULL DEFAULT FALSE"},
+	{"chan_posts", "duration_ms", "{int} NOT NULL DEFAULT 0"},
+	{"chan_posts", "page_count", "{int} NOT NULL DEFAULT 0"},
 }
 
 // migrate makes the schema, or brings an older database up to it.

@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
@@ -59,6 +60,22 @@ func (c *Config) chanSection(s *config.Section) error {
 		if _, err := os.Stat(ch.GeoIP); err != nil {
 			c.Warnings = append(c.Warnings, fmt.Sprintf("[chan] geoip: %v: no flags until it is there", err))
 		}
+	}
+	// videos' and PDFs' thumbnails: the helpers, if the sysop has them
+	for _, h := range []struct {
+		key string
+		p   *string
+	}{{"ffmpeg", &ch.FFmpeg}, {"pdftoppm", &ch.PDFToPPM}} {
+		if v := s.String(h.key, ""); v != "" {
+			path, err := exec.LookPath(v)
+			if err != nil {
+				return fmt.Errorf("%s: %w", h.key, err)
+			}
+			*h.p = path
+		}
+	}
+	if ch.MaxVideo, err = s.Seconds("max_video", int(ch.MaxVideo.Seconds()), 0, 86400); err != nil {
+		return err
 	}
 	if ch.Style = s.String("style", ""); ch.Style != "" && !imageboard.KnownStyle(ch.Style) {
 		var names []string

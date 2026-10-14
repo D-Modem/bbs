@@ -22,6 +22,11 @@ func (s *Server) Picture(b *store.Board, p *store.BoardPost, full bool, maxW, ma
 		return nil, errors.New("the post has no image")
 	}
 	maxW, maxH = max(maxW, 1), max(maxH, 1)
+	if fileKind(p.Ext) != "image" {
+		// a video or PDF: its thumbnail is the picture there is (made
+		// larger, if there is room, as it will go)
+		full = false
+	}
 	if !full && p.Spoiler {
 		if s.spoiler == nil {
 			s.spoiler = spoilerImage()

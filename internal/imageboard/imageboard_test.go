@@ -235,7 +235,7 @@ func TestImageBoard(t *testing.T) {
 	}
 	// not a file that is not an image
 	if code, _, body := anon.post("b", map[string]string{"com": "x"}, []byte("<svg onload=alert(1)>"), "x.png"); code != 400 ||
-		!strings.Contains(body, "not an image") {
+		!strings.Contains(body, "not one this board takes (JPEG, PNG, GIF or WebP)") {
 		t.Fatalf("not an image: %d", code)
 	}
 

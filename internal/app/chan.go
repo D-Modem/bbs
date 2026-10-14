@@ -178,6 +178,12 @@ func chanTeaser(p *store.BoardPost) string {
 	}
 	t := strings.Join(strings.Fields(p.Comment), " ")
 	if t == "" && p.Ext != "" {
+		switch p.Ext {
+		case ".webm", ".mp4":
+			return "(a video)"
+		case ".pdf":
+			return "(a PDF)"
+		}
 		return "(an image)"
 	}
 	if r := []rune(t); len(r) > 60 {
@@ -358,7 +364,19 @@ func chanFileInfo(p *store.BoardPost) string {
 	if p.FileSize >= 1<<20 {
 		size = fmt.Sprintf("%.1f MB", float64(p.FileSize)/(1<<20))
 	}
-	s := fmt.Sprintf("%s%s, %dx%d, %s", p.FileName, p.Ext, p.W, p.H, size)
+	var s string
+	switch p.Ext {
+	case ".pdf":
+		s = fmt.Sprintf("%s%s, a PDF, %s", p.FileName, p.Ext, size)
+		if p.PageCount > 0 {
+			s += fmt.Sprintf(", %d page%s", p.PageCount, map[bool]string{true: "", false: "s"}[p.PageCount == 1])
+		}
+	case ".webm", ".mp4":
+		d := p.DurationMS / 1000
+		s = fmt.Sprintf("%s%s, a video, %dx%d, %d:%02d, %s", p.FileName, p.Ext, p.W, p.H, d/60, d%60, size)
+	default:
+		s = fmt.Sprintf("%s%s, %dx%d, %s", p.FileName, p.Ext, p.W, p.H, size)
+	}
 	if p.Spoiler {
 		s += ", a spoiler: V to see it"
 	}

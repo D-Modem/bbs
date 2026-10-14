@@ -61,6 +61,9 @@ type picture struct {
 	TnW, TnH int
 	Replay   bool  // a drawing that carries its strokes (oekaki.go)
 	DrawMS   int64 // how long it took to draw
+	// a video's length, a PDF's pages (media.go)
+	DurationMS int64
+	Pages      int
 }
 
 var (
@@ -112,16 +115,24 @@ func prepare(data []byte, side int, bg color.Color, strip bool) (*picture, error
 	sum := md5.Sum(data)
 	p := &picture{Data: data, Ext: ext, W: cfg.Width, H: cfg.Height, MD5: base64.StdEncoding.EncodeToString(sum[:]),
 		Replay: replayed, DrawMS: drawMS}
-	p.TnW, p.TnH = fit(cfg.Width, cfg.Height, side)
-	tn := image.NewRGBA(image.Rect(0, 0, p.TnW, p.TnH))
+	if p.Thumb, p.TnW, p.TnH, err = thumbnail(img, side, bg); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+// thumbnail is a picture made no bigger than side on a side, on bg, as a
+// JPEG.
+func thumbnail(img image.Image, side int, bg color.Color) ([]byte, int, int, error) {
+	w, h := fit(img.Bounds().Dx(), img.Bounds().Dy(), side)
+	tn := image.NewRGBA(image.Rect(0, 0, w, h))
 	draw.Draw(tn, tn.Bounds(), image.NewUniform(bg), image.Point{}, draw.Src)
 	draw.BiLinear.Scale(tn, tn.Bounds(), img, img.Bounds(), draw.Over, nil)
 	var out bytes.Buffer
 	if err := jpeg.Encode(&out, tn, &jpeg.Options{Quality: 85}); err != nil {
-		return nil, err
+		return nil, 0, 0, err
 	}
-	p.Thumb = out.Bytes()
-	return p, nil
+	return out.Bytes(), w, h, nil
 }
 
 // decode decodes an image (a GIF's first frame), a few at once.

@@ -30,6 +30,8 @@ type Board struct {
 	Options     string // the post form's Options line: "yes", "no", "" as [chan] says
 	PosterIDs   bool   // each poster has an ID in a thread
 	Flags       bool   // posts show their country's flag
+	FileTypes   string // files taken besides images: "webm,mp4,pdf" (as many as wanted)
+	Sound       bool   // videos may have sound
 	Mods        string
 	Sort        int
 	LastNo      int64
@@ -73,6 +75,8 @@ type BoardPost struct {
 	Banned      bool  // its poster was banned for it, as it says
 	Replay      bool  // its image is a drawing that carries its strokes
 	DrawMS      int64 // how long the drawing took
+	DurationMS  int64 // a video's length
+	PageCount   int   // a PDF's pages
 	// for a thread's first post, when listed
 	Replies, Images int
 }
@@ -105,14 +109,15 @@ type Report struct {
 
 const boardCols = `id, dir, title, description, max_file, pages, per_page, bump_limit, image_limit, forced_anon,
 	default_name, worksafe, locked, login_to_post, text_only, mods, sort, last_no, created, oekaki,
-	login_to_read, captcha, options, poster_ids, flags`
+	login_to_read, captcha, options, poster_ids, flags, file_types, sound`
 
 func scanBoard(row interface{ Scan(...any) error }) (*Board, error) {
 	var b Board
 	var created int64
 	err := row.Scan(&b.ID, &b.Dir, &b.Title, &b.Description, &b.MaxFile, &b.Pages, &b.PerPage, &b.BumpLimit,
 		&b.ImageLimit, &b.ForcedAnon, &b.DefaultName, &b.Worksafe, &b.Locked, &b.LoginToPost, &b.TextOnly,
-		&b.Mods, &b.Sort, &b.LastNo, &created, &b.Oekaki, &b.LoginToRead, &b.Captcha, &b.Options, &b.PosterIDs, &b.Flags)
+		&b.Mods, &b.Sort, &b.LastNo, &created, &b.Oekaki, &b.LoginToRead, &b.Captcha, &b.Options, &b.PosterIDs, &b.Flags,
+		&b.FileTypes, &b.Sound)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -125,10 +130,11 @@ func scanBoard(row interface{ Scan(...any) error }) (*Board, error) {
 func (s *Store) CreateBoard(b *Board) (*Board, error) {
 	id, err := s.db.insertID(`INSERT INTO chan_boards (dir, title, description, max_file, pages, per_page, bump_limit,
 		image_limit, forced_anon, default_name, worksafe, locked, login_to_post, text_only, mods, sort, created, oekaki,
-		login_to_read, captcha, options, poster_ids, flags)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.Dir, b.Title, b.Description, b.MaxFile, b.Pages,
+		login_to_read, captcha, options, poster_ids, flags, file_types, sound)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.Dir, b.Title, b.Description, b.MaxFile, b.Pages,
 		b.PerPage, b.BumpLimit, b.ImageLimit, b.ForcedAnon, b.DefaultName, b.Worksafe, b.Locked, b.LoginToPost,
-		b.TextOnly, b.Mods, b.Sort, now(), b.Oekaki, b.LoginToRead, b.Captcha, b.Options, b.PosterIDs, b.Flags)
+		b.TextOnly, b.Mods, b.Sort, now(), b.Oekaki, b.LoginToRead, b.Captcha, b.Options, b.PosterIDs, b.Flags,
+		b.FileTypes, b.Sound)
 	if err != nil {
 		if isUnique(err) {
 			return nil, ErrExists
@@ -143,9 +149,9 @@ func (s *Store) UpdateBoard(b *Board) error {
 	_, err := s.db.Exec(`UPDATE chan_boards SET title = ?, description = ?, max_file = ?, pages = ?, per_page = ?,
 		bump_limit = ?, image_limit = ?, forced_anon = ?, default_name = ?, worksafe = ?, locked = ?, login_to_post = ?,
 		text_only = ?, mods = ?, sort = ?, oekaki = ?, login_to_read = ?, captcha = ?, options = ?,
-		poster_ids = ?, flags = ? WHERE id = ?`, b.Title, b.Description, b.MaxFile, b.Pages, b.PerPage,
+		poster_ids = ?, flags = ?, file_types = ?, sound = ? WHERE id = ?`, b.Title, b.Description, b.MaxFile, b.Pages, b.PerPage,
 		b.BumpLimit, b.ImageLimit, b.ForcedAnon, b.DefaultName, b.Worksafe, b.Locked, b.LoginToPost, b.TextOnly,
-		b.Mods, b.Sort, b.Oekaki, b.LoginToRead, b.Captcha, b.Options, b.PosterIDs, b.Flags, b.ID)
+		b.Mods, b.Sort, b.Oekaki, b.LoginToRead, b.Captcha, b.Options, b.PosterIDs, b.Flags, b.FileTypes, b.Sound, b.ID)
 	return err
 }
 
@@ -195,14 +201,16 @@ func (s *Store) Boards() ([]*Board, error) {
 }
 
 const postCols = `id, board_id, num, thread, name, trip, capcode, email, subject, body, password, ip, user_id, created,
-	bumped, sticky, closed, file_name, ext, tim, file_size, w, h, tn_w, tn_h, md5, spoiler, file_deleted, banned, replay, draw_ms, account, poster_id, country, country_name`
+	bumped, sticky, closed, file_name, ext, tim, file_size, w, h, tn_w, tn_h, md5, spoiler, file_deleted, banned, replay, draw_ms, account, poster_id, country, country_name,
+	duration_ms, page_count`
 
 func scanPost(row interface{ Scan(...any) error }, more ...any) (*BoardPost, error) {
 	var p BoardPost
 	var created, bumped int64
 	dest := []any{&p.ID, &p.BoardID, &p.No, &p.Thread, &p.Name, &p.Trip, &p.Capcode, &p.Email, &p.Subject, &p.Comment,
 		&p.Password, &p.IP, &p.UserID, &created, &bumped, &p.Sticky, &p.Closed, &p.FileName, &p.Ext, &p.Tim,
-		&p.FileSize, &p.W, &p.H, &p.TnW, &p.TnH, &p.MD5, &p.Spoiler, &p.FileDeleted, &p.Banned, &p.Replay, &p.DrawMS, &p.Account, &p.PosterID, &p.Country, &p.CountryName}
+		&p.FileSize, &p.W, &p.H, &p.TnW, &p.TnH, &p.MD5, &p.Spoiler, &p.FileDeleted, &p.Banned, &p.Replay, &p.DrawMS, &p.Account, &p.PosterID, &p.Country, &p.CountryName,
+		&p.DurationMS, &p.PageCount}
 	err := row.Scan(append(dest, more...)...)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -259,11 +267,11 @@ func (s *Store) AddPost(p *BoardPost, bump bool) error {
 	p.Created, p.Bumped = unix(t), unix(t)
 	if _, err := tx.insertID(`INSERT INTO chan_posts (board_id, num, thread, name, trip, capcode, email, subject, body,
 		password, ip, user_id, created, bumped, sticky, closed, file_name, ext, tim, file_size, w, h, tn_w, tn_h, md5,
-		spoiler, replay, draw_ms, account, poster_id, country, country_name)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		spoiler, replay, draw_ms, account, poster_id, country, country_name, duration_ms, page_count)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		p.BoardID, p.No, p.Thread, p.Name, p.Trip, p.Capcode, p.Email, p.Subject, p.Comment, p.Password, p.IP,
 		p.UserID, t, t, p.Sticky, p.Closed, p.FileName, p.Ext, p.Tim, p.FileSize, p.W, p.H, p.TnW, p.TnH, p.MD5,
-		p.Spoiler, p.Replay, p.DrawMS, p.Account, p.PosterID, p.Country, p.CountryName); err != nil {
+		p.Spoiler, p.Replay, p.DrawMS, p.Account, p.PosterID, p.Country, p.CountryName, p.DurationMS, p.PageCount); err != nil {
 		return err
 	}
 	if p.Thread != 0 && bump {

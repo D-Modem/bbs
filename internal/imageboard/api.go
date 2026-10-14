@@ -38,10 +38,12 @@ type apiPost struct {
 	TnH           int        `json:"tn_h,omitempty"`
 	Tim           int64      `json:"tim,omitempty"`
 	FileDeleted   int        `json:"filedeleted,omitempty"`
-	Replay        int        `json:"replay,omitempty"`  // an oekaki drawing, its strokes in its PNG
-	DrawMS        int64      `json:"draw_ms,omitempty"` // how long it took to draw
-	Member        int        `json:"member,omitempty"`  // posted by a signed-in user of the BBS
-	Account       string     `json:"account,omitempty"` // their account's name, if they signed with it
+	Replay        int        `json:"replay,omitempty"`      // an oekaki drawing, its strokes in its PNG
+	DrawMS        int64      `json:"draw_ms,omitempty"`     // how long it took to draw
+	DurationMS    int64      `json:"duration_ms,omitempty"` // a video's length
+	PageCount     int        `json:"page_count,omitempty"`  // a PDF's pages
+	Member        int        `json:"member,omitempty"`      // posted by a signed-in user of the BBS
+	Account       string     `json:"account,omitempty"`     // their account's name, if they signed with it
 	ID            string     `json:"id,omitempty"`
 	Country       string     `json:"country,omitempty"`
 	CountryName   string     `json:"country_name,omitempty"`
@@ -91,6 +93,9 @@ func (q *req) apiPost(b *store.Board, v *postView) *apiPost {
 		a.Spoiler, a.FileDeleted = flag(p.Spoiler), flag(p.FileDeleted)
 		if p.Replay && !p.FileDeleted {
 			a.Replay, a.DrawMS = 1, p.DrawMS
+		}
+		if !p.FileDeleted {
+			a.DurationMS, a.PageCount = p.DurationMS, p.PageCount
 		}
 		if p.FileDeleted {
 			a.Filename, a.Ext, a.Fsize, a.MD5, a.W, a.H, a.TnW, a.TnH, a.Tim = "", "", 0, "", 0, 0, 0, 0, 0
@@ -150,8 +155,11 @@ func (s *Server) boardsJSON(q *req) {
 		Oekaki          int       `json:"oekaki,omitempty"`
 		UserIDs         int       `json:"user_ids,omitempty"`
 		CountryFlags    int       `json:"country_flags,omitempty"`
-		Login           string    `json:"login,omitempty"`   // "post": only users post; "all": only users see it
-		Captcha         int       `json:"captcha,omitempty"` // those not signed in answer a captcha
+		Login           string    `json:"login,omitempty"`      // "post": only users post; "all": only users see it
+		Captcha         int       `json:"captcha,omitempty"`    // those not signed in answer a captcha
+		FileTypes       []string  `json:"file_types,omitempty"` // taken besides images: webm, mp4, pdf
+		WebmAudio       int       `json:"webm_audio,omitempty"` // videos may have sound
+		MaxWebmDuration int       `json:"max_webm_duration,omitempty"`
 		Spoilers        int       `json:"spoilers"`
 		CodeTags        int       `json:"code_tags"`
 		IsArchived      int       `json:"is_archived"`
@@ -166,6 +174,16 @@ func (s *Server) boardsJSON(q *req) {
 			BumpLimit: b.BumpLimit, MetaDescription: b.Description, Cooldowns: cd, ForcedAnon: flag(b.ForcedAnon),
 			TextOnly: flag(b.TextOnly), Oekaki: flag(b.Oekaki), UserIDs: flag(b.PosterIDs),
 			CountryFlags: flag(b.Flags && s.S.GeoIP != ""), Login: loginOf(b), Captcha: flag(s.captchaOn(b)), Spoilers: 1, CodeTags: 1})
+		if bd := &out.Boards[len(out.Boards)-1]; b.FileTypes != "" {
+			for _, k := range FileKinds {
+				if takes(b, k) {
+					bd.FileTypes = append(bd.FileTypes, k)
+				}
+			}
+			if takes(b, "webm") || takes(b, "mp4") {
+				bd.WebmAudio, bd.MaxWebmDuration = flag(b.Sound), int(s.S.MaxVideo.Seconds())
+			}
+		}
 	}
 	q.json(out)
 }

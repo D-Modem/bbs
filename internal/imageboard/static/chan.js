@@ -25,6 +25,40 @@
       com.focus();
       return;
     }
+    // a video's thumbnail: the video, playing in place, and [Close]
+    if (a.classList.contains("videoThumb") && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
+      e.preventDefault();
+      var file = a.closest(".file");
+      var v = document.createElement("video");
+      v.className = "expandedVideo";
+      v.controls = true;
+      v.autoplay = true;
+      v.loop = true;
+      v.src = a.href;
+      a.hidden = true;
+      a.after(v);
+      var close = document.createElement("span");
+      close.className = "videoClose";
+      close.append(" [");
+      var x = document.createElement("a");
+      x.href = "#";
+      x.className = "closeVideo";
+      x.textContent = "Close";
+      close.append(x, "]");
+      file.querySelector(".fileText").append(close);
+      return;
+    }
+    if (a.classList.contains("closeVideo")) {
+      e.preventDefault();
+      var f = a.closest(".file");
+      var vid = f.querySelector("video.expandedVideo");
+      if (vid) { vid.pause(); vid.remove(); }
+      f.querySelector(".videoThumb").hidden = false;
+      a.closest(".videoClose").remove();
+      return;
+    }
+    // a PDF's: its own tab, as the link says
+    if (a.classList.contains("pdfThumb")) return;
     // a thumbnail: the image itself, and back
     if (a.classList.contains("fileThumb") && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) {
       var img = a.querySelector("img");

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -47,7 +48,8 @@ func chanBoardCmd(cfg *server.Config, args []string) {
 			var opts []string
 			for name, on := range map[string]bool{"nsfw": !b.Worksafe, "forced anon": b.ForcedAnon, "locked": b.Locked,
 				"users post": b.LoginToPost && !b.LoginToRead, "users only": b.LoginToRead, "text only": b.TextOnly,
-				"oekaki": b.Oekaki, "ids": b.PosterIDs, "flags": b.Flags, "captcha " + b.Captcha: b.Captcha != "", "options " + b.Options: b.Options != ""} {
+				"oekaki": b.Oekaki, "ids": b.PosterIDs, "flags": b.Flags, "captcha " + b.Captcha: b.Captcha != "", "options " + b.Options: b.Options != "",
+				"files " + b.FileTypes: b.FileTypes != "", "sound": b.Sound} {
 				if on {
 					opts = append(opts, name)
 				}
@@ -200,9 +202,27 @@ func setBoard(b *store.Board, key, val string) error {
 		b.PosterIDs, err = yes()
 	case "flags":
 		b.Flags, err = yes()
+	case "files":
+		// files taken besides images: webm, mp4, pdf (none: images only)
+		var kinds []string
+		for _, k := range strings.Split(strings.ToLower(val), ",") {
+			if k = strings.TrimSpace(k); k == "" || k == "none" {
+				continue
+			}
+			if !slices.Contains(imageboard.FileKinds, k) {
+				return fmt.Errorf("files: %q is not one of %s (or none)", k, strings.Join(imageboard.FileKinds, ", "))
+			}
+			if !slices.Contains(kinds, k) {
+				kinds = append(kinds, k)
+			}
+		}
+		b.FileTypes = strings.Join(kinds, ",")
+	case "sound":
+		b.Sound, err = yes()
 	default:
 		return fmt.Errorf("%s: not a board's setting (title, description, default_name, mods, pages, per_page, "+
-			"bump_limit, image_limit, max_file, sort, nsfw, forced_anon, locked, login, text_only, oekaki, ids, flags, captcha, options)", key)
+			"bump_limit, image_limit, max_file, sort, nsfw, forced_anon, locked, login, text_only, oekaki, ids, flags, captcha, options, "+
+			"files, sound)", key)
 	}
 	return err
 }

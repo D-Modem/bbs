@@ -67,13 +67,18 @@ type Settings struct {
 	// the credit its licence asks for, at the foot of each page ("IP
 	// geolocation by DB-IP", https://db-ip.com)
 	GeoCredit, GeoCreditURL string
+	// files besides images (on the boards that take them): the helpers
+	// that make their thumbnails ("": a card saying what it is instead),
+	// and a video's longest length (0: any)
+	FFmpeg, PDFToPPM string
+	MaxVideo         time.Duration
 }
 
 // Defaults are the settings unless bbs.conf says otherwise.
 func Defaults() Settings {
 	return Settings{Dir: "chan", MaxFile: 4 << 20, ThreadWait: 60 * time.Second, ReplyWait: 15 * time.Second,
 		MaxComment: 2000, Strip: true, Captcha: true, CaptchaLength: 6, CaptchaTTL: 10 * time.Minute,
-		CaptchaLevel: "normal", Options: true}
+		CaptchaLevel: "normal", Options: true, MaxVideo: 120 * time.Second}
 }
 
 // Style is a look the boards can wear: a stylesheet.
@@ -578,7 +583,7 @@ func (s *Server) file(q *req, b *store.Board, kind, name string) {
 		ext = ".jpg"
 	} else {
 		ext = filepath.Ext(name)
-		if _, err := strconv.ParseInt(strings.TrimSuffix(name, ext), 10, 64); err != nil || imageTypes[ext] == "" {
+		if _, err := strconv.ParseInt(strings.TrimSuffix(name, ext), 10, 64); err != nil || fileType(ext) == "" {
 			q.notFound()
 			return
 		}
@@ -595,8 +600,17 @@ func (s *Server) file(q *req, b *store.Board, kind, name string) {
 		return
 	}
 	h := q.w.Header()
-	h.Set("Content-Type", imageTypes[ext])
-	h.Set("Content-Security-Policy", "default-src 'none'")
+	h.Set("Content-Type", fileType(ext))
+	h.Set("X-Content-Type-Options", "nosniff")
+	if ext == ".pdf" {
+		// a browser's PDF viewer will not show under default-src 'none';
+		// shown inline, by name (its scripts run, if at all, in the
+		// viewer's own sandbox)
+		h.Set("Content-Disposition", "inline")
+		h.Del("Content-Security-Policy") // the pages', set for every answer
+	} else {
+		h.Set("Content-Security-Policy", "default-src 'none'")
+	}
 	h.Set("Cache-Control", "public, max-age=86400")
 	http.ServeContent(q.w, q.r, "", fi.ModTime(), f)
 }

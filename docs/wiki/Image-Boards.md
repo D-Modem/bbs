@@ -40,6 +40,9 @@ address = :8443
 ;geoip = /var/lib/bbs/GeoLite2-Country.mmdb   ; for the boards with flags ([general]'s by default)
 ;geoip_credit = IP geolocation by DB-IP       ; its licence's credit, at each page's foot
 ;geoip_credit_url = https://db-ip.com
+;ffmpeg = ffmpeg         ; videos' thumbnails, a frame (else a card saying what it is)
+;pdftoppm = pdftoppm     ; PDFs' thumbnails, the first page
+;max_video = 120         ; seconds a video may run (0: any)
 ```
 
 | setting | default | |
@@ -56,6 +59,8 @@ address = :8443
 | `captcha_lifetime` | `600` | seconds a captcha lasts (60 to a day) |
 | `options` | `yes` | the post form's Options line (`sage`, `nonoko`); without it posts always bump. A board may say otherwise |
 | `style` | by the board | Yotsuba B on a worksafe board, Yotsuba on the rest, as 4chan does |
+| `ffmpeg`, `pdftoppm` | none | the programs that make videos' and PDFs' thumbnails (by name on the PATH, or a path); without them, a card saying what the file is ([below](#videos-and-pdfs)) |
+| `max_video` | `120` | seconds a video may run (0: any length) |
 
 ## On the terminals
 
@@ -240,12 +245,52 @@ bbs chan ban del ID
 | `oekaki` | no | posters can draw their pictures in the page ([below](#oekaki)) |
 | `ids` | no | each poster has an ID in a thread ([below](#poster-ids-and-flags)) |
 | `flags` | no | posts show their country's flag (with `[chan] geoip`) |
+| `files` | none | files taken besides images: `webm`, `mp4`, `pdf`, as many as wanted (`webm,pdf`); `none` for images only ([below](#videos-and-pdfs)) |
+| `sound` | no | videos may have sound (an audio track) |
 | `locked` | no | only staff post |
 | `login` | `no` | `post`: only the BBS's users post (signed in at `/chan/login`); `all`: only they see the board at all (its pages, images and JSON; others are sent to sign in, and the front page marks it *(members)*) |
 | `captcha` | `default` | `yes` or `no` for this board, else `[chan]`'s |
 | `options` | `default` | `yes` or `no`: this board's post form has the Options line (`sage`, `nonoko`), else as `[chan]` says |
 | `mods` | | users who moderate it, by name |
 | `sort` | 0 | where it comes in the lists of boards |
+
+## Videos and PDFs
+
+A board can take videos and PDFs besides images, as 4chan's take WebM
+everywhere and PDF on /po/:
+
+```
+bbs chan board set wsg files webm,mp4
+bbs chan board set wsg sound yes
+bbs chan board set po files pdf
+```
+
+What a file is is found from its bytes, never its name, and each is read
+before it is kept:
+
+| | taken | refused |
+|---|---|---|
+| WebM | VP8, VP9 or AV1 video, Vorbis or Opus sound | a Matroska file that is not WebM (browsers do not play it), other codecs, other tracks, two videos in one |
+| MP4 | H.264, AV1 or VP9 video, AAC or Opus sound | HEVC and other codecs browsers do not all play; one still being written (no movie header) |
+| PDF | a whole one (`%PDF-` to `%%EOF`) | one cut short |
+
+A video is at most 4096 pixels a side and `max_video` seconds long (one
+that does not say its length is refused while there is a limit), and
+without sound unless the board's `sound` says yes. Its post says its size
+and length (`320x240, 0:05`); a PDF's its pages where it can count them
+(`PDF, 2 pages`). In the page a video's thumbnail plays it in place, with
+*[Close]* to stop; a PDF's opens it in a tab of its own, in the browser's
+viewer (it is served as itself, without the boards' Content Security
+Policy, which a PDF viewer will not run under; nothing sniffs it as
+anything else).
+
+Thumbnails: with `[chan] ffmpeg` a video's is its first frame, and with
+`pdftoppm` (poppler-utils) a PDF's is its first page; ffmpeg is told the
+container (`-f matroska`, `-f mov`) and reads only the file. Either one
+failing on a file refuses it (a browser would not show it either).
+Without them, the thumbnail is a card saying what it is (*WEBM 0:05*,
+*PDF 2 pages*). On the terminals a video or PDF shows as its thumbnail;
+the file itself is for the browser.
 
 ## Oekaki
 
@@ -320,17 +365,19 @@ The boards can be read as JSON, in the shapes of 4chan's read-only API
 Posts have 4chan's `id`, `country` and `country_name` where the board
 has them, and `boards.json` its `user_ids` and `country_flags`. Beyond
 4chan's fields, `boards.json` says `"oekaki": 1` of an oekaki board, and
-a drawing that replays has `"replay": 1` and `"draw_ms"`.
+a drawing that replays has `"replay": 1` and `"draw_ms"`. A board that
+takes videos or PDFs has `"file_types": ["webm", "pdf"]`, and with videos
+4chan's `webm_audio` and `max_webm_duration`; a video's post has
+`"duration_ms"`, a PDF's `"page_count"`, beside 4chan's `ext`, `w`, `h`.
 
-A post's image is at `/chan/b/src/{tim}{ext}` and its thumbnail at
+A post's file is at `/chan/b/src/{tim}{ext}` and its thumbnail at
 `/chan/b/thumb/{tim}s.jpg` (where 4chan's are at `i.4cdn.org/b/`).
 kusaba's addresses go where they should: `/chan/b/res/123.html` to the
 thread, `/chan/b/1.html` to the index.
 
 ## Not done
 
-Video and other files (WebM, PDF: 4chan's needs ffmpeg), the archive of
-pruned threads.
+The archive of pruned threads.
 
 Behind a reverse proxy, name it in `[http]`'s `trusted_proxies`: otherwise
 every poster has the proxy's address, and flood control and bans reach

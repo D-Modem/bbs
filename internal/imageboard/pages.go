@@ -18,6 +18,8 @@ var funcs = template.FuncMap{
 	"add":   func(a, b int) int { return a + b },
 	"short": shortName,
 	"dur":   drawTime,
+	"clock": clock,
+	"kind":  fileKind,
 	"flag":  flagOf,
 	"idc":   idClass,
 	"seq": func(n int) []int {
@@ -369,6 +371,9 @@ type formView struct {
 	Captcha   string // a captcha's token, for one who is not signed in ("": none)
 	Options   bool   // the Options line (sage, nonoko) is shown
 	Account   string // the signed-in user's name, to sign with ("": none, or a forced_anon board)
+	Accept    string // the file input's MIME types
+	Types     string // the file types taken, in words: "JPG, PNG, GIF, WebP and WebM"
+	VideoRule string // what videos may be: "Videos may be up to 2:00 long, without sound."
 }
 
 func (q *req) form(b *store.Board, op *store.BoardPost) formView {
@@ -389,6 +394,32 @@ func (q *req) form(b *store.Board, op *store.BoardPost) formView {
 	}
 	f.Image = op == nil && !b.TextOnly
 	f.Oekaki = b.Oekaki
+	f.Accept, f.Types = "image/jpeg,image/png,image/gif,image/webp", "JPG, PNG, GIF"
+	words := []string{"WebP"}
+	video := false
+	for _, k := range FileKinds {
+		if takes(b, k) {
+			f.Accept += "," + mediaTypes["."+k].mime
+			words = append(words, map[string]string{"webm": "WebM", "mp4": "MP4", "pdf": "PDF"}[k])
+			video = video || k != "pdf"
+		}
+	}
+	for i, w := range words {
+		if i == len(words)-1 {
+			f.Types += " and " + w
+		} else {
+			f.Types += ", " + w
+		}
+	}
+	switch {
+	case !video:
+	case q.s.S.MaxVideo > 0 && b.Sound:
+		f.VideoRule = "Videos may be up to " + clock(q.s.S.MaxVideo.Milliseconds()) + " long."
+	case q.s.S.MaxVideo > 0:
+		f.VideoRule = "Videos may be up to " + clock(q.s.S.MaxVideo.Milliseconds()) + " long, without sound."
+	case !b.Sound:
+		f.VideoRule = "Videos may not have sound."
+	}
 	if q.user != nil && !b.ForcedAnon {
 		f.Account = q.user.Name
 	}
