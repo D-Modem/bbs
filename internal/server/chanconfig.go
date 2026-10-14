@@ -34,6 +34,19 @@ func (c *Config) chanSection(s *config.Section) error {
 	if ch.Captcha, err = s.Bool("captcha", ch.Captcha); err != nil {
 		return err
 	}
+	if ch.CaptchaLength, err = s.Int("captcha_length", ch.CaptchaLength, imageboard.MinCaptchaLength,
+		imageboard.MaxCaptchaLength); err != nil {
+		return err
+	}
+	if ch.CaptchaTTL, err = s.Seconds("captcha_lifetime", int(ch.CaptchaTTL.Seconds()), 60, 86400); err != nil {
+		return err
+	}
+	if ch.CaptchaLevel = strings.ToLower(s.String("captcha_level", ch.CaptchaLevel)); imageboard.CaptchaLevels[ch.CaptchaLevel] == (imageboard.CaptchaLevel{}) {
+		return fmt.Errorf("captcha_level: easy, normal or hard, not %q", ch.CaptchaLevel)
+	}
+	if ch.Options, err = s.Bool("options", ch.Options); err != nil {
+		return err
+	}
 	if ch.Style = s.String("style", ""); ch.Style != "" && !imageboard.KnownStyle(ch.Style) {
 		var names []string
 		for _, st := range imageboard.Styles {

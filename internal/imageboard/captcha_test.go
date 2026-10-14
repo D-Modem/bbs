@@ -118,11 +118,11 @@ func TestCaptcha(t *testing.T) {
 }
 
 func TestCaptchaTokens(t *testing.T) {
-	s := &Server{}
+	s := &Server{S: Defaults()}
 	s.key = []byte("0123456789abcdef0123456789abcdef")
 	tok := s.NewCaptcha()
 	a, ends, err := s.openCaptcha(tok)
-	if err != nil || len(a) != captchaLen || strings.ContainsAny(a, "IOQ01W") || time.Until(ends) < 9*time.Minute {
+	if err != nil || len(a) != 6 || strings.ContainsAny(a, "IOQ01W") || time.Until(ends) < 9*time.Minute {
 		t.Fatalf("%q %v %v", a, ends, err)
 	}
 	// another key: not ours
@@ -135,5 +135,95 @@ func TestCaptchaTokens(t *testing.T) {
 	b[len(b)-3] ^= 1
 	if _, _, err := s.openCaptcha(string(b)); err == nil {
 		t.Error("a tampered token opened")
+	}
+}
+
+// TestBoardSettings: captchas as a board says over [chan], their length
+// and difficulty; the Options line hidden (no sage then); a board for the
+// BBS's users alone.
+func TestBoardSettings(t *testing.T) {
+	s := setup(t)
+	s.srv.S.Captcha, s.srv.S.CaptchaLength, s.srv.S.CaptchaLevel = true, 4, "hard"
+	anon := s.browser()
+	img := pngOf(30, 30, color.RGBA{0, 255, 0, 255})
+
+	_, _, body := anon.get("/chan/b/")
+	tok := ctokPat.FindStringSubmatch(body)[1]
+	if a, _, _ := s.srv.openCaptcha(tok); len(a) != 4 {
+		t.Errorf("length: %q", a)
+	}
+	resp, _ := http.Get(s.ts.URL + "/chan/captcha.png?t=" + tok)
+	b, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if cfg, _ := png.DecodeConfig(bytes.NewReader(b)); cfg.Width != captchaW(4) {
+		t.Errorf("width %d", cfg.Width)
+	}
+	// the board says no: none
+	s.bd.Captcha = "no"
+	s.b.Store.UpdateBoard(s.bd)
+	if _, _, body := anon.get("/chan/b/"); strings.Contains(body, "ctok") {
+		t.Error("a captcha where the board says no")
+	}
+	if code, _, _ := anon.post("b", map[string]string{"com": "first"}, img, "a.png"); code != 303 {
+		t.Fatalf("post: %d", code)
+	}
+	// [chan] says no, the board yes
+	s.srv.S.Captcha, s.bd.Captcha = false, "yes"
+	s.b.Store.UpdateBoard(s.bd)
+	if code, _, _ := anon.post("b", map[string]string{"resto": "1", "com": "x"}, nil, ""); code != 403 {
+		t.Errorf("no captcha where the board says yes: %d", code)
+	}
+	s.bd.Captcha = ""
+	s.b.Store.UpdateBoard(s.bd)
+
+	// no Options line: sage is not had
+	s.bd.Options = "no"
+	s.b.Store.UpdateBoard(s.bd)
+	if _, _, body := anon.get("/chan/b/thread/1"); strings.Contains(body, `name="email"`) || strings.Contains(body, `"sage"`) {
+		t.Error("the Options line shown")
+	}
+	before, _ := s.b.Store.ChanThread(s.bd.ID, 1)
+	time.Sleep(1100 * time.Millisecond)
+	anon.post("b", map[string]string{"resto": "1", "com": "saged?", "email": "sage"}, nil, "")
+	after, _ := s.b.Store.ChanThread(s.bd.ID, 1)
+	if after.Bumped.Equal(before.Bumped) {
+		t.Error("sage taken without the Options line")
+	}
+	if p, _ := s.b.Store.ChanPost(s.bd.ID, 2); p.Email != "" {
+		t.Errorf("email kept: %q", p.Email)
+	}
+
+	// for the BBS's users alone
+	s.bd.LoginToRead = true
+	s.b.Store.UpdateBoard(s.bd)
+	p1, _ := s.b.Store.ChanPost(s.bd.ID, 1)
+	for path, want := range map[string]int{"/chan/b/": 303, "/chan/b/thread/1": 303, "/chan/b/catalog": 303,
+		"/chan/b/thread/1.json": 403, "/chan/b/catalog.json": 403, "/chan/b/src/" + itoa(p1.Tim) + ".png": 404,
+		"/chan/b/thumb/" + itoa(p1.Tim) + "s.jpg": 404} {
+		if code, loc, _ := anon.get(path); code != want || code == 303 && !strings.HasPrefix(loc, "/chan/login?back=") {
+			t.Errorf("%s: %d %s", path, code, loc)
+		}
+	}
+	if code, _, _ := anon.post("b", map[string]string{"resto": "1", "com": "x"}, nil, ""); code != 403 {
+		t.Errorf("a guest posting: %d", code)
+	}
+	if _, _, body := anon.get("/chan/"); !strings.Contains(body, "(members)") || strings.Contains(body, "/chan/b/thumb/") {
+		t.Error("the front page: no (members), or its images")
+	}
+	mia := s.browser()
+	mia.get("/chan/login")
+	mia.postForm("/chan/login", url.Values{"name": {"mia"}, "password": {"password1"}, "back": {"/chan/b/"}})
+	if code, _, body := mia.get("/chan/b/thread/1"); code != 200 || !strings.Contains(body, "first") {
+		t.Errorf("a user: %d", code)
+	}
+	if code, _, _ := mia.post("b", map[string]string{"resto": "1", "com": "a user"}, nil, ""); code != 303 {
+		t.Errorf("a user posting: %d", code)
+	}
+	var boards struct {
+		Boards []map[string]any `json:"boards"`
+	}
+	getJSON(t, s.ts.URL+"/chan/boards.json", &boards)
+	if boards.Boards[0]["login"] != "all" {
+		t.Errorf("boards.json: %v", boards.Boards[0])
 	}
 }

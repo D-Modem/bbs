@@ -45,7 +45,8 @@ func chanBoardCmd(cfg *server.Config, args []string) {
 		for _, b := range bs {
 			var opts []string
 			for name, on := range map[string]bool{"nsfw": !b.Worksafe, "forced anon": b.ForcedAnon, "locked": b.Locked,
-				"users only": b.LoginToPost, "text only": b.TextOnly, "oekaki": b.Oekaki} {
+				"users post": b.LoginToPost && !b.LoginToRead, "users only": b.LoginToRead, "text only": b.TextOnly,
+				"oekaki": b.Oekaki, "captcha " + b.Captcha: b.Captcha != "", "options " + b.Options: b.Options != ""} {
 				if on {
 					opts = append(opts, name)
 				}
@@ -162,14 +163,38 @@ func setBoard(b *store.Board, key, val string) error {
 	case "locked":
 		b.Locked, err = yes()
 	case "login":
-		b.LoginToPost, err = yes()
+		// no, post (only users post), all (only users see it)
+		switch strings.ToLower(val) {
+		case "no", "off", "false", "0":
+			b.LoginToPost, b.LoginToRead = false, false
+		case "post", "yes", "on", "true", "1":
+			b.LoginToPost, b.LoginToRead = true, false
+		case "all":
+			b.LoginToPost, b.LoginToRead = true, true
+		default:
+			err = errors.New("login: no, post (only the BBS's users post) or all (only they see the board)")
+		}
+	case "captcha", "options":
+		v := strings.ToLower(val)
+		switch v {
+		case "default", "":
+			v = ""
+		case "yes", "no":
+		default:
+			err = fmt.Errorf("%s: yes, no, or default ([chan]'s)", key)
+		}
+		if key == "captcha" {
+			b.Captcha = v
+		} else {
+			b.Options = v
+		}
 	case "text_only":
 		b.TextOnly, err = yes()
 	case "oekaki":
 		b.Oekaki, err = yes()
 	default:
 		return fmt.Errorf("%s: not a board's setting (title, description, default_name, mods, pages, per_page, "+
-			"bump_limit, image_limit, max_file, sort, nsfw, forced_anon, locked, login, text_only, oekaki)", key)
+			"bump_limit, image_limit, max_file, sort, nsfw, forced_anon, locked, login, text_only, oekaki, captcha, options)", key)
 	}
 	return err
 }

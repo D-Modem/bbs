@@ -33,6 +33,10 @@ address = :8443
 ;strip_metadata = yes    ; take EXIF (where a phone took it) out of JPEGs
 ;style = yotsuba-b       ; the style everyone gets until they choose
 ;captcha = yes           ; those not signed in answer a captcha to post
+;captcha_length = 6      ; its letters, 4 to 10
+;captcha_level = normal  ; easy, normal or hard to read
+;captcha_lifetime = 600  ; seconds one lasts
+;options = yes           ; the post form's Options line (sage, nonoko)
 ```
 
 | setting | default | |
@@ -43,7 +47,11 @@ address = :8443
 | `thread_wait`, `reply_wait` | `60`, `15` | flood control: staff are not held to it |
 | `max_comment` | `2000` | characters in a comment (and 100 lines) |
 | `strip_metadata` | `yes` | JPEGs' EXIF, XMP and comments taken out before they are kept |
-| `captcha` | `yes` | those not signed in answer a captcha to post ([below](#captchas-and-members)) |
+| `captcha` | `yes` | those not signed in answer a captcha to post ([below](#captchas-and-members)); a board may say otherwise |
+| `captcha_length` | `6` | the captcha's letters, 4 to 10 |
+| `captcha_level` | `normal` | how hard it is to read: `easy` (letters barely turned, a line through them), `normal`, `hard` (turned further, waved, three lines, more specks) |
+| `captcha_lifetime` | `600` | seconds a captcha lasts (60 to a day) |
+| `options` | `yes` | the post form's Options line (`sage`, `nonoko`); without it posts always bump. A board may say otherwise |
 | `style` | by the board | Yotsuba B on a worksafe board, Yotsuba on the rest, as 4chan does |
 
 ## On the terminals
@@ -114,7 +122,10 @@ form: drawn here, crooked over noise (no outside service sees the
 posters), good for one post and ten minutes; **New one** gives another.
 Its answer travels sealed in the form (AES-GCM, with the boards' secret),
 so nothing is kept of it but that it has been used. `captcha = no` in
-`[chan]` turns it off.
+`[chan]` turns it off, `captcha_length`, `captcha_level` and
+`captcha_lifetime` make it longer or shorter, harder or easier; a board's
+own `captcha` (`yes`, `no`, `default`) says otherwise than `[chan]` for
+it.
 
 The BBS's users sign in at `/chan/login` (**Sign in** at the top of each
 page) and post without one. Their posts are marked as a member's: a ✓
@@ -172,7 +183,7 @@ the choice of posting as `## Admin` or `## Mod`.
 From the command line:
 
 ```
-bbs chan board add DIR TITLE [DESCRIPTION] [-nsfw] [-forced-anon] [-text-only] [-locked] [-login] [-oekaki]
+bbs chan board add DIR TITLE [DESCRIPTION] [-nsfw] [-forced-anon] [-text-only] [-locked] [-login] [-oekaki]   (-login: only users post)
 bbs chan board set DIR KEY VALUE
 bbs chan board list
 bbs chan board del DIR            ; its posts and images too
@@ -193,7 +204,9 @@ bbs chan ban del ID
 | `text_only` | no | threads need no image |
 | `oekaki` | no | posters can draw their pictures in the page ([below](#oekaki)) |
 | `locked` | no | only staff post |
-| `login` | no | only the BBS's users post (signed in at `/chan/login`) |
+| `login` | `no` | `post`: only the BBS's users post (signed in at `/chan/login`); `all`: only they see the board at all (its pages, images and JSON; others are sent to sign in, and the front page marks it *(members)*) |
+| `captcha` | `default` | `yes` or `no` for this board, else `[chan]`'s |
+| `options` | `default` | `yes` or `no`: this board's post form has the Options line (`sage`, `nonoko`), else as `[chan]` says |
 | `mods` | | users who moderate it, by name |
 | `sort` | 0 | where it comes in the lists of boards |
 

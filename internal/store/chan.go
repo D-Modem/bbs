@@ -20,11 +20,14 @@ type Board struct {
 	ImageLimit  int   // images a thread may have
 	ForcedAnon  bool  // names and tripcodes are ignored
 	DefaultName string
-	Worksafe    bool // its default style is the blue one
-	Locked      bool // no one but staff posts
-	LoginToPost bool // only the BBS's users post
-	TextOnly    bool // threads need no image
-	Oekaki      bool // its posters can draw their pictures in the page
+	Worksafe    bool   // its default style is the blue one
+	Locked      bool   // no one but staff posts
+	LoginToPost bool   // only the BBS's users post
+	TextOnly    bool   // threads need no image
+	Oekaki      bool   // its posters can draw their pictures in the page
+	LoginToRead bool   // only the BBS's users see it at all (and so post)
+	Captcha     string // those not signed in answer a captcha: "yes", "no", "" as [chan] says
+	Options     string // the post form's Options line: "yes", "no", "" as [chan] says
 	Mods        string
 	Sort        int
 	LastNo      int64
@@ -96,14 +99,15 @@ type Report struct {
 }
 
 const boardCols = `id, dir, title, description, max_file, pages, per_page, bump_limit, image_limit, forced_anon,
-	default_name, worksafe, locked, login_to_post, text_only, mods, sort, last_no, created, oekaki`
+	default_name, worksafe, locked, login_to_post, text_only, mods, sort, last_no, created, oekaki,
+	login_to_read, captcha, options`
 
 func scanBoard(row interface{ Scan(...any) error }) (*Board, error) {
 	var b Board
 	var created int64
 	err := row.Scan(&b.ID, &b.Dir, &b.Title, &b.Description, &b.MaxFile, &b.Pages, &b.PerPage, &b.BumpLimit,
 		&b.ImageLimit, &b.ForcedAnon, &b.DefaultName, &b.Worksafe, &b.Locked, &b.LoginToPost, &b.TextOnly,
-		&b.Mods, &b.Sort, &b.LastNo, &created, &b.Oekaki)
+		&b.Mods, &b.Sort, &b.LastNo, &created, &b.Oekaki, &b.LoginToRead, &b.Captcha, &b.Options)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -115,10 +119,11 @@ func scanBoard(row interface{ Scan(...any) error }) (*Board, error) {
 // aside).
 func (s *Store) CreateBoard(b *Board) (*Board, error) {
 	id, err := s.db.insertID(`INSERT INTO chan_boards (dir, title, description, max_file, pages, per_page, bump_limit,
-		image_limit, forced_anon, default_name, worksafe, locked, login_to_post, text_only, mods, sort, created, oekaki)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.Dir, b.Title, b.Description, b.MaxFile, b.Pages,
+		image_limit, forced_anon, default_name, worksafe, locked, login_to_post, text_only, mods, sort, created, oekaki,
+		login_to_read, captcha, options)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, b.Dir, b.Title, b.Description, b.MaxFile, b.Pages,
 		b.PerPage, b.BumpLimit, b.ImageLimit, b.ForcedAnon, b.DefaultName, b.Worksafe, b.Locked, b.LoginToPost,
-		b.TextOnly, b.Mods, b.Sort, now(), b.Oekaki)
+		b.TextOnly, b.Mods, b.Sort, now(), b.Oekaki, b.LoginToRead, b.Captcha, b.Options)
 	if err != nil {
 		if isUnique(err) {
 			return nil, ErrExists
@@ -132,9 +137,9 @@ func (s *Store) CreateBoard(b *Board) (*Board, error) {
 func (s *Store) UpdateBoard(b *Board) error {
 	_, err := s.db.Exec(`UPDATE chan_boards SET title = ?, description = ?, max_file = ?, pages = ?, per_page = ?,
 		bump_limit = ?, image_limit = ?, forced_anon = ?, default_name = ?, worksafe = ?, locked = ?, login_to_post = ?,
-		text_only = ?, mods = ?, sort = ?, oekaki = ? WHERE id = ?`, b.Title, b.Description, b.MaxFile, b.Pages, b.PerPage,
+		text_only = ?, mods = ?, sort = ?, oekaki = ?, login_to_read = ?, captcha = ?, options = ? WHERE id = ?`, b.Title, b.Description, b.MaxFile, b.Pages, b.PerPage,
 		b.BumpLimit, b.ImageLimit, b.ForcedAnon, b.DefaultName, b.Worksafe, b.Locked, b.LoginToPost, b.TextOnly,
-		b.Mods, b.Sort, b.Oekaki, b.ID)
+		b.Mods, b.Sort, b.Oekaki, b.LoginToRead, b.Captcha, b.Options, b.ID)
 	return err
 }
 

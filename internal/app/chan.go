@@ -397,21 +397,28 @@ func (s *Session) chanPost(b *store.Board, op *store.BoardPost, quote string) (i
 		fields = append(fields, view.Field{Name: "name", Label: "Name", Value: name, Width: 60,
 			Prompt: "Name (Name#password for a tripcode)"})
 	}
-	fields = append(fields, view.Field{Name: "options", Label: "Options", Value: "none", Width: 20,
-		Prompt: "Options (sage: do not bump the thread)"})
+	if s.B.ImageBoards.ShowOptions(b) {
+		fields = append(fields, view.Field{Name: "options", Label: "Options", Value: "none", Width: 20,
+			Prompt: "Options (sage: do not bump the thread)"})
+	}
 	where := fmt.Sprintf("/%s/, a new thread", b.Dir)
 	if op != nil {
 		where = fmt.Sprintf("/%s/, thread No.%d", b.Dir, op.No)
 	}
-	vals, ok, err2 := s.UI.Form(&view.Form{Title: "Post to " + where, Fields: fields, Submit: "Next"})
-	if err2 != nil || !ok {
-		return 0, err2
+	vals := map[string]string{}
+	if len(fields) > 0 {
+		var ok bool
+		var err2 error
+		vals, ok, err2 = s.UI.Form(&view.Form{Title: "Post to " + where, Fields: fields, Submit: "Next"})
+		if err2 != nil || !ok {
+			return 0, err2
+		}
 	}
 	if v := strings.TrimSpace(vals["name"]); v != "" && v != b.DefaultName {
 		sub.Name = v
 		s.chanName = v
 	}
-	if o := strings.TrimSpace(vals["options"]); !strings.EqualFold(o, "none") {
+	if o := strings.TrimSpace(vals["options"]); o != "" && !strings.EqualFold(o, "none") {
 		sub.Email = o
 	}
 	if sub.Staff != "" {

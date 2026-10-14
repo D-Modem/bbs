@@ -144,6 +144,8 @@ func (s *Server) boardsJSON(q *req) {
 		ForcedAnon      int       `json:"forced_anon,omitempty"`
 		TextOnly        int       `json:"text_only,omitempty"`
 		Oekaki          int       `json:"oekaki,omitempty"`
+		Login           string    `json:"login,omitempty"`   // "post": only users post; "all": only users see it
+		Captcha         int       `json:"captcha,omitempty"` // those not signed in answer a captcha
 		Spoilers        int       `json:"spoilers"`
 		CodeTags        int       `json:"code_tags"`
 		IsArchived      int       `json:"is_archived"`
@@ -156,7 +158,7 @@ func (s *Server) boardsJSON(q *req) {
 		out.Boards = append(out.Boards, board{Board: b.Dir, Title: b.Title, WSBoard: flag(b.Worksafe), PerPage: b.PerPage,
 			Pages: b.Pages, MaxFilesize: s.maxFile(b), MaxCommentChars: s.S.MaxComment, ImageLimit: b.ImageLimit,
 			BumpLimit: b.BumpLimit, MetaDescription: b.Description, Cooldowns: cd, ForcedAnon: flag(b.ForcedAnon),
-			TextOnly: flag(b.TextOnly), Oekaki: flag(b.Oekaki), Spoilers: 1, CodeTags: 1})
+			TextOnly: flag(b.TextOnly), Oekaki: flag(b.Oekaki), Login: loginOf(b), Captcha: flag(s.captchaOn(b)), Spoilers: 1, CodeTags: 1})
 	}
 	q.json(out)
 }
@@ -300,4 +302,16 @@ func (s *Server) threadJSON(q *req, b *store.Board, no int64) {
 		out.Posts = append(out.Posts, q.apiPost(b, r))
 	}
 	q.json(out)
+}
+
+// loginOf is who may use a board: "" anyone, "post" users post, "all"
+// users alone see it.
+func loginOf(b *store.Board) string {
+	switch {
+	case b.LoginToRead:
+		return "all"
+	case b.LoginToPost:
+		return "post"
+	}
+	return ""
 }

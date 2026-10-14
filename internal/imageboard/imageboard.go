@@ -20,6 +20,7 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -54,13 +55,20 @@ type Settings struct {
 	MaxComment int           // characters
 	Strip      bool          // JPEGs' metadata (EXIF: where a phone took it) taken out
 	Style      string        // the style callers get until they choose ("": by the board, as 4chan's)
-	Captcha    bool          // those not signed in answer a captcha to post
+	Captcha    bool          // those not signed in answer a captcha to post (a board may say otherwise)
+	// the captchas: their letters, how long one lasts, how hard
+	// (CaptchaLevels: easy, normal, hard)
+	CaptchaLength int
+	CaptchaTTL    time.Duration
+	CaptchaLevel  string
+	Options       bool // the post form has an Options line (sage, nonoko; a board may say otherwise)
 }
 
 // Defaults are the settings unless bbs.conf says otherwise.
 func Defaults() Settings {
 	return Settings{Dir: "chan", MaxFile: 4 << 20, ThreadWait: 60 * time.Second, ReplyWait: 15 * time.Second,
-		MaxComment: 2000, Strip: true, Captcha: true}
+		MaxComment: 2000, Strip: true, Captcha: true, CaptchaLength: 6, CaptchaTTL: 10 * time.Minute,
+		CaptchaLevel: "normal", Options: true}
 }
 
 // Style is a look the boards can wear: a stylesheet.
@@ -268,6 +276,20 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) {
 	b, err := s.B.Store.Board(seg[0])
 	if err != nil {
 		q.notFound()
+		return
+	}
+	if b.LoginToRead && q.user == nil {
+		// a board for the BBS's users: nothing of it for others
+		switch last := seg[len(seg)-1]; {
+		case strings.HasSuffix(last, ".json"):
+			q.jsonFail(http.StatusForbidden)
+		case len(seg) == 3 && (seg[1] == "src" || seg[1] == "thumb"):
+			q.notFound()
+		case r.Method == http.MethodGet:
+			http.Redirect(w, r, Base+"/login?back="+url.QueryEscape(r.URL.Path), http.StatusSeeOther)
+		default:
+			q.fail(http.StatusForbidden, "Only this BBS's users post here: sign in first.")
+		}
 		return
 	}
 	if len(seg) == 1 { // /chan/b

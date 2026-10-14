@@ -184,7 +184,7 @@ func (s *Server) front(q *req) {
 	var thumbs []thumb
 	for _, p := range recent {
 		b := byID[p.BoardID]
-		if b == nil || !b.Worksafe {
+		if b == nil || !b.Worksafe || b.LoginToRead && q.user == nil {
 			continue // as 4chan's front page: worksafe boards' only
 		}
 		t := p.Thread
@@ -349,6 +349,7 @@ type formView struct {
 	Image     bool   // an image is needed
 	Oekaki    bool   // the drawing board is offered
 	Captcha   string // a captcha's token, for one who is not signed in ("": none)
+	Options   bool   // the Options line (sage, nonoko) is shown
 	Account   string // the signed-in user's name, to sign with ("": none, or a forced_anon board)
 }
 
@@ -365,7 +366,7 @@ func (q *req) form(b *store.Board, op *store.BoardPost) formView {
 		f.Closed, f.CanPost = true, false
 	case b.Locked && f.Capcode == "":
 		f.CanPost = false
-	case b.LoginToPost && q.user == nil:
+	case (b.LoginToPost || b.LoginToRead) && q.user == nil:
 		f.CanPost, f.NeedLogin = false, true
 	}
 	f.Image = op == nil && !b.TextOnly
@@ -373,7 +374,8 @@ func (q *req) form(b *store.Board, op *store.BoardPost) formView {
 	if q.user != nil && !b.ForcedAnon {
 		f.Account = q.user.Name
 	}
-	if f.CanPost && q.needsCaptcha() {
+	f.Options = q.s.ShowOptions(b)
+	if f.CanPost && q.needsCaptcha(b) {
 		f.Captcha = q.s.NewCaptcha()
 	}
 	return f

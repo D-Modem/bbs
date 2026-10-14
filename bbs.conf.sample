@@ -255,6 +255,14 @@ address = 127.0.0.1:2513
 ; those not signed in answer a captcha (made here) to post; the BBS's
 ; users signed in at /chan/login, and callers on the terminals, do not
 ;captcha = yes
+; its letters (4 to 10), how hard to read (easy, normal, hard), and the
+; seconds one lasts
+;captcha_length = 6
+;captcha_level = normal
+;captcha_lifetime = 600
+; the post form's Options line (sage: no bump; nonoko); a board may say
+; otherwise: bbs chan board set DIR options yes|no|default
+;options = yes
 ; the style callers get until they choose: by the board (yotsuba-b if it
 ; is worksafe, else yotsuba), or yotsuba, yotsuba-b, futaba, burichan,
 ; photon, tomorrow

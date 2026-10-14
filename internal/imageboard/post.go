@@ -107,7 +107,7 @@ func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
 	switch {
 	case b.Locked && staff == "":
 		return nil, refuse(http.StatusForbidden, "This board is locked: only staff post here.")
-	case b.LoginToPost && sub.User == nil:
+	case (b.LoginToPost || b.LoginToRead) && sub.User == nil:
 		return nil, refuse(http.StatusForbidden, "Only this BBS's users post here: sign in first.")
 	}
 	var op *store.BoardPost
@@ -143,6 +143,9 @@ func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
 		p.Name = field(p.Name, maxName)
 	}
 	email := field(sub.Email, maxEmail)
+	if !s.ShowOptions(b) {
+		email = "" // no Options line: no sage, no nonoko
+	}
 	sage := strings.EqualFold(email, "sage")
 	if !strings.EqualFold(email, "noko") && !strings.EqualFold(email, "nonoko") {
 		p.Email = email
@@ -267,7 +270,7 @@ func (s *Server) post(q *req, b *store.Board) {
 		return
 	}
 	f := q.r.MultipartForm.Value
-	if q.needsCaptcha() {
+	if q.needsCaptcha(b) {
 		tok, ans := "", ""
 		if v := f["ctok"]; len(v) > 0 {
 			tok = v[0]
@@ -341,7 +344,7 @@ func (s *Server) post(q *req, b *store.Board) {
 	if thread == 0 {
 		thread = p.No
 	}
-	if strings.EqualFold(strings.TrimSpace(sub.Email), "nonoko") {
+	if s.ShowOptions(b) && strings.EqualFold(strings.TrimSpace(sub.Email), "nonoko") {
 		q.redirect(Base + "/" + b.Dir + "/")
 		return
 	}
