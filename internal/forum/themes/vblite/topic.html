@@ -25,7 +25,7 @@
   <tr id="entry{{.M.ID}}">
     <td class="{{$bg}} author top">
       <p><span class="folder{{if eq .Num 1}} new{{end}}" aria-hidden="true"></span> <span class="small">{{vbdate .M.Created}} <span class="time">{{vbtime .M.Created}}</span></span></p>
-      <p class="normal"><i>Posted by:</i><br><b>{{.M.From}}</b></p>
+      <p class="normal"><i>Posted by:</i><br><b>{{.M.From}}</b>{{template "flag" .}}</p>
       <div class="tools">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="ibtn"><span class="ic find" aria-hidden="true"></span>profile</a>{{end}}{{if .CanLike}}<form method="post" action="/forum/post/{{.M.ID}}/like" class="inline-form"><input type="hidden" name="csrf" value="{{$csrf}}"><input type="hidden" name="like" value="{{if .Liked}}0{{else}}1{{end}}"><button class="ibtn">{{if .Liked}}unlike{{else}}like{{end}}</button></form>{{end}}</div>
     </td>
     <td class="{{$bg}} top">

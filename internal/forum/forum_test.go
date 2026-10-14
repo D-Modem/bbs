@@ -518,3 +518,28 @@ func TestYabb2Date(t *testing.T) {
 		}
 	}
 }
+
+// Posters' flags, where their countries were known, beside their names in
+// every theme; and the database's credit at the foot.
+func TestFlags(t *testing.T) {
+	s := setup(t)
+	alice := mustUser(s, "alice")
+	id, err := s.b.Store.Post(&store.Message{AreaID: s.ar["General"].ID, FromID: alice.ID, From: "alice", To: "All",
+		Subject: "Hallo", Body: "From Berlin.", Country: "DE"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	topic := "/forum/topic/" + itoa(id)
+	guest := s.browser()
+	flag := `title="Germany" aria-label="Germany">🇩🇪</span>`
+	_, _, body := guest.get(topic)
+	hasNot(t, "flags off", body, flag)
+
+	s.fs.Flags = true
+	s.b.GeoIP, s.b.GeoCredit, s.b.GeoCreditURL = "countries.mmdb", "DB-IP", "https://db-ip.com"
+	for _, th := range Themes {
+		guest.post("", "/forum/theme", url.Values{"theme": {th.Name}, "back": {topic}})
+		_, _, body := guest.get(topic)
+		has(t, th.Name, body, flag, `<a href="https://db-ip.com" rel="noopener">DB-IP</a>`)
+	}
+}

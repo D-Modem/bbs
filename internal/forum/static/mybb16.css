@@ -39,3 +39,6 @@ blockquote.quote:not(.citation + blockquote.quote)::before { content: "Quote:"; 
 	.post_author_info { display: none; }
 	table.post .avatar.large { width: 40px; height: 40px; font-size: 18px; }
 }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

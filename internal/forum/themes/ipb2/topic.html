@@ -32,7 +32,7 @@
   {{range $b.Posts}}
   <table class="ipbtable post" id="entry{{.M.ID}}">
     <tr>
-      <td class="row2 pname">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="normalname{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{else}}<span class="normalname">{{.M.From}}</span>{{end}}</td>
+      <td class="row2 pname">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="normalname{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{else}}<span class="normalname">{{.M.From}}</span>{{end}}{{template "flag" .}}</td>
       <td class="row2 phead"><span class="postdate"><span class="posticon" aria-hidden="true"></span>{{when .M.Created}}{{if and .M.To (ne .M.To "All")}}, to {{.M.To}}{{end}}</span>
         <span class="postnum">Post <a href="/forum/post/{{.M.ID}}" title="Link to this post">#{{.Num}}</a></span></td>
     </tr>

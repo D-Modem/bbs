@@ -27,7 +27,7 @@
   <tr id="entry{{.M.ID}}"><td class="{{if odd .Num}}p1{{else}}p2{{end}} postcell">
     <div class="post">
       <div class="who">
-        {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="poster{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{if .Author.Sysop}} <span class="teamicon" title="Sysop" aria-hidden="true"></span>{{end}}{{else}}<span class="poster">{{.M.From}}</span>{{end}}
+        {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="poster{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{if .Author.Sysop}} <span class="teamicon" title="Sysop" aria-hidden="true"></span>{{end}}{{else}}<span class="poster">{{.M.From}}</span>{{end}}{{template "flag" .}}
         <br>{{template "avatar" (av .M.From "large")}}
         {{if .Author}}<br><span class="pips" aria-hidden="true">{{if ge .Author.Posts 10}}&#9679;{{end}}{{if ge .Author.Posts 50}}&#9679;{{end}}&#9679;</span>
         <br><span class="small">{{if .Author.Sysop}}Administrator{{else if .Author.Locked}}BANNED{{else}}Member{{end}}</span>

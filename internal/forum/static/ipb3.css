@@ -332,3 +332,6 @@ blockquote.quote {
 	.navsearch input { width: 140px; }
 	.tabs a { padding: 6px 10px 8px; }
 }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

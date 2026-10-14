@@ -51,7 +51,7 @@
   <dl class="postprofile">
     <dt class="has-avatar">
       <div class="avatar-container">{{template "avatar" (av .M.From "large")}}</div>
-      {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{else}}<strong class="username">{{.M.From}}</strong>{{end}}
+      {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{else}}<strong class="username">{{.M.From}}</strong>{{end}}{{template "flag" .}}
     </dt>
     {{if .Author}}<dd class="profile-rank">{{if .Author.Sysop}}Site Admin{{else}}{{group .Author}}{{end}}</dd>
     <dd class="profile-posts"><strong>Posts:</strong> {{num .Author.Posts}}</dd>

@@ -76,3 +76,6 @@ blockquote.quote:not(.citation + blockquote.quote) { border-radius: var(--radius
 .avatar { border-radius: 50%; }
 .input, input[type=text], input[type=password], input[type=email], input[type=search], select, textarea { border-radius: var(--radius); }
 .p-footer-copyright { opacity: 0.7; }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

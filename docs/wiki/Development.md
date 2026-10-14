@@ -8,6 +8,8 @@
 | `internal/view` | what the screens show, described once: menus, tables, messages, forms, panels, drafts |
 | `internal/script` | the sysop's JavaScript (goja): screens of internal/view, the BBS as the caller, data kept, the time a script may compute |
 | `internal/guard` | deny lists, bans, the name filter, the hack log |
+| `internal/geoip` | country databases: MaxMind DB files and CSVs of ranges, read itself; a file kept up to date |
+| `internal/phone` | caller IDs: country calling codes, North American area codes, how countries dial |
 | `internal/events` | the sysop's scheduled events |
 | `internal/app` | the screens after the login, for every front end: menus, areas, mail, files, who's online, the profile, validation, paging the sysop |
 | `internal/textui` | the text front end: the login, line editing, ANSI detection, paging, RIP menus; the screens as prompts and keys; chat, doors, transfers |

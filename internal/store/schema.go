@@ -63,7 +63,8 @@ CREATE TABLE IF NOT EXISTS messages (
 	raw        {blob},
 	ftn_msgid  {key},
 	ftn        {blob},
-	thread     {int} NOT NULL DEFAULT 0
+	thread     {int} NOT NULL DEFAULT 0,
+	country    {str} NOT NULL DEFAULT ''
 )`, `
 CREATE TABLE IF NOT EXISTS lastread (
 	user_id    {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -385,6 +386,7 @@ var added = []struct{ table, column, decl string }{
 	{"chan_posts", "poster_id", "{key} NOT NULL DEFAULT ''"},
 	{"chan_posts", "country", "{str} NOT NULL DEFAULT ''"},
 	{"chan_posts", "country_name", "{str} NOT NULL DEFAULT ''"},
+	{"messages", "country", "{str} NOT NULL DEFAULT ''"},
 }
 
 // migrate makes the schema, or brings an older database up to it.

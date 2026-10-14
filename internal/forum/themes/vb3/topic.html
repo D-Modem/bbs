@@ -36,7 +36,7 @@
   </tr>
   <tr>
     <td class="alt2 author">
-      <div>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="bigusername">{{.M.From}}</a>{{else}}<span class="bigusername">{{.M.From}}</span>{{end}}</div>
+      <div>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="bigusername">{{.M.From}}</a>{{else}}<span class="bigusername">{{.M.From}}</span>{{end}}{{template "flag" .}}</div>
       <div class="smallfont">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Senior Member{{else if ge .Author.Posts 30}}Member{{else}}Junior Member{{end}}{{else}}Guest{{end}}</div>
       <div class="avbox">{{template "avatar" (av .M.From "large")}}</div>
       <div class="smallfont">{{if .Author}}<div>Join Date: {{monthyear .Author.Created}}</div>{{if .Author.Location}}<div>Location: {{.Author.Location}}</div>{{end}}<div>Posts: {{num .Author.Posts}}</div>{{else if .Where}}<div>Location: {{.Where}}</div>{{end}}</div>

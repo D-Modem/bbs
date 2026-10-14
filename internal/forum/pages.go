@@ -222,6 +222,8 @@ type postView struct {
 	Liked     bool
 	CanLike   bool
 	CanDelete bool
+	Flag      string // the poster's country's flag ("": none shown)
+	Country   string // and its name
 }
 
 type pollAnswer struct {
@@ -277,6 +279,9 @@ func (s *Server) topic(q *req) {
 		}
 		if pm.FromID == 0 {
 			pv.Where = origin(pm.Origin)
+		}
+		if s.Flags {
+			pv.Flag, pv.Country = flagOf(pm.Country)
 		}
 		up, _, mine, _ := s.B.Store.Votes(pm.ID, uid)
 		pv.Likes, pv.Liked = up, mine > 0
@@ -538,7 +543,7 @@ func (s *Server) profile(q *req) {
 func (s *Server) online(q *req) {
 	nodes := s.B.Nodes()
 	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Num < nodes[j].Num })
-	q.render(http.StatusOK, "online.html", "Online Users", []crumb{{"Online Users", ""}}, map[string]any{"Nodes": nodes})
+	q.render(http.StatusOK, "online.html", "Online Users", []crumb{{"Online Users", ""}}, map[string]any{"Nodes": nodes, "Flags": s.Flags})
 }
 
 type hit struct {

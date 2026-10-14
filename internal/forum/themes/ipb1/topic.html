@@ -31,7 +31,7 @@
   {{range $b.Posts}}{{$css := "post1"}}{{if not (odd .Num)}}{{$css = "post2"}}{{end}}
   <table class="tablebasic post" id="entry{{.M.ID}}">
     <tr>
-      <td class="row4 pname">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="normalname{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{else}}<span class="normalname unreg">{{.M.From}}</span>{{end}}</td>
+      <td class="row4 pname">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="normalname{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{else}}<span class="normalname unreg">{{.M.From}}</span>{{end}}{{template "flag" .}}</td>
       <td class="row4 phead">
         <span class="postdetails"><span class="posticon" aria-hidden="true"></span><b><a href="/forum/post/{{.M.ID}}" title="Link to this post">Posted on</a></b> {{longdate .M.Created}}{{if and .M.To (ne .M.To "All")}}, to {{.M.To}}{{end}}</span>
         <span class="pbuttons">

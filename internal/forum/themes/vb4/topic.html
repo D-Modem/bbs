@@ -38,7 +38,7 @@
     <div class="postdetails">
       <div class="userinfo">
         <div class="username_container">
-          {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username{{if .Author.Sysop}} admin{{end}}"><strong>{{.M.From}}</strong></a> <span class="onlinestatus" aria-hidden="true"></span>{{else}}<strong class="username">{{.M.From}}</strong>{{end}}
+          {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username{{if .Author.Sysop}} admin{{end}}"><strong>{{.M.From}}</strong></a> <span class="onlinestatus" aria-hidden="true"></span>{{else}}<strong class="username">{{.M.From}}</strong>{{end}}{{template "flag" .}}
         </div>
         <span class="usertitle">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Senior Member{{else if ge .Author.Posts 30}}Member{{else}}Junior Member{{end}}{{else}}Guest{{end}}</span>
         <a class="postuseravatar" {{if .Author}}href="/forum/user/{{path .Author.Name}}"{{end}}>{{template "avatar" (av .M.From "large")}}</a>

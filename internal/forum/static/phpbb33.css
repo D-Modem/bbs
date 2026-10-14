@@ -8,3 +8,6 @@
 
 li.header dt, li.header dd { line-height: 1.6em; padding-top: 2px; padding-bottom: 0; }
 .avatar-container { max-width: 100%; }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

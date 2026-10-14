@@ -28,7 +28,7 @@ key_file = /etc/bbs/tls/key.pem
 | `rate`, `burst` | `10`, `20` | requests a second per token (per address without one), and how many may come at once |
 | `session_hours` | `24` | how long a login's token lasts |
 | `terminal` | `yes` | the web terminal page (below) |
-| `forum`, `forum_guests`, `forum_theme` | `yes`, `yes`, `ipb3` | the [web forum](Web-Forum), guests reading it, and its theme (`ipb3`, `ipb5`, `ipb4`, `ipb2`, `ipb1`, `ikon`, `vb6`, `vb5`, `vb4`, `vb3`, `vb2`, `vblite`, `xf23`, `xf2`, `xf1`, `mybb18`, `mybb16`, `mybb12`, `pun14`, `flux15`, `pun12`, `yabb25`, `yabb2`, `yabb1`, `smf30`, `smf21`, `smf20`, `smf1`, `phpbb33`, `phpbb32`, `phpbb31`, `phpbb30`, `phpbb2` or `phpbb1`) |
+| `forum`, `forum_guests`, `forum_theme`, `forum_flags` | `yes`, `yes`, `ipb3`, `yes` | the [web forum](Web-Forum), guests reading it, and its theme (`ipb3`, `ipb5`, `ipb4`, `ipb2`, `ipb1`, `ikon`, `vb6`, `vb5`, `vb4`, `vb3`, `vb2`, `vblite`, `xf23`, `xf2`, `xf1`, `mybb18`, `mybb16`, `mybb12`, `pun14`, `flux15`, `pun12`, `yabb25`, `yabb2`, `yabb1`, `smf30`, `smf21`, `smf20`, `smf1`, `phpbb33`, `phpbb32`, `phpbb31`, `phpbb30`, `phpbb2` or `phpbb1`) |
 | `chan` | `yes` | the [image boards](Image-Boards) at `/chan/` (set up in `[chan]`) |
 
 The OpenAPI 3.1 description is at `/api/v1/openapi.json`.
@@ -103,7 +103,7 @@ Errors are `{"error": "...", "code": "..."}`.
 |---|---|---|
 | `POST /login`, `POST /logout` | a session token; ending it | (none), any |
 | `GET /system` | the name, sysop, counts, features | anonymous |
-| `GET /who` | who is online (with each `terminal`, as it said what it is) | anonymous |
+| `GET /who` | who is online (with each `terminal`, as it said what it is, and `country`, ISO 3166, where it is known) | anonymous |
 | `GET /callers?limit=` | the last callers, newest first | read |
 | `GET`, `PATCH /me` | your account, access and settings; change your location, a line about yourself (`about`), password or settings (`{"prefs": {"ansi": "off"}}`; `""` forgets one) | read |
 | `GET /me/tokens`, `DELETE /me/tokens/{id}` | your tokens; revoke one | any |

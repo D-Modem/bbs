@@ -95,3 +95,6 @@
 	table.board th { background: var(--d3); color: var(--ink-bright); }
 	meter::-webkit-meter-bar { background: var(--d3); border-color: var(--dline2); }
 }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

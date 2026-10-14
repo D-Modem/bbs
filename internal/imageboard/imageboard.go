@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -115,7 +116,8 @@ type Server struct {
 	once     sync.Once
 	initErr  error
 	captchas captchas
-	geo      geo
+	geo      *geoip.File
+	geoOnce  sync.Once
 }
 
 const (

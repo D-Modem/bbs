@@ -101,6 +101,10 @@ type Message struct {
 	// (to pass on to the others)
 	FTNMsgID string
 	FTN      []byte
+
+	// the poster's country (ISO 3166-1), where it was known when they
+	// posted here ("": not known, or written elsewhere)
+	Country string
 }
 
 // Store is the database.
@@ -414,13 +418,13 @@ func (s *Store) AreaByName(name string) (*Area, error) {
 }
 
 const msgCols = `id, area_id, from_id, from_name, to_name, subject, body, reply_to, created,
-	COALESCE(message_id, ''), origin, COALESCE(ftn_msgid, ''), thread`
+	COALESCE(message_id, ''), origin, COALESCE(ftn_msgid, ''), thread, country`
 
 func scanMessage(row interface{ Scan(...any) error }) (*Message, error) {
 	var m Message
 	var created int64
 	err := row.Scan(&m.ID, &m.AreaID, &m.FromID, &m.From, &m.To, &m.Subject,
-		&m.Body, &m.ReplyTo, &created, &m.MessageID, &m.Origin, &m.FTNMsgID, &m.Thread)
+		&m.Body, &m.ReplyTo, &created, &m.MessageID, &m.Origin, &m.FTNMsgID, &m.Thread, &m.Country)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -455,9 +459,9 @@ func (s *Store) Post(m *Message) (int64, error) {
 		}
 	}
 	id, err := tx.insertID(`INSERT INTO messages (area_id, from_id, from_name, to_name, subject, body, reply_to, created,
-		message_id, origin, raw, ftn_msgid, ftn, thread)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, m.AreaID, m.FromID, m.From, m.To, m.Subject, m.Body, m.ReplyTo, now(),
-		msgid, m.Origin, m.Raw, nullString(m.FTNMsgID), m.FTN, m.Thread)
+		message_id, origin, raw, ftn_msgid, ftn, thread, country)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, m.AreaID, m.FromID, m.From, m.To, m.Subject, m.Body, m.ReplyTo, now(),
+		msgid, m.Origin, m.Raw, nullString(m.FTNMsgID), m.FTN, m.Thread, m.Country)
 	if err != nil {
 		if isUnique(err) {
 			return 0, ErrExists

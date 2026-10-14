@@ -17,6 +17,7 @@ address = :8443
 ;forum = yes
 ;forum_guests = yes
 ;forum_theme = ipb3
+;forum_flags = yes
 ```
 
 | setting | default | |
@@ -24,6 +25,7 @@ address = :8443
 | `forum` | `yes` | the forum at `/forum/` (with `no`, `/` goes to the web terminal again) |
 | `forum_guests` | `yes` | those not logged in may read the areas anyone may read (areas with a `read` requirement never) |
 | `forum_theme` | `ipb3` | the theme callers get until they choose one ([below](#themes)) |
+| `forum_flags` | `yes` | posters' countries' flags by their names ([below](#flags)) |
 
 ## The pages
 
@@ -68,6 +70,21 @@ On a post:
 - **Delete** is for the post's writer and the sysop.
 - A poll is answered by those who may post in its area; answering again
   changes the answer.
+
+## Flags
+
+With a country database (`[general] geoip`) each post keeps its poster's
+country, found when it is posted: by the address for those on the web,
+telnet or SSH, by the caller ID for modem callers (`[general]
+phone_country`, see [Modem Callers](Modem-Callers#where-callers-are)).
+The forum shows it as a flag by the poster's name, in every theme (an
+emoji, the country's name on hovering), and by each caller's line on
+*Online Users*. Only the country is kept, never the address or number;
+posts from before, from elsewhere (FidoNet, Usenet, QWK) or from where the
+database does not know have none. `forum_flags = no` shows none (what is
+kept stays). The database's `geoip_credit` goes at the foot of each page
+while flags are shown. Behind a reverse proxy, name it in
+`[http] trusted_proxies`, or every poster is in the proxy's country.
 
 ## Themes
 

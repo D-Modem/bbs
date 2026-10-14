@@ -36,7 +36,7 @@
     <div class="postbody">
       <div class="postleft">
         <dl>
-          <dt><strong>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</strong></dt>
+          <dt><strong>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</strong>{{template "flag" .}}</dt>
           <dd class="usertitle"><strong>{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 50}}Member{{else}}New member{{end}}{{else}}Guest{{end}}</strong></dd>
           <dd class="postavatar">{{template "avatar" (av .M.From "large")}}</dd>
           {{if .Author}}{{if .Author.Location}}<dd><span>From: {{.Author.Location}}</span></dd>{{end}}

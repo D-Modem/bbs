@@ -43,7 +43,7 @@
     {{if .Likes}}<div class="signature">{{plural .Likes "member likes" "members like"}} this post</div>{{end}}
   </div>
   <dl class="postprofile">
-    <dt>{{template "avatar" (av .M.From "large")}}<br>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"{{if .Author.Sysop}} class="admin"{{end}}>{{.M.From}}</a>{{else}}<strong>{{.M.From}}</strong>{{end}}</dt>
+    <dt>{{template "avatar" (av .M.From "large")}}<br>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"{{if .Author.Sysop}} class="admin"{{end}}>{{.M.From}}</a>{{else}}<strong>{{.M.From}}</strong>{{end}}{{template "flag" .}}</dt>
     {{if .Author}}<dd>{{if .Author.Sysop}}Site Admin{{else}}{{group .Author}}{{end}}</dd>
     <dd>&nbsp;</dd>
     <dd><strong>Posts:</strong> {{num .Author.Posts}}</dd>

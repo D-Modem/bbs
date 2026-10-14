@@ -31,7 +31,7 @@
   {{range $b.Posts}}
   <div class="{{if odd .Num}}windowbg{{else}}windowbg2{{end}} post_wrapper" id="entry{{.M.ID}}">
     <div class="poster">
-      <h4>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" title="View the profile of {{.M.From}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</h4>
+      <h4>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" title="View the profile of {{.M.From}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}{{template "flag" .}}</h4>
       <ul class="smalltext">
         {{if .Author}}<li class="membergroup">{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Full Member{{else if ge .Author.Posts 50}}Jr. Member{{else}}Newbie{{end}}</li>
         <li class="stars">{{if .Author.Sysop}}<span>&#9733;&#9733;&#9733;&#9733;&#9733;</span>{{else if ge .Author.Posts 100}}<span>&#9733;&#9733;&#9733;</span>{{else if ge .Author.Posts 50}}<span>&#9733;&#9733;</span>{{else}}<span>&#9733;</span>{{end}}</li>

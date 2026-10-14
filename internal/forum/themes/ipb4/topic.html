@@ -38,7 +38,7 @@
 {{range $b.Posts}}
 <article id="entry{{.M.ID}}" class="cPost ipsBox ipsComment">
   <aside class="cAuthorPane">
-    <h3 class="cAuthorPane_author">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"{{if .Author.Sysop}} class="admin"{{end}}>{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</h3>
+    <h3 class="cAuthorPane_author">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"{{if .Author.Sysop}} class="admin"{{end}}>{{.M.From}}</a>{{else}}{{.M.From}}{{end}}{{template "flag" .}}</h3>
     <div class="cAuthorPane_photo">{{template "avatar" (av .M.From "large")}}</div>
     <ul class="cAuthorPane_info">
       {{if .Author}}

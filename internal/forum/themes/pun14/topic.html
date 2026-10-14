@@ -38,7 +38,7 @@
       <div class="post-author">
         <ul class="author-ident">
           <li class="useravatar">{{template "avatar" (av .M.From "large")}}</li>
-          <li class="username">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</li>
+          <li class="username">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}{{template "flag" .}}</li>
           <li class="usertitle"><span>{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 50}}Member{{else}}New member{{end}}{{else}}Guest{{end}}</span></li>
           <li class="userstatus"><span>Offline</span></li>
         </ul>

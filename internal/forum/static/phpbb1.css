@@ -213,3 +213,6 @@ td.none { text-align: center; }
 	td.last, td.num:nth-child(3) { display: none; }
 	td.author { width: 26%; }
 }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

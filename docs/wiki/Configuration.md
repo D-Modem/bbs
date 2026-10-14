@@ -39,6 +39,7 @@ whether terminals are asked what they are: [Terminal identification](Terminal-Id
 | `[http]` | the HTTP API, its WebSockets, the web forum, the web terminal and metrics | [HTTP API](HTTP-API), [Web forum](Web-Forum) |
 | `[chan]`, `chan` (in `[http]`) | the image boards | [Image boards](Image-Boards) |
 | `page_command` (in `[general]`) | telling the sysop of a page when they are not on | [Chat and paging](Chat-and-Paging) |
+| `geoip`, `geoip_credit`, `phone_country` (in `[general]`) | where callers are: a country database for addresses, the home country of caller IDs | [Modem callers](Modem-Callers#where-callers-are), [Web forum](Web-Forum#flags) |
 
 `bbs check` reads the file and says what it found, with a warning for
 anything risky (a password that may cross in the clear, a socket that

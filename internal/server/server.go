@@ -333,7 +333,7 @@ func (s *Server) handle(nc net.Conn, l *Listener) {
 		return
 	}
 	defer node.Leave()
-	s.B.Log.Printf("node %d: %s on [listen %s]%s", node.Num, remote, l.Name, callDetails(caller))
+	s.B.Log.Printf("node %d: %s on [listen %s]%s", node.Num, remote, l.Name, callDetails(caller, node.Place()))
 
 	switch l.Kind {
 	case "telnet":
@@ -349,13 +349,23 @@ func (s *Server) handle(nc net.Conn, l *Listener) {
 	s.B.Log.Printf("node %d: gone", node.Num)
 }
 
-func callDetails(c *bbs.Caller) string {
+func callDetails(c *bbs.Caller, p bbs.Place) string {
 	var parts []string
 	if c.Rate != "" {
 		parts = append(parts, "rate "+c.Rate)
 	}
 	if c.CallerID != "" {
-		parts = append(parts, "from "+c.CallerID)
+		from := "from " + c.CallerID
+		if p.Number != "" && p.Number != c.CallerID {
+			from += " (" + p.Number + ")"
+		}
+		parts = append(parts, from)
+	}
+	switch {
+	case p.Name != "":
+		parts = append(parts, "in "+p.String())
+	case p.Service != "":
+		parts = append(parts, "a "+p.Service+" number")
 	}
 	if c.Dialed != "" {
 		parts = append(parts, "to "+c.Dialed)

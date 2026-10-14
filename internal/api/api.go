@@ -48,6 +48,7 @@ type Settings struct {
 	Forum      bool          // the web forum, /forum/
 	Guests     bool          // the forum's guests read the areas anyone may
 	Theme      string        // the forum's theme until a caller chooses ("": the default)
+	ForumFlags bool          // the forum shows posters' countries' flags, where known
 	Chan       bool          // the image boards, /chan/
 	// TrustedProxies are reverse proxies believed when they say whose a
 	// request is (X-Forwarded-For)

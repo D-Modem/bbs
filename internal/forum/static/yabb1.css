@@ -254,3 +254,6 @@ table.board p { margin: 2px 0 0; }
 	.yyform td.label, .yyprofile td.label { width: 32%; }
 	.field { grid-template-columns: 1fr; }
 }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

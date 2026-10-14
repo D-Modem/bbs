@@ -40,7 +40,7 @@
       <div class="messageUserBlock">
         <div class="avatarHolder"><span class="helper"></span>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="avatar">{{template "avatar" (av .M.From "large")}}</a>{{else}}{{template "avatar" (av .M.From "large")}}{{end}}</div>
         <h3 class="userText">
-          {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username">{{.M.From}}</a>{{else}}<span class="username">{{.M.From}}</span>{{end}}
+          {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username">{{.M.From}}</a>{{else}}<span class="username">{{.M.From}}</span>{{end}}{{template "flag" .}}
           <em class="userTitle">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Well-Known Member{{else if ge .Author.Posts 30}}Active Member{{else}}New Member{{end}}{{else}}Guest{{end}}</em>
           {{if .Author}}{{if .Author.Sysop}}<em class="userBanner bannerStaff"><span class="before"></span><strong>Staff Member</strong><span class="after"></span></em>{{end}}{{end}}
         </h3>

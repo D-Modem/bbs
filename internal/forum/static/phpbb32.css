@@ -49,3 +49,6 @@ li.row strong.username { font-weight: normal; }
 /* back to top: a grey circle with a chevron */
 a.top { width: 13px; height: 13px; background: #8f8f8f; }
 a.top .icon { color: #fff; }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

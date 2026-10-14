@@ -12,7 +12,7 @@
       <div class="post_author">
         <div class="author_avatar">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{template "avatar" (av .M.From "large")}}</a>{{else}}{{template "avatar" (av .M.From "large")}}{{end}}</div>
         <div class="author_information">
-          <strong><span class="largetext">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</span></strong> <span class="online_status" aria-hidden="true"></span><br>
+          <strong><span class="largetext">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</span></strong>{{template "flag" .}} <span class="online_status" aria-hidden="true"></span><br>
           <span class="smalltext">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Senior Member{{else if ge .Author.Posts 50}}Member{{else}}Junior Member{{end}}{{else}}Unregistered{{end}}<br>
           <span class="stars">{{if .Author}}{{if .Author.Sysop}}&#9733;&#9733;&#9733;&#9733;&#9733;{{else if ge .Author.Posts 100}}&#9733;&#9733;&#9733;{{else if ge .Author.Posts 50}}&#9733;&#9733;{{else}}&#9733;{{end}}{{end}}</span></span>
         </div>

@@ -38,7 +38,7 @@
 <article id="entry{{.M.ID}}" class="ipsEntry ipsBox{{if eq .Num 1}} ipsEntry--first{{end}}">
   <aside class="ipsEntry__author">
     <div class="ipsEntry__author-photo">{{template "avatar" (av .M.From "large")}}{{if .Author}}{{if .Author.Sysop}}<span class="ipsBadge ipsBadge--staff" title="Staff">Staff</span>{{end}}{{end}}</div>
-    <h3 class="ipsEntry__username">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</h3>
+    <h3 class="ipsEntry__username">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}{{template "flag" .}}</h3>
     {{if .Author}}
     <div class="ipsEntry__group{{if .Author.Sysop}} admin{{end}}">{{if .Author.Sysop}}Administrators{{else}}{{group .Author}}{{end}}</div>
     <ul class="ipsEntry__author-stats">

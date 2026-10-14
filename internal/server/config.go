@@ -27,6 +27,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/logo"
 	"github.com/Neo-Desktop/bbs-sec/internal/mrc"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
+	"github.com/Neo-Desktop/bbs-sec/internal/phone"
 	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
 	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
@@ -214,6 +215,18 @@ func (c *Config) general(g *config.Section) error {
 	s.MOTD = g.String("motd", s.MOTD)
 	s.MOTDFile = g.String("motd_file", s.MOTDFile)
 	s.Goodbye = g.String("goodbye", s.Goodbye)
+	if s.GeoIP = g.String("geoip", ""); s.GeoIP != "" {
+		if _, err := os.Stat(s.GeoIP); err != nil {
+			c.Warnings = append(c.Warnings, fmt.Sprintf("geoip: %v: callers' countries are not known until it is there", err))
+		}
+	}
+	s.GeoCredit, s.GeoCreditURL = g.String("geoip_credit", ""), g.String("geoip_credit_url", "")
+	if u := s.GeoCreditURL; u != "" && !strings.HasPrefix(u, "https://") && !strings.HasPrefix(u, "http://") {
+		return fmt.Errorf("geoip_credit_url: an http(s) address, not %q", u)
+	}
+	if s.PhoneCountry = strings.ToUpper(g.String("phone_country", "")); s.PhoneCountry != "" && !phone.Known(s.PhoneCountry) {
+		return fmt.Errorf("phone_country: %q is not a country with a calling code (an ISO 3166 code: US, GB, DE)", s.PhoneCountry)
+	}
 	s.QWKID = strings.ToUpper(g.String("qwk_id", s.QWKID))
 	if s.QWKID != "" && !qwk.ValidID(s.QWKID) {
 		return errors.New("qwk_id: 1 to 8 letters and digits")

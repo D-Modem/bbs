@@ -37,7 +37,7 @@
 <table class="bordercolor yypost {{if odd .Num}}alt1{{else}}alt2{{end}}" id="entry{{.M.ID}}">
   <tr>
     <td class="poster small" rowspan="2">
-      <div class="yyname">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"><b>{{.M.From}}</b></a>{{else}}<b>{{.M.From}}</b>{{end}}</div>
+      <div class="yyname">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"><b>{{.M.From}}</b></a>{{else}}<b>{{.M.From}}</b>{{end}}{{template "flag" .}}</div>
       {{if .Author}}<div>{{template "yyrank" .Author}}</div>
       <div>{{template "yystars" .Author}}</div>
       <div class="yypic">{{template "avatar" (av .M.From "large")}}</div>

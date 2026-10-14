@@ -192,3 +192,6 @@ td.none { text-align: center; }
 	.posts td.author p i { margin-right: 4px; }
 	.field { grid-template-columns: 1fr; }
 }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

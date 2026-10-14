@@ -101,7 +101,7 @@ var schemas = map[string]any{
 	"Login":     obj(map[string]any{"name": str, "password": str, "scopes": str}, "name", "password"),
 	"Session":   obj(map[string]any{"token": str, "expires": date, "user": str, "scopes": map[string]any{"type": "array", "items": str}}),
 	"System":    obj(map[string]any{"name": str, "sysop": str, "location": str, "motd": str, "users": num, "messages": num, "areas": num, "online": num, "features": map[string]any{"type": "object"}}),
-	"Node":      obj(map[string]any{"node": num, "user": str, "via": str, "since": date, "doing": str, "terminal": str}),
+	"Node":      obj(map[string]any{"node": num, "user": str, "via": str, "since": date, "doing": str, "terminal": str, "country": str}),
 	"Nodes":     arr("Node"),
 	"User":      obj(map[string]any{"name": str, "location": str, "sysop": boo, "created": date, "last_login": date, "calls": num, "posts": num, "node": num, "locked": boo, "level": num, "flags": str, "about": str, "qwk_node": boo}),
 	"Users":     arr("User"),

@@ -48,11 +48,14 @@ func (c *Config) chanSection(s *config.Section) error {
 	if ch.Options, err = s.Bool("options", ch.Options); err != nil {
 		return err
 	}
-	ch.GeoCredit, ch.GeoCreditURL = s.String("geoip_credit", ""), s.String("geoip_credit_url", "")
+	// the country database and its credit are [general]'s unless the
+	// boards have their own
+	ch.GeoCredit = s.String("geoip_credit", c.Settings.GeoCredit)
+	ch.GeoCreditURL = s.String("geoip_credit_url", c.Settings.GeoCreditURL)
 	if u := ch.GeoCreditURL; u != "" && !strings.HasPrefix(u, "https://") && !strings.HasPrefix(u, "http://") {
 		return fmt.Errorf("geoip_credit_url: an http(s) address, not %q", u)
 	}
-	if ch.GeoIP = s.String("geoip", ""); ch.GeoIP != "" {
+	if ch.GeoIP = s.String("geoip", c.Settings.GeoIP); ch.GeoIP != "" && ch.GeoIP != c.Settings.GeoIP {
 		if _, err := os.Stat(ch.GeoIP); err != nil {
 			c.Warnings = append(c.Warnings, fmt.Sprintf("[chan] geoip: %v: no flags until it is there", err))
 		}

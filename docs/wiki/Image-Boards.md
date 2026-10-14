@@ -37,7 +37,7 @@ address = :8443
 ;captcha_level = normal  ; easy, normal or hard to read
 ;captcha_lifetime = 600  ; seconds one lasts
 ;options = yes           ; the post form's Options line (sage, nonoko)
-;geoip = /var/lib/bbs/GeoLite2-Country.mmdb   ; for the boards with flags
+;geoip = /var/lib/bbs/GeoLite2-Country.mmdb   ; for the boards with flags ([general]'s by default)
 ;geoip_credit = IP geolocation by DB-IP       ; its licence's credit, at each page's foot
 ;geoip_credit_url = https://db-ip.com
 ```
@@ -151,7 +151,8 @@ name: `Anonymous (ID: aQvqbFdJ)`.
 
 A board with `flags yes` shows the flag of each poster's country by their
 name (an emoji, its name on hovering; `[NZ]` on the terminals), from a
-country database the sysop has, `[chan] geoip`:
+country database the sysop has, `[chan] geoip` (by default `[general]
+geoip`, the one the rest of the BBS uses):
 
 - a MaxMind DB file (`.mmdb`): MaxMind's GeoLite2 or GeoIP2 Country or
   City, DB-IP's *IP to Country Lite*, IPinfo's and others in its format;

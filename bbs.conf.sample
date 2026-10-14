@@ -75,6 +75,19 @@ idle_timeout = 600
 ; not throttled: one would lock out all
 throttle_failures = 10
 throttle_time = 600
+; where callers are.  geoip: a country database, a MaxMind DB (.mmdb:
+; GeoLite2 Country, DB-IP Lite...) or a CSV of ranges, read again when it
+; changes; with it the log, who's online and the web forum's flags give
+; callers' countries.  geoip_credit: the credit its licence asks for, at
+; the foot of the pages that show it.  See docs/wiki/Modem-Callers.md
+;geoip = /var/lib/bbs/dbip-country-lite.mmdb
+;geoip_credit = IP geolocation by DB-IP
+;geoip_credit_url = https://db-ip.com
+; phone_country: the country (ISO 3166: US, GB, DE) whose national numbers
+; modem caller IDs are, as the exchange sends them ("4155550123",
+; "02071234567"); international ones (+44..., 011 44...) are read anyway.
+; A caller ID gives the country, and in North America the state or province
+;phone_country = US
 
 ; A listener:
 ;   type = telnet        a telnet server; with tn3270 = yes (the default),
@@ -218,6 +231,9 @@ address = 127.0.0.1:2513
 ; forum_guests: those not logged in read the areas anyone may read
 ;forum = yes
 ;forum_guests = yes
+; forum_flags: posters' countries' flags by their names, where [general]
+; geoip or phone_country knew them when they posted
+;forum_flags = yes
 ; the forum's theme until a caller chooses (at the foot of each page):
 ; ipb3 (in the manner of Invision Power Board 3), ipb5 (fresh, as Invision
 ; Community 5), ipb4 (modern, as Invision Community 4), ipb2 (classic, as
@@ -265,9 +281,10 @@ address = 127.0.0.1:2513
 ;options = yes
 ; a country database for the boards with flags (bbs chan board set DIR
 ; flags yes): a MaxMind DB (.mmdb: GeoLite2 Country, DB-IP Lite...) or a
-; CSV of ranges; read again when it changes
+; CSV of ranges; read again when it changes.  By default [general]'s
 ;geoip = /var/lib/bbs/GeoLite2-Country.mmdb
-; the credit its licence asks for, at the foot of each page
+; the credit its licence asks for, at the foot of each page (by default
+; [general]'s)
 ;geoip_credit = IP geolocation by DB-IP
 ;geoip_credit_url = https://db-ip.com
 ; the style callers get until they choose: by the board (yotsuba-b if it

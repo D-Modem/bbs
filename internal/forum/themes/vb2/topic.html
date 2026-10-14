@@ -33,7 +33,7 @@
   {{range $b.Posts}}{{$bg := "alt1"}}{{if not (odd .Num)}}{{$bg = "alt2"}}{{end}}
   <tr id="entry{{.M.ID}}">
     <td class="{{$bg}} author top">
-      <b class="normal">{{.M.From}}</b><br>
+      <b class="normal">{{.M.From}}</b>{{template "flag" .}}<br>
       <span class="small">{{if .Author}}{{if .Author.Sysop}}Administrator{{else}}{{if ge .Author.Posts 100}}Senior Member{{else if ge .Author.Posts 30}}Member{{else}}Junior Member{{end}}{{end}}{{else}}Guest{{end}}</span><br>
       {{template "avatar" (av .M.From "large")}}
       {{if .Author}}<p class="small">Registered: {{monthyear .Author.Created}}<br>{{if .Author.Location}}Location: {{.Author.Location}}<br>{{end}}Posts: {{num .Author.Posts}}</p>{{else if .Where}}<p class="small">Location: {{.Where}}</p>{{end}}

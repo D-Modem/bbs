@@ -39,7 +39,7 @@
         <div class="b-userinfo">
           <a class="b-avatar" {{if .Author}}href="/forum/user/{{path .Author.Name}}"{{end}}>{{template "avatar" (av .M.From "large")}}</a>
           <div class="b-userinfo__details">
-            <div class="author">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"><strong>{{.M.From}}</strong></a>{{else}}<strong>{{.M.From}}</strong>{{end}}</div>
+            <div class="author">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"><strong>{{.M.From}}</strong></a>{{else}}<strong>{{.M.From}}</strong>{{end}}{{template "flag" .}}</div>
             <div class="usertitle">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Senior Member{{else if ge .Author.Posts 30}}Member{{else}}Junior Member{{end}}{{else}}Guest{{end}}</div>
             {{if .Author}}{{if .Author.Sysop}}<div class="b-userinfo__rank">Staff</div>{{end}}{{end}}
             <ul class="b-userinfo__additional-info-block">

@@ -121,6 +121,7 @@ type Server struct {
 	Terminal bool          // the web terminal is there to link to
 	TTL      time.Duration // a login's
 	Theme    string        // the theme callers get until they choose ("": the first)
+	Flags    bool          // posters' countries' flags beside their names, where known
 
 	tmpl map[string]*template.Template // by theme
 	key  []byte                        // for forms' CSRF tokens
@@ -315,7 +316,9 @@ type page struct {
 	Themes   []Theme // to choose from
 	Path     string  // this page's, to come back to
 	Page     string  // which page it is (its template's name), for layouts that differ by page
-	Body     any     // the page's own
+	// the credit the country database asks for, where flags are shown
+	GeoCredit, GeoCreditURL string
+	Body                    any // the page's own
 }
 
 type crumb struct {
@@ -327,6 +330,9 @@ func (q *req) render(status int, name, title string, crumbs []crumb, body any) {
 	p := page{Title: title, BBS: q.s.B.Name, User: q.user, CSRF: q.csrf(), Crumbs: crumbs, Terminal: q.s.Terminal,
 		Register: q.user == nil && q.s.B.NewUsers, Now: time.Now(), Body: body, Notice: q.r.URL.Query().Get("notice"),
 		Theme: q.theme(), Themes: Themes, Path: q.r.URL.RequestURI(), Page: name}
+	if q.s.Flags && q.s.B.GeoIP != "" {
+		p.GeoCredit, p.GeoCreditURL = q.s.B.GeoCredit, q.s.B.GeoCreditURL
+	}
 	switch {
 	case strings.HasPrefix(name, "online"):
 		p.Tab = "online"

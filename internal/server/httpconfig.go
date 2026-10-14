@@ -90,6 +90,9 @@ func (c *Config) httpSection(s *config.Section) error {
 		}
 		return fmt.Errorf("forum_theme: %q is not one of %s", h.Theme, strings.Join(names, ", "))
 	}
+	if h.ForumFlags, err = s.Bool("forum_flags", true); err != nil {
+		return err
+	}
 	if h.Chan, err = s.Bool("chan", true); err != nil {
 		return err
 	}

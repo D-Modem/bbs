@@ -182,3 +182,6 @@ body.yabb25 { padding-top: 5px; background: var(--page); color: var(--text); fon
 	.userinfo { flex-wrap: wrap; }
 	.yyuserright { flex-basis: 100%; }
 }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

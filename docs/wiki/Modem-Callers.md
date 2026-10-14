@@ -87,3 +87,34 @@ check` warns about a trusting socket or port that others can reach.
 client says it is an `ANSI` terminal, and the caller logs in again.
 
 **See also:** [Configuration](Configuration), [File transfers](File-Transfers)
+
+## Where callers are
+
+`[general] phone_country` reads modem callers' numbers: the country by
+the ITU's calling codes (the shared ones told apart: Jersey from Britain,
+Kazakhstan from Russia, Jamaica from the US) and, in the North American
+Numbering Plan, the state or province by the area code; toll-free and
+the like are said as such. International numbers (`+44 20...`) are read
+whatever it is; national ones, as exchanges mostly send them, are read
+as that country dials (`4155550123`, `1 415 555 0123` and `011 44...`
+with `US`; `020 7123 4567` and `00 1 415...` with `GB`). A local number
+with no area code gives the country alone; withheld numbers nothing.
+
+```ini
+[general]
+phone_country = US
+;geoip = /var/lib/bbs/dbip-country-lite.mmdb   ; for callers by address
+```
+
+The log says it with the call:
+
+```
+node 3: modem on [listen modem]: rate 33600/31200, from 4155550123 (+1 415-555-0123), in California, United States
+```
+
+Who's online shows callers' countries (by caller ID, else by address with
+`[general] geoip`); the sysop's node list (spy, chat, kick) their number
+and state too. Posts keep the poster's country for the [web forum's
+flags](Web-Forum#flags). The tables are the BBS's own (the NANP's area
+codes as assigned by 2026); nothing is looked up elsewhere.
+

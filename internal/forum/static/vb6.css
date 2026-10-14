@@ -151,3 +151,6 @@ meter::-webkit-meter-bar { border-radius: 999px; }
 .footer a, .footer .time { color: var(--text); }
 .footer a:hover { color: var(--link); }
 .footer__top { border-bottom-color: var(--line); }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

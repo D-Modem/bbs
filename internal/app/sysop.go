@@ -104,8 +104,9 @@ func (s *Session) sysopMenu() error {
 // pickNode: a node chosen from those online but the sysop's own.
 func (s *Session) pickNode(prompt string) (int, bool, error) {
 	t := &view.Table{Title: "Nodes", Pick: "Node", Prompt: prompt + " (its number, Enter for none): ",
-		Empty:   "No one else is on.",
-		Columns: []view.Column{{Title: "User", Width: 20}, {Title: "Via", Width: 16}, {Title: "Doing", Wide: true}}}
+		Empty: "No one else is on.",
+		Columns: []view.Column{{Title: "User", Width: 20}, {Title: "Via", Width: 16}, {Title: "From", Width: 24},
+			{Title: "Doing", Wide: true}}}
 	for _, n := range s.B.Nodes() {
 		if n.Num == s.N.Num {
 			continue
@@ -114,7 +115,7 @@ func (s *Session) pickNode(prompt string) (int, bool, error) {
 		if name == "" {
 			name = "(logging in)"
 		}
-		t.Rows = append(t.Rows, view.Row{Num: strconv.Itoa(n.Num), Cells: []string{name, n.Via, n.Activity}})
+		t.Rows = append(t.Rows, view.Row{Num: strconv.Itoa(n.Num), Cells: []string{name, n.Via, placeOf(n.Place), n.Activity}})
 	}
 	c, err := s.UI.Table(t)
 	if err != nil || c.Action != view.Pick {
@@ -458,4 +459,17 @@ func (s *Session) eventsScreen() error {
 			}
 		}
 	}
+}
+
+// placeOf is where a caller is, as the sysop sees it: the number a modem
+// caller called from, and the place.
+func placeOf(p bbs.Place) string {
+	where := p.String()
+	switch {
+	case p.Number == "":
+		return where
+	case where == "":
+		return p.Number
+	}
+	return p.Number + ", " + where
 }

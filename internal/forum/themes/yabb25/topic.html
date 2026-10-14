@@ -35,7 +35,7 @@
   <div class="userinfo">
     <div class="yyuserpic">{{template "avatar" (av .M.From "large")}}</div>
     <div class="yyuserleft small">
-      <span class="yyname25">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"><b>{{.M.From}}</b></a>{{else}}<b>{{.M.From}}</b>{{end}}</span> &nbsp; <span class="useroffline">Offline</span><br>
+      <span class="yyname25">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}"><b>{{.M.From}}</b></a>{{else}}<b>{{.M.From}}</b>{{end}}</span>{{template "flag" .}} &nbsp; <span class="useroffline">Offline</span><br>
       {{if .Author}}<b>{{template "yyrank" .Author}}</b>{{if .Author.Location}}<br>{{.Author.Location}}{{end}}{{else}}Guest{{if .Where}}<br>{{.Where}}{{end}}{{end}}
     </div>
     {{if .Author}}<div class="yyuserright small">

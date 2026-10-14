@@ -149,3 +149,6 @@ td.yywelcbar { display: flex; align-items: center; justify-content: center; posi
 	.yyboards td.last { padding-left: 4px; }
 	.yabb2 .yypost td.poster { width: auto; }
 }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

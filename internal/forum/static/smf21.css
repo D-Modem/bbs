@@ -147,3 +147,6 @@ blockquote.quote:not(.citation + blockquote.quote)::before { content: "\275D  Qu
 	.topic_row { grid-template-columns: 34px minmax(0, 1fr); }
 	#messageindex .title_bar { grid-template-columns: 1fr; }
 }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

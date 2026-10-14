@@ -95,3 +95,6 @@ meter::-moz-meter-bar { background: var(--blue); }
 	#brdmenu li a, #brdmenu li .linkish { min-width: 0; padding: 8px 10px 4px 8px; }
 	.postleft, .postfootleft { width: auto; }
 }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

@@ -145,6 +145,8 @@ type nodeJSON struct {
 	Since time.Time `json:"since"`
 	Doing string    `json:"doing"`
 	Term  string    `json:"terminal,omitempty"`
+	// the caller's country (ISO 3166-1), if known
+	Country string `json:"country,omitempty"`
 }
 
 type areaJSON struct {
@@ -322,7 +324,7 @@ func (s *Server) who(w http.ResponseWriter, r *http.Request) {
 		if n.User == "" {
 			continue
 		}
-		out = append(out, nodeJSON{n.Num, n.User, n.Via, n.Since, n.Activity, n.Terminal})
+		out = append(out, nodeJSON{n.Num, n.User, n.Via, n.Since, n.Activity, n.Terminal, n.Place.Country})
 	}
 	writeJSON(w, http.StatusOK, out)
 }

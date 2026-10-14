@@ -42,7 +42,7 @@
             <section class="message-user">
               <div class="message-avatar"><div class="message-avatar-wrapper">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="avatar">{{template "avatar" (av .M.From "m")}}</a>{{else}}{{template "avatar" (av .M.From "m")}}{{end}}</div></div>
               <div class="message-userDetails">
-                <h4 class="message-name">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username">{{.M.From}}</a>{{else}}<span class="username">{{.M.From}}</span>{{end}}</h4>
+                <h4 class="message-name">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="username">{{.M.From}}</a>{{else}}<span class="username">{{.M.From}}</span>{{end}}{{template "flag" .}}</h4>
                 <h5 class="userTitle message-userTitle">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Well-known member{{else if ge .Author.Posts 30}}Active member{{else}}New member{{end}}{{else}}Guest{{end}}</h5>
                 {{if .Author}}{{if .Author.Sysop}}<div class="userBanner userBanner--staff message-userBanner"><strong>Staff member</strong></div>{{end}}{{end}}
               </div>

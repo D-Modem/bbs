@@ -35,7 +35,7 @@
 {{range $b.Posts}}
 <div class="post" id="entry{{.M.ID}}">
   <h3 class="post-head">
-    {{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="author-name{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{else}}<span class="author-name">{{.M.From}}</span>{{end}}
+    <span>{{if .Author}}<a href="/forum/user/{{path .Author.Name}}" class="author-name{{if .Author.Sysop}} admin{{end}}">{{.M.From}}</a>{{else}}<span class="author-name">{{.M.From}}</span>{{end}}{{template "flag" .}}</span>
     <a href="/forum/post/{{.M.ID}}" class="post-num" title="Link to this post">#{{.Num}}</a>
   </h3>
   <div class="author">

@@ -9,7 +9,7 @@
   {{range $b.Posts}}{{$alt := "trow1"}}{{if not (odd .Num)}}{{$alt = "trow2"}}{{end}}
   <tr id="entry{{.M.ID}}">
     <td class="{{$alt}} author_cell" width="155" valign="top">
-      <strong><span class="largetext">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</span></strong><br>
+      <strong><span class="largetext">{{if .Author}}<a href="/forum/user/{{path .Author.Name}}">{{.M.From}}</a>{{else}}{{.M.From}}{{end}}</span></strong>{{template "flag" .}}<br>
       <span class="smalltext">{{if .Author}}{{if .Author.Sysop}}Administrator{{else if ge .Author.Posts 100}}Senior Member{{else if ge .Author.Posts 50}}Member{{else}}Junior Member{{end}}{{else}}Unregistered{{end}}<br>
       <span class="stars">{{if .Author}}{{if .Author.Sysop}}&#9733;&#9733;&#9733;&#9733;&#9733;{{else if ge .Author.Posts 100}}&#9733;&#9733;&#9733;{{else if ge .Author.Posts 50}}&#9733;&#9733;{{else}}&#9733;{{end}}{{end}}</span></span><br>
       <span class="avatar_wrap">{{template "avatar" (av .M.From "large")}}</span><br>

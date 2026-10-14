@@ -13,6 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -330,4 +331,17 @@ func yabb2Date(t time.Time) string {
 		}
 	}
 	return fmt.Sprintf("%s %d%s, %d, %s", t.Format("Jan"), d, suffix, t.Year(), t.Format("3:04pm"))
+}
+
+// flagOf is a country's flag and name, for beside a poster's name ("":
+// none known).
+func flagOf(code string) (string, string) {
+	if code == "" {
+		return "", ""
+	}
+	name, ok := geoip.Names[code]
+	if !ok {
+		name = code
+	}
+	return geoip.Flag(code), name
 }

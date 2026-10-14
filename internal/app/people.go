@@ -19,13 +19,25 @@ func (s *Session) who() error {
 		Prompt: "Send a node a message (its number, Enter for none): ",
 		Columns: []view.Column{{Title: "User", Width: 20}, {Title: "Via", Width: 16},
 			{Title: "Time", Width: 6, Right: true}, {Title: "Doing", Wide: true}}}
-	for _, n := range s.B.Nodes() {
+	nodes := s.B.Nodes()
+	from := false // a column of the callers' countries, when any is known
+	for _, n := range nodes {
+		from = from || n.Place.Name != ""
+	}
+	if from {
+		t.Columns = append(t.Columns[:2:2], append([]view.Column{{Title: "From", Width: 14}}, t.Columns[2:]...)...)
+	}
+	for _, n := range nodes {
 		name := n.User
 		if name == "" {
 			name = "(logging in)"
 		}
-		t.Rows = append(t.Rows, view.Row{Num: strconv.Itoa(n.Num),
-			Cells: []string{name, n.Via, fmt.Sprintf("%dm", int(time.Since(n.Since).Minutes())), n.Activity}})
+		cells := []string{name, n.Via, fmt.Sprintf("%dm", int(time.Since(n.Since).Minutes())), n.Activity}
+		if from {
+			// the country alone: the region and number are the sysop's to see
+			cells = append(cells[:2:2], append([]string{n.Place.Name}, cells[2:]...)...)
+		}
+		t.Rows = append(t.Rows, view.Row{Num: strconv.Itoa(n.Num), Cells: cells})
 	}
 	c, err := s.UI.Table(t)
 	if err != nil || c.Action != view.Pick {

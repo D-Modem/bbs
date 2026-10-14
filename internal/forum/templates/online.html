@@ -7,7 +7,7 @@
     {{range .Body.Nodes}}
     <tr><td>{{.Num}}</td>
       <td>{{if .User}}{{template "avatar" (av .User "tiny")}} <a href="/forum/user/{{path .User}}">{{.User}}</a>{{else}}<span class="desc">Logging in</span>{{end}}</td>
-      <td>{{.Via}}{{with .Terminal}} <span class="desc">({{.}})</span>{{end}}</td><td>{{.Activity}}</td><td class="desc">{{when .Since}}</td></tr>
+      <td>{{.Via}}{{if $.Body.Flags}}{{with .Place}}{{if .Country}} <span class="flag" role="img" title="{{.Name}}" aria-label="{{.Name}}">{{.Flag}}</span>{{end}}{{end}}{{end}}{{with .Terminal}} <span class="desc">({{.}})</span>{{end}}</td><td>{{.Activity}}</td><td class="desc">{{when .Since}}</td></tr>
     {{else}}<tr><td colspan="5" class="none">No one is on just now.</td></tr>{{end}}
     </tbody>
   </table>

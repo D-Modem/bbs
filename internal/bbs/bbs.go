@@ -9,6 +9,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
 	"github.com/Neo-Desktop/bbs-sec/internal/events"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
+	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
 	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 	"github.com/Neo-Desktop/bbs-sec/internal/screens"
 	"log"
@@ -43,6 +44,10 @@ type Settings struct {
 	ThrottleTime  time.Duration // ... within this lock it out for this
 	PageCommand   []string      // run when a page finds no sysop on
 	QWKID         string        // QWK packets' BBSID ("": made of Name)
+	GeoIP         string        // the country database (geoip.Open's), for where callers are
+	GeoCredit     string        // the credit the database's licence asks for, on pages that show its data
+	GeoCreditURL  string        // and where it links
+	PhoneCountry  string        // the country (ISO 3166) whose national caller IDs these are ("": none)
 
 	Levels         []Level // [level N], by number
 	NewUserLevel   int     // a new user's level
@@ -153,6 +158,8 @@ type BBS struct {
 	hubOnce  sync.Once
 	chat     *hub
 	relay    Relay // a chat network's rooms (MRC)
+	geoOnce  sync.Once
+	geo      *geoip.File
 }
 
 // New makes the BBS of the settings and store.
@@ -178,6 +185,7 @@ type Node struct {
 	cs       *chatState
 	clock    *clock // the day's time limit, for a caller logged in
 	sysopTap tap    // sysops watching the node
+	place    atomic.Pointer[Place]
 }
 
 // ErrBusy: every node is taken.
@@ -261,13 +269,14 @@ type NodeInfo struct {
 	Since    time.Time
 	Activity string
 	Terminal string // its identification, else its terminal type
+	Place    Place  // where the caller is, if known
 }
 
 // Nodes lists the callers online.
 func (b *BBS) Nodes() []NodeInfo {
 	b.mu.Lock()
-	defer b.mu.Unlock()
 	var out []NodeInfo
+	var nodes []*Node
 	for _, n := range b.nodes {
 		name := ""
 		if n.user != nil {
@@ -277,7 +286,14 @@ func (b *BBS) Nodes() []NodeInfo {
 		if term == "" {
 			term = n.Caller.Terminal
 		}
-		out = append(out, NodeInfo{n.Num, name, n.Caller.Describe(), n.Since, n.activity, term})
+		out = append(out, NodeInfo{n.Num, name, n.Caller.Describe(), n.Since, n.activity, term, Place{}})
+		nodes = append(nodes, n)
+	}
+	b.mu.Unlock()
+	// the places are found outside the lock: the first may read the
+	// country database
+	for i, n := range nodes {
+		out[i].Place = n.Place()
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Num < out[j].Num })
 	return out
@@ -581,7 +597,7 @@ func (n *Node) PostWith(a *store.Area, to, subject string, body []string, replyT
 	}
 	m := &store.Message{AreaID: a.ID, FromID: u.ID, From: from,
 		To: Clean(to, MaxNameLen), Subject: Clean(subject, MaxSubjectLen),
-		Body: CleanBody(body), ReplyTo: replyTo}
+		Body: CleanBody(body), ReplyTo: replyTo, Country: n.Place().Country}
 	if m.To == "" {
 		m.To = "All"
 	}

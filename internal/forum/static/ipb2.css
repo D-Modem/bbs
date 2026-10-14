@@ -384,3 +384,6 @@ table.board h3 { margin: 0; font-size: 11px; }
 	.field { grid-template-columns: 1fr; }
 	.legend { display: none; }
 }
+
+/* the country database's credit, where posters' flags are shown */
+.geocredit { text-align: center; font-size: 11px; margin: 8px 0 16px; }

@@ -6,12 +6,8 @@ import (
 	"encoding/base64"
 	"hash/fnv"
 	"net"
-	"os"
 	"strconv"
 	"strings"
-	"sync"
-	"sync/atomic"
-	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
 )
@@ -38,41 +34,16 @@ func idClass(id string) string {
 	return "idc-" + strconv.Itoa(int(h.Sum32()%idColors))
 }
 
-// geo is the country database, read again when its file changes (looked
-// at once a minute at most).
-type geo struct {
-	mu      sync.Mutex
-	reader  atomic.Pointer[geoip.Reader]
-	stamp   time.Time // the file's, when read
-	checked time.Time
-}
-
 // country is an address's country (code, name), if the boards have a
 // database and it says.
 func (s *Server) country(addr string) (string, string) {
-	ip := net.ParseIP(addr)
-	if s.S.GeoIP == "" || ip == nil {
+	if s.S.GeoIP == "" {
 		return "", ""
 	}
-	g := &s.geo
-	g.mu.Lock()
-	if time.Since(g.checked) > time.Minute {
-		g.checked = time.Now()
-		if fi, err := os.Stat(s.S.GeoIP); err == nil && !fi.ModTime().Equal(g.stamp) {
-			r, err := geoip.Open(s.S.GeoIP)
-			if err != nil {
-				s.B.Log.Printf("chan: the country database: %v", err)
-			} else {
-				g.reader.Store(r)
-				g.stamp = fi.ModTime()
-			}
-		}
-	}
-	g.mu.Unlock()
-	code, name, ok := g.reader.Load().Country(ip)
-	if !ok {
-		return "", ""
-	}
+	s.geoOnce.Do(func() {
+		s.geo = &geoip.File{Path: s.S.GeoIP, Log: func(err error) { s.B.Log.Printf("chan: the country database: %v", err) }}
+	})
+	code, name, _ := s.geo.Country(net.ParseIP(addr))
 	return code, name
 }
 

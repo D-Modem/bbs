@@ -27,7 +27,7 @@
   <tr><th class="thLeft author">Author</th><th class="thRight">Message</th></tr>
   {{range $b.Posts}}{{$row := "row1"}}{{if not (odd .Num)}}{{$row = "row2"}}{{end}}
   <tr id="entry{{.M.ID}}">
-    <td class="{{$row}} author top"><span class="name"><b>{{.M.From}}</b></span><br>
+    <td class="{{$row}} author top"><span class="name"><b>{{.M.From}}</b></span>{{template "flag" .}}<br>
       <span class="postdetails">{{if .Author}}{{if .Author.Sysop}}Site Admin{{else}}{{group .Author}}{{end}}<br>{{template "avatar" (av .M.From "large")}}<br><br>Joined: {{subdate .Author.Created}}<br>Posts: {{num .Author.Posts}}{{if .Author.Location}}<br>Location: {{.Author.Location}}{{end}}{{else}}{{template "avatar" (av .M.From "large")}}{{if .Where}}<br><br>Location: {{.Where}}{{end}}{{end}}</span></td>
     <td class="{{$row}} top">
       <div class="posthead">

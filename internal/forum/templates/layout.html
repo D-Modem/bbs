@@ -52,6 +52,7 @@
   {{template "themepicker" .}}
   <p class="copyright">{{.BBS}} &middot; the forums of a BBS, powered by bbs-sec &middot; {{when .Now}}</p>
 </div>
+{{template "geocredit" .}}
 </body>
 </html>
 {{end}}
@@ -62,6 +63,8 @@
   <button class="button small">Go</button>
 </form>{{end}}
 
+{{define "geocredit"}}{{with .GeoCredit}}<p class="geocredit">Countries by {{if $.GeoCreditURL}}<a href="{{$.GeoCreditURL}}" rel="noopener">{{.}}</a>{{else}}{{.}}{{end}}</p>{{end}}{{end}}
+{{define "flag"}}{{if .Flag}} <span class="flag" role="img" title="{{.Country}}" aria-label="{{.Country}}">{{.Flag}}</span>{{end}}{{end}}
 {{define "avatar"}}<span class="avatar {{avatar .Name}} {{.Size}}" aria-hidden="true">{{initial .Name}}</span>{{end}}
 
 {{define "pages"}}{{if gt .Total 1}}<ul class="pagination">

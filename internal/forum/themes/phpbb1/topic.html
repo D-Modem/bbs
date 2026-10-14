@@ -23,7 +23,7 @@
   {{range $b.Posts}}
   <tr class="{{if odd .Num}}c2row{{else}}c1row{{end}}" id="entry{{.M.ID}}">
     <td class="author">
-      <b>{{.M.From}}</b>
+      <b>{{.M.From}}</b>{{template "flag" .}}
       {{if .Author}}<br><span class="small">{{if .Author.Sysop}}Administrator{{else}}{{group .Author}}{{end}}</span>
       <br><br><span class="small">Joined: {{monthyear .Author.Created}}<br>Posts: {{num .Author.Posts}}{{if .Author.Location}}<br>From: {{.Author.Location}}{{end}}</span>
       {{else if .Where}}<br><span class="small">From: {{.Where}}</span>{{end}}
