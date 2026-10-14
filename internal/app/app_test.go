@@ -86,6 +86,7 @@ func (f *fake) Table(t *view.Table) (view.Choice, error) {
 }
 func (f *fake) Message(m *view.Message) (string, error) {
 	f.shown = append(f.shown, "message "+m.Subject+": "+m.Body)
+	f.picture(m.Picture)
 	return get[string](f, "message"), nil
 }
 func (f *fake) Form(fm *view.Form) (map[string]string, bool, error) {
@@ -99,6 +100,7 @@ func (f *fake) Panel(p *view.Panel) (string, error) {
 		ls = append(ls, l.Label+l.Text)
 	}
 	f.shown = append(f.shown, "panel "+p.Title+": "+strings.Join(ls, "; "))
+	f.picture(p.Picture)
 	return get[string](f, "panel"), nil
 }
 func (f *fake) Edit(d *view.Draft) (bool, error) {
@@ -121,6 +123,20 @@ func (f *fake) Confirm(q string, def bool) (bool, error) {
 	return get[bool](f, "confirm"), nil
 }
 func (f *fake) Say(tn view.Tone, msg string) { f.said = append(f.said, msg) }
+
+// picture loads a picture as a front end would, in 200 by 100 pixels,
+// and keeps what it was and how big it came.
+func (f *fake) picture(p *view.Picture) {
+	if p == nil {
+		return
+	}
+	img, err := p.Load(200, 100)
+	if err != nil {
+		f.shown = append(f.shown, "picture "+p.Alt+": "+err.Error())
+		return
+	}
+	f.shown = append(f.shown, fmt.Sprintf("picture %s: %dx%d", p.Alt, img.Bounds().Dx(), img.Bounds().Dy()))
+}
 func (f *fake) Show(title string, ls []view.Line) error {
 	var out []string
 	for _, l := range ls {

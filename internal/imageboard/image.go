@@ -105,19 +105,7 @@ func prepare(data []byte, side int, bg color.Color, strip bool) (*picture, error
 	if ext == ".png" {
 		data, drawMS, replayed = pngReplay(data, cfg.Width, cfg.Height)
 	}
-	decodeSlots <- struct{}{}
-	defer func() { <-decodeSlots }()
-	var img image.Image
-	switch ext {
-	case ".jpg":
-		img, err = jpeg.Decode(bytes.NewReader(data))
-	case ".png":
-		img, err = png.Decode(bytes.NewReader(data))
-	case ".gif":
-		img, err = gif.Decode(bytes.NewReader(data)) // the first frame
-	case ".webp":
-		img, err = webp.Decode(bytes.NewReader(data))
-	}
+	img, err := decode(data, ext)
 	if err != nil {
 		return nil, errNotImage
 	}
@@ -134,6 +122,23 @@ func prepare(data []byte, side int, bg color.Color, strip bool) (*picture, error
 	}
 	p.Thumb = out.Bytes()
 	return p, nil
+}
+
+// decode decodes an image (a GIF's first frame), a few at once.
+func decode(data []byte, ext string) (image.Image, error) {
+	decodeSlots <- struct{}{}
+	defer func() { <-decodeSlots }()
+	switch ext {
+	case ".jpg":
+		return jpeg.Decode(bytes.NewReader(data))
+	case ".png":
+		return png.Decode(bytes.NewReader(data))
+	case ".gif":
+		return gif.Decode(bytes.NewReader(data))
+	case ".webp":
+		return webp.Decode(bytes.NewReader(data))
+	}
+	return nil, errNotImage
 }
 
 // fit is w by h made to fit in side by side, never larger.

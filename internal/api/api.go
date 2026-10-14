@@ -68,7 +68,9 @@ type Server struct {
 	Peers []*nntp.Peer  // the news peers
 	// QWKNet calls the QWK networks' hubs (nil: no [qwknet])
 	QWKNet *qwknet.Runner
-	Ctx    context.Context // the server's, for work started by a request
+	// Chan is the image boards, shared with the terminals (nil: made here)
+	Chan *imageboard.Server
+	Ctx  context.Context // the server's, for work started by a request
 	// Terminal runs the text BBS on a web terminal's line (c a WebSocket
 	// as a stream; host the caller's address, "" for a proxy's), cols x
 	// rows: the listeners' server's WebTerminal

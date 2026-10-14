@@ -88,6 +88,18 @@ func action(acts []view.Action, k rune) string {
 	return ""
 }
 
+// picture shows a picture as the terminal can, captioned with what it
+// is (alone where it cannot): the rows it took.
+func (s *session) picture(p *view.Picture, rows int) int {
+	t := s.t
+	used := t.ShowPicture(p, rows)
+	if p.Alt != "" {
+		t.Println(t.C(Dim, "["+p.Alt+"]"))
+		used++
+	}
+	return used
+}
+
 func (s *session) PageSize() int { return max(s.t.Rows-5, 5) }
 func (s *session) Narrow() bool  { return s.t.Narrow() }
 
@@ -245,7 +257,15 @@ func (s *session) Message(m *view.Message) (string, error) {
 	t.Println(t.C(Cyan, "Subj: ") + t.C(White, m.Subject))
 	t.Println(t.C(Cyan, "Date: ") + date(m.Date))
 	t.Println(t.C(Dim, strings.Repeat("-", min(t.Cols-1, 79))))
-	if _, err := t.Page(bbs.Wrap(m.Body, t.Cols-1)); err != nil {
+	used := 5
+	if m.Picture != nil {
+		rows := m.Picture.Rows
+		if rows <= 0 {
+			rows = 12
+		}
+		used += s.picture(m.Picture, min(rows, max(t.Rows-10, 4)))
+	}
+	if _, err := t.PageAfter(bbs.Wrap(m.Body, t.Cols-1), used); err != nil {
 		return "", err
 	}
 	t.Print("\n" + keyPrompt(m.Actions))
@@ -313,6 +333,13 @@ func (s *session) Panel(p *view.Panel) (string, error) {
 	t := s.t
 	t.Println("")
 	t.Println(t.C(Cyan, p.Title))
+	if p.Picture != nil {
+		rows := p.Picture.Rows
+		if rows <= 0 {
+			rows = t.Rows - len(p.Lines) - 5
+		}
+		s.picture(p.Picture, max(rows, 4))
+	}
 	for _, l := range p.Lines {
 		if l.Label == "" && l.Bar < 0 {
 			t.Println("  " + s.line(l))
@@ -336,7 +363,7 @@ func (s *session) Edit(d *view.Draft) (bool, error) {
 	t := s.t
 	t.Println("")
 	to := d.To
-	for {
+	for !d.NoTo {
 		prompt := "To [" + to + "]: "
 		if to == "" {
 			hint := d.ToHint
@@ -364,13 +391,17 @@ func (s *session) Edit(d *view.Draft) (bool, error) {
 		}
 		break
 	}
-	t.Print("Subject: ")
+	if d.AnySubject {
+		t.Print("Subject (Enter for none): ")
+	} else {
+		t.Print("Subject: ")
+	}
 	l, err := t.ReadLine(LineOpts{Max: bbs.MaxSubjectLen, Initial: d.Subject})
 	if err != nil {
 		return false, err
 	}
 	subject := strings.TrimSpace(l.Text)
-	if subject == "" {
+	if subject == "" && !d.AnySubject {
 		t.Println("No subject: given up.")
 		return false, nil
 	}

@@ -94,6 +94,8 @@ type Session struct {
 
 	since time.Time // the caller's last call: new files are since then
 	batch []FileRef // files tagged to download together
+
+	chanName string // the name last posted to an image board under
 }
 
 // Run is the session from the welcome to the logoff (ErrLogoff) or the
@@ -182,6 +184,9 @@ func (s *Session) mainMenu(intro []view.Line) error {
 		if len(s.UI.Doors()) > 0 {
 			items = append(items, view.Item{Key: "D", Label: "Doors"})
 		}
+		if s.hasBoards() {
+			items = append(items, view.Item{Key: "B", Label: "Image boards"})
+		}
 		lvl := s.B.LevelOf(u)
 		if lvl.Chat {
 			chat := "Chat"
@@ -220,6 +225,10 @@ func (s *Session) mainMenu(intro []view.Line) error {
 		switch strings.ToUpper(k) {
 		case "M":
 			err = s.areas()
+		case "B":
+			if s.hasBoards() {
+				err = s.imageBoards()
+			}
 		case "E":
 			err = s.mail()
 		case "O":
@@ -366,6 +375,12 @@ func (s *Session) do(it *bbs.MenuItem, depth int) error {
 		return s.fileAreas()
 	case "doors":
 		return s.doors()
+	case "boards":
+		if !s.hasBoards() {
+			s.UI.Say(view.Plain, "There are no image boards.")
+			return nil
+		}
+		return s.imageBoards()
 	case "door":
 		for _, d := range s.UI.Doors() {
 			if strings.EqualFold(d.Name, it.Arg) {

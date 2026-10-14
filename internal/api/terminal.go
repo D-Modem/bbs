@@ -28,8 +28,9 @@ const TerminalProtocol = "bbs.terminal"
 
 // webAssets are the files the page loads, and their types.
 var webAssets = map[string]string{
-	"xterm.js": "text/javascript", "addon-fit.js": "text/javascript", "terminal.js": "text/javascript",
-	"xterm.css": "text/css", "terminal.css": "text/css", "LICENSE.xterm": "text/plain",
+	"xterm.js": "text/javascript", "addon-fit.js": "text/javascript", "addon-image.js": "text/javascript",
+	"terminal.js": "text/javascript",
+	"xterm.css":   "text/css", "terminal.css": "text/css", "LICENSE.xterm": "text/plain",
 }
 
 // originPatterns are the origins whose pages may open WebSockets here,
@@ -50,8 +51,8 @@ func pageHeaders(w http.ResponseWriter, r *http.Request) {
 	h := w.Header()
 	// scripts only from here; xterm.js sets styles of its own
 	host := strings.ReplaceAll(r.Host, "'", "")
-	h.Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; "+
-		"font-src 'self'; img-src 'self' data:; connect-src 'self' wss://"+host+" ws://"+host+"; "+
+	h.Set("Content-Security-Policy", "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; "+
+		"font-src 'self'; img-src 'self' data: blob:; connect-src 'self' wss://"+host+" ws://"+host+"; "+
 		"frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
 	h.Set("Referrer-Policy", "no-referrer")
 	h.Set("X-Frame-Options", "DENY")

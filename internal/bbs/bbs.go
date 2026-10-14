@@ -128,6 +128,8 @@ type BBS struct {
 	NetmailTo func(ftn.Addr) (string, error)
 	// Nodelist is the FidoNet nodelist (nil: none)
 	Nodelist func() *ftn.Nodelist
+	// ImageBoards are the image boards, for the terminals (nil: none)
+	ImageBoards ImageBoards
 	// Doors are the door programs (for text callers)
 	Doors []*door.Door
 	// the sysop's screens, menus and strings

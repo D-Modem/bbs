@@ -70,7 +70,11 @@ func (s *Server) forum() (http.Handler, error) {
 // forum's are (not their images: a thread can have a hundred); their
 // logins are the forum's sessions.
 func (s *Server) imageboard() (http.Handler, error) {
-	ib := &imageboard.Server{B: s.B, Sessions: forumSessions{s}, S: s.S.ChanSettings, Secure: s.S.SecureCookies, TTL: s.S.SessionTTL}
+	ib := s.Chan
+	if ib == nil {
+		ib = &imageboard.Server{B: s.B, S: s.S.ChanSettings, Secure: s.S.SecureCookies, TTL: s.S.SessionTTL}
+	}
+	ib.Sessions = forumSessions{s}
 	h, err := ib.Handler()
 	if err != nil {
 		return nil, err

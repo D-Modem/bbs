@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -56,7 +57,195 @@ func (q *req) checkBan(dir string) bool {
 	return false
 }
 
-// post takes a post: a new thread, or a reply (resto).
+// Submission is a post as its poster wrote it: by the web's form, or on
+// a terminal.
+type Submission = bbs.ChanSubmission
+
+// Refusal is a post refused: why, as the poster is told, an HTTP status
+// for the web, the duplicate's link, or the ban.
+type Refusal struct {
+	Status int
+	Msg    string
+	Link   string
+	Ban    *store.Ban
+}
+
+func (r *Refusal) Error() string { return r.Msg }
+
+func refuse(status int, format string, args ...any) *Refusal {
+	return &Refusal{Status: status, Msg: fmt.Sprintf(format, args...)}
+}
+
+// StaffOf is what a user is on a board: "admin" (a sysop), "mod" (one of
+// its mods), or "".
+func StaffOf(u *store.User, b *store.Board) string {
+	switch {
+	case u == nil:
+		return ""
+	case u.Sysop:
+		return "admin"
+	case b != nil && isMod(b, u.Name):
+		return "mod"
+	}
+	return ""
+}
+
+// Submit posts a submission, checked as every post is: bans, the board's
+// rules, flood control, the comment, the image (taken in, thumbnailed);
+// a new thread prunes the board.  A *Refusal says why one is not posted.
+func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
+	if err := s.Init(); err != nil {
+		s.B.Log.Printf("chan: %v", err)
+		return nil, refuse(http.StatusInternalServerError, "The image boards are in trouble: try again later.")
+	}
+	b, staff := sub.Board, sub.Staff
+	if ban, err := s.B.Store.BanFor(sub.IP, b.Dir); err != nil {
+		return nil, refuse(http.StatusInternalServerError, "The system is in trouble: try again later.")
+	} else if ban != nil {
+		return nil, &Refusal{Status: http.StatusForbidden, Msg: "You are banned: " + banReason(ban), Ban: ban}
+	}
+	switch {
+	case b.Locked && staff == "":
+		return nil, refuse(http.StatusForbidden, "This board is locked: only staff post here.")
+	case b.LoginToPost && sub.User == nil:
+		return nil, refuse(http.StatusForbidden, "Only this BBS's users post here: sign in first.")
+	}
+	var op *store.BoardPost
+	if sub.Thread != 0 {
+		var err error
+		if op, err = s.B.Store.ChanThread(b.ID, sub.Thread); err != nil {
+			return nil, refuse(http.StatusNotFound, "That thread is not here: it has been pruned or deleted.")
+		}
+		if op.Closed && staff == "" {
+			return nil, refuse(http.StatusForbidden, "You cannot reply to this thread anymore: it is closed.")
+		}
+	}
+
+	// flood control: staff are not held to it
+	if staff == "" {
+		last, lastThread, err := s.B.Store.LastPostBy(sub.IP)
+		if err != nil {
+			return nil, refuse(http.StatusInternalServerError, "The system is in trouble: try again later.")
+		}
+		wait := s.S.ReplyWait - time.Since(last)
+		if sub.Thread == 0 {
+			wait = max(wait, s.S.ThreadWait-time.Since(lastThread))
+		}
+		if wait > 0 {
+			return nil, refuse(http.StatusTooManyRequests, "Flood detected: wait %d seconds before posting again.",
+				int(wait.Seconds())+1)
+		}
+	}
+
+	p := &store.BoardPost{BoardID: b.ID, Thread: sub.Thread, IP: sub.IP, Subject: field(sub.Subject, maxSubject)}
+	if !b.ForcedAnon {
+		p.Name, p.Trip = splitName(field(sub.Name, maxName+40), s.key)
+		p.Name = field(p.Name, maxName)
+	}
+	email := field(sub.Email, maxEmail)
+	sage := strings.EqualFold(email, "sage")
+	if !strings.EqualFold(email, "noko") && !strings.EqualFold(email, "nonoko") {
+		p.Email = email
+	}
+	if sub.User != nil {
+		p.UserID = sub.User.ID
+	}
+	if staff != "" && sub.Capcode {
+		p.Capcode = staff
+	}
+	if sub.Password != "" {
+		p.Password = s.mac("pw", sub.Password)
+	}
+	p.Comment = cleanComment(sub.Comment)
+	if n := utf8.RuneCountInString(p.Comment); n > s.S.MaxComment {
+		return nil, refuse(http.StatusBadRequest, "Your comment is too long: %d characters, at most %d.", n, s.S.MaxComment)
+	}
+	if strings.Count(p.Comment, "\n") >= maxLines {
+		return nil, refuse(http.StatusBadRequest, "Your comment has too many lines: at most %d.", maxLines)
+	}
+
+	// the image
+	var pic *picture
+	if len(sub.Image) > 0 {
+		if int64(len(sub.Image)) > s.maxFile(b) {
+			return nil, refuse(http.StatusRequestEntityTooLarge, "That file is too large: at most %s.", humanSize(s.maxFile(b)))
+		}
+		if op != nil && op.Images >= b.ImageLimit {
+			return nil, refuse(http.StatusForbidden, "This thread has as many images as it may: reply without one.")
+		}
+		side := opThumb
+		if sub.Thread != 0 {
+			side = replyThumb
+		}
+		var err error
+		if pic, err = prepare(sub.Image, side, thumbBG(b), s.S.Strip); err != nil {
+			return nil, refuse(http.StatusBadRequest, "%s", err.Error())
+		}
+		if dup, err := s.B.Store.PostByMD5(b.ID, pic.MD5); err == nil {
+			t := dup.Thread
+			if t == 0 {
+				t = dup.No
+			}
+			return nil, &Refusal{Status: http.StatusConflict, Msg: fmt.Sprintf("Duplicate file: it is here already (No.%d).", dup.No),
+				Link: fmt.Sprintf("%s/%s/thread/%d#p%d", Base, b.Dir, t, dup.No)}
+		}
+		name := filepath.Base(strings.ReplaceAll(sub.FileName, "\\", "/"))
+		name = strings.TrimSuffix(name, filepath.Ext(name))
+		if p.FileName = field(name, 100); p.FileName == "" || p.FileName == "." {
+			p.FileName = "image"
+		}
+		p.Ext, p.W, p.H, p.TnW, p.TnH, p.MD5 = pic.Ext, pic.W, pic.H, pic.TnW, pic.TnH, pic.MD5
+		p.FileSize = int64(len(pic.Data))
+		p.Replay, p.DrawMS = pic.Replay, pic.DrawMS
+		p.Spoiler = sub.Spoiler
+	}
+	switch {
+	case sub.Thread == 0 && pic == nil && !b.TextOnly:
+		return nil, refuse(http.StatusBadRequest, "You forgot to upload your image: a thread starts with one.")
+	case pic == nil && p.Comment == "":
+		return nil, refuse(http.StatusBadRequest, "You wrote nothing: a post needs a comment or an image.")
+	}
+
+	// its files first, then the post
+	if pic != nil {
+		if err := s.keepFiles(b.Dir, p, pic); err != nil {
+			s.B.Log.Printf("chan: /%s/: keeping an image: %v", b.Dir, err)
+			return nil, refuse(http.StatusInternalServerError, "The image could not be kept: try again later.")
+		}
+	}
+	bump := !sage && (op == nil || op.Replies < b.BumpLimit)
+	if err := s.B.Store.AddPost(p, bump); err != nil {
+		s.removeFiles(b.Dir, []*store.BoardPost{p})
+		if errors.Is(err, store.ErrThreadGone) {
+			return nil, refuse(http.StatusNotFound, "That thread is not here: it has been pruned or deleted.")
+		}
+		s.B.Log.Printf("chan: /%s/: posting: %v", b.Dir, err)
+		return nil, refuse(http.StatusInternalServerError, "The post could not be made: try again later.")
+	}
+	if sub.Thread == 0 {
+		gone, err := s.B.Store.PruneChanThreads(b.ID, b.Pages*b.PerPage)
+		if err != nil {
+			s.B.Log.Printf("chan: /%s/: pruning: %v", b.Dir, err)
+		}
+		s.removeFiles(b.Dir, gone)
+	}
+	what := "a reply in " + strconv.FormatInt(sub.Thread, 10)
+	if sub.Thread == 0 {
+		what = "a new thread"
+	}
+	s.B.Log.Printf("chan: /%s/%d, %s, from %s", b.Dir, p.No, what, sub.IP)
+	return p, nil
+}
+
+// banReason is a ban's reason, as the banned are told it.
+func banReason(b *store.Ban) string {
+	if b.Reason == "" {
+		return "no reason was given"
+	}
+	return b.Reason
+}
+
+// post takes the web form's post: a new thread, or a reply (resto).
 func (s *Server) post(q *req, b *store.Board) {
 	q.r.Body = http.MaxBytesReader(q.w, q.r.Body, s.maxFile(b)+256<<10)
 	if err := q.r.ParseMultipartForm(1 << 20); err != nil {
@@ -73,10 +262,6 @@ func (s *Server) post(q *req, b *store.Board) {
 		q.fail(http.StatusForbidden, "That form has expired: go back, reload the page and try again.")
 		return
 	}
-	if q.checkBan(b.Dir) {
-		return
-	}
-	staff := q.staff(b)
 	f := q.r.MultipartForm.Value
 	val := func(k string) string {
 		if v := f[k]; len(v) > 0 {
@@ -84,94 +269,20 @@ func (s *Server) post(q *req, b *store.Board) {
 		}
 		return ""
 	}
-	switch {
-	case b.Locked && staff == "":
-		q.fail(http.StatusForbidden, "This board is locked: only staff post here.")
-		return
-	case b.LoginToPost && q.user == nil:
-		q.fail(http.StatusForbidden, "Only this BBS's users post here: sign in first.")
-		return
-	}
-	var resto int64
+	sub := &Submission{Board: b, Name: val("name"), Email: val("email"), Subject: val("sub"), Comment: val("com"),
+		Password: val("pwd"), Spoiler: val("spoiler") != "", Capcode: val("capcode") != "", IP: q.host(),
+		User: q.user, Staff: q.staff(b)}
 	if v := val("resto"); v != "" {
 		var err error
-		if resto, err = strconv.ParseInt(v, 10, 64); err != nil || resto < 1 {
+		if sub.Thread, err = strconv.ParseInt(v, 10, 64); err != nil || sub.Thread < 1 {
 			q.fail(http.StatusBadRequest, "There is no such thread.")
 			return
 		}
 	}
-	var op *store.BoardPost
-	if resto != 0 {
-		var err error
-		if op, err = s.B.Store.ChanThread(b.ID, resto); err != nil {
-			q.fail(http.StatusNotFound, "That thread is not here: it has been pruned or deleted.")
-			return
-		}
-		if op.Closed && staff == "" {
-			q.fail(http.StatusForbidden, "You cannot reply to this thread anymore: it is closed.")
-			return
-		}
-	}
-
-	// flood control: staff are not held to it
-	if staff == "" {
-		last, lastThread, err := s.B.Store.LastPostBy(q.host())
-		if err != nil {
-			q.fail(http.StatusInternalServerError, "The system is in trouble: try again later.")
-			return
-		}
-		wait := s.S.ReplyWait - time.Since(last)
-		if resto == 0 {
-			wait = max(wait, s.S.ThreadWait-time.Since(lastThread))
-		}
-		if wait > 0 {
-			q.fail(http.StatusTooManyRequests, fmt.Sprintf("Flood detected: wait %d seconds before posting again.",
-				int(wait.Seconds())+1))
-			return
-		}
-	}
-
-	typed := val("name")
-	p := &store.BoardPost{BoardID: b.ID, Thread: resto, IP: q.host(), Subject: field(val("sub"), maxSubject)}
-	if !b.ForcedAnon {
-		p.Name, p.Trip = splitName(field(typed, maxName+40), s.key)
-		p.Name = field(p.Name, maxName)
-	}
-	email := field(val("email"), maxEmail)
-	sage := strings.EqualFold(email, "sage")
-	nonoko := strings.EqualFold(email, "nonoko")
-	if !strings.EqualFold(email, "noko") && !nonoko {
-		p.Email = email
-	}
-	if q.user != nil {
-		p.UserID = q.user.ID
-	}
-	if staff != "" && val("capcode") != "" {
-		p.Capcode = staff
-	}
-	if pw := val("pwd"); pw != "" {
-		p.Password = s.mac("pw", pw)
-	}
-	p.Comment = cleanComment(val("com"))
-	if n := utf8.RuneCountInString(p.Comment); n > s.S.MaxComment {
-		q.fail(http.StatusBadRequest, fmt.Sprintf("Your comment is too long: %d characters, at most %d.", n, s.S.MaxComment))
-		return
-	}
-	if strings.Count(p.Comment, "\n") >= maxLines {
-		q.fail(http.StatusBadRequest, fmt.Sprintf("Your comment has too many lines: at most %d.", maxLines))
-		return
-	}
-
-	// the image
-	var pic *picture
 	if fhs := q.r.MultipartForm.File["upfile"]; len(fhs) > 0 && fhs[0].Size > 0 {
 		fh := fhs[0]
 		if fh.Size > s.maxFile(b) {
 			q.fail(http.StatusRequestEntityTooLarge, fmt.Sprintf("That file is too large: at most %s.", humanSize(s.maxFile(b))))
-			return
-		}
-		if op != nil && op.Images >= b.ImageLimit {
-			q.fail(http.StatusForbidden, "This thread has as many images as it may: reply without one.")
 			return
 		}
 		in, err := fh.Open()
@@ -179,89 +290,40 @@ func (s *Server) post(q *req, b *store.Board) {
 			q.fail(http.StatusBadRequest, "That file could not be read.")
 			return
 		}
-		data, err := io.ReadAll(io.LimitReader(in, s.maxFile(b)+1))
+		sub.Image, err = io.ReadAll(io.LimitReader(in, s.maxFile(b)+1))
 		in.Close()
-		if err != nil || int64(len(data)) > s.maxFile(b) {
+		if err != nil {
 			q.fail(http.StatusBadRequest, "That file could not be read.")
 			return
 		}
-		side := opThumb
-		if resto != 0 {
-			side = replyThumb
-		}
-		if pic, err = prepare(data, side, thumbBG(b), s.S.Strip); err != nil {
-			q.fail(http.StatusBadRequest, err.Error())
-			return
-		}
-		if dup, err := s.B.Store.PostByMD5(b.ID, pic.MD5); err == nil {
-			t := dup.Thread
-			if t == 0 {
-				t = dup.No
-			}
-			q.render(http.StatusConflict, "error.html", "Error", b, map[string]any{
-				"Message": "Duplicate file: it is here already.",
-				"Link":    fmt.Sprintf("%s/%s/thread/%d#p%d", Base, b.Dir, t, dup.No), "Back": q.r.Referer()})
-			return
-		}
-		name := filepath.Base(strings.ReplaceAll(fh.Filename, "\\", "/"))
-		name = strings.TrimSuffix(name, filepath.Ext(name))
-		if p.FileName = field(name, 100); p.FileName == "" {
-			p.FileName = "image"
-		}
-		p.Ext, p.W, p.H, p.TnW, p.TnH, p.MD5 = pic.Ext, pic.W, pic.H, pic.TnW, pic.TnH, pic.MD5
-		p.FileSize = int64(len(pic.Data))
-		p.Replay, p.DrawMS = pic.Replay, pic.DrawMS
-		p.Spoiler = val("spoiler") != ""
+		sub.FileName = fh.Filename
 	}
+	p, err := s.Submit(sub)
+	var no *Refusal
 	switch {
-	case resto == 0 && pic == nil && !b.TextOnly:
-		q.fail(http.StatusBadRequest, "You forgot to upload your image: a thread starts with one.")
+	case errors.As(err, &no) && no.Ban != nil:
+		q.banned(no.Ban)
 		return
-	case pic == nil && p.Comment == "":
-		q.fail(http.StatusBadRequest, "You wrote nothing: a post needs a comment or an image.")
+	case errors.As(err, &no) && no.Link != "":
+		q.render(no.Status, "error.html", "Error", b, map[string]any{"Message": no.Msg, "Link": no.Link,
+			"Back": q.r.Referer()})
 		return
-	}
-
-	// its files first, then the post
-	if pic != nil {
-		if err := s.keepFiles(b.Dir, p, pic); err != nil {
-			s.B.Log.Printf("chan: /%s/: keeping an image: %v", b.Dir, err)
-			q.fail(http.StatusInternalServerError, "The image could not be kept: try again later.")
-			return
-		}
-	}
-	bump := !sage && (op == nil || op.Replies < b.BumpLimit)
-	if err := s.B.Store.AddPost(p, bump); err != nil {
-		s.removeFiles(b.Dir, []*store.BoardPost{p})
-		if errors.Is(err, store.ErrThreadGone) {
-			q.fail(http.StatusNotFound, "That thread is not here: it has been pruned or deleted.")
-			return
-		}
-		s.B.Log.Printf("chan: /%s/: posting: %v", b.Dir, err)
+	case errors.As(err, &no):
+		q.fail(no.Status, no.Msg)
+		return
+	case err != nil:
 		q.fail(http.StatusInternalServerError, "The post could not be made: try again later.")
 		return
 	}
-	if resto == 0 {
-		gone, err := s.B.Store.PruneChanThreads(b.ID, b.Pages*b.PerPage)
-		if err != nil {
-			s.B.Log.Printf("chan: /%s/: pruning: %v", b.Dir, err)
-		}
-		s.removeFiles(b.Dir, gone)
-	}
-	what := "a reply in " + strconv.FormatInt(resto, 10)
-	if resto == 0 {
-		what = "a new thread"
-	}
-	s.B.Log.Printf("chan: /%s/%d, %s, from %s", b.Dir, p.No, what, q.host())
-	if typed != "" && !b.ForcedAnon {
-		http.SetCookie(q.w, &http.Cookie{Name: nameCookie, Value: field(typed, maxName+40), Path: Base,
+	if sub.Name != "" && !b.ForcedAnon {
+		http.SetCookie(q.w, &http.Cookie{Name: nameCookie, Value: field(sub.Name, maxName+40), Path: Base,
 			MaxAge: 30 * 24 * 3600, HttpOnly: true, Secure: s.Secure, SameSite: http.SameSiteLaxMode})
 	}
-	thread := resto
+	thread := sub.Thread
 	if thread == 0 {
 		thread = p.No
 	}
-	if nonoko {
+	if strings.EqualFold(strings.TrimSpace(sub.Email), "nonoko") {
 		q.redirect(Base + "/" + b.Dir + "/")
 		return
 	}

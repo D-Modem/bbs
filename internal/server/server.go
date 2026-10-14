@@ -533,6 +533,8 @@ func (s *Server) text(rw io.ReadWriter, c deadliner, l *Listener, node *bbs.Node
 		if in.Level() > 0 && in.CTerm == "" && !t.UTF8 && !cp437Term(tt) {
 			t.SetDEC(in.Level() >= 2 && t.Clean8)
 		}
+	} else if l.Sixel == "always" {
+		t.Sixel = t.ANSI // a terminal known to have it (the web terminal's)
 	} else if sixel {
 		on, err := t.DetectSixel(1500 * time.Millisecond)
 		if err != nil {
@@ -551,8 +553,9 @@ func (s *Server) run(t *textui.Term, l *Listener, node *bbs.Node) error {
 // WebTerminal is a caller at the HTTP server's web terminal page: c its
 // WebSocket as a stream, the page's xterm.js on it, cols x rows.
 func (s *Server) WebTerminal(c net.Conn, remote, host string, cols, rows int) error {
+	// the page's xterm.js has the image addon: sixel, without asking
 	l := &Listener{Name: "web", Kind: "web", Via: "web terminal", ANSI: "yes", UTF8: "yes",
-		Sixel: "no", RIP: "no", PETSCII: "no", VT: "no"}
+		Sixel: "always", RIP: "no", PETSCII: "no", VT: "no"}
 	caller := &bbs.Caller{Via: l.Via, Listener: "http", Remote: remote, Terminal: "xterm.js"}
 	if host != "" {
 		caller.Source = "ip:" + host

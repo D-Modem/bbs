@@ -44,6 +44,36 @@ address = :8443
 | `strip_metadata` | `yes` | JPEGs' EXIF, XMP and comments taken out before they are kept |
 | `style` | by the board | Yotsuba B on a worksafe board, Yotsuba on the rest, as 4chan does |
 
+## On the terminals
+
+The image boards are on the text BBS and on 3270s too: **B** on the main
+menu (or a sysop's menu item `boards`). The boards, a board's threads by
+bump order (replies, images, subject), and a thread read a post at a
+time, as messages: who posted (tripcode, capcode), the thread, and under
+each post the posts that quote it. The posters are the BBS's callers,
+posting as anyone on the web does: a name (`Name#password` for a
+tripcode), `sage`, a subject or none, staff as `## Admin` or `## Mod`;
+the same bans, flood control (by the caller's address, or by their
+account where there is none: a modem's), limits and pruning.
+
+A post's picture is shown above it, as well as the terminal can:
+
+| terminal | how |
+|---|---|
+| kitty, Ghostty | kitty's graphics protocol (by what they say they are) |
+| sixel: xterm (`-ti vt340`), foot, mlterm, WezTerm, Windows Terminal, iTerm2, SyncTERM, the [web terminal](HTTP-API#the-web-terminal) | sixel |
+| iTerm2 before sixel, mintty | iTerm2's inline images |
+| any other UTF-8 terminal with colour | coloured half blocks (`▀`, 256 colours): rough, but the picture |
+| the rest, and 3270s | what it is, in words: `[cat.png, 640x480, 52 KB]` |
+
+The thumbnail goes above the post (a spoiler's says it is one); **V**
+shows the image itself, as large as the screen allows. A caller turns
+pictures off (or on) on their profile, **M**, and it stays so. A thread
+is started with its image sent by the terminal's transfer protocol
+(ZMODEM, YMODEM, XMODEM, Kermit), where it has one; terminals without
+(a 3270, the web terminal) reply, or start threads on `text_only`
+boards. Staff's tools (deleting, bans, reports) are the web's.
+
 ## Posting
 
 A board's index has the post form at its top: name, options, subject,

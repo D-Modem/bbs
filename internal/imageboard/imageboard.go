@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
@@ -98,6 +99,8 @@ type Server struct {
 	static  http.Handler
 	key     []byte // for tokens, passwords and secure tripcodes: kept in Dir
 	spoiler []byte
+	once    sync.Once
+	initErr error
 }
 
 const (
@@ -126,27 +129,40 @@ func ValidDir(dir string) string {
 
 // Handler is the image boards' routes, under Base.
 func (s *Server) Handler() (http.Handler, error) {
-	if s.tmpl == nil {
-		t, err := template.New("").Funcs(funcs).ParseFS(content, "templates/*.html")
-		if err != nil {
-			return nil, err
-		}
-		s.tmpl = t
-		if err := os.MkdirAll(s.S.Dir, 0700); err != nil {
-			return nil, err
-		}
-		if s.key, err = loadKey(filepath.Join(s.S.Dir, "secret")); err != nil {
-			return nil, err
-		}
-		static, _ := fs.Sub(content, "static")
-		files := http.FileServer(http.FS(static))
-		s.static = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Cache-Control", "public, max-age=3600")
-			files.ServeHTTP(w, r)
-		})
-		s.spoiler = spoilerImage()
+	if err := s.Init(); err != nil {
+		return nil, err
 	}
 	return http.HandlerFunc(s.route), nil
+}
+
+// Init readies the image boards: their directory, their secret (for
+// tripcodes, before anyone posts), their pages.  Handler calls it; so
+// must whoever posts without the web.
+func (s *Server) Init() error {
+	s.once.Do(func() { s.initErr = s.init() })
+	return s.initErr
+}
+
+func (s *Server) init() error {
+	t, err := template.New("").Funcs(funcs).ParseFS(content, "templates/*.html")
+	if err != nil {
+		return err
+	}
+	s.tmpl = t
+	if err := os.MkdirAll(s.S.Dir, 0700); err != nil {
+		return err
+	}
+	if s.key, err = loadKey(filepath.Join(s.S.Dir, "secret")); err != nil {
+		return err
+	}
+	static, _ := fs.Sub(content, "static")
+	files := http.FileServer(http.FS(static))
+	s.static = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+		files.ServeHTTP(w, r)
+	})
+	s.spoiler = spoilerImage()
+	return nil
 }
 
 // loadKey is the image boards' secret, made the first time: it must last,
@@ -316,18 +332,7 @@ func (q *req) host() string {
 
 // staff is what the user is on a board: "admin" (a sysop), "mod" (one of
 // its mods), or "".
-func (q *req) staff(b *store.Board) string {
-	if q.user == nil {
-		return ""
-	}
-	if q.user.Sysop {
-		return "admin"
-	}
-	if b != nil && isMod(b, q.user.Name) {
-		return "mod"
-	}
-	return ""
-}
+func (q *req) staff(b *store.Board) string { return StaffOf(q.user, b) }
 
 func isMod(b *store.Board, name string) bool {
 	for _, m := range strings.FieldsFunc(b.Mods, func(r rune) bool { return r == ',' || r == ' ' }) {

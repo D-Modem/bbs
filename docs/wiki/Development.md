@@ -244,8 +244,9 @@ before.  Every page in each theme, for a guest and a member; choosing a
 theme (a member's form needing its token, an unknown theme refused, no
 going back off the forum), and the forum's own theme until a caller
 chooses.  Updating xterm.js:
-`npm pack @xterm/xterm @xterm/addon-fit`, and copy `lib/xterm.js`,
-`css/xterm.css`, `lib/addon-fit.js` and the license into
-`internal/api/web` (without their source map lines).
+`npm pack @xterm/xterm @xterm/addon-fit @xterm/addon-image`, and copy
+`lib/xterm.js`, `css/xterm.css`, `lib/addon-fit.js`, `lib/addon-image.js`
+and the license into `internal/api/web` (without their source map lines);
+the image addon's version must be the one for that xterm.js (0.8 for 5.5).
 
 **See also:** [Building](Building)

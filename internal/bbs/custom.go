@@ -50,6 +50,7 @@ var MenuActions = map[string]string{
 	"profile":  "the caller's profile",
 	"info":     "system info",
 	"files":    "the file areas",
+	"boards":   "the image boards",
 	"doors":    "the doors",
 	"chat":     "chat",
 	"page":     "page the sysop",

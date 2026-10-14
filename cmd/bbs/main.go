@@ -64,6 +64,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
 	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
+	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
 	"github.com/Neo-Desktop/bbs-sec/internal/ircd"
 	"github.com/Neo-Desktop/bbs-sec/internal/mrc"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
@@ -445,11 +446,17 @@ func serve(cfg *server.Config) int {
 		qn = &qwknet.Runner{B: b, Nets: cfg.QWKNets}
 		go qn.Run(ctx)
 	}
+	// the image boards, one for the web and the terminals both
+	ib := &imageboard.Server{B: b, S: cfg.Chan}
+	if cfg.HTTP != nil {
+		ib.Secure, ib.TTL = cfg.HTTP.SecureCookies, cfg.HTTP.SessionTTL
+	}
+	b.ImageBoards = ib
 	srv := server.New(b, cfg.Listeners)
 	srv.Graphics = cfg.Graphics
 	srv.LogoFile = cfg.LogoFile
 	if cfg.HTTP != nil {
-		as := &api.Server{B: b, S: *cfg.HTTP, Fido: fd, Peers: cfg.Peers, QWKNet: qn, Terminal: srv.WebTerminal}
+		as := &api.Server{B: b, S: *cfg.HTTP, Fido: fd, Peers: cfg.Peers, QWKNet: qn, Terminal: srv.WebTerminal, Chan: ib}
 		if len(cfg.Peers) > 0 || cfg.NNTP != nil {
 			as.News = svc
 		}

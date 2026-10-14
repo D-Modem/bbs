@@ -14,13 +14,14 @@ type Prefs map[string]string
 
 // prefValues are the settings there are, and the values each takes.
 var prefValues = map[string][]string{
-	"ansi":   {"on", "off"},    // ANSI color and cursor movement
-	"utf8":   {"on", "off"},    // UTF-8 rather than CP437 (or ASCII)
-	"sixel":  {"on", "off"},    // sixel graphics, where the terminal has them
-	"rip":    {"on", "off"},    // RIPscrip menus, where the terminal has them
-	"width":  {"40", "80"},     // a Commodore's columns
-	"editor": {"full", "line"}, // the full-screen editor, or the line editor
-	"expert": {"on", "off"},    // menus as their prompt alone (? for the rest)
+	"ansi":     {"on", "off"},    // ANSI color and cursor movement
+	"utf8":     {"on", "off"},    // UTF-8 rather than CP437 (or ASCII)
+	"sixel":    {"on", "off"},    // sixel graphics, where the terminal has them
+	"rip":      {"on", "off"},    // RIPscrip menus, where the terminal has them
+	"pictures": {"on", "off"},    // pictures (the image boards'), where the terminal can show them
+	"width":    {"40", "80"},     // a Commodore's columns
+	"editor":   {"full", "line"}, // the full-screen editor, or the line editor
+	"expert":   {"on", "off"},    // menus as their prompt alone (? for the rest)
 }
 
 // PrefKeys are the settings' names, sorted.

@@ -44,6 +44,8 @@ type Term struct {
 	ANSI  bool // color and cursor movement
 	UTF8  bool // UTF-8 both ways; otherwise 7-bit ASCII
 	Sixel bool // sixel graphics
+	// NoPictures: the caller turned pictures off (PictureMode)
+	NoPictures bool
 	// PETSCII: a Commodore 64 or 128 (SetPETSCII); colors, but not ANSI
 	PETSCII bool
 	// RIP: an ANSI terminal with RIPscrip graphics (RIPterm, SyncTERM)
@@ -784,13 +786,14 @@ func (t *Term) Art(s string) {
 }
 
 // Page shows lines a screen at a time; false if the caller quit.
-func (t *Term) Page(lines []string) (bool, error) {
-	per := t.Rows - 2
-	if per < 5 {
-		per = 5
-	}
+func (t *Term) Page(lines []string) (bool, error) { return t.PageAfter(lines, 0) }
+
+// PageAfter is Page below used rows already on the screen.
+func (t *Term) PageAfter(lines []string, used int) (bool, error) {
+	per := max(t.Rows-2, 5)
+	room := max(per-used, 1) // the lines before the first pause
 	for i, l := range lines {
-		if i > 0 && i%per == 0 {
+		if i > 0 && (i == room || i > room && (i-room)%per == 0) {
 			t.Print(t.C(Dim, "-- More -- [Enter] continue, [Q]uit "))
 			k, err := t.Key()
 			t.Print("\r" + strings.Repeat(" ", 37) + "\r")

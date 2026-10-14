@@ -155,7 +155,7 @@ begin comments), then what it does:
 
 | action | |
 |---|---|
-| `areas` `mail` `who` `users` `profile` `info` `files` `doors` `chat` `page` `callers` `feedback` `qwk` `sysop` | the built-in parts (`callers`: the last callers; `feedback`: mail to the sysop; `qwk`: [offline mail](Offline-Mail); `sysop`: the [sysop tools](Sysop-Tools), for sysops) |
+| `areas` `mail` `who` `users` `profile` `info` `files` `boards` `doors` `chat` `page` `callers` `feedback` `qwk` `sysop` | the built-in parts (`callers`: the last callers; `feedback`: mail to the sysop; `qwk`: [offline mail](Offline-Mail); `boards`: the [image boards](Image-Boards); `sysop`: the [sysop tools](Sysop-Tools), for sysops) |
 | `terminal` | a 3270's terminal details |
 | `logoff` | log off (asking first on a text terminal) |
 | `back` | back to the menu before |

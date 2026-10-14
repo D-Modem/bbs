@@ -10,6 +10,7 @@
 package view
 
 import (
+	"image"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -125,6 +126,17 @@ type Choice struct {
 	Text   string // the command line's
 }
 
+// Picture is an image a screen shows where the terminal can (sixel,
+// kitty's or iTerm2's graphics, or coloured blocks), and describes where
+// it cannot.
+type Picture struct {
+	// Load is the image, to fit in maxW by maxH pixels (it may be smaller;
+	// the front end makes it fit)
+	Load func(maxW, maxH int) (image.Image, error)
+	Alt  string // what it is, in words ("cat.png, 640x480, 52 KB")
+	Rows int    // the most text rows it may take (0: the front end's choice)
+}
+
 // Message is a message to read.
 type Message struct {
 	Where   string // "General  #12", "Mail 1 of 3"
@@ -134,8 +146,9 @@ type Message struct {
 	Date    time.Time
 	Body    string
 	Actions []Action
-	Default string // the action Enter takes (Next)
-	Quit    string // the action Q and PF3 take ("": Back)
+	Default string   // the action Enter takes (Next)
+	Quit    string   // the action Q and PF3 take ("": Back)
+	Picture *Picture // shown above the body (nil: none)
 }
 
 // Field is a form's field.
@@ -161,6 +174,7 @@ type Panel struct {
 	Title   string
 	Lines   []Line
 	Actions []Action
+	Picture *Picture // shown above the lines, as large as the screen allows (nil: none)
 }
 
 // Draft is a message being written: To and Subject asked, the body edited,
@@ -176,6 +190,10 @@ type Draft struct {
 	// it in a window, another begins the body with it
 	Quote []string
 	Send  func(to, subject string, body []string) error
+	// NoTo: To is not asked, it is as given (a post to a board)
+	NoTo bool
+	// AnySubject: the subject may be left empty
+	AnySubject bool
 }
 
 // UI is a front end's drawing of the screens.

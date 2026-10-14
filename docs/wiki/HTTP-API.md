@@ -241,12 +241,14 @@ to the text BBS by a WebSocket, `/terminal/ws`.  The caller is a node like
 a telnet caller (*Who's online* says `web terminal`) and logs in at the
 BBS's own prompt, as on telnet: no token.  They get ANSI color and UTF-8
 (ANSI art's CP437 shown as Unicode), menus, messages, mail, chat, paging
-and doors; not file transfers (download files by the API or FTP).
+and doors; not file transfers (download files by the API or FTP).  Its
+xterm.js has the image addon, so the [image boards](Image-Boards)'
+pictures (sixel) show in it.
 
 | | |
 |---|---|
 | `GET /terminal` | the page |
-| `GET /terminal/xterm.js`, `addon-fit.js`, `terminal.js`, `xterm.css`, `terminal.css`, `LICENSE.xterm` | its files |
+| `GET /terminal/xterm.js`, `addon-fit.js`, `addon-image.js`, `terminal.js`, `xterm.css`, `terminal.css`, `LICENSE.xterm` | its files |
 | `GET /terminal/ws?cols=&rows=` | the WebSocket, subprotocol `bbs.terminal`: binary frames, the terminal's bytes both ways; the size the page fits its window to (40-255 columns, 10-200 rows), kept for the call |
 
 The page allows scripts only from the BBS itself, no framing, and

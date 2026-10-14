@@ -13,4 +13,12 @@ later calls.
 `sixel = auto` is the default for telnet listeners and `no` for raw and
 rlogin ones: a picture is slow over a modem.
 
-**See also:** [TN3270 graphics](TN3270), [Configuration](Configuration)
+## Pictures
+
+The [image boards](Image-Boards)' pictures are shown with sixel too, and
+on terminals without it as they can: kitty's graphics protocol on kitty
+and Ghostty, iTerm2's inline images on iTerm2 and mintty, and coloured
+half blocks on any other UTF-8 terminal with colour.  *Pictures on/off*
+(**M**) on the profile turns them off for a caller.
+
+**See also:** [TN3270 graphics](TN3270), [Configuration](Configuration), [Image boards](Image-Boards)

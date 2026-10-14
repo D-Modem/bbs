@@ -13,6 +13,8 @@
   });
   const fit = new FitAddon.FitAddon();
   term.loadAddon(fit);
+  // pictures: sixel and iTerm2's inline images (the image boards')
+  term.loadAddon(new ImageAddon.ImageAddon({ sixelSupport: true, iipSupport: true }));
   term.open(document.getElementById("term"));
   window.addEventListener("resize", () => fit.fit());
 

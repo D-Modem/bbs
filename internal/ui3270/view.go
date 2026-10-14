@@ -350,6 +350,10 @@ func (u *ui) messageScreen(m *view.Message, keys, msg string, off int) (go3270.S
 	// the body as written: lines of up to 79, the width of the text editor
 	width := min(u.cols-1, bbs.MaxLineLen)
 	lines := bbs.Wrap(m.Body, width)
+	if m.Picture != nil && m.Picture.Alt != "" {
+		// a 3270 shows no pictures: what it is, above the body
+		lines = append([]string{"[" + m.Picture.Alt + "]", ""}, lines...)
+	}
 	room := u.rows - 7
 	for i := 0; i < room && off+i < len(lines); i++ {
 		scr = append(scr, u.text(5+i, 0, bbs.Clean(lines[off+i], width), go3270.Green, false))
@@ -432,7 +436,11 @@ func (u *ui) Panel(p *view.Panel) (string, error) {
 	}
 	scr := u.frame(p.Title, keys, "")
 	row := 2
-	for _, l := range p.Lines {
+	lines := p.Lines
+	if p.Picture != nil && p.Picture.Alt != "" {
+		lines = append([]view.Line{view.T(view.Dim, "["+p.Picture.Alt+"]")}, lines...)
+	}
+	for _, l := range lines {
 		if row >= u.rows-3 {
 			break
 		}
@@ -456,6 +464,9 @@ func (u *ui) Edit(d *view.Draft) (bool, error) {
 		body = d.Quote
 	}
 	return u.editor(d.Title, d.To, d.Subject, body, func(to, subject string, body []string) error {
+		if d.NoTo {
+			to = d.To
+		}
 		if strings.TrimSpace(to) == "" {
 			return fmt.Errorf("say who it is to")
 		}

@@ -42,8 +42,10 @@ func (s *session) Terminal() string {
 	if t.ANSI {
 		editor = ", editor " + map[bool]string{true: "full-screen", false: "line"}[s.fullScreen()]
 	}
-	return fmt.Sprintf("%s%dx%d, ANSI %s, UTF-8 %s%s, sixel %s, RIP %s%s", ident, t.Cols, t.Rows,
-		onOff[t.ANSI], onOff[t.UTF8], charset, onOff[t.Sixel], onOff[t.RIP], editor)
+	pictures := map[string]string{picNone: "off", picKitty: "kitty", picSixel: "sixel", picITerm: "iTerm2",
+		picBlocks: "blocks"}[t.PictureMode()]
+	return fmt.Sprintf("%s%dx%d, ANSI %s, UTF-8 %s%s, sixel %s, RIP %s%s, pictures %s", ident, t.Cols, t.Rows,
+		onOff[t.ANSI], onOff[t.UTF8], charset, onOff[t.Sixel], onOff[t.RIP], editor, pictures)
 }
 
 // TerminalActions are what the caller may switch on the profile.
@@ -58,7 +60,8 @@ func (s *session) TerminalActions() []view.Action {
 	acts := []view.Action{{ID: "ansi", Label: "ANSI on/off", Key: 'A'},
 		{ID: "utf8", Label: "8-bit UTF-8 on/off", Key: '8'},
 		{ID: "sixel", Label: "Sixel on/off", Key: 'S'},
-		{ID: "rip", Label: "RIP on/off", Key: 'R'}}
+		{ID: "rip", Label: "RIP on/off", Key: 'R'},
+		{ID: "pictures", Label: "Pictures on/off", Key: 'M'}}
 	if t.ANSI {
 		acts = append(acts, view.Action{ID: "editor", Label: "Editor full/line", Key: 'E'})
 	}
@@ -99,6 +102,9 @@ func (s *session) applyPrefs() {
 	if on, ok := p.On("rip"); ok && !on {
 		t.RIP = false
 	}
+	if on, ok := p.On("pictures"); ok {
+		t.NoPictures = !on
+	}
 }
 
 // savePrefs keeps how the terminal is now, for the next call.
@@ -119,6 +125,8 @@ func (s *session) savePrefs(id string) error {
 			v = "full"
 		}
 		return s.n.SetPref("editor", v)
+	case "pictures":
+		return s.n.SetPref("pictures", onOff[!t.NoPictures])
 	case "utf8", "sixel", "rip":
 		return s.n.SetPref(id, onOff[map[string]bool{"utf8": t.UTF8, "sixel": t.Sixel, "rip": t.RIP}[id]])
 	}
@@ -152,6 +160,8 @@ func (s *session) switchTerminal(id string) error {
 			t.DEC = false
 			t.setTranslator(nil)
 		}
+	case "pictures":
+		t.NoPictures = !t.NoPictures
 	case "rip":
 		// on only where the terminal says it has it
 		if t.RIP {
