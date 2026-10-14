@@ -100,6 +100,7 @@ Go 1.24 or later:
 
 ```
 make                                    # or: go build ./cmd/bbs
+bbs -config /etc/bbs/bbs.conf config    # the configuration screens (begun from the sample)
 bbs -config /etc/bbs/bbs.conf check     # the configuration, its warnings
 bbs -config /etc/bbs/bbs.conf init      # the database, with two areas
 bbs -config /etc/bbs/bbs.conf user add sysop -sysop
@@ -121,7 +122,7 @@ The documentation is in the [wiki](https://github.com/Neo-Desktop/bbs-sec/wiki/)
 | [Running](https://github.com/Neo-Desktop/bbs-sec/wiki/Running) | first start, systemd, the defaults |
 | [Administration](https://github.com/Neo-Desktop/bbs-sec/wiki/Administration) | the bbs command: users, areas, files, mail exchange |
 | [Databases](https://github.com/Neo-Desktop/bbs-sec/wiki/Databases) | SQLite, PostgreSQL, MySQL, MariaDB; moving between them |
-| [Configuration](https://github.com/Neo-Desktop/bbs-sec/wiki/Configuration) | bbs.conf: its sections, listeners |
+| [Configuration](https://github.com/Neo-Desktop/bbs-sec/wiki/Configuration) | bbs.conf: its sections, listeners; the configuration screens, reloading |
 | [Access levels](https://github.com/Neo-Desktop/bbs-sec/wiki/Access-Levels) | levels, flags, what areas, doors and menus require, daily limits, validation |
 | [Customization](https://github.com/Neo-Desktop/bbs-sec/wiki/Customization) | screens (ANSI art, 3270), menus, prompts |
 | [SSH](https://github.com/Neo-Desktop/bbs-sec/wiki/SSH) | the SSH listener, keys, host keys |

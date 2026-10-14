@@ -139,6 +139,8 @@ type BBS struct {
 	Nodelist func() *ftn.Nodelist
 	// ImageBoards are the image boards, for the terminals (nil: none)
 	ImageBoards ImageBoards
+	// Config edits the configuration file, on the sysop's menu (nil: none)
+	Config *ConfigTools
 	// Doors are the door programs (for text callers)
 	Doors []*door.Door
 	// the sysop's screens, menus and strings

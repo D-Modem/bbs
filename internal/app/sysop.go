@@ -10,13 +10,14 @@ import (
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/Neo-Desktop/bbs-sec/internal/confui"
 	"github.com/Neo-Desktop/bbs-sec/internal/events"
 	"github.com/Neo-Desktop/bbs-sec/internal/view"
 )
 
 // The sysop's tools: the nodes (watching, chat, kicking), the users, the
-// statistics, the hack log and bans, the scheduled events, and whether
-// pages reach them.
+// statistics, the hack log and bans, the scheduled events, the
+// configuration, and whether pages reach them.
 
 func (s *Session) sysopMenu() error {
 	for {
@@ -40,6 +41,9 @@ func (s *Session) sysopMenu() error {
 			view.Item{Key: "H", Label: "Hack log and bans"})
 		if s.B.Events != nil {
 			items = append(items, view.Item{Key: "E", Label: "Scheduled events"})
+		}
+		if s.B.Config != nil {
+			items = append(items, view.Item{Key: "F", Label: "Configuration"})
 		}
 		items = append(items, view.Item{Key: "A", Label: "Available: " + avail},
 			view.Item{Key: "Q", Label: "Back"})
@@ -91,6 +95,11 @@ func (s *Session) sysopMenu() error {
 		case "E":
 			if s.B.Events != nil {
 				err = s.eventsScreen()
+			}
+		case "F":
+			if s.B.Config != nil {
+				s.N.Doing("Configuration")
+				err = (&confui.Editor{UI: s.UI, Tools: *s.B.Config, Who: u.Name, Log: s.B.Log.Printf}).Run()
 			}
 		case "A":
 			s.B.SetSysopAvailable(!s.B.SysopAvailable())

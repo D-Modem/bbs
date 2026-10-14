@@ -57,6 +57,9 @@ func (s *Server) forum() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
+	s.mu.Lock()
+	s.fm = f
+	s.mu.Unlock()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !s.allow("ip:" + hostOf(r)) {
 			w.Header().Set("Retry-After", "1")
@@ -88,4 +91,15 @@ func (s *Server) imageboard() (http.Handler, error) {
 		}
 		h.ServeHTTP(w, r)
 	}), nil
+}
+
+// ReconfigureForum puts the forum's options in force while it runs (a
+// reload of [http]'s forum_guests, forum_theme and forum_flags).
+func (s *Server) ReconfigureForum(guests bool, theme string, flags bool) {
+	s.mu.Lock()
+	f := s.fm
+	s.mu.Unlock()
+	if f != nil {
+		f.Reconfigure(forum.Options{Guests: guests, Theme: theme, Flags: flags})
+	}
 }

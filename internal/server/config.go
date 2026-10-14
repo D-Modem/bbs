@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -94,6 +95,20 @@ func Load(path string) (*Config, error) {
 			return nil, err
 		}
 	}
+	return load(cf)
+}
+
+// Parse reads a configuration from a file's contents, as Load would: for
+// checking a file before it is written.
+func Parse(data []byte) (*Config, error) {
+	cf, err := config.Parse(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	return load(cf)
+}
+
+func load(cf *config.File) (*Config, error) {
 	c := &Config{Settings: bbs.Defaults(), Database: "bbs.db", Log: "stderr", FilesDir: "files"}
 	if err := c.general(cf.Get("general", "")); err != nil {
 		return nil, fmt.Errorf("[general] %w", err)

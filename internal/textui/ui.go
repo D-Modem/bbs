@@ -9,6 +9,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/app"
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/Neo-Desktop/bbs-sec/internal/view"
 )
 
 // Options are a session's settings from its listener.
@@ -360,4 +361,12 @@ func (s *session) edit(lines []string) ([]string, error) {
 			lines = append(lines, l.Text)
 		}
 	}
+}
+
+// Console is the screens on a terminal of the machine's own, with no
+// login: for bbs config's screens (internal/confui), which want a
+// view.UI and nothing of a caller's.
+func Console(b *bbs.BBS, n *bbs.Node, t *Term) view.UI {
+	t.PausePrompt = "[Press a key]"
+	return &session{b: b, n: n, t: t, c: n.Caller}
 }

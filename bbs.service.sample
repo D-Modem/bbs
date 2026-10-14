@@ -4,6 +4,9 @@ After=network.target
 
 [Service]
 ExecStart=/usr/local/bin/bbs -config /etc/bbs/bbs.conf serve
+# systemctl reload bbs: bbs.conf read again, what may change while callers
+# are on put in force (the log says what waits for a restart)
+ExecReload=/bin/kill -HUP $MAINPID
 User=bbs
 Group=bbs
 # for [listen menu]'s socket_group = asterisk
@@ -21,6 +24,11 @@ Restart=on-failure
 #AmbientCapabilities=CAP_NET_BIND_SERVICE
 NoNewPrivileges=yes
 ProtectSystem=strict
+# the sysop's Configuration screen (on the BBS) writes bbs.conf: let it,
+# with /etc/bbs and the file the bbs user's to write.  Without, it shows
+# the file and says what would change, but cannot write it (bbs config, as
+# root on the console, can)
+#ReadWritePaths=/etc/bbs
 ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes

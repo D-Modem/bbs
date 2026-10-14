@@ -5,6 +5,8 @@
 | `cmd/bbs` | the command: serve, check, init, user and area administration |
 | `internal/server` | listeners, session headers, rlogin, SSH, telling 3270s from the rest |
 | `internal/telnet` | the server side of telnet: options, terminal type, window size, the handoff to go3270 |
+| `internal/confedit` | bbs.conf edited as a sysop would by hand, comments kept; the catalog of keys read from bbs.conf.sample (embedded by the root package), and which take effect at a reload |
+| `internal/confui` | the configuration screens (on internal/view), for `bbs config` and the sysop's tools |
 | `internal/view` | what the screens show, described once: menus, tables, messages, forms, panels, drafts |
 | `internal/script` | the sysop's JavaScript (goja): screens of internal/view, the BBS as the caller, data kept, the time a script may compute |
 | `internal/guard` | deny lists, bans, the name filter, the hack log |

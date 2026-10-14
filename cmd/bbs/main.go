@@ -3,6 +3,7 @@
 //
 //	bbs [-config FILE] [serve]         answer callers
 //	bbs [-config FILE] check           check the configuration
+//	bbs -config FILE config [get|set|unset SECTION KEY [VALUE]]   edit it
 //	bbs [-config FILE] init            make the database, with a first area
 //	bbs [-config FILE] user add NAME [-sysop]
 //	bbs [-config FILE] user passwd|lock|unlock|sysop|unsysop|del NAME
@@ -79,6 +80,11 @@ func usage() {
 	fmt.Fprint(os.Stderr, `usage:
   bbs [-config FILE] [serve]         answer callers
   bbs [-config FILE] check           check the configuration
+  bbs -config FILE config                         the configuration screens (on this terminal)
+  bbs -config FILE config get SECTION [KEY]       a section's keys, or a key's value
+  bbs -config FILE config set SECTION KEY VALUE   (SECTION: general, "listen telnet" ...)
+  bbs -config FILE config unset SECTION KEY       checked as the BBS would read it; kill -HUP
+                                                  (systemctl reload bbs) puts the live keys in force
   bbs [-config FILE] init            make the database, with a first area
   bbs [-config FILE] user add NAME [-sysop]
   bbs [-config FILE] user passwd|lock|unlock|sysop|unsysop|del NAME
@@ -142,6 +148,11 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 	args := flag.Args()
+	if len(args) > 0 && args[0] == "config" {
+		// before the file is read: it may be one to put right
+		configCmd(*configPath, args[1:])
+		return
+	}
 
 	cfg, err := server.Load(*configPath)
 	if err != nil {
@@ -153,7 +164,7 @@ func main() {
 	}
 	switch cmd {
 	case "serve":
-		os.Exit(serve(cfg))
+		os.Exit(serve(cfg, *configPath))
 	case "check":
 		for _, w := range cfg.Warnings {
 			fmt.Println("warning:", w)
@@ -321,7 +332,7 @@ func logger(spec string) (*log.Logger, error) {
 	return log.New(f, "bbs: ", log.LstdFlags), nil
 }
 
-func serve(cfg *server.Config) int {
+func serve(cfg *server.Config, path string) int {
 	lg, err := logger(cfg.Log)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "bbs: log:", err)
@@ -456,8 +467,9 @@ func serve(cfg *server.Config) int {
 	srv := server.New(b, cfg.Listeners)
 	srv.Graphics = cfg.Graphics
 	srv.LogoFile = cfg.LogoFile
+	var as *api.Server
 	if cfg.HTTP != nil {
-		as := &api.Server{B: b, S: *cfg.HTTP, Fido: fd, Peers: cfg.Peers, QWKNet: qn, Terminal: srv.WebTerminal, Chan: ib}
+		as = &api.Server{B: b, S: *cfg.HTTP, Fido: fd, Peers: cfg.Peers, QWKNet: qn, Terminal: srv.WebTerminal, Chan: ib}
 		if len(cfg.Peers) > 0 || cfg.NNTP != nil {
 			as.News = svc
 		}
@@ -481,6 +493,30 @@ func serve(cfg *server.Config) int {
 			if err := fs.Run(ctx); err != nil {
 				lg.Printf("%v", err)
 				stop()
+			}
+		}()
+	}
+	if path != "" {
+		// the file put in force again: by SIGHUP (systemctl reload), or
+		// the sysop's Configuration
+		rl := server.NewReloader(path, b)
+		rl.Chan = ib
+		if as != nil {
+			rl.Forum = as.ReconfigureForum
+		}
+		b.Config = &bbs.ConfigTools{Path: path, Check: server.Check, Reload: rl.Reload}
+		hup := make(chan os.Signal, 1)
+		signal.Notify(hup, syscall.SIGHUP)
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-hup:
+					if _, _, err := rl.Reload(); err != nil {
+						lg.Printf("reload: %v: nothing changed", err)
+					}
+				}
 			}
 		}()
 	}

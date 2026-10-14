@@ -249,3 +249,7 @@ func (s *Section) Keys() []string {
 	}
 	return append([]string(nil), s.ord...)
 }
+
+// Unquote is a value as the file has it read: "quoted", with escapes, or
+// as it is.
+func Unquote(v string) (string, error) { return unquote(v) }

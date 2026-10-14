@@ -43,3 +43,15 @@ func (b *BBS) text() map[string]string {
 func (b *BBS) ReconfigureCustom(menus map[string]*Menu, text map[string]string) {
 	b.custom.Store(&custom{menus, text})
 }
+
+// ConfigTools let the sysop's Configuration screens edit the file the BBS
+// runs by, and put it in force.
+type ConfigTools struct {
+	Path string
+	// Check reads a file as the BBS would start with it: its warnings,
+	// or why it would not start
+	Check func(data []byte) (warnings []string, err error)
+	// Reload puts the file in force again (nil: the BBS is not running):
+	// the changes that took effect, and those that wait for a restart
+	Reload func() (applied, restart []string, err error)
+}

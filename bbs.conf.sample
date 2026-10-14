@@ -8,6 +8,7 @@
 ; bytes.
 
 [general]
+; the system's name, its sysop's, and where it is (system info, @-codes)
 name = D-Modem BBS
 sysop = Sysop
 ;location = Somewhere, Earth
@@ -37,6 +38,7 @@ log = syslog
 ; a caller pages the sysop and no sysop is on: tell them this way ({user},
 ; {node} and {reason} filled in; no shell).  E.g. a push by ntfy.sh:
 ;page_command = curl -s -d "{user} on node {node}: {reason}" https://ntfy.sh/my-bbs-pages
+; shown when a caller logs off
 goodbye = Thanks for calling.
 ; QWK offline mail: the packets' name (BBSID.QWK), up to 8 letters and
 ; digits; by default made of the name.  See docs/wiki/Offline-Mail.md
@@ -224,6 +226,7 @@ address = 127.0.0.1:2513
 ;cors = https://www.example.org
 ; Prometheus metrics, on an address of their own (keep it private)
 ;metrics = 127.0.0.1:9100
+; connections at once from one address
 ;max_per_ip = 20
 ; requests a second per token (or per IP without one), and the burst
 ;rate = 10
@@ -318,12 +321,24 @@ address = 127.0.0.1:2513
 ; docs/wiki/Access-Levels.md.  Without any, nothing is limited
 ;[general]: new_user_level = 20, validated_level = 20
 ;[level 10]
+; shown in the profile and to the API
 ;name = New user
+; minutes online a day, and files downloaded a day (0: no limit)
 ;time = 30
 ;downloads = 2
+; files a user may download for each they upload (0: no ratio), and how
+; many before the ratio counts
+;ratio = 3
+;ratio_free = 10
+; what it may do (yes unless it says no): post, mail, chat, page the
+; sysop, download, upload, doors
 ;post = no
 ;mail = no
 ;chat = no
+;page = yes
+;download = yes
+;upload = no
+;doors = yes
 ;[level 20]
 ;name = Member
 ;time = 120
@@ -345,6 +360,8 @@ address = 127.0.0.1:2513
 ;key_file = /etc/bbs/key.pem
 ; anonymous and ftp may log in to download
 ;anonymous = no
+; connections at once, and from one address; seconds idle before one is
+; closed
 ;max_clients = 32
 ;max_per_ip = 4
 ;idle_timeout = 300
@@ -373,6 +390,8 @@ address = 127.0.0.1:2513
 ; read = anyone, or users: AUTHINFO first.  post = yes: logged-in users post
 ;read = anyone
 ;post = yes
+; connections at once, and from one address; seconds idle before one is
+; closed
 ;max_clients = 32
 ;max_per_ip = 8
 ;idle_timeout = 600
@@ -394,6 +413,7 @@ address = 127.0.0.1:2513
 ;max_per_run = 1000
 ; on first contact, how many of each group's latest articles to fetch
 ;initial = 100
+; the addresses it may send us articles from (IHAVE)
 ;accept_from = news.example.net
 
 ; FidoNet (or another FTN network).  bbs area echo General FSX_GEN makes an
@@ -402,11 +422,13 @@ address = 127.0.0.1:2513
 ;[fido]
 ; our address, then any AKAs
 ;address = 21:1/999
+; the origin line under echomail written here
 ;origin = D-Modem BBS, by phone and telnet
 ; inbound, outbound and bad packets go under it
 ;dir = /var/lib/bbs/fido
 ; what messages are written in: cp437 (what FidoNet reads) or utf-8
 ;charset = cp437
+; the largest message taken
 ;max_message = 64K
 ; nodelists, to check netmail and look systems up: paths or patterns (the
 ; newest file of each), or area:NAME, the newest file in a file area
@@ -493,6 +515,7 @@ address = 127.0.0.1:2513
 ;charset = cp437
 ; minutes a visit
 ;time_limit = 60
+; yes: for sysops only
 ;sysop_only = no
 ; yes: one caller at a time (a door that is not multi-node)
 ;single = no
@@ -516,6 +539,8 @@ address = 127.0.0.1:2513
 ;[door rlogin]
 ;type = rlogin
 ;address = doors.example.org:513
+; the names it is given: the caller's ({user})
+;client_user = {user}
 ;server_user = {user}
 ; BBSLink (bbslink.net): the codes it gave you, and a door's code
 ;[door bbslink-lord]
@@ -524,6 +549,8 @@ address = 127.0.0.1:2513
 ;authcode = XXXXXX
 ;schemecode = XXXXXX
 ;door = lord
+; its web address, for the codes (by default http://games.bbslink.net)
+;url = http://games.bbslink.net
 ; DoorParty: its SSH account, your system tag, a door's code ("": its menu)
 ;[door doorparty]
 ;type = doorparty
@@ -532,6 +559,8 @@ address = 127.0.0.1:2513
 ;tag = XB
 ;door = lord
 ;host_key = SHA256:...
+; its RLogin server, where the SSH session goes on to
+;rlogin_address = dp.throwbackbbs.com:513
 
 ; IRC: the chat rooms as channels (#main ...), for IRC clients.  Users log
 ; in with their BBS names and passwords (SASL PLAIN, or the server

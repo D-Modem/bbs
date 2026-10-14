@@ -21,6 +21,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/fido"
+	"github.com/Neo-Desktop/bbs-sec/internal/forum"
 	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
 	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
@@ -78,6 +79,7 @@ type Server struct {
 	Terminal func(c net.Conn, remote, host string, cols, rows int) error
 
 	mu      sync.Mutex
+	fm      *forum.Server // the web forum, once made
 	limits  map[string]*bucket
 	streams map[int64][]*bbs.Node // a token's open streams' nodes
 	perIP   map[string]int

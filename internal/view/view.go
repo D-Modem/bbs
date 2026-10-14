@@ -159,6 +159,10 @@ type Field struct {
 	Width  int
 	Secret bool
 	Value  string // as it is: shown, and kept if nothing is typed
+	// Edit: Value is edited in place (a text terminal's line begins with
+	// it, as a 3270's field does), and what is left is the answer, even
+	// nothing
+	Edit bool
 }
 
 // Form is fields to fill.

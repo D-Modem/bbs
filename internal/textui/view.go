@@ -1,6 +1,7 @@
 package textui
 
 import (
+	"cmp"
 	"fmt"
 	"strconv"
 	"strings"
@@ -307,6 +308,15 @@ func (s *session) Form(f *view.Form) (map[string]string, bool, error) {
 		}
 		var v string
 		var err error
+		if fd.Edit && !fd.Secret {
+			t.Print(prompt)
+			l, err := t.ReadLine(LineOpts{Max: cmp.Or(fd.Width, 255), Initial: fd.Value})
+			if err != nil {
+				return nil, false, err
+			}
+			out[fd.Name] = l.Text // spaces at its ends may matter (a prompt's)
+			continue
+		}
 		if fd.Secret {
 			v, err = t.Password(prompt)
 		} else {
