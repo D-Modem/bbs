@@ -194,6 +194,15 @@ func (s *Session) info() error {
 	if b.Conf().Location != "" {
 		lines = append(lines, view.V("Location:", b.Conf().Location))
 	}
+	if c := b.Conf(); c.PostalAddress != "" {
+		lines = append(lines, view.V("Post:", c.PostalAddress))
+	}
+	if c := b.Conf(); c.Phone != "" {
+		lines = append(lines, view.V("Dial in:", c.Phone))
+	}
+	if c := b.Conf(); c.Addresses != "" {
+		lines = append(lines, view.V("Internet:", c.Addresses))
+	}
 	lines = append(lines,
 		view.V("Sysop:", b.Conf().Sysop),
 		view.V("Users:", strconv.Itoa(len(us))),

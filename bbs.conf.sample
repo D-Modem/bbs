@@ -12,6 +12,11 @@
 name = D-Modem BBS
 sysop = Sysop
 ;location = Somewhere, Earth
+; how to reach it, for the system info (and @POSTAL@, @PHONE@, @ADDRESSES@):
+; its postal address, the numbers callers dial, and its internet addresses
+;postal_address = "1 Main St, Springfield"
+;phone = "+1 555 0100 (300-33600), +1 555 0101 (V.92)"
+;addresses = "telnet bbs.example.org, ssh bbs.example.org:2222, https://bbs.example.org/"
 ; the database: SQLite's file, or a PostgreSQL, MySQL or MariaDB server (whose
 ; password then lives here: keep this file 0640).  bbs db copy moves one
 ; into another.  See docs/wiki/Databases.md

@@ -30,6 +30,9 @@ type Settings struct {
 	Name          string        // the system's name
 	Sysop         string        // the sysop's name, for the system info
 	Location      string        // where the system is
+	PostalAddress string        // its postal address ("": not told)
+	Phone         string        // the numbers callers dial, for the system info ("": none)
+	Addresses     string        // where to reach it on the internet (telnet, SSH, web), for the system info
 	Banner        string        // shown on connect, before the login
 	MOTD          string        // shown after the login (text or file)
 	MOTDFile      string        // read at each login

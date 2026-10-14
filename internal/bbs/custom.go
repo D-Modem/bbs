@@ -99,6 +99,7 @@ func (n *Node) StrMarked(key string) (string, bool) {
 // Vars are the @-codes' values for the node's caller:
 //
 //	BBS SYSOP LOCATION         the system
+//	PHONE ADDRESSES POSTAL     how to reach it
 //	USER USERLOC CALLS POSTS   the caller
 //	LASTON SINCE NEWMAIL
 //	NODE VIA BAUD ONLINE       this call, and how many are on
@@ -114,6 +115,12 @@ func (n *Node) Vars() screens.Vars {
 			v = n.b.Conf().Sysop
 		case "LOCATION":
 			v = n.b.Conf().Location
+		case "PHONE":
+			v = n.b.Conf().Phone
+		case "ADDRESSES":
+			v = n.b.Conf().Addresses
+		case "POSTAL":
+			v = n.b.Conf().PostalAddress
 		case "NODE":
 			v = fmt.Sprint(n.Num)
 		case "VIA":

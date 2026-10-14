@@ -15,6 +15,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/confedit"
 	"github.com/Neo-Desktop/bbs-sec/internal/confui"
 	"github.com/Neo-Desktop/bbs-sec/internal/server"
+	"github.com/Neo-Desktop/bbs-sec/internal/store"
 	"github.com/Neo-Desktop/bbs-sec/internal/textui"
 )
 
@@ -124,9 +125,29 @@ func configScreens(path string) {
 	if cols, rows, err := term.GetSize(out); err == nil && cols > 0 {
 		t.Cols, t.Rows = cols, rows
 	}
+	var st *store.Store
 	ed := &confui.Editor{UI: textui.Console(b, n, t),
-		Tools: bbs.ConfigTools{Path: path, Check: server.Check}}
+		Tools: bbs.ConfigTools{Path: path, Check: server.Check},
+		Open: func() (*bbs.BBS, error) {
+			// the database the file names, as it was read
+			cfg, err := server.Load(path)
+			if err != nil {
+				return nil, err
+			}
+			if p := strings.TrimPrefix(cfg.Database, "sqlite:"); store.IsFile(cfg.Database) {
+				if _, err := os.Stat(p); err != nil {
+					return nil, fmt.Errorf("%s: no database yet (bbs init makes it)", p)
+				}
+			}
+			if st, err = store.Open(cfg.Database); err != nil {
+				return nil, err
+			}
+			return bbs.New(cfg.Settings, st, log.New(io.Discard, "", 0)), nil
+		}}
 	err = ed.Run()
+	if st != nil {
+		st.Close()
+	}
 	t.Flush()
 	term.Restore(in, old)
 	fmt.Println()

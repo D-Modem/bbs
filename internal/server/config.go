@@ -219,6 +219,9 @@ func (c *Config) general(g *config.Section) error {
 	s.Name = g.String("name", s.Name)
 	s.Sysop = g.String("sysop", s.Sysop)
 	s.Location = g.String("location", s.Location)
+	s.PostalAddress = g.String("postal_address", "")
+	s.Phone = g.String("phone", "")
+	s.Addresses = g.String("addresses", "")
 	s.Banner = g.String("banner", s.Banner)
 	if f := g.String("banner_file", ""); f != "" {
 		data, err := os.ReadFile(f)

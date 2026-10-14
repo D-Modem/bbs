@@ -246,7 +246,7 @@ func (c *Catalog) Key(kind, key string) *Key {
 // what takes effect while the BBS runs (a reload: SIGHUP, or the sysop's
 // Configuration); the rest when it starts again
 var liveKeys = map[string]map[string]bool{
-	"general": set("name", "sysop", "location", "banner", "banner_file", "motd", "motd_file",
+	"general": set("name", "sysop", "location", "postal_address", "phone", "addresses", "banner", "banner_file", "motd", "motd_file",
 		"goodbye", "new_users", "max_nodes", "attempts", "fail_delay", "login_timeout",
 		"idle_timeout", "throttle_failures", "throttle_time", "page_command", "qwk_id",
 		"geoip", "geoip_credit", "geoip_credit_url", "phone_country", "new_user_level",

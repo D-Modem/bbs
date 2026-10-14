@@ -357,7 +357,12 @@ const (
 	KeyPgDn
 	KeyInsert
 	KeyDelete
+	KeyF1 // and on to KeyF12: KeyF1 + 11
 )
+
+// fkeys are ESC [ N ~'s function keys (xterm, SyncTERM)
+var fkeys = map[string]rune{"11": KeyF1, "12": KeyF1 + 1, "13": KeyF1 + 2, "14": KeyF1 + 3, "15": KeyF1 + 4,
+	"17": KeyF1 + 5, "18": KeyF1 + 6, "19": KeyF1 + 7, "20": KeyF1 + 8, "21": KeyF1 + 9, "23": KeyF1 + 10, "24": KeyF1 + 11}
 
 // EditKey reads one key as typed, for a full-screen editor: runes and
 // control characters as they are (CR LF as CR), the cursor and editing
@@ -578,10 +583,22 @@ func (t *Term) escapeKey() (rune, error) {
 			if err != nil {
 				return 0, nil
 			}
+			if c == '[' && i == 0 {
+				// the Linux console's F1-F5: ESC [ [ A to E
+				c, err := t.r.ReadByte()
+				if err != nil || c < 'A' || c > 'E' {
+					return 0, nil
+				}
+				return KeyF1 + rune(c-'A'), nil
+			}
 			if c >= 0x40 && c <= 0x7e {
 				if c == '~' {
+					p, _, _ := strings.Cut(string(param), ";") // ;2 and the like: shift, ctrl
+					if k, ok := fkeys[p]; ok {
+						return k, nil
+					}
 					return map[string]rune{"1": KeyHome, "7": KeyHome, "4": KeyEnd, "8": KeyEnd,
-						"2": KeyInsert, "3": KeyDelete, "5": KeyPgUp, "6": KeyPgDn}[string(param)], nil
+						"2": KeyInsert, "3": KeyDelete, "5": KeyPgUp, "6": KeyPgDn}[p], nil
 				}
 				return final[c], nil
 			}
@@ -592,6 +609,9 @@ func (t *Term) escapeKey() (rune, error) {
 		c, err := t.r.ReadByte()
 		if err != nil {
 			return 0, nil
+		}
+		if c >= 'P' && c <= 'S' {
+			return KeyF1 + rune(c-'P'), nil // F1-F4
 		}
 		return final[c], nil
 	case 'A', 'B', 'C', 'D':

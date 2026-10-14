@@ -99,7 +99,8 @@ func (s *Session) sysopMenu() error {
 		case "F":
 			if s.B.Config != nil {
 				s.N.Doing("Configuration")
-				err = (&confui.Editor{UI: s.UI, Tools: *s.B.Config, Who: u.Name, Log: s.B.Log.Printf}).Run()
+				err = (&confui.Editor{UI: s.UI, Tools: *s.B.Config, Who: u.Name, Log: s.B.Log.Printf,
+					Open: func() (*bbs.BBS, error) { return s.B, nil }}).Run()
 			}
 		case "A":
 			s.B.SetSysopAvailable(!s.B.SysopAvailable())

@@ -52,6 +52,7 @@ that are filled in when shown:
 | code | |
 |---|---|
 | `@BBS@` `@SYSOP@` `@LOCATION@` | the system |
+| `@PHONE@` `@ADDRESSES@` `@POSTAL@` | how to reach it: `[general]`'s `phone`, `addresses`, `postal_address` |
 | `@USER@` `@USERLOC@` | the caller's name, where they call from |
 | `@CALLS@` `@POSTS@` `@LASTON@` `@SINCE@` | their calls, posts, last call, when they joined |
 | `@NEWMAIL@` | their unread mail |

@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -73,10 +74,9 @@ func TestReload(t *testing.T) {
 	}
 }
 
-// TestConfigScreens: the sysop changes the system's name on the
-// Configuration screens; it is written, kept in bbs.conf.bak, and in force
-// for the next caller.
-func TestConfigScreens(t *testing.T) {
+// configEnv is a BBS run from a file of its own, its Configuration on
+// the sysop's menu.
+func configEnv(t *testing.T, ansi string) (*env, string) {
 	var p string
 	e := startFull(t, ui3270.Graphics{}, nil, func(b *bbs.BBS, dir string) {
 		p = filepath.Join(dir, "bbs.conf")
@@ -85,41 +85,13 @@ func TestConfigScreens(t *testing.T) {
 		}
 		r := NewReloader(p, b)
 		b.Config = &bbs.ConfigTools{Path: p, Check: Check, Reload: r.Reload}
-	}, &Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no"})
-	s := login(e, "sysop", "sysoppass1")
-	s.send("*")
-	s.expect("[F] Configuration")
-	s.send("F")
-	s.expect("[W] Write and put in force")
-	s.send("S")
-	s.expect("[listen modem]")
-	s.send("1\r")
-	s.expect("-- More --")
-	s.send("\r")
-	s.expect("[D]elete section")
-	s.send("1\r")
-	s.expect("Takes effect: at once, when written")
-	s.expect("the system's name, its sysop's") // the sample's help
-	s.send("E")
-	s.expect("name: Test BBS")
-	s.send("\x15Renamed BBS\r")
-	s.expect("Value:     Renamed BBS")
-	s.send("Q")
-	s.expect("-- More --")
-	s.send("Q")
-	s.expect("[D]elete section")
-	s.send("Q\r")
-	s.expect("[N]ew section")
-	s.send("Q\r")
-	s.expect("View changes (1)")
-	s.send("V")
-	s.expect("~[general] name = Renamed BBS (was Test BBS)")
-	s.send("  ")
-	s.expect("Configuration: ")
-	s.send("W")
-	s.expect("In force now:")
-	s.expect("~[general] name = Renamed BBS")
+	}, &Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: ansi, VT: "no", RIP: "no", Sixel: "no"})
+	return e, p
+}
 
+// saved: the name is written, kept in bbs.conf.bak, and in force for the
+// next caller.
+func saved(t *testing.T, e *env, p string) {
 	if e.b.Conf().Name != "Renamed BBS" {
 		t.Errorf("name in force: %q", e.b.Conf().Name)
 	}
@@ -132,4 +104,122 @@ func TestConfigScreens(t *testing.T) {
 	}
 	c := e.dial("modem.sock")
 	c.expect("Renamed BBS")
+}
+
+// TestConfigScreens: on a terminal without ANSI, the sysop changes the
+// system's name on the Configuration's numbered screens and saves.
+func TestConfigScreens(t *testing.T) {
+	e, p := configEnv(t, "no")
+	s := login(e, "sysop", "sysoppass1")
+	s.send("*")
+	s.expect("[F] Configuration")
+	s.send("F")
+	s.expect("Board configuration >")
+	s.expect("[S]ave and exit, [X] Exit without saving")
+	s.send("1\r")
+	s.expect("BBS name")
+	s.send("1\r")
+	s.expect("BBS name: Test BBS")
+	s.send("\x15Renamed BBS\r")
+	s.expect("1 change not saved")
+	if data, _ := os.ReadFile(p); string(data) != reloadConf {
+		t.Fatal("written before the save")
+	}
+	s.send("S\r")
+	s.expect("In force now:")
+	s.expect("~[general] name = Renamed BBS")
+	saved(t, e, p)
+}
+
+// TestConfigScreensANSI: on an ANSI terminal, the full screen: the arrow
+// keys, Enter to change a value, F10 to save and leave.
+func TestConfigScreensANSI(t *testing.T) {
+	e, p := configEnv(t, "yes")
+	s := ansiLogin(e)
+	s.send("*")
+	s.expect("Configuration")
+	s.send("F")
+	s.expect("F10 save+exit")
+	s.send("\x1b[B\x1b[A\r") // down, up: Board configuration
+	s.expect("Configuration > Board configuration")
+	s.send("\r")
+	s.expect("BBS name: ")
+	s.send("\x15Renamed BBS\r")
+	s.expect("1 change not saved")
+	s.send("\x1b[21~") // F10
+	s.expect("In force now:")
+	saved(t, e, p)
+}
+
+// TestConfigQuit: F9 leaves without saving, after a yes.
+func TestConfigQuit(t *testing.T) {
+	e, p := configEnv(t, "yes")
+	s := ansiLogin(e)
+	s.send("*F")
+	s.expect("F10 save+exit")
+	s.send("\r\r")
+	s.expect("BBS name: ")
+	s.send("\x15Not Saved\r")
+	s.expect("1 change not saved")
+	s.send("\x1b[20~") // F9
+	s.expect("Leave without saving 1 changes?")
+	s.send("y")
+	s.expect("Sysop tools")
+	if data, _ := os.ReadFile(p); string(data) != reloadConf || e.b.Conf().Name == "Not Saved" {
+		t.Errorf("saved:\n%s", data)
+	}
+}
+
+// ansiLogin logs the sysop in on an ANSI terminal (the prompts in color).
+func ansiLogin(e *env) *dialog {
+	d := e.dial("modem.sock")
+	d.expect("(or NEW)")
+	d.send("sysop\r")
+	d.expect("Password")
+	d.send("sysoppass1\r")
+	d.expect("Command")
+	return d
+}
+
+// TestConfig3270: on a 3270, S by a menu opens it, a value is typed over
+// and sent with Enter, PF10 saves.
+func TestConfig3270(t *testing.T) {
+	if _, err := exec.LookPath("s3270"); err != nil {
+		t.Skip("no s3270")
+	}
+	addr := freeTCP(t)
+	var p string
+	e := startFull(t, ui3270.Graphics{}, nil, func(b *bbs.BBS, dir string) {
+		p = filepath.Join(dir, "bbs.conf")
+		writeFile(p, reloadConf)
+		r := NewReloader(p, b)
+		b.Config = &bbs.ConfigTools{Path: p, Check: Check, Reload: r.Reload}
+	}, &Listener{Name: "telnet", Kind: "telnet", Address: addr, TN3270: true},
+		&Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no"})
+	script := strings.Join([]string{
+		"Connect(" + addr + ")", "Wait(10,InputField)",
+		`String("sysop")`, "Tab()", `String("sysoppass1")`, "Enter()", "Wait(5,InputField)",
+		`String("*")`, "Enter()", "Wait(5,InputField)",
+		`String("f")`, "Enter()", "Wait(5,InputField)", "Ascii()",
+		`String("s")`, "Enter()", "Wait(5,InputField)", "Ascii()",
+		"EraseEOF()", `String("Renamed BBS")`, "Enter()", "Wait(5,InputField)", "Ascii()",
+		"PF(10)", "Wait(5,InputField)", "Ascii()", "Quit()", ""}, "\n")
+	cmd := exec.Command("s3270", "-model", "3279-2")
+	cmd.Stdin = strings.NewReader(script)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("s3270: %v\n%s", err, out)
+	}
+	for _, want := range []string{"Board configuration >", "PF10=Save+exit", "BBS name", "1 change not saved",
+		"In force now:"} {
+		if !strings.Contains(string(out), want) {
+			t.Errorf("no %q:\n%s", want, out)
+		}
+	}
+	if os.Getenv("SHOW3270") != "" {
+		t.Logf("%s", out)
+	}
+	if e.b.Conf().Name != "Renamed BBS" {
+		t.Errorf("name in force: %q", e.b.Conf().Name)
+	}
 }

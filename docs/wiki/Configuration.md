@@ -47,27 +47,51 @@ trusts whoever connects, a link without a password).
 
 ## Editing it: the configuration screens
 
-`bbs -config /etc/bbs/bbs.conf config` is screens on your terminal for the
-file, the BBS running or not: its sections, each key's value with the
-sample's comment on it, its default and examples, and whether it takes
-effect at once or when the BBS starts again.  The same screens are on the
-[sysop's tools](Sysop-Tools) (`F`, Configuration), on a text terminal or a
-3270.
+`bbs -config /etc/bbs/bbs.conf config` is full-screen menus on your
+terminal for the file and the accounts, the BBS running or not.  The same
+menus are on the [sysop's tools](Sysop-Tools) (`F`, Configuration): full
+screen on ANSI terminals, with PF keys on a 3270, and numbered lines on a
+terminal with neither.
 
-| | key | |
-|---|---|---|
-| sections | `S` | the file's sections; one's keys, set ones first, then those it may have.  `A` adds a key (a menu's item keys, a QWK net's conferences), `D` deletes the section (commented out, to be had back with New section), `R` renames a `[KIND NAME]` |
-| a key | | `E` edits the value in place, `U` unsets it (its line commented out: the default holds), `T` takes one of the sample's examples |
-| new section | `N` | a kind of section, and its name for those there may be many of.  One the file has commented out (`;[http]`) is uncommented where it is, its examples below it |
-| check | `C` | the file as the BBS would read it: why it would not start, or its warnings |
-| view changes | `V` | what has changed since the file was read: green takes effect at once, yellow at a restart |
-| write | `W` | written whole (a new file renamed over it, its permissions and owner kept), the old one as `bbs.conf.bak`.  Not written if the BBS would not start with it, or if the file changed since it was read (`U` reads it again) |
+| menu | what is in it |
+|---|---|
+| Board configuration | the BBS's name, the sysop's, the location, postal address, dial-in numbers and internet addresses; the banner, message of the day, goodbye, logo; menus and prompts |
+| System configuration | the database and log; where files are kept and how large they may be; deny lists, the hack log, bans; scheduled events; every section of the file as it is |
+| Connections and modems | modem lines and every listener; callers at once, logins, time-outs, lock-outs; the caller ID country and GeoIP |
+| Services | telnet, TN3270, SSH and RLogin listeners; finger, gopher, FTP, IRC, news, the web (API, forum, image boards); MRC, FidoNet, QWK networks, doors |
+| Users and groups | the accounts (level, flags, sysop, locked, a new password; new ones; deleted ones) and the access levels |
+| Maintenance | disk space; what message areas keep, old messages taken out; the image boards' archive; backups |
 
-Every comment and blank line stays where it was: a key changed is changed
-on its own line, a new one goes below the sample's commented example of it,
-or below the section's last key.  With no file, the screens offer to begin
-it from the sample.  Values with spaces at their ends, quotes around them
-or control characters are written quoted.
+Running as another user and group, PAM and LDAP logins, and backups of
+the database and files are shown as not available yet: they are to come.
+
+| key | |
+|---|---|
+| arrows, PgUp, PgDn, Home, End | move (a letter goes to the next line beginning with it) |
+| Enter | open a menu, change a value (typed on the foot line, Enter to keep it), do an action |
+| Space | turn a yes/no over, or go to the next choice |
+| Esc, left arrow | back |
+| F1 or `?` | the whole help for the line (from bbs.conf.sample) |
+| F9 | quit without saving (after a yes, if anything changed) |
+| F10 | save and exit |
+| `A`, `D` | add one (a listener, a door, a user ...), delete it |
+
+On a 3270, `S` by a menu opens it, values are typed over and sent with
+Enter, PF1 is help, PF3 back, PF9 and PF10 as F9 and F10.  On a terminal
+without ANSI, a number opens or changes a line, `S` saves and exits, `X`
+leaves without saving.
+
+Nothing changes until you save: a changed line is marked `*` and the
+foot counts what is not saved.  The main menu's Review changes lists it
+all, and Check the configuration reads the file as the BBS would.  On
+saving, the file is checked first (it is not saved if the BBS would not
+start with it, or if someone changed it since it was read), written whole
+with its permissions and owner kept and the last one as `bbs.conf.bak`,
+every comment kept where it was (a new key goes below the sample's
+commented example of it); then the accounts' and areas' changes are made.
+On the sysop's menu, what may change while callers are on is put in force
+at once, and the screen says what waits for a restart.  With no file, the
+screens offer to begin it from the sample.
 
 A key at a time, for scripts:
 
@@ -88,7 +112,7 @@ rest, which wait for a restart:
 
 | section | live keys |
 |---|---|
-| `[general]` | `name`, `sysop`, `location`, `banner`, `banner_file`, `motd`, `motd_file`, `goodbye`, `new_users`, `max_nodes`, `attempts`, `fail_delay`, `login_timeout`, `idle_timeout`, `throttle_failures`, `throttle_time`, `page_command`, `qwk_id`, `geoip`, `geoip_credit`, `geoip_credit_url`, `phone_country`, `new_user_level`, `validated_level` |
+| `[general]` | `name`, `sysop`, `location`, `postal_address`, `phone`, `addresses`, `banner`, `banner_file`, `motd`, `motd_file`, `goodbye`, `new_users`, `max_nodes`, `attempts`, `fail_delay`, `login_timeout`, `idle_timeout`, `throttle_failures`, `throttle_time`, `page_command`, `qwk_id`, `geoip`, `geoip_credit`, `geoip_credit_url`, `phone_country`, `new_user_level`, `validated_level` |
 | `[level N]` | all, and levels added or taken out |
 | `[menu NAME]`, `[strings]` | all (a caller in a menu has it until they leave it) |
 | `[chan]` | all but `dir` |
