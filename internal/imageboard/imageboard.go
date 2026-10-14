@@ -61,7 +61,8 @@ type Settings struct {
 	CaptchaLength int
 	CaptchaTTL    time.Duration
 	CaptchaLevel  string
-	Options       bool // the post form has an Options line (sage, nonoko; a board may say otherwise)
+	Options       bool   // the post form has an Options line (sage, nonoko; a board may say otherwise)
+	GeoIP         string // the country database (geoip.Open's: .mmdb, or a CSV of ranges), for flags
 }
 
 // Defaults are the settings unless bbs.conf says otherwise.
@@ -111,6 +112,7 @@ type Server struct {
 	once     sync.Once
 	initErr  error
 	captchas captchas
+	geo      geo
 }
 
 const (

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -46,7 +47,7 @@ func chanBoardCmd(cfg *server.Config, args []string) {
 			var opts []string
 			for name, on := range map[string]bool{"nsfw": !b.Worksafe, "forced anon": b.ForcedAnon, "locked": b.Locked,
 				"users post": b.LoginToPost && !b.LoginToRead, "users only": b.LoginToRead, "text only": b.TextOnly,
-				"oekaki": b.Oekaki, "captcha " + b.Captcha: b.Captcha != "", "options " + b.Options: b.Options != ""} {
+				"oekaki": b.Oekaki, "ids": b.PosterIDs, "flags": b.Flags, "captcha " + b.Captcha: b.Captcha != "", "options " + b.Options: b.Options != ""} {
 				if on {
 					opts = append(opts, name)
 				}
@@ -68,7 +69,7 @@ func chanBoardCmd(cfg *server.Config, args []string) {
 		}
 		b.Worksafe = !flags["nsfw"]
 		b.ForcedAnon, b.Locked, b.LoginToPost, b.TextOnly = flags["forced-anon"], flags["locked"], flags["login"], flags["text-only"]
-		b.Oekaki = flags["oekaki"]
+		b.Oekaki, b.PosterIDs, b.Flags = flags["oekaki"], flags["ids"], flags["flags"]
 		if _, err := st.CreateBoard(b); errors.Is(err, store.ErrExists) {
 			fatal(fmt.Errorf("there is a /%s/ already", b.Dir))
 		} else if err != nil {
@@ -85,6 +86,9 @@ func chanBoardCmd(cfg *server.Config, args []string) {
 		}
 		if err := setBoard(b, words[2], words[3]); err != nil {
 			fatal(err)
+		}
+		if b.Flags && cfg.Chan.GeoIP == "" {
+			fmt.Fprintln(os.Stderr, "bbs: no flags are shown until [chan] geoip names a country database")
 		}
 		if err := st.UpdateBoard(b); err != nil {
 			fatal(err)
@@ -192,9 +196,13 @@ func setBoard(b *store.Board, key, val string) error {
 		b.TextOnly, err = yes()
 	case "oekaki":
 		b.Oekaki, err = yes()
+	case "ids":
+		b.PosterIDs, err = yes()
+	case "flags":
+		b.Flags, err = yes()
 	default:
 		return fmt.Errorf("%s: not a board's setting (title, description, default_name, mods, pages, per_page, "+
-			"bump_limit, image_limit, max_file, sort, nsfw, forced_anon, locked, login, text_only, oekaki, captcha, options)", key)
+			"bump_limit, image_limit, max_file, sort, nsfw, forced_anon, locked, login, text_only, oekaki, ids, flags, captcha, options)", key)
 	}
 	return err
 }

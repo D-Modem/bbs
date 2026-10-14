@@ -79,6 +79,18 @@
     if (a) hide();
   });
 
+  // a poster's ID: their posts in the thread highlighted, or not again
+  document.addEventListener("click", function (e) {
+    var h = e.target.closest ? e.target.closest(".posteruid .hand") : null;
+    if (!h) return;
+    var posts = document.querySelectorAll('.post[data-id="' + CSS.escape(h.dataset.id) + '"]');
+    var on = !(posts.length && posts[0].classList.contains("idHighlight"));
+    document.querySelectorAll(".post.idHighlight").forEach(function (p) {
+      p.classList.remove("idHighlight", "highlight");
+    });
+    if (on) posts.forEach(function (p) { p.classList.add("idHighlight", "highlight"); });
+  });
+
   // a captcha that cannot be read: another
   document.querySelectorAll(".captchaNew").forEach(function (b) {
     b.addEventListener("click", function () {

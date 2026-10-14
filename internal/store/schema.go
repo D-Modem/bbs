@@ -248,7 +248,9 @@ CREATE TABLE IF NOT EXISTS chan_boards (
 	oekaki        {bool} NOT NULL DEFAULT FALSE,
 	login_to_read {bool} NOT NULL DEFAULT FALSE,
 	captcha       {str} NOT NULL DEFAULT '',
-	options       {str} NOT NULL DEFAULT ''
+	options       {str} NOT NULL DEFAULT '',
+	poster_ids    {bool} NOT NULL DEFAULT FALSE,
+	flags         {bool} NOT NULL DEFAULT FALSE
 )`, `
 CREATE TABLE IF NOT EXISTS chan_posts (
 	id           {id},
@@ -282,7 +284,10 @@ CREATE TABLE IF NOT EXISTS chan_posts (
 	banned       {bool} NOT NULL DEFAULT FALSE,
 	replay       {bool} NOT NULL DEFAULT FALSE,
 	draw_ms      {int} NOT NULL DEFAULT 0,
-	account      {str} NOT NULL DEFAULT ''
+	account      {str} NOT NULL DEFAULT '',
+	poster_id    {key} NOT NULL DEFAULT '',
+	country      {str} NOT NULL DEFAULT '',
+	country_name {str} NOT NULL DEFAULT ''
 )`, `
 CREATE TABLE IF NOT EXISTS chan_bans (
 	id      {id},
@@ -375,6 +380,11 @@ var added = []struct{ table, column, decl string }{
 	{"chan_boards", "login_to_read", "{bool} NOT NULL DEFAULT FALSE"},
 	{"chan_boards", "captcha", "{str} NOT NULL DEFAULT ''"},
 	{"chan_boards", "options", "{str} NOT NULL DEFAULT ''"},
+	{"chan_boards", "poster_ids", "{bool} NOT NULL DEFAULT FALSE"},
+	{"chan_boards", "flags", "{bool} NOT NULL DEFAULT FALSE"},
+	{"chan_posts", "poster_id", "{key} NOT NULL DEFAULT ''"},
+	{"chan_posts", "country", "{str} NOT NULL DEFAULT ''"},
+	{"chan_posts", "country_name", "{str} NOT NULL DEFAULT ''"},
 }
 
 // migrate makes the schema, or brings an older database up to it.

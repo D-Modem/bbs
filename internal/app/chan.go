@@ -286,6 +286,12 @@ func (s *Session) chanMessage(b *store.Board, op, p *store.BoardPost, posts []*s
 	case p.UserID != 0:
 		name += " [member]" // posted by a signed-in user
 	}
+	if p.PosterID != "" {
+		name += " (ID: " + p.PosterID + ")"
+	}
+	if p.Country != "" {
+		name += " [" + p.Country + "]"
+	}
 	if p.Capcode != "" {
 		name += " ## " + map[string]string{"admin": "Admin", "mod": "Mod"}[p.Capcode]
 	}

@@ -42,6 +42,9 @@ type apiPost struct {
 	DrawMS        int64      `json:"draw_ms,omitempty"` // how long it took to draw
 	Member        int        `json:"member,omitempty"`  // posted by a signed-in user of the BBS
 	Account       string     `json:"account,omitempty"` // their account's name, if they signed with it
+	ID            string     `json:"id,omitempty"`
+	Country       string     `json:"country,omitempty"`
+	CountryName   string     `json:"country_name,omitempty"`
 	Spoiler       int        `json:"spoiler,omitempty"`
 	Replies       *int       `json:"replies,omitempty"`
 	Images        *int       `json:"images,omitempty"`
@@ -80,7 +83,8 @@ func (q *req) apiPost(b *store.Board, v *postView) *apiPost {
 	p := v.BoardPost
 	a := &apiPost{No: p.No, Resto: p.Thread, Now: postDate(p.Created), Time: p.Created.Unix(),
 		Name: v.Name, Trip: p.Trip, Capcode: p.Capcode, Sub: p.Subject, Com: string(v.Comment),
-		Member: flag(p.UserID != 0), Account: p.Account}
+		Member: flag(p.UserID != 0), Account: p.Account, ID: p.PosterID, Country: p.Country,
+		CountryName: p.CountryName}
 	if p.Ext != "" {
 		a.Filename, a.Ext, a.Fsize, a.MD5, a.W, a.H, a.TnW, a.TnH, a.Tim = p.FileName, p.Ext, p.FileSize, p.MD5, p.W,
 			p.H, p.TnW, p.TnH, p.Tim
@@ -144,6 +148,8 @@ func (s *Server) boardsJSON(q *req) {
 		ForcedAnon      int       `json:"forced_anon,omitempty"`
 		TextOnly        int       `json:"text_only,omitempty"`
 		Oekaki          int       `json:"oekaki,omitempty"`
+		UserIDs         int       `json:"user_ids,omitempty"`
+		CountryFlags    int       `json:"country_flags,omitempty"`
 		Login           string    `json:"login,omitempty"`   // "post": only users post; "all": only users see it
 		Captcha         int       `json:"captcha,omitempty"` // those not signed in answer a captcha
 		Spoilers        int       `json:"spoilers"`
@@ -158,7 +164,8 @@ func (s *Server) boardsJSON(q *req) {
 		out.Boards = append(out.Boards, board{Board: b.Dir, Title: b.Title, WSBoard: flag(b.Worksafe), PerPage: b.PerPage,
 			Pages: b.Pages, MaxFilesize: s.maxFile(b), MaxCommentChars: s.S.MaxComment, ImageLimit: b.ImageLimit,
 			BumpLimit: b.BumpLimit, MetaDescription: b.Description, Cooldowns: cd, ForcedAnon: flag(b.ForcedAnon),
-			TextOnly: flag(b.TextOnly), Oekaki: flag(b.Oekaki), Login: loginOf(b), Captcha: flag(s.captchaOn(b)), Spoilers: 1, CodeTags: 1})
+			TextOnly: flag(b.TextOnly), Oekaki: flag(b.Oekaki), UserIDs: flag(b.PosterIDs),
+			CountryFlags: flag(b.Flags && s.S.GeoIP != ""), Login: loginOf(b), Captcha: flag(s.captchaOn(b)), Spoilers: 1, CodeTags: 1})
 	}
 	q.json(out)
 }

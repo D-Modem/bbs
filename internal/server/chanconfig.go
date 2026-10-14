@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/config"
@@ -46,6 +47,11 @@ func (c *Config) chanSection(s *config.Section) error {
 	}
 	if ch.Options, err = s.Bool("options", ch.Options); err != nil {
 		return err
+	}
+	if ch.GeoIP = s.String("geoip", ""); ch.GeoIP != "" {
+		if _, err := os.Stat(ch.GeoIP); err != nil {
+			c.Warnings = append(c.Warnings, fmt.Sprintf("[chan] geoip: %v: no flags until it is there", err))
+		}
 	}
 	if ch.Style = s.String("style", ""); ch.Style != "" && !imageboard.KnownStyle(ch.Style) {
 		var names []string

@@ -37,6 +37,7 @@ address = :8443
 ;captcha_level = normal  ; easy, normal or hard to read
 ;captcha_lifetime = 600  ; seconds one lasts
 ;options = yes           ; the post form's Options line (sage, nonoko)
+;geoip = /var/lib/bbs/GeoLite2-Country.mmdb   ; for the boards with flags
 ```
 
 | setting | default | |
@@ -136,6 +137,32 @@ can post under, as anyone can type a name. On a `forced_anon` board posts
 are marked, never signed. On the terminals every poster is signed in: no
 captcha, `[member]` by the name, and *Sign it as NAME?* before the post.
 
+## Poster IDs and flags
+
+A board with `ids yes` gives each poster an ID in each thread, as 4chan's
+do: eight characters from a keyed hash of their address, the board and
+the thread, so a poster has the same ID all through a thread and another
+in the next, and nothing of their address can be had from it. Each ID has
+a colour of its own; hovering it says how many posts in the thread are
+by it, and clicking it marks them all. On the terminals it is by the
+name: `Anonymous (ID: aQvqbFdJ)`.
+
+A board with `flags yes` shows the flag of each poster's country by their
+name (an emoji, its name on hovering; `[NZ]` on the terminals), from a
+country database the sysop has, `[chan] geoip`:
+
+- a MaxMind DB file (`.mmdb`): MaxMind's GeoLite2 or GeoIP2 Country or
+  City, DB-IP's *IP to Country Lite*, IPinfo's and others in its format;
+- or a CSV of ranges, plain or gzipped: DB-IP's (`start,end,CC`) or
+  IP2Location LITE DB1's (`"from","to","CC","Country"`, by numbers).
+
+The BBS reads them itself (nothing is fetched); replace the file and it
+is read again within a minute. Posts from no address (a modem's caller)
+or one the database does not know have no flag. Behind a reverse proxy
+name it in `trusted_proxies`, or every poster is the proxy and has its ID
+and its flag. Both are kept with each post when it is made: turning them
+off leaves those already made as they were.
+
 ## Threads
 
 A reply bumps its thread to the top of the board until the thread has
@@ -203,6 +230,8 @@ bbs chan ban del ID
 | `forced_anon` | no | no names or tripcodes |
 | `text_only` | no | threads need no image |
 | `oekaki` | no | posters can draw their pictures in the page ([below](#oekaki)) |
+| `ids` | no | each poster has an ID in a thread ([below](#poster-ids-and-flags)) |
+| `flags` | no | posts show their country's flag (with `[chan] geoip`) |
 | `locked` | no | only staff post |
 | `login` | `no` | `post`: only the BBS's users post (signed in at `/chan/login`); `all`: only they see the board at all (its pages, images and JSON; others are sent to sign in, and the front page marks it *(members)*) |
 | `captcha` | `default` | `yes` or `no` for this board, else `[chan]`'s |
@@ -280,8 +309,10 @@ The boards can be read as JSON, in the shapes of 4chan's read-only API
 | `/chan/b/1.json` | a page of the index |
 | `/chan/b/thread/123.json` | a thread |
 
-Beyond 4chan's fields, `boards.json` says `"oekaki": 1` of an oekaki
-board, and a drawing that replays has `"replay": 1` and `"draw_ms"`.
+Posts have 4chan's `id`, `country` and `country_name` where the board
+has them, and `boards.json` its `user_ids` and `country_flags`. Beyond
+4chan's fields, `boards.json` says `"oekaki": 1` of an oekaki board, and
+a drawing that replays has `"replay": 1` and `"draw_ms"`.
 
 A post's image is at `/chan/b/src/{tim}{ext}` and its thumbnail at
 `/chan/b/thumb/{tim}s.jpg` (where 4chan's are at `i.4cdn.org/b/`).
@@ -291,7 +322,7 @@ thread, `/chan/b/1.html` to the index.
 ## Not done
 
 Video and other files (WebM, PDF: 4chan's needs ffmpeg), the archive of
-pruned threads, poster IDs, country flags and captchas.
+pruned threads.
 
 Behind a reverse proxy, name it in `[http]`'s `trusted_proxies`: otherwise
 every poster has the proxy's address, and flood control and bans reach

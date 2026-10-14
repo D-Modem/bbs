@@ -18,6 +18,8 @@ var funcs = template.FuncMap{
 	"add":   func(a, b int) int { return a + b },
 	"short": shortName,
 	"dur":   drawTime,
+	"flag":  flagOf,
+	"idc":   idClass,
 	"seq": func(n int) []int {
 		out := make([]int, n)
 		for i := range out {
@@ -77,6 +79,7 @@ type postView struct {
 	Staff     bool // the viewer may moderate it
 	Index     bool // shown on a board's index (a thread's first gets [Reply])
 	Draw      bool // its board is an oekaki board: its drawing can be drawn over
+	IDCount   int  // the posts by its poster's ID in the thread (on a thread's page)
 }
 
 // threadView is a thread as a board's index or its own page shows it.
@@ -271,10 +274,25 @@ func (q *req) threadViews(b *store.Board, ops []*store.BoardPost, here int64) ([
 		tv.OmittedImages = op.Images - images
 		if here != 0 {
 			backlinks(tv)
+			idCounts(tv)
 		}
 		out = append(out, tv)
 	}
 	return out, nil
+}
+
+// idCounts are, for each post, how many in the thread are by its ID.
+func idCounts(tv *threadView) {
+	posts := append([]*postView{tv.OP}, tv.Replies...)
+	n := map[string]int{}
+	for _, p := range posts {
+		if p.PosterID != "" {
+			n[p.PosterID]++
+		}
+	}
+	for _, p := range posts {
+		p.IDCount = n[p.PosterID]
+	}
 }
 
 // backlinks are, under each post's number, the posts in the thread that

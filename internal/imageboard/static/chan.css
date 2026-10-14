@@ -138,3 +138,31 @@ table.postForm input[name=captcha] { width: 150px; text-transform: uppercase; }
 .memberMark { font-size: 9pt; font-weight: bold; color: #2a8a2a; cursor: help; }
 .memberMark.signed { color: #2060c0; }
 .name.account { text-decoration: underline dotted; }
+/* poster IDs: a colour each, by its hash (idClass) */
+.posteruid .hand { padding: 0 5px; border-radius: 6px; font-size: 0.8em; cursor: pointer; }
+.flag { font-size: 1.1em; cursor: help; }
+.post.op.highlight { outline: 2px dashed #888; outline-offset: 2px; }
+.idc-0 { background: hsl(0, 65%, 45%); color: #fff; }
+.idc-1 { background: hsl(15, 65%, 45%); color: #fff; }
+.idc-2 { background: hsl(30, 65%, 45%); color: #fff; }
+.idc-3 { background: hsl(45, 65%, 40%); color: #fff; }
+.idc-4 { background: hsl(60, 65%, 40%); color: #fff; }
+.idc-5 { background: hsl(75, 65%, 40%); color: #fff; }
+.idc-6 { background: hsl(90, 65%, 40%); color: #fff; }
+.idc-7 { background: hsl(105, 65%, 40%); color: #fff; }
+.idc-8 { background: hsl(120, 65%, 40%); color: #fff; }
+.idc-9 { background: hsl(135, 65%, 40%); color: #fff; }
+.idc-10 { background: hsl(150, 65%, 40%); color: #fff; }
+.idc-11 { background: hsl(165, 65%, 40%); color: #fff; }
+.idc-12 { background: hsl(180, 65%, 40%); color: #fff; }
+.idc-13 { background: hsl(195, 65%, 40%); color: #fff; }
+.idc-14 { background: hsl(210, 65%, 45%); color: #fff; }
+.idc-15 { background: hsl(225, 65%, 45%); color: #fff; }
+.idc-16 { background: hsl(240, 65%, 45%); color: #fff; }
+.idc-17 { background: hsl(255, 65%, 45%); color: #fff; }
+.idc-18 { background: hsl(270, 65%, 45%); color: #fff; }
+.idc-19 { background: hsl(285, 65%, 45%); color: #fff; }
+.idc-20 { background: hsl(300, 65%, 45%); color: #fff; }
+.idc-21 { background: hsl(315, 65%, 45%); color: #fff; }
+.idc-22 { background: hsl(330, 65%, 45%); color: #fff; }
+.idc-23 { background: hsl(345, 65%, 45%); color: #fff; }

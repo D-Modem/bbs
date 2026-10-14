@@ -163,6 +163,12 @@ func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
 	if sub.Password != "" {
 		p.Password = s.mac("pw", sub.Password)
 	}
+	if b.Flags {
+		p.Country, p.CountryName = s.country(sub.IP)
+	}
+	if b.PosterIDs && sub.Thread != 0 {
+		p.PosterID = s.posterID(sub.IP, b.Dir, sub.Thread)
+	}
 	p.Comment = cleanComment(sub.Comment)
 	if n := utf8.RuneCountInString(p.Comment); n > s.S.MaxComment {
 		return nil, refuse(http.StatusBadRequest, "Your comment is too long: %d characters, at most %d.", n, s.S.MaxComment)
@@ -228,6 +234,13 @@ func (s *Server) Submit(sub *Submission) (*store.BoardPost, error) {
 		}
 		s.B.Log.Printf("chan: /%s/: posting: %v", b.Dir, err)
 		return nil, refuse(http.StatusInternalServerError, "The post could not be made: try again later.")
+	}
+	if b.PosterIDs && sub.Thread == 0 {
+		// a thread's first post: its ID is of the thread it begins
+		p.PosterID = s.posterID(sub.IP, b.Dir, p.No)
+		if err := s.B.Store.SetChanPosterID(b.ID, p.No, p.PosterID); err != nil {
+			s.B.Log.Printf("chan: /%s/%d: its ID: %v", b.Dir, p.No, err)
+		}
 	}
 	if sub.Thread == 0 {
 		gone, err := s.B.Store.PruneChanThreads(b.ID, b.Pages*b.PerPage)
