@@ -1,0 +1,15 @@
+{{define "front.html"}}{{template "top" .}}
+<div class="frontTitle"><h1>{{.BBS}}</h1><p>Image boards: post a picture, talk about it. No account needed.</p></div>
+{{with .Body}}
+<div class="box"><h2>Boards</h2>
+{{if .Boards}}<ul class="boards">{{range .Boards}}<li><a href="/chan/{{.Dir}}/" class="boardlink">/{{.Dir}}/ - {{.Title}}</a>{{if not .Worksafe}} <span class="nws" title="Not safe for work">(NSFW)</span>{{end}}{{with .Description}}<div class="desc">{{.}}</div>{{end}}</li>{{end}}</ul>
+{{else}}<p>There are no boards yet. The sysop makes them: <code>bbs chan board add b Random</code></p>{{end}}
+</div>
+{{with .Recent}}<div class="box"><h2>Recent Images</h2>
+<div class="recent">{{range .}}<a href="{{.URL}}" title="/{{.Dir}}/ - {{.Title}}"><img src="{{.Thumb}}" alt="" width="{{.TnW}}" height="{{.TnH}}" loading="lazy"></a>{{end}}</div>
+</div>{{end}}
+<div class="box"><h2>Stats</h2>
+<p>Total posts: <b>{{.Posts}}</b> &middot; Active content: <b>{{size .Bytes}}</b></p>
+</div>
+{{end}}
+{{template "bottom" .}}{{end}}

@@ -224,6 +224,76 @@ CREATE TABLE IF NOT EXISTS ssh_keys (
 	comment     {str} NOT NULL DEFAULT '',
 	created     {int} NOT NULL,
 	last_used   {int} NOT NULL DEFAULT 0
+)`, `
+CREATE TABLE IF NOT EXISTS chan_boards (
+	id            {id},
+	dir           {name} NOT NULL UNIQUE,
+	title         {str} NOT NULL,
+	description   {str} NOT NULL DEFAULT '',
+	max_file      {int} NOT NULL DEFAULT 0,
+	pages         {int} NOT NULL DEFAULT 10,
+	per_page      {int} NOT NULL DEFAULT 10,
+	bump_limit    {int} NOT NULL DEFAULT 300,
+	image_limit   {int} NOT NULL DEFAULT 150,
+	forced_anon   {bool} NOT NULL DEFAULT FALSE,
+	default_name  {str} NOT NULL DEFAULT 'Anonymous',
+	worksafe      {bool} NOT NULL DEFAULT TRUE,
+	locked        {bool} NOT NULL DEFAULT FALSE,
+	login_to_post {bool} NOT NULL DEFAULT FALSE,
+	text_only     {bool} NOT NULL DEFAULT FALSE,
+	mods          {str} NOT NULL DEFAULT '',
+	sort          {int} NOT NULL DEFAULT 0,
+	last_no       {int} NOT NULL DEFAULT 0,
+	created       {int} NOT NULL
+)`, `
+CREATE TABLE IF NOT EXISTS chan_posts (
+	id           {id},
+	board_id     {int} NOT NULL REFERENCES chan_boards(id) ON DELETE CASCADE,
+	num          {int} NOT NULL,
+	thread       {int} NOT NULL DEFAULT 0,
+	name         {str} NOT NULL DEFAULT '',
+	trip         {str} NOT NULL DEFAULT '',
+	capcode      {str} NOT NULL DEFAULT '',
+	email        {str} NOT NULL DEFAULT '',
+	subject      {str} NOT NULL DEFAULT '',
+	body         {text} NOT NULL,
+	password     {str} NOT NULL DEFAULT '',
+	ip           {key} NOT NULL,
+	user_id      {int} NOT NULL DEFAULT 0,
+	created      {int} NOT NULL,
+	bumped       {int} NOT NULL,
+	sticky       {bool} NOT NULL DEFAULT FALSE,
+	closed       {bool} NOT NULL DEFAULT FALSE,
+	file_name    {str} NOT NULL DEFAULT '',
+	ext          {str} NOT NULL DEFAULT '',
+	tim          {int} NOT NULL DEFAULT 0,
+	file_size    {int} NOT NULL DEFAULT 0,
+	w            {int} NOT NULL DEFAULT 0,
+	h            {int} NOT NULL DEFAULT 0,
+	tn_w         {int} NOT NULL DEFAULT 0,
+	tn_h         {int} NOT NULL DEFAULT 0,
+	md5          {key} NOT NULL DEFAULT '',
+	spoiler      {bool} NOT NULL DEFAULT FALSE,
+	file_deleted {bool} NOT NULL DEFAULT FALSE,
+	banned       {bool} NOT NULL DEFAULT FALSE
+)`, `
+CREATE TABLE IF NOT EXISTS chan_bans (
+	id      {id},
+	ip      {key} NOT NULL,
+	board   {str} NOT NULL DEFAULT '',
+	reason  {str} NOT NULL DEFAULT '',
+	by_name {str} NOT NULL DEFAULT '',
+	post    {text} NOT NULL,
+	created {int} NOT NULL,
+	expires {int} NOT NULL DEFAULT 0
+)`, `
+CREATE TABLE IF NOT EXISTS chan_reports (
+	id       {id},
+	board_id {int} NOT NULL REFERENCES chan_boards(id) ON DELETE CASCADE,
+	num      {int} NOT NULL,
+	reason   {str} NOT NULL DEFAULT '',
+	ip       {key} NOT NULL,
+	created  {int} NOT NULL
 )`,
 }
 
@@ -249,6 +319,11 @@ var indexes = []struct {
 	{"qwk_msgs_message", "qwk_msgs", "message_id", false},
 	{"messages_thread", "messages", "thread", false},
 	{"file_areas_fileecho", "file_areas", "fileecho", true},
+	{"chan_posts_num", "chan_posts", "board_id, num", true},
+	{"chan_posts_thread", "chan_posts", "board_id, thread, bumped", false},
+	{"chan_posts_md5", "chan_posts", "board_id, md5", false},
+	{"chan_posts_ip", "chan_posts", "ip, created", false},
+	{"chan_reports_post", "chan_reports", "board_id, num", false},
 }
 
 // added are the columns added since the first schema: an older database

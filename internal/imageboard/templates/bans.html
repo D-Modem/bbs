@@ -1,0 +1,21 @@
+{{define "bans.html"}}{{template "top" .}}
+<div class="boardBanner"><div class="boardTitle">Manage</div><div class="boardSubtitle">[<a href="/chan/manage">Reports</a>] [<strong>Bans</strong>]</div></div>
+<hr>
+{{with .Body}}<div class="box wide"><h2>Bans</h2>
+{{if .Bans}}<table class="manage"><thead><tr><th>Address</th><th>Board</th><th>Reason</th><th>By</th><th>Filed</th><th>Expires</th><th></th></tr></thead><tbody>
+{{range .Bans}}<tr><td>{{.IP}}</td><td>{{if .Board}}/{{.Board}}/{{else}}all{{end}}</td><td>{{.Reason}}</td><td>{{.By}}</td><td>{{date .Created}}</td><td>{{if .Expires.IsZero}}never{{else}}{{date .Expires}}{{end}}</td>
+<td>{{if .CanLift}}<form method="post" action="/chan/manage/bans" class="inline"><input type="hidden" name="tok" value="{{$.Token}}"><button name="lift" value="{{.ID}}">Lift</button></form>{{end}}</td></tr>{{end}}
+</tbody></table>{{else}}<p>No one is banned.</p>{{end}}
+<h3>Ban an address</h3>
+<form method="post" action="/chan/manage/bans">
+<input type="hidden" name="tok" value="{{$.Token}}">
+<table class="postForm"><tbody>
+<tr><td>Address</td><td><input name="ip" type="text" required placeholder="192.0.2.7, or 192.0.2. for a range"></td></tr>
+<tr><td>Board</td><td><select name="board">{{if .Admin}}<option value="">every board</option>{{end}}{{range .Mine}}<option value="{{.}}">/{{.}}/</option>{{end}}</select></td></tr>
+<tr><td>Reason</td><td><input name="reason" type="text" maxlength="200" size="40"></td></tr>
+<tr><td>Days</td><td><input name="days" type="number" min="0" max="3650" value="3"> (0: for ever)</td></tr>
+<tr><td></td><td><button type="submit">Ban</button></td></tr>
+</tbody></table>
+</form>
+</div>{{end}}
+{{template "bottom" .}}{{end}}

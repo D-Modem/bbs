@@ -1,0 +1,15 @@
+/* photon */
+body { background: #eee; color: #333; font-family: verdana, sans-serif; }
+a, .backlink a, a.quotelink { color: #f60; }
+a:hover, a.quotelink:hover { color: #c30; }
+hr, table.manage td, table.manage th, .box, .pagelist, pre.code, .badge, .fileDeleted, .catThread .noFile, #quotePreview .post { border-color: #ccc; }
+.boardTitle, .frontTitle h1, .postingMode, .closedNotice { color: #024; }
+.post.reply, #quotePreview .post, .pagelist, .box h2, .catThread:hover { background: #ddd; }
+.post.reply { border-color: #ccc; }
+.post.reply:target, .post.reply.highlight { background: #ccc; }
+table.postForm td:first-child, table.manage th { background: #bbb; border-color: #ccc; color: #000; }
+.subject { color: #024; }
+.name, .postertrip { color: #004a99; }
+.quote { color: #789922; }
+.sideArrows { color: #ccc; }
+.boardTitle { letter-spacing: 0; font-family: verdana, sans-serif; }

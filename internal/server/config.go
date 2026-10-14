@@ -22,6 +22,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/ftp"
 	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
 	"github.com/Neo-Desktop/bbs-sec/internal/guard"
+	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
 	"github.com/Neo-Desktop/bbs-sec/internal/ircd"
 	"github.com/Neo-Desktop/bbs-sec/internal/logo"
 	"github.com/Neo-Desktop/bbs-sec/internal/mrc"
@@ -61,7 +62,8 @@ type Config struct {
 	Menus      map[string]*bbs.Menu
 	Text       map[string]string // [strings]
 	HTTP       *api.Settings     // nil: no HTTP API
-	Gopher     *gopher.Settings  // nil: no gopher server
+	Chan       imageboard.Settings
+	Gopher     *gopher.Settings // nil: no gopher server
 	Database   string
 	Log        string // syslog, stderr, none, or a file
 	Listeners  []*Listener
@@ -122,6 +124,9 @@ func Load(path string) (*Config, error) {
 	if err := c.doorSections(cf); err != nil {
 		return nil, err
 	}
+	if err := c.chanSection(cf.Get("chan", "")); err != nil {
+		return nil, fmt.Errorf("[chan] %w", err)
+	}
 	if err := c.httpSection(cf.Get("http", "")); err != nil {
 		return nil, fmt.Errorf("[http] %w", err)
 	}
@@ -170,7 +175,7 @@ func Load(path string) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "mrc", "menu", "strings", "http", "level":
+		case "general", "security", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "mrc", "menu", "strings", "http", "level", "chan":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}

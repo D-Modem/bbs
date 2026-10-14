@@ -1,0 +1,19 @@
+/* tomorrow */
+body { background: #1d1f21; color: #c5c8c6; }
+a, .backlink a, a.quotelink { color: #81a2be; }
+a:hover, a.quotelink:hover { color: #5f89ac; }
+hr, table.manage td, table.manage th, .box, .pagelist, pre.code, .badge, .fileDeleted, .catThread .noFile, #quotePreview .post { border-color: #282a2e; }
+.boardTitle, .frontTitle h1, .postingMode, .closedNotice { color: #c5c8c6; }
+.post.reply, #quotePreview .post, .pagelist, .box h2, .catThread:hover { background: #282a2e; }
+.post.reply { border-color: #282a2e; }
+.post.reply:target, .post.reply.highlight { background: #1d1d21; }
+table.postForm td:first-child, table.manage th { background: #282a2e; border-color: #111; color: #c5c8c6; }
+.subject { color: #b294bb; }
+.name, .postertrip { color: #c5c8c6; }
+.quote { color: #b5bd68; }
+.sideArrows { color: #282a2e; }
+table.postForm td:first-child, table.manage th { color: #c5c8c6; }
+.post.reply:target, .post.reply.highlight { border-color: #111; }
+s:hover, s:focus { color: #fff; }
+input, textarea, select, button { background: #282a2e; color: #c5c8c6; border: 1px solid #111; }
+.pagelist, .box h2 { color: #c5c8c6; }

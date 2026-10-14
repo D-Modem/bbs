@@ -1,0 +1,14 @@
+{{define "login.html"}}{{template "top" .}}
+<hr>
+{{with .Body}}<div class="box narrow"><h2>Sign in</h2>
+<p>With your account on this BBS: staff sign in to moderate.</p>
+{{with .Error}}<p class="error">{{.}}</p>{{end}}
+<form method="post" action="/chan/login">
+<input type="hidden" name="tok" value="{{$.Token}}"><input type="hidden" name="back" value="{{.Back}}">
+<table class="postForm"><tbody>
+<tr><td>Name</td><td><input name="name" type="text" autocomplete="username" required></td></tr>
+<tr><td>Password</td><td><input name="password" type="password" autocomplete="current-password" required></td></tr>
+<tr><td></td><td><button type="submit">Sign in</button></td></tr>
+</tbody></table>
+</form></div>{{end}}
+{{template "bottom" .}}{{end}}

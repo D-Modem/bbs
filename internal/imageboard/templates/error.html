@@ -1,0 +1,10 @@
+{{define "error.html"}}{{template "top" .}}
+{{template "banner" .}}
+<hr>
+{{with .Body}}<div class="errorBox">
+<h2 class="{{if .Done}}done{{else}}error{{end}}">{{if .Done}}{{.Message}}{{else}}Error: {{.Message}}{{end}}</h2>
+{{with .Link}}<p><a href="{{.}}">See it there.</a></p>{{end}}
+<p>[<a href="{{if .Back}}{{.Back}}{{else}}/chan/{{end}}">Return</a>]</p>
+</div>{{end}}
+<hr>
+{{template "bottom" .}}{{end}}

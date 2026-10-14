@@ -19,6 +19,8 @@ key_file = /etc/bbs/tls/key.pem
 |---|---|---|
 | `address` | `:8443` | where it listens |
 | `tls` | `yes` | TLS needs `cert_file` and `key_file`.  `tls = no` is for `127.0.0.1` behind a proxy that has TLS; `bbs check` warns about it on any other address |
+| `trusted_proxies` | (none) | reverse proxies in front (addresses or CIDR ranges, by spaces or commas), believed when they say whose a request is: [below](#behind-a-proxy) |
+| `secure_cookies` | as `tls` | the forum's and image boards' login cookies go over HTTPS only; say `yes` when a proxy in front has the TLS |
 | `anonymous` | `yes` | `/system` and `/who` without a token |
 | `cors` | (none) | one browser origin allowed to call the API (no `*`); WebSockets are accepted only from it and the API's own host |
 | `metrics` | (none) | an address for Prometheus metrics, `/metrics` (keep it private) |
@@ -27,8 +29,46 @@ key_file = /etc/bbs/tls/key.pem
 | `session_hours` | `24` | how long a login's token lasts |
 | `terminal` | `yes` | the web terminal page (below) |
 | `forum`, `forum_guests`, `forum_theme` | `yes`, `yes`, `ipb3` | the [web forum](Web-Forum), guests reading it, and its theme (`ipb3`, `ipb5`, `ipb4`, `ipb2`, `ipb1`, `ikon`, `vb6`, `vb5`, `vb4`, `vb3`, `vb2`, `vblite`, `xf23`, `xf2`, `xf1`, `mybb18`, `mybb16`, `mybb12`, `pun14`, `flux15`, `pun12`, `yabb25`, `yabb2`, `yabb1`, `smf30`, `smf21`, `smf20`, `smf1`, `phpbb33`, `phpbb32`, `phpbb31`, `phpbb30`, `phpbb2` or `phpbb1`) |
+| `chan` | `yes` | the [image boards](Image-Boards) at `/chan/` (set up in `[chan]`) |
 
 The OpenAPI 3.1 description is at `/api/v1/openapi.json`.
+
+
+## Behind a proxy
+
+The server can sit behind a reverse proxy (nginx, Caddy, HAProxy, a load
+balancer) that has the TLS. Every request then comes from the proxy's
+address, so name it, and the server believes it when it says whose a
+request is:
+
+```ini
+[http]
+address = 127.0.0.1:8080
+tls = no
+trusted_proxies = 127.0.0.1, ::1
+secure_cookies = yes
+```
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_http_version 1.1;                  # the WebSockets: streams
+    proxy_set_header Upgrade $http_upgrade;  # and the web terminal
+    proxy_set_header Connection "upgrade";
+    client_max_body_size 8m;                 # the image boards' images
+}
+```
+
+The caller is the last address in `X-Forwarded-For` (else `Forwarded`'s
+`for=`, else `X-Real-IP`) that is not a trusted proxy: the ones before it
+are whatever the caller sent, and are not believed. That address is then
+the request's everywhere: rate limits, logins and the logs, the forum, the
+web terminal's throttling, the [image boards](Image-Boards)' flood control
+and bans, and the `[security]` deny lists and bans (a refused caller gets
+403). Connections from a trusted proxy are not held to `max_per_ip`: they
+are many callers'. Requests from anywhere else are taken as they come, and
+their forwarding headers ignored.
 
 ## Tokens and scopes
 

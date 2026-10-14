@@ -1,0 +1,29 @@
+{{define "modpost.html"}}{{template "top" .}}
+<div class="boardBanner"><div class="boardTitle">Manage /{{.Board.Dir}}/{{.Body.Post.No}}</div><div class="boardSubtitle">[<a href="/chan/manage">Reports</a>] [<a href="/chan/manage/bans">Bans</a>] [<a href="/chan/{{.Board.Dir}}/thread/{{.Body.Post.Thread}}#p{{.Body.Post.No}}">In its thread</a>]</div></div>
+<hr>
+{{$b := .Board}}{{with .Body}}
+<div class="thread">{{template "post" .Post}}</div>
+<div class="box wide">
+<p>Posted from <b>{{.Post.IP}}</b>{{if .Post.UserID}} by a signed-in user{{end}}. Its posts: {{len .ByIP}}{{if ge (len .ByIP) 50}} or more{{end}}.</p>
+<div class="actions">
+<form method="post" action="/chan/manage/post" class="inline"><input type="hidden" name="tok" value="{{$.Token}}"><input type="hidden" name="b" value="{{$b.Dir}}"><input type="hidden" name="no" value="{{.Post.No}}"><button name="action" value="delete">Delete {{if .Post.OP}}thread{{else}}post{{end}}</button></form>
+{{if .Post.HasFile}}<form method="post" action="/chan/manage/post" class="inline"><input type="hidden" name="tok" value="{{$.Token}}"><input type="hidden" name="b" value="{{$b.Dir}}"><input type="hidden" name="no" value="{{.Post.No}}"><button name="action" value="deletefile">Delete file</button></form>{{end}}
+{{with .Thread}}<form method="post" action="/chan/manage/post" class="inline"><input type="hidden" name="tok" value="{{$.Token}}"><input type="hidden" name="b" value="{{$b.Dir}}"><input type="hidden" name="no" value="{{.No}}">{{if .Sticky}}<button name="action" value="unsticky">Unsticky</button>{{else}}<button name="action" value="sticky">Sticky</button>{{end}} {{if .Closed}}<button name="action" value="open">Open</button>{{else}}<button name="action" value="close">Close</button>{{end}}</form>{{end}}
+<form method="post" action="/chan/manage/post" class="inline"><input type="hidden" name="tok" value="{{$.Token}}"><input type="hidden" name="b" value="{{$b.Dir}}"><input type="hidden" name="no" value="{{.Post.No}}"><button name="action" value="dismiss">Dismiss reports</button></form>
+<form method="post" action="/chan/manage/post" class="inline"><input type="hidden" name="tok" value="{{$.Token}}"><input type="hidden" name="b" value="{{$b.Dir}}"><input type="hidden" name="no" value="{{.Post.No}}"><button name="action" value="purge">Delete all its posts on /{{$b.Dir}}/</button></form>
+</div>
+<h3>Ban</h3>
+<form method="post" action="/chan/manage/post">
+<input type="hidden" name="tok" value="{{$.Token}}"><input type="hidden" name="b" value="{{$b.Dir}}"><input type="hidden" name="no" value="{{.Post.No}}"><input type="hidden" name="action" value="ban">
+<table class="postForm"><tbody>
+<tr><td>Reason</td><td><input name="reason" type="text" maxlength="200" size="40"></td></tr>
+<tr><td>Days</td><td><input name="days" type="number" min="0" max="3650" value="3"> (0: for ever)</td></tr>
+<tr><td>Who</td><td><label><input type="checkbox" name="range" value="on"> its range ({{.Range}}*)</label>{{if eq $.Staff "admin"}} <label><input type="checkbox" name="everywhere" value="on"> on every board</label>{{end}}</td></tr>
+<tr><td>And</td><td><label><input type="checkbox" name="public" value="on"> say so under the post</label> <label><input type="checkbox" name="delete" value="on"> delete the post</label></td></tr>
+<tr><td></td><td><button type="submit">Ban</button></td></tr>
+</tbody></table>
+</form>
+{{with .ByIP}}<h3>Its latest posts</h3><table class="manage"><tbody>{{range .}}<tr><td>{{date .Created}}</td><td>No.{{.No}}</td><td class="excerpt">{{short .Comment}}</td></tr>{{end}}</tbody></table>{{end}}
+</div>
+{{end}}
+{{template "bottom" .}}{{end}}

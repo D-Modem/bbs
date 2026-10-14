@@ -1,0 +1,18 @@
+{{define "catalog.html"}}{{template "top" .}}
+{{template "banner" .}}
+<hr>
+{{$b := .Board}}{{with .Body}}
+<div class="navLinks">[<a href="/chan/{{$b.Dir}}/">Return</a>] [<a href="/chan/{{$b.Dir}}/#postForm">Start a New Thread</a>]
+<span class="sortBy">Sort by: {{if .New}}<a href="/chan/{{$b.Dir}}/catalog">Bump order</a> &middot; <strong>Creation date</strong>{{else}}<strong>Bump order</strong> &middot; <a href="/chan/{{$b.Dir}}/catalog?order=new">Creation date</a>{{end}}</span></div>
+<hr>
+<div class="catalog">
+{{range .Threads}}<div class="catThread" id="thread-{{.OP.No}}">
+<a href="/chan/{{$b.Dir}}/thread/{{.OP.No}}">{{if .OP.ThumbURL}}{{if .OP.Spoiler}}<img src="/chan/static/spoiler.png" alt="Spoiler Image" width="100" height="100" class="thumb">{{else}}<img src="{{.OP.ThumbURL}}" alt="" width="{{.OP.TnW}}" height="{{.OP.TnH}}" class="thumb" loading="lazy">{{end}}{{else}}<span class="noFile">{{if .OP.FileDeleted}}File deleted{{else}}No image{{end}}</span>{{end}}</a>
+<div class="meta" title="(R)eplies / (I)mages">R: <b>{{.OP.Replies}}</b> / I: <b>{{.OP.Images}}</b>{{if .OP.Sticky}} &middot; <span class="badge sticky">Sticky</span>{{end}}{{if .OP.Closed}} &middot; <span class="badge closed">Closed</span>{{end}}</div>
+<div class="teaser">{{with .OP.Subject}}<b>{{.}}</b>: {{end}}{{.Teaser}}</div>
+</div>
+{{else}}<p class="empty">There are no threads here yet.</p>{{end}}
+</div>
+<hr>
+{{end}}
+{{template "bottom" .}}{{end}}

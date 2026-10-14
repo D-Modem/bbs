@@ -79,6 +79,19 @@ bbs file del AREA NAME
 
 See [Files and FTP](Files-and-FTP).
 
+## Image boards
+
+```
+bbs chan board add DIR TITLE [DESCRIPTION] [-nsfw]   # /DIR/ at /chan/DIR/
+bbs chan board set DIR KEY VALUE    # pages, per_page, bump_limit, mods, nsfw...
+bbs chan board list
+bbs chan board del DIR              # its posts and images too
+bbs chan ban add ADDRESS DAYS [BOARD|-] [REASON...]
+bbs chan ban list | del ID
+```
+
+See [Image boards](Image-Boards).
+
 ## Mail exchange
 
 ```

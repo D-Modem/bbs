@@ -1,0 +1,60 @@
+{{define "board.html"}}{{template "top" .}}
+{{template "banner" .}}
+<hr class="abovePostForm">
+{{$b := .Board}}{{with .Body}}
+{{if .Thread}}<div class="postingMode">Posting mode: Reply</div>
+<div class="navLinks">[<a href="/chan/{{$b.Dir}}/">Return</a>] [<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>] [<a href="#bottom">Bottom</a>]</div>{{end}}
+{{template "form" $}}
+<hr>
+{{if not .Thread}}<div class="navLinks">[<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>]</div><hr>{{end}}
+<div class="board">
+{{range .Threads}}<div class="thread" id="t{{.OP.No}}">
+{{template "post" .OP}}
+{{if gt .OmittedPosts 0}}<span class="summary">{{.OmittedPosts}} {{if eq .OmittedPosts 1}}reply{{else}}replies{{end}}{{if gt .OmittedImages 0}} and {{.OmittedImages}} {{if eq .OmittedImages 1}}image{{else}}images{{end}}{{end}} omitted. <a href="/chan/{{$b.Dir}}/thread/{{.OP.No}}" class="replylink">Click here</a> to view.</span>{{end}}
+{{range .Replies}}{{template "post" .}}{{end}}
+</div>
+<hr>
+{{else}}<p class="empty">There are no threads here yet: start one.</p><hr>{{end}}
+</div>
+{{with .Thread}}<div class="threadStats">{{.OP.Replies}} {{if eq .OP.Replies 1}}reply{{else}}replies{{end}} / {{.OP.Images}} {{if eq .OP.Images 1}}image{{else}}images{{end}}{{if .BumpLimit}} &middot; <span class="warning">Bump limit reached.</span>{{end}}{{if .ImageLimit}} &middot; <span class="warning">Image limit reached.</span>{{end}}</div>
+<div class="navLinks">[<a href="/chan/{{$b.Dir}}/">Return</a>] [<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>] [<a href="#top">Top</a>]</div>{{end}}
+<form id="delform" class="deleteForm" method="post" action="/chan/{{$b.Dir}}/delete">
+<input type="hidden" name="tok" value="{{$.Token}}"><input type="hidden" name="back" value="{{$.Path}}">
+Delete Post: <label>[<input type="checkbox" name="onlyimgdel" value="on"> File Only]</label>
+Password <input type="password" name="pwd" value="{{$.Pass}}" maxlength="64" autocomplete="off">
+<button type="submit">Delete</button>
+</form>
+{{if not .Thread}}<div class="pagelist">
+{{if gt .Page 1}}<a class="pageButton" href="/chan/{{$b.Dir}}/{{if gt .Page 2}}{{add .Page -1}}{{end}}">Previous</a>{{else}}<span class="pageButton">Previous</span>{{end}}
+<span class="pages">{{range seq .Pages}}[{{if eq . $.Body.Page}}<strong>{{.}}</strong>{{else}}<a href="/chan/{{$b.Dir}}/{{if gt . 1}}{{.}}{{end}}">{{.}}</a>{{end}}] {{end}}</span>
+{{if lt .Page .Pages}}<a class="pageButton" href="/chan/{{$b.Dir}}/{{add .Page 1}}">Next</a>{{else}}<span class="pageButton">Next</span>{{end}}
+<span class="pages">[<a href="/chan/{{$b.Dir}}/catalog">Catalog</a>]</span>
+</div>{{end}}
+{{end}}
+<div id="bottom"></div>
+{{template "bottom" .}}{{end}}
+
+{{define "form"}}{{$b := .Board}}{{with .Body.Form}}
+{{if .CanPost}}<form id="postForm" class="postForm" method="post" action="/chan/{{$b.Dir}}/post" enctype="multipart/form-data">
+<input type="hidden" name="tok" value="{{$.Token}}">
+{{with .Reply}}<input type="hidden" name="resto" value="{{.No}}">{{end}}
+<table class="postForm"><tbody>
+{{if not $b.ForcedAnon}}<tr><td>Name</td><td><input name="name" type="text" maxlength="115" placeholder="{{$b.DefaultName}}" value="{{.Name}}" autocomplete="off"></td></tr>{{end}}
+<tr><td>Options</td><td><input name="email" type="text" maxlength="75" placeholder="sage, nonoko"></td></tr>
+<tr><td>Subject</td><td><input name="sub" type="text" maxlength="100"> <button type="submit">{{if .Reply}}Post{{else}}New Thread{{end}}</button></td></tr>
+<tr><td>Comment</td><td><textarea name="com" id="com" cols="48" rows="4">{{.Quote}}</textarea></td></tr>
+<tr><td>File</td><td><input type="file" name="upfile" accept="image/jpeg,image/png,image/gif,image/webp"{{if .Image}} required{{end}}> <label class="spoilerBox"><input type="checkbox" name="spoiler" value="on"> Spoiler?</label></td></tr>
+<tr><td>Password</td><td><input type="password" name="pwd" maxlength="64" value="{{$.Pass}}" autocomplete="off"> <span class="passNotice">(for deleting the post)</span></td></tr>
+{{with .Capcode}}<tr><td>Staff</td><td><label><input type="checkbox" name="capcode" value="on"> Post as ## {{if eq . "admin"}}Admin{{else}}Mod{{end}}</label></td></tr>{{end}}
+<tr class="rules"><td colspan="2"><ul class="rules">
+<li>Supported file types are JPG, PNG, GIF and WebP{{if .Image}}; a thread starts with one{{end}}.</li>
+<li>Maximum file size allowed is {{size .MaxFile}}. Images greater than {{if .Reply}}125x125{{else}}250x250{{end}} are thumbnailed.</li>
+<li>Name#password signs a post with a tripcode; Name##password with a secure one. "sage" does not bump the thread.</li>
+<li>&gt;greentext, &gt;&gt;123 quotes a post, &gt;&gt;&gt;/{{$b.Dir}}/ links a board; [spoiler]hides text[/spoiler]; [code]code[/code].</li>
+</ul></td></tr>
+</tbody></table>
+</form>
+{{else if .Closed}}<div class="closedNotice">Thread closed.<br>You may not reply at this time.</div>
+{{else if .NeedLogin}}<div class="closedNotice">Only this BBS's users post here: <a href="/chan/login?back={{$.Path}}">sign in</a> first.</div>
+{{else}}<div class="closedNotice">This board is locked: only staff post here.</div>{{end}}
+{{end}}{{end}}

@@ -21,6 +21,7 @@ import (
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/fido"
+	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
 	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
 	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
@@ -47,6 +48,15 @@ type Settings struct {
 	Forum      bool          // the web forum, /forum/
 	Guests     bool          // the forum's guests read the areas anyone may
 	Theme      string        // the forum's theme until a caller chooses ("": the default)
+	Chan       bool          // the image boards, /chan/
+	// TrustedProxies are reverse proxies believed when they say whose a
+	// request is (X-Forwarded-For)
+	TrustedProxies []*net.IPNet
+	// SecureCookies: the forum's and image boards' cookies are sent over
+	// HTTPS only (TLS here, or at a proxy in front)
+	SecureCookies bool
+	// ChanSettings are how the image boards are run
+	ChanSettings imageboard.Settings
 }
 
 // Server serves the API.
@@ -338,6 +348,15 @@ func (s *Server) Handler() http.Handler {
 			})
 		}
 	}
+	if s.S.Chan {
+		ch, err := s.imageboard()
+		if err != nil {
+			s.B.Log.Printf("http: the image boards: %v", err)
+		} else {
+			mux.Handle("/chan/", ch)
+			mux.Handle("/chan", ch)
+		}
+	}
 	if s.terminalOn() {
 		mux.HandleFunc("GET /terminal", s.terminalPage)
 		mux.HandleFunc("GET /terminal/ws", s.terminalWS)
@@ -351,7 +370,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusNotFound, "no such endpoint: see /api/v1/openapi.json")
 	})
-	return securityHeaders(mux)
+	return securityHeaders(s.realAddr(mux))
 }
 
 func securityHeaders(h http.Handler) http.Handler {
@@ -386,6 +405,10 @@ func (l *limitListener) Accept() (net.Conn, error) {
 			continue
 		}
 		h, _, _ := net.SplitHostPort(c.RemoteAddr().String())
+		if ip := net.ParseIP(h); ip != nil && l.s.trusted(ip) {
+			// a proxy's connections are many callers': not limited
+			return c, nil
+		}
 		l.s.mu.Lock()
 		if l.s.S.MaxPerIP > 0 && l.s.perIP[h] >= l.s.S.MaxPerIP {
 			l.s.mu.Unlock()

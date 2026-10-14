@@ -193,6 +193,13 @@ address = 127.0.0.1:2513
 ; TLS is the default; tls = no only on 127.0.0.1 behind a proxy that has it
 ;cert_file = /etc/bbs/tls/cert.pem
 ;key_file = /etc/bbs/tls/key.pem
+; behind a reverse proxy (nginx, Caddy): its addresses (or ranges), which
+; are believed when they say whose a request is (X-Forwarded-For,
+; Forwarded, X-Real-IP), for rate limits, logs, bans and the deny lists.
+; secure_cookies: logins' cookies over HTTPS only (the default with tls =
+; yes; say yes when the proxy has TLS)
+;trusted_proxies = 127.0.0.1, ::1
+;secure_cookies = yes
 ; anonymous callers may see /system and /who
 ;anonymous = yes
 ; one browser origin allowed to call it (no *)
@@ -228,6 +235,27 @@ address = 127.0.0.1:2513
 ; 3.2, 3.1 and 3.0), phpbb2 (silver, as phpBB 2) or phpbb1 (dark, as phpBB
 ; 1)
 ;forum_theme = ipb3
+; the image boards at /chan/ (bbs chan board add b Random); see
+; docs/wiki/Image-Boards.md
+;chan = yes
+
+; How the image boards are run
+;[chan]
+; images and thumbnails, a directory a board; and the boards' secret
+;dir = chan
+; the largest image (a board can have its own: bbs chan board set)
+;max_file = 4M
+; flood control: seconds between an address's threads, and its posts
+;thread_wait = 60
+;reply_wait = 15
+; the longest comment, in characters
+;max_comment = 2000
+; JPEGs' EXIF (where a phone took the photo) taken out
+;strip_metadata = yes
+; the style callers get until they choose: by the board (yotsuba-b if it
+; is worksafe, else yotsuba), or yotsuba, yotsuba-b, futaba, burichan,
+; photon, tomorrow
+;style =
 
 ; Access levels: a user's level (0-255) gets what the [level] at or
 ; below it says; areas, doors and menus may require a level and flags

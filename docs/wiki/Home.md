@@ -85,6 +85,7 @@ What there is:
   BBSes' Multi Relay Chat
 - [finger and gopher](Finger-and-Gopher): who is on, and chosen areas in gopherspace
 - [a web forum](Web-Forum): the message areas as a bulletin board in the browser, in the manner of Invision Power Board 3, or of IPB 5, 4, 2 or 1, Ikonboard, vBulletin 6 back to 2 or Lite, XenForo 2.3 back to 1, MyBB 1.8 back to 1.2, PunBB 1.4 and 1.2, FluxBB 1.5, YaBB 2.5 back to 1, Simple Machines Forum 3.0 back to 1, or phpBB 3.3 back to 1 (themes)
+- [image boards](Image-Boards): anonymous boards of images and replies at /chan/, in the manner of kusaba x and 4chan: bumping, sage, tripcodes (2channel's, and secure ones), greentext and >>quotes, a catalog, staff's bans and reports, Yotsuba, Yotsuba B, Futaba, Burichan, Photon and Tomorrow styles, and 4chan's JSON
 - [a web terminal](HTTP-API#the-web-terminal): the BBS in a browser (xterm.js, built in)
 - [an HTTP API](HTTP-API): REST, server-sent events, and WebSockets (JSON or protobuf) where web clients chat with terminal callers; Prometheus metrics
 - [customization](Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
@@ -121,6 +122,7 @@ What there is:
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
 | [Web forum](Web-Forum) | the message areas as a web forum |
+| [Image boards](Image-Boards) | anonymous image boards, as kusaba x and 4chan |
 | [HTTP API](HTTP-API) | REST, events, WebSockets in JSON and protobuf, tokens, metrics |
 | [Security](Security) | what is guarded, and how |
 | [Development](Development) | the source's layout, the tests |

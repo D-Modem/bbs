@@ -31,6 +31,15 @@ func (c *Config) httpSection(s *config.Section) error {
 	if h.TLS && (h.CertFile == "" || h.KeyFile == "") {
 		return errors.New("cert_file and key_file are needed for TLS (or tls = no, behind a proxy that has it)")
 	}
+	if h.TrustedProxies, err = api.ParseProxies(s.String("trusted_proxies", "")); err != nil {
+		return fmt.Errorf("trusted_proxies: %v", err)
+	}
+	if h.SecureCookies, err = s.Bool("secure_cookies", h.TLS); err != nil {
+		return err
+	}
+	if !h.TLS && len(h.TrustedProxies) > 0 && !h.SecureCookies {
+		c.Warnings = append(c.Warnings, "[http] behind a proxy without secure_cookies = yes: logins' cookies may cross in the clear if the proxy also serves http://")
+	}
 	if !h.TLS {
 		if ip := net.ParseIP(host); host == "" || ip == nil || !ip.IsLoopback() {
 			c.Warnings = append(c.Warnings, "[http] tls = no on an address others reach: tokens and passwords go in the clear")
@@ -81,6 +90,10 @@ func (c *Config) httpSection(s *config.Section) error {
 		}
 		return fmt.Errorf("forum_theme: %q is not one of %s", h.Theme, strings.Join(names, ", "))
 	}
+	if h.Chan, err = s.Bool("chan", true); err != nil {
+		return err
+	}
+	h.ChanSettings = c.Chan
 	c.HTTP = h
 	return nil
 }

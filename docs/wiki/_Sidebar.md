@@ -33,6 +33,7 @@
 - [MRC](MRC)
 - [Finger and gopher](Finger-and-Gopher)
 - [Web forum](Web-Forum)
+- [Image boards](Image-Boards)
 - [HTTP API](HTTP-API)
 
 **More**

@@ -1,0 +1,118 @@
+/* the image boards' layout, every style alike: the styles set colours */
+body { margin: 0; padding: 0 8px 8px; font: 10pt arial, helvetica, sans-serif; }
+a { text-decoration: none; }
+a:hover { text-decoration: underline; }
+hr { border: none; border-top: 1px solid; clear: both; height: 0; margin: 4px 0; }
+img { border: none; }
+form.inline { display: inline; margin: 0; }
+button.linkish { background: none; border: none; padding: 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline; }
+.boardNav { font-size: 9pt; padding: 3px 0; overflow: hidden; }
+.boardNav .navRight { float: right; }
+.boardNav select, .boardNav button { font-size: 8pt; }
+.js .styleSwitch .go { display: none; }
+.notice { text-align: center; font-weight: bold; padding: 4px; }
+.boardBanner { text-align: center; clear: both; margin: 8px 0 4px; }
+.boardTitle { font-family: Tahoma, sans-serif; font-size: 28px; font-weight: bold; letter-spacing: -2px; margin-top: 0; }
+.boardSubtitle { font-size: 10px; margin-top: 2px; }
+.postingMode { text-align: center; font-weight: bold; font-size: 16px; padding: 3px; margin: 4px 0; }
+.navLinks { font-size: 9pt; margin: 4px 0; }
+.navLinks .sortBy { float: right; }
+form.postForm { margin: 0 auto; width: max-content; max-width: 100%; }
+table.postForm { border-spacing: 1px; margin: 0 auto; }
+table.postForm td:first-child { font-weight: bold; padding: 0 5px; font-size: 10pt; border: 1px solid; }
+table.postForm input[type=text], table.postForm input[type=password], table.postForm textarea { width: 290px; box-sizing: border-box; font-size: 10pt; margin: 0; }
+table.postForm input[name=sub] { width: 220px; }
+table.postForm textarea { height: 6em; resize: both; }
+table.postForm tr.rules td { border: none; padding: 0; font-weight: normal; background: none; color: inherit; }
+ul.rules { margin: 4px 0 0; padding-left: 16px; font-size: 8pt; max-width: 420px; }
+.passNotice { font-size: 8pt; }
+.closedNotice { text-align: center; font-size: 14pt; font-weight: bold; margin: 8px 0; }
+.thread { clear: both; overflow: hidden; margin: 4px 0; }
+.postContainer { margin: 4px 0; }
+.replyContainer { display: table; }
+.sideArrows { display: table-cell; padding-right: 2px; vertical-align: top; }
+.post.reply { display: table-cell; padding: 2px 4px 4px; border: 1px solid; border-left: none; border-top: none; }
+.post.op { overflow: visible; }
+.postInfo { display: block; }
+.postInfo input[type=checkbox] { margin: 0 2px 0 0; vertical-align: middle; }
+.subject { font-weight: bold; }
+.name { font-weight: bold; }
+.postertrip { font-weight: normal; }
+.capcode { font-weight: bold; }
+.capcode-admin .name, .capcode-admin .capcode { color: #f00 !important; }
+.capcode-mod .name, .capcode-mod .capcode { color: #800080 !important; }
+.postNum a { color: inherit; }
+.badge { font-size: 8pt; border: 1px solid; padding: 0 3px; border-radius: 3px; }
+.reportLink, .modLink { font-size: 8pt; margin-left: 4px; }
+.backlink { font-size: 8pt; display: inline; }
+.backlink a { margin-left: 2px; }
+.file { margin: 2px 0 2px 0; }
+.fileText { font-size: 8pt; margin-left: 2px; }
+.fileThumb { float: left; margin: 3px 20px 5px; }
+.post.reply .fileThumb { margin: 3px 20px 5px 20px; }
+.fileThumb img.expanded { max-width: calc(100vw - 80px); height: auto; }
+.fileDeleted { display: inline-block; font-size: 8pt; font-weight: bold; padding: 20px 10px; margin: 3px 20px; border: 1px dashed; }
+blockquote.postMessage { margin: 13px 40px 13px 40px; overflow-wrap: anywhere; }
+.quote { }
+.deadlink { text-decoration: line-through; }
+s { background: #000; color: #000; text-decoration: none; }
+s:hover, s:focus { color: #fff; }
+s a { color: inherit; }
+pre.code { white-space: pre-wrap; font-family: monospace; font-size: 9pt; padding: 5px; border: 1px solid; max-width: 800px; overflow-x: auto; }
+.banMessage { color: #f00; }
+.abbr { font-size: 9pt; }
+.summary { display: block; margin: 0 0 4px 30px; font-size: 9pt; }
+.threadStats { text-align: right; font-size: 9pt; }
+.warning { color: #d00; }
+form.deleteForm { float: right; text-align: right; font-size: 9pt; margin: 8px 0; }
+form.deleteForm input[type=password] { width: 100px; }
+.pagelist { clear: both; display: inline-block; padding: 4px 8px; margin: 8px 0; border: 1px solid; font-size: 10pt; }
+.pagelist .pageButton { margin: 0 6px; }
+.pagelist strong { font-weight: bold; }
+.empty { text-align: center; }
+.footer { clear: both; text-align: center; font-size: 9pt; margin-top: 16px; }
+.footer .credit { margin-top: 6px; font-size: 8pt; }
+/* the front page */
+.frontTitle { text-align: center; margin: 16px 0; }
+.frontTitle h1 { font-family: Tahoma, sans-serif; letter-spacing: -1px; margin: 0; }
+.box { border: 1px solid; margin: 12px auto; max-width: 800px; padding: 0 0 8px; }
+.box h2 { margin: 0; padding: 3px 8px; font-size: 11pt; }
+.box > p, .box > form, .box > table, .box > ul, .box > div, .box > h3 { margin-left: 10px; margin-right: 10px; }
+.box.narrow { max-width: 420px; }
+.box.wide { max-width: 1000px; }
+ul.boards { list-style: none; padding: 0; columns: 2; }
+ul.boards li { margin: 4px 0; break-inside: avoid; }
+ul.boards .desc { font-size: 8pt; }
+.nws { font-size: 8pt; color: #d00; }
+.recent { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; padding-top: 8px; }
+/* the catalog */
+.catalog { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.catThread { width: 165px; text-align: center; overflow: hidden; padding: 4px 2px; font-size: 9pt; max-height: 320px; }
+.catThread .thumb { box-shadow: 0 0 5px rgba(0, 0, 0, 0.25); }
+.catThread .noFile { display: inline-block; width: 100px; padding: 40px 0; border: 1px dashed; font-size: 8pt; }
+.catThread .meta { font-size: 8pt; margin: 2px 0; }
+.catThread .teaser { overflow-wrap: anywhere; }
+/* staff */
+table.manage { border-collapse: collapse; width: calc(100% - 20px); font-size: 9pt; }
+table.manage td, table.manage th { border: 1px solid; padding: 2px 4px; text-align: left; vertical-align: top; }
+td.excerpt { max-width: 400px; overflow-wrap: anywhere; }
+.actions form { margin-right: 6px; }
+.errorBox { text-align: center; margin: 24px 0; }
+.errorBox h2.error { color: #f00; }
+.banned { max-width: 600px; }
+.banned h2 { color: #d00; }
+.bannedPost blockquote { border-left: 2px solid; padding-left: 8px; white-space: pre-wrap; }
+label.reason { display: block; margin: 4px 0; }
+/* hovering a quote */
+#quotePreview { position: absolute; z-index: 10; max-width: 70vw; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); }
+#quotePreview .post { display: block; border: 1px solid; }
+@media (max-width: 640px) {
+  .boardNav .navRight { float: none; display: block; }
+  table.postForm input[type=text], table.postForm input[type=password], table.postForm textarea { width: 100%; }
+  blockquote.postMessage { margin: 8px 10px; }
+  .fileThumb { margin: 3px 8px 5px; }
+  .post.op > .file .fileThumb { float: none; display: inline-block; }
+  table.postForm input[name=sub] { width: calc(100% - 60px); }
+  form.deleteForm { float: none; }
+  ul.boards { columns: 1; }
+}

@@ -1,0 +1,9 @@
+{{define "manage.html"}}{{template "top" .}}
+<div class="boardBanner"><div class="boardTitle">Manage</div><div class="boardSubtitle">[<strong>Reports</strong>] [<a href="/chan/manage/bans">Bans</a>]</div></div>
+<hr>
+{{with .Body}}<div class="box wide"><h2>Reports</h2>
+{{if .Reports}}<table class="manage"><thead><tr><th>Post</th><th>Reason</th><th>Reports</th><th>When</th><th>Comment</th></tr></thead><tbody>
+{{range .Reports}}<tr><td><a href="/chan/manage/post?b={{.Dir}}&amp;no={{.No}}">/{{.Dir}}/{{.No}}</a></td><td>{{.Reason}}</td><td>{{.Count}}</td><td>{{date .Created}}</td><td class="excerpt">{{short .Post.Comment}}</td></tr>{{end}}
+</tbody></table>{{else}}<p>Nothing is reported.</p>{{end}}
+</div>{{end}}
+{{template "bottom" .}}{{end}}

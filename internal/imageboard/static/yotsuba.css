@@ -1,0 +1,15 @@
+/* yotsuba */
+body { background: #ffe; color: #800000; }
+a, .backlink a, a.quotelink { color: #0000ee; }
+a:hover, a.quotelink:hover { color: #f00; }
+hr, table.manage td, table.manage th, .box, .pagelist, pre.code, .badge, .fileDeleted, .catThread .noFile, #quotePreview .post { border-color: #d9bfb7; }
+.boardTitle, .frontTitle h1, .postingMode, .closedNotice { color: #af0a0f; }
+.post.reply, #quotePreview .post, .pagelist, .box h2, .catThread:hover { background: #f0e0d6; }
+.post.reply { border-color: #d9bfb7; }
+.post.reply:target, .post.reply.highlight { background: #f0c0b0; }
+table.postForm td:first-child, table.manage th { background: #ea8; border-color: #800; color: #000; }
+.subject { color: #cc1105; }
+.name, .postertrip { color: #117743; }
+.quote { color: #789922; }
+.sideArrows { color: #d9bfb7; }
+body { background: linear-gradient(#fed6af, #ffe 200px) no-repeat, #ffe; }

@@ -1,0 +1,15 @@
+/* burichan */
+body { background: #eef2ff; color: #000; font-family: serif; }
+a, .backlink a, a.quotelink { color: #34345c; }
+a:hover, a.quotelink:hover { color: #d00; }
+hr, table.manage td, table.manage th, .box, .pagelist, pre.code, .badge, .fileDeleted, .catThread .noFile, #quotePreview .post { border-color: #b7c5d9; }
+.boardTitle, .frontTitle h1, .postingMode, .closedNotice { color: #af0a0f; }
+.post.reply, #quotePreview .post, .pagelist, .box h2, .catThread:hover { background: #d6daf0; }
+.post.reply { border-color: #b7c5d9; }
+.post.reply:target, .post.reply.highlight { background: #d6bad0; }
+table.postForm td:first-child, table.manage th { background: #ccaaff; border-color: #000; color: #000; }
+.subject { color: #0f0c5d; }
+.name, .postertrip { color: #117743; }
+.quote { color: #789922; }
+.sideArrows { color: #b7c5d9; }
+.boardTitle { font-family: serif; letter-spacing: 0; }

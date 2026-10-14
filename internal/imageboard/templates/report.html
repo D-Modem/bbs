@@ -1,0 +1,10 @@
+{{define "report.html"}}{{template "top" .}}
+{{template "banner" .}}
+<hr>
+{{with .Body}}<div class="box narrow"><h2>Report post No.{{.Post.No}}</h2>
+<form method="post" action="/chan/{{$.Board.Dir}}/report">
+<input type="hidden" name="tok" value="{{$.Token}}"><input type="hidden" name="no" value="{{.Post.No}}">
+{{range $i, $r := .Reasons}}<label class="reason"><input type="radio" name="reason" value="{{$r}}"{{if eq $i 0}} checked{{end}}> {{$r}}</label>{{end}}
+<p><button type="submit">Report</button></p>
+</form></div>{{end}}
+{{template "bottom" .}}{{end}}

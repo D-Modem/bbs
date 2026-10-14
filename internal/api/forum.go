@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/forum"
+	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
@@ -49,7 +50,7 @@ func (f forumSessions) Logout(secret string) {
 // forum is the web forum's handler, its requests counted against the
 // caller's address as the API's are.
 func (s *Server) forum() (http.Handler, error) {
-	f := &forum.Server{B: s.B, Sessions: forumSessions{s}, Guests: s.S.Guests, Secure: s.S.TLS,
+	f := &forum.Server{B: s.B, Sessions: forumSessions{s}, Guests: s.S.Guests, Secure: s.S.SecureCookies,
 		Terminal: s.terminalOn(), TTL: s.S.SessionTTL, Theme: s.S.Theme}
 	h, err := f.Handler()
 	if err != nil {
@@ -57,6 +58,25 @@ func (s *Server) forum() (http.Handler, error) {
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !s.allow("ip:" + hostOf(r)) {
+			w.Header().Set("Retry-After", "1")
+			http.Error(w, "too many requests: slow down", http.StatusTooManyRequests)
+			return
+		}
+		h.ServeHTTP(w, r)
+	}), nil
+}
+
+// imageboard is the image boards' handler, its pages counted as the
+// forum's are (not their images: a thread can have a hundred); their
+// logins are the forum's sessions.
+func (s *Server) imageboard() (http.Handler, error) {
+	ib := &imageboard.Server{B: s.B, Sessions: forumSessions{s}, S: s.S.ChanSettings, Secure: s.S.SecureCookies, TTL: s.S.SessionTTL}
+	h, err := ib.Handler()
+	if err != nil {
+		return nil, err
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !imageboard.IsAsset(r) && !s.allow("ip:"+hostOf(r)) {
 			w.Header().Set("Retry-After", "1")
 			http.Error(w, "too many requests: slow down", http.StatusTooManyRequests)
 			return

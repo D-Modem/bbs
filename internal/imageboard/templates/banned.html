@@ -1,0 +1,11 @@
+{{define "banned.html"}}{{template "top" .}}
+<hr>
+{{with .Body}}<div class="box banned">
+<h2>You are banned! ;_;</h2>
+<p>You have been banned from {{if .Ban.Board}}/{{.Ban.Board}}/{{else}}all boards{{end}} for this reason:</p>
+<p class="reason"><b>{{if .Ban.Reason}}{{.Ban.Reason}}{{else}}No reason was given.{{end}}</b></p>
+<p>Your ban was filed on <b>{{date .Ban.Created}}</b> and {{if .Ban.Expires.IsZero}}<b>will not expire</b>{{else}}expires on <b>{{date .Ban.Expires}}</b>{{end}}.</p>
+<p>The address you were banned at is <b>{{.IP}}</b>.</p>
+{{with .Ban.Post}}<div class="bannedPost"><p>What you posted:</p><blockquote>{{.}}</blockquote></div>{{end}}
+</div>{{end}}
+{{template "bottom" .}}{{end}}

@@ -108,8 +108,8 @@ func (s *Server) terminalWS(w http.ResponseWriter, r *http.Request) {
 	c.SetReadLimit(64 << 10)
 	nc := websocket.NetConn(r.Context(), c, websocket.MessageBinary)
 	host := hostOf(r)
-	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
-		host = "" // a proxy in front: as a modem server's, not throttled as one
+	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() && len(s.S.TrustedProxies) == 0 {
+		host = "" // a proxy in front, not trusted to say whose: as a modem server's, not throttled as one
 	}
 	if err := s.Terminal(nc, r.RemoteAddr, host, cols, rows); err != nil {
 		s.B.Log.Printf("web terminal %s: %v", r.RemoteAddr, err)

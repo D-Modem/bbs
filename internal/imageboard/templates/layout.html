@@ -1,0 +1,62 @@
+{{define "top"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+<link rel="stylesheet" href="/chan/static/chan.css">
+<link rel="stylesheet" href="/chan/static/{{.Style}}.css" id="stylesheet">
+<script src="/chan/static/chan.js" defer></script>
+</head>
+<body class="{{.Style}}{{with .Board}} board-{{.Dir}}{{end}}">
+<div class="boardNav">
+<span class="boardList">[{{range $i, $b := .Boards}}{{if $i}} / {{end}}<a href="/chan/{{$b.Dir}}/" title="{{$b.Title}}">{{$b.Dir}}</a>{{end}}]</span>
+<span class="navRight">
+[<a href="/chan/">Home</a>]
+{{if .User}}[{{.User.Name}}{{if .AnyStaff}} &middot; <a href="/chan/manage">Manage</a>{{end}} &middot; <form class="inline" method="post" action="/chan/logout"><input type="hidden" name="tok" value="{{.Token}}"><button class="linkish">Sign out</button></form>]
+{{else}}[<a href="/chan/login?back={{.Path}}">Sign in</a>]{{end}}
+<form class="inline styleSwitch" method="post" action="/chan/style"><input type="hidden" name="back" value="{{.Path}}">
+<label>Style: <select name="style">{{range .Styles}}<option value="{{.Name}}"{{if eq .Name $.Style}} selected{{end}}>{{.Title}}</option>{{end}}</select></label>
+<button class="go">Go</button></form>
+</span>
+</div>
+{{with .Notice}}<div class="notice">{{.}}</div>{{end}}
+{{end}}
+
+{{define "bottom"}}
+<div class="footer">
+<div class="boardList">[{{range $i, $b := .Boards}}{{if $i}} / {{end}}<a href="/chan/{{$b.Dir}}/" title="{{$b.Title}}">{{$b.Dir}}</a>{{end}}]</div>
+<div class="credit">{{.BBS}} &middot; image boards after kusaba&nbsp;x and 4chan &middot; all posts are the responsibility of their posters</div>
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "banner"}}{{with .Board}}<div class="boardBanner">
+<div class="boardTitle">/{{.Dir}}/ - {{.Title}}</div>
+{{with .Description}}<div class="boardSubtitle">{{.}}</div>{{end}}
+</div>{{end}}{{end}}
+
+{{define "file"}}<div class="file" id="f{{.No}}">
+{{if .FileDeleted}}<span class="fileDeleted">File deleted.</span>
+{{else}}<div class="fileText">File: <a href="{{.SrcURL}}" target="_blank" title="{{.FileName}}{{.Ext}}">{{short (print .FileName .Ext)}}</a> ({{if .Spoiler}}Spoiler Image, {{end}}{{size .FileSize}}, {{.W}}x{{.H}})</div>
+<a class="fileThumb{{if .Spoiler}} imgspoiler{{end}}" href="{{.SrcURL}}" target="_blank">{{if .Spoiler}}<img src="/chan/static/spoiler.png" alt="Spoiler Image" width="100" height="100">{{else}}<img src="{{.ThumbURL}}" alt="{{size .FileSize}}" width="{{.TnW}}" height="{{.TnH}}" loading="lazy">{{end}}</a>
+{{end}}</div>{{end}}
+
+{{define "post"}}<div class="postContainer {{if .OP}}opContainer{{else}}replyContainer{{end}}" id="pc{{.No}}">
+{{if not .OP}}<div class="sideArrows">&gt;&gt;</div>{{end}}
+<div id="p{{.No}}" class="post {{if .OP}}op{{else}}reply{{end}}">
+{{if and .OP .Ext}}{{template "file" .}}{{end}}
+<div class="postInfo" id="pi{{.No}}">
+<input type="checkbox" name="{{.No}}" value="delete" form="delform" aria-label="Choose post {{.No}}">
+{{with .Subject}}<span class="subject">{{.}}</span>{{end}}
+<span class="nameBlock{{with .Capcode}} capcode-{{.}}{{end}}">{{if .Email}}<a href="mailto:{{.Email}}" class="useremail">{{end}}<span class="name">{{.Name}}</span>{{with .Trip}} <span class="postertrip">{{.}}</span>{{end}}{{if .Email}}</a>{{end}}{{with .Capcode}} <strong class="capcode">## {{if eq . "admin"}}Admin{{else}}Mod{{end}}</strong>{{end}}</span>
+<span class="dateTime" title="{{iso .Created}}">{{date .Created}}</span>
+<span class="postNum"><a href="/chan/{{.Dir}}/thread/{{.Thread}}#p{{.No}}" title="Link to this post">No.</a><a href="/chan/{{.Dir}}/thread/{{.Thread}}?quote={{.No}}#postForm" class="quotePost" data-no="{{.No}}" title="Reply to this post">{{.No}}</a>{{if .Sticky}} <span class="badge sticky" title="Sticky">Sticky</span>{{end}}{{if .Closed}} <span class="badge closed" title="Closed">Closed</span>{{end}}{{if and .OP .Index}} &nbsp; <span>[<a href="/chan/{{.Dir}}/thread/{{.No}}" class="replylink">Reply</a>]</span>{{end}}</span>
+<a class="reportLink" href="/chan/{{.Dir}}/report?no={{.No}}" title="Report this post" rel="nofollow">&#9656;</a>{{if .Staff}} <a class="modLink" href="/chan/manage/post?b={{.Dir}}&amp;no={{.No}}" title="Moderate">[M]</a>{{end}}
+{{with .Backlinks}}<div class="backlink">{{range .}}<span><a href="#p{{.}}" class="quotelink" data-no="{{.}}">&gt;&gt;{{.}}</a></span> {{end}}</div>{{end}}
+</div>
+{{if and (not .OP) .Ext}}{{template "file" .}}{{end}}
+<blockquote class="postMessage" id="m{{.No}}">{{.Comment}}{{if .Cut}}<span class="abbr"><br>Comment too long. <a href="/chan/{{.Dir}}/thread/{{.Thread}}#p{{.No}}">Click here</a> to view the full text.</span>{{end}}{{if .Banned}}<br><br><strong class="banMessage">(USER WAS BANNED FOR THIS POST)</strong>{{end}}</blockquote>
+</div>
+</div>{{end}}
