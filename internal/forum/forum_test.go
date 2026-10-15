@@ -34,6 +34,18 @@ func (s *sessions) Login(r *http.Request, name, pw string) (string, *store.User,
 	if err != nil {
 		return "", nil, err
 	}
+	return s.session(u)
+}
+
+func (s *sessions) LoginCode(r *http.Request, code string) (string, *store.User, error) {
+	u, err := s.b.AuthenticateCode("forum", "test", code)
+	if err != nil {
+		return "", nil, err
+	}
+	return s.session(u)
+}
+
+func (s *sessions) session(u *store.User) (string, *store.User, error) {
 	var k [16]byte
 	rand.Read(k[:])
 	secret := hex.EncodeToString(k[:])
@@ -542,4 +554,20 @@ func TestFlags(t *testing.T) {
 		_, _, body := guest.get(topic)
 		has(t, th.Name, body, flag, `<a href="https://db-ip.com" rel="noopener">DB-IP</a>`)
 	}
+}
+
+// TestSignInCode: a code made on the BBS signs in alone, once.
+func TestSignInCode(t *testing.T) {
+	s := setup(t)
+	br := s.browser()
+	_, _, page := br.get("/forum/login")
+	has(t, "the sign-in page", page, `name="code"`, "Or with a sign-in code")
+	code, _ := s.b.LoginCode(mustUser(s, "alice"))
+	_, at, body := br.post("", "/forum/login", url.Values{"code": {strings.ToLower(code)}, "back": {"/forum/"}})
+	if at != "/forum/" || !strings.Contains(body, "Signed in as") || !strings.Contains(body, "alice") {
+		t.Fatalf("by a code: %s\n%s", at, body)
+	}
+	other := s.browser()
+	_, _, body = other.post("", "/forum/login", url.Values{"code": {code}})
+	has(t, "a code twice", body, "Wrong name or password")
 }

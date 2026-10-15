@@ -141,6 +141,21 @@ API is not taken as a cookie. Logging out revokes the token. Every form a
 logged-in user sends carries a token of their session's, and is refused
 without it.
 
+### Sign-in codes
+
+Signed in on the BBS (telnet, SSH, a modem by modemmenu, a 3270), a user
+asks *Your profile*, `C` (PF10), for a sign-in code: eight letters and
+digits, `ABCD-EFGH`, good once, for five minutes; a new one ends the last.
+The Sign In page takes the code alone, with no name or password: a
+password typed nowhere on the machine at hand, or for a user whose
+password is modemmenu's.  Anywhere else a password is asked (the web
+terminal, the image boards, the API, FTP), the code serves once for the
+password, with the user's name.
+
+Codes are kept in memory (a restart ends them) as their SHA-256, never
+logged; a wrong one is a failed login, throttled and in the hack log like
+any other; a locked account's opens nothing.
+
 The pages allow nothing from elsewhere (`Content-Security-Policy:
 default-src 'self'`), no framing, and keep no copies (`no-store`).
 Requests count against the API's `rate` per address.

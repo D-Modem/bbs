@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"io"
 	"log"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
@@ -221,5 +223,27 @@ func TestConfig3270(t *testing.T) {
 	}
 	if e.b.Conf().Name != "Renamed BBS" {
 		t.Errorf("name in force: %q", e.b.Conf().Name)
+	}
+}
+
+// TestSignInCodeMade: the profile's Sign-in code shows one, good for the
+// caller's sign-in elsewhere.
+func TestSignInCodeMade(t *testing.T) {
+	e := start(t, nil, &Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no"})
+	s := login(e, "alice", "alicepass1")
+	s.send("P")
+	s.expect("Sign-in [C]ode (for the web)")
+	s.send("C")
+	s.expect("Your sign-in code, good once, until ")
+	s.expect("    ")
+	buf := make([]byte, 9)
+	s.c.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if _, err := io.ReadFull(io.MultiReader(bytes.NewReader(s.got), s.c), buf); err != nil {
+		t.Fatal(err)
+	}
+	code := string(buf)
+	u, err := e.b.AuthenticateCode("test", "src", code)
+	if err != nil || u.Name != "alice" {
+		t.Fatalf("code %q: %+v %v", code, u, err)
 	}
 }

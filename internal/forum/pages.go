@@ -599,7 +599,13 @@ func (s *Server) login(q *req) {
 	form := map[string]any{"Back": back}
 	if q.r.Method == http.MethodPost {
 		name := strings.TrimSpace(q.r.PostForm.Get("name"))
-		secret, _, err := s.Sessions.Login(q.r, name, q.r.PostForm.Get("password"))
+		var secret string
+		var err error
+		if code := strings.TrimSpace(q.r.PostForm.Get("code")); code != "" {
+			secret, _, err = s.Sessions.LoginCode(q.r, code)
+		} else {
+			secret, _, err = s.Sessions.Login(q.r, name, q.r.PostForm.Get("password"))
+		}
 		if err == nil {
 			q.setCookie(secret)
 			q.redirect(back)

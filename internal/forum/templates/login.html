@@ -10,5 +10,11 @@
     <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
     <div class="editor-foot">{{if .Register}}<a href="/forum/register">Create an account</a>{{end}}<button class="button important">Sign In</button></div>
   </form>
+  <form method="post" action="/forum/login" class="box-body signin">
+    <input type="hidden" name="back" value="{{$b.Back}}">
+    <p class="desc">Or with a sign-in code: on the BBS, your profile's Sign-in code.  Good once, for five minutes.</p>
+    <label class="field"><span>Code</span><input type="text" name="code" placeholder="ABCD-EFGH" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="12" required></label>
+    <div class="editor-foot"><button class="button important">Sign In</button></div>
+  </form>
 </div>
 {{template "foot" .}}{{end}}

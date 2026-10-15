@@ -16,11 +16,24 @@ import (
 type forumSessions struct{ s *Server }
 
 func (f forumSessions) Login(r *http.Request, name, password string) (string, *store.User, error) {
-	s := f.s
-	u, err := s.B.Authenticate("forum", "ip:"+hostOf(r), name, password)
+	u, err := f.s.B.Authenticate("forum", "ip:"+hostOf(r), name, password)
 	if err != nil {
 		return "", nil, err
 	}
+	return f.session(r, u)
+}
+
+func (f forumSessions) LoginCode(r *http.Request, code string) (string, *store.User, error) {
+	u, err := f.s.B.AuthenticateCode("forum", "ip:"+hostOf(r), code)
+	if err != nil {
+		return "", nil, err
+	}
+	return f.session(r, u)
+}
+
+// session is a browser's session for u, signed in.
+func (f forumSessions) session(r *http.Request, u *store.User) (string, *store.User, error) {
+	s := f.s
 	scopes := "read post mail chat files"
 	secret, hash := NewToken()
 	if _, err := s.B.Store.AddToken(&store.Token{UserID: u.ID, Name: "forum login from " + hostOf(r), Hash: hash,

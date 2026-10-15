@@ -29,7 +29,8 @@ password nor key.
 ## Keys
 
 A user's keys are their own to add, from the text BBS (*Your profile*,
-`K`, after giving their password again), from the [HTTP API](HTTP-API)
+`K`, after giving their password again: for an account modemmenu made,
+its modemmenu password, or a [sign-in code](Web-Forum#sign-in-codes)), from the [HTTP API](HTTP-API)
 (`POST /api/v1/me/keys` with a login's session token, not an API key), or
 by the sysop:
 

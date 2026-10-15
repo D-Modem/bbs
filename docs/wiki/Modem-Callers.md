@@ -124,6 +124,11 @@ login here (throttling, the hack log) as any other; modemmenu not
 answering is said to the caller as trouble, and not counted against them.
 Changing such a password is modemmenu's (its backend's), not the BBS's.
 
+Without typing it at all: signed in on the BBS, *Your profile*'s sign-in
+code (`C`) signs in to the web forum once, for five minutes
+([Web forum](Web-Forum#sign-in-codes)); and SSH keys added there
+(`K`) log in by SSH with no password.
+
 ## Where callers are
 
 `[general] phone_country` reads modem callers' numbers by every

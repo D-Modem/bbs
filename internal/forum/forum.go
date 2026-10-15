@@ -33,6 +33,9 @@ type Sessions interface {
 	// Login checks a name and password (throttled and logged as any
 	// login) and gives a session's secret.
 	Login(r *http.Request, name, password string) (secret string, u *store.User, err error)
+	// LoginCode signs in by a sign-in code (made in a BBS session),
+	// throttled and logged as any login.
+	LoginCode(r *http.Request, code string) (secret string, u *store.User, err error)
 	// User is a session's user (nil: none, or ended).
 	User(secret string) *store.User
 	// Logout ends a session.

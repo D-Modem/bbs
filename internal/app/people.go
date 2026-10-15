@@ -272,9 +272,10 @@ func (s *Session) profile() error {
 		}
 		p.Actions = append(p.Actions, s.UI.TerminalActions()...)
 		if !u.External {
-			p.Actions = append(p.Actions, view.Action{ID: "password", Label: "Password", Key: 'P', PF: 6},
-				view.Action{ID: "keys", Label: "SSH keys", Key: 'K', PF: 9})
+			p.Actions = append(p.Actions, view.Action{ID: "password", Label: "Password", Key: 'P', PF: 6})
 		}
+		p.Actions = append(p.Actions, view.Action{ID: "keys", Label: "SSH keys", Key: 'K', PF: 9},
+			view.Action{ID: "code", Label: "Sign-in code (for the web)", Key: 'C', PF: 10, Short: "Code"})
 		act, err := s.UI.Panel(p)
 		if err != nil {
 			return err
@@ -375,10 +376,18 @@ func (s *Session) profile() error {
 			if err := s.password(); err != nil {
 				return err
 			}
-		case "keys":
-			if u.External {
-				continue
+		case "code":
+			code, until := s.B.LoginCode(u)
+			s.B.Log.Printf("node %d: %s made a sign-in code", s.N.Num, u.Name)
+			if err := s.UI.Show("Sign-in code", []view.Line{
+				view.L("Your sign-in code, good once, until " + until.Format("15:04") + ":"), view.L(""),
+				view.T(view.Bright, "    "+code), view.L(""),
+				view.L("On the web forum's Sign In page, type it alone; anywhere else (the web"),
+				view.L("terminal, the API), type it for your password.  A new one ends this one."),
+			}); err != nil {
+				return err
 			}
+		case "keys":
 			if err := s.sshKeys(); err != nil {
 				return err
 			}

@@ -159,6 +159,9 @@ type BBS struct {
 		Check(user, pw string) (ok bool, backend string, err error)
 	}
 	MenuAuthCreate bool
+
+	codesMu sync.Mutex
+	codes   map[string]signInCode // sign-in codes by their hash
 	// Config edits the configuration file, on the sysop's menu (nil: none)
 	Config *ConfigTools
 	// Doors are the door programs (for text callers)
@@ -427,6 +430,25 @@ func (n *Node) Login(name, pw string) (*store.User, error) {
 // log): a failure is delayed by FailDelay and counted against source, and
 // a source that fails too often is turned away for a while.
 func (b *BBS) Authenticate(who, source, name, pw string) (*store.User, error) {
+	return b.authenticate(who, source, name, func() (*store.User, error) {
+		u, err := b.Store.CheckPassword(name, pw)
+		if errors.Is(err, store.ErrNotFound) {
+			// a sign-in code, typed for the password: the name's
+			if cu := b.spendCode(pw, func(c *store.User) bool { return strings.EqualFold(c.Name, name) }); cu != nil {
+				b.Log.Printf("%s: %s by a sign-in code", who, cu.Name)
+				return cu, nil
+			}
+		}
+		if errors.Is(err, store.ErrNotFound) && b.MenuAuth != nil {
+			u, err = b.menuLogin(who, name, pw)
+		}
+		return u, err
+	})
+}
+
+// authenticate is a login by check, as name (for the log): throttled
+// first; a store.ErrNotFound from check is a failure, delayed and counted.
+func (b *BBS) authenticate(who, source, name string, check func() (*store.User, error)) (*store.User, error) {
 	if b.throttled(source) {
 		b.Log.Printf("%s: %s: login refused, throttled", who, source)
 		b.Guard.Hack("%s %s: login refused, throttled", source, who)
@@ -434,10 +456,7 @@ func (b *BBS) Authenticate(who, source, name, pw string) (*store.User, error) {
 		time.Sleep(b.Conf().FailDelay)
 		return nil, ErrThrottled
 	}
-	u, err := b.Store.CheckPassword(name, pw)
-	if errors.Is(err, store.ErrNotFound) && b.MenuAuth != nil {
-		u, err = b.menuLogin(who, name, pw)
-	}
+	u, err := check()
 	if errors.Is(err, store.ErrNotFound) {
 		b.failed(source)
 		b.Stats.LoginFailures.Add(1)
