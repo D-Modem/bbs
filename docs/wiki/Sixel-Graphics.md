@@ -19,6 +19,7 @@ The [image boards](Image-Boards)' pictures are shown with sixel too, and
 on terminals without it as they can: kitty's graphics protocol on kitty
 and Ghostty, iTerm2's inline images on iTerm2 and mintty, and coloured
 half blocks on any other UTF-8 terminal with colour.  *Pictures on/off*
-(**M**) on the profile turns them off for a caller.
+(**M**) on the profile turns them off for a caller.  3270s have pictures
+of their own: vector graphics, or blocks (see [TN3270](TN3270#pictures)).
 
 **See also:** [TN3270 graphics](TN3270), [Configuration](Configuration), [Image boards](Image-Boards)

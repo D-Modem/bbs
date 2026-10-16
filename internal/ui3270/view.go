@@ -350,16 +350,40 @@ func (u *ui) messageScreen(m *view.Message, keys, msg string, off int) (go3270.S
 	// the body as written: lines of up to 79, the width of the text editor
 	width := min(u.cols-1, bbs.MaxLineLen)
 	lines := bbs.Wrap(m.Body, width)
-	if m.Picture != nil && m.Picture.Alt != "" {
-		// a 3270 shows no pictures: what it is, above the body
-		lines = append([]string{"[" + m.Picture.Alt + "]", ""}, lines...)
-	}
 	room := u.rows - 7
+	if m.Picture != nil {
+		// the picture, then what it is, above the body: the picture's
+		// rows are lines of their own, empty (text would clear it)
+		rows := m.Picture.Rows
+		if rows <= 0 {
+			rows = 12
+		}
+		pic, used := u.picture(m.Picture, 5, 1, min(rows, max(room-5, 4)), u.cols-2)
+		if off == 0 {
+			scr = append(scr, pic...)
+		} else {
+			u.pictures = nil // scrolled past
+		}
+		head := make([]string, used)
+		for i := range head {
+			head[i] = pictureRow
+		}
+		if m.Picture.Alt != "" {
+			head = append(head, "["+m.Picture.Alt+"]")
+		}
+		lines = append(append(head, ""), lines...)
+	}
 	for i := 0; i < room && off+i < len(lines); i++ {
+		if lines[off+i] == pictureRow {
+			continue
+		}
 		scr = append(scr, u.text(5+i, 0, bbs.Clean(lines[off+i], width), go3270.Green, false))
 	}
 	return scr, len(lines)
 }
+
+// pictureRow is a line of a screen that a picture takes.
+const pictureRow = "\x00picture"
 
 // field is a field to type in at row, col, width wide: past the end of the
 // row it goes on in the rows below.  The row after it.
@@ -437,8 +461,17 @@ func (u *ui) Panel(p *view.Panel) (string, error) {
 	scr := u.frame(p.Title, keys, "")
 	row := 2
 	lines := p.Lines
-	if p.Picture != nil && p.Picture.Alt != "" {
-		lines = append([]view.Line{view.T(view.Dim, "["+p.Picture.Alt+"]")}, lines...)
+	if p.Picture != nil {
+		rows := p.Picture.Rows
+		if rows <= 0 {
+			rows = u.rows - len(p.Lines) - 6
+		}
+		pic, used := u.picture(p.Picture, row, 1, min(max(rows, 4), u.rows-6), u.cols-2)
+		scr = append(scr, pic...)
+		row += used
+		if p.Picture.Alt != "" {
+			lines = append([]view.Line{view.T(view.Dim, "["+p.Picture.Alt+"]")}, lines...)
+		}
 	}
 	for _, l := range lines {
 		if row >= u.rows-3 {

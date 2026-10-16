@@ -58,12 +58,39 @@ func (u *ui) Terminal() string {
 	if c := u.dev.Codepage(); c != nil {
 		cp = c.ID()
 	}
-	return fmt.Sprintf("%s, %dx%d, code page %s", strings.TrimSpace(u.dev.TerminalType()), cols, rows, cp)
+	pictures := map[string]string{picNone: "off", picVector: "vector graphics", picBlocks: "blocks"}[u.pictureMode()]
+	return fmt.Sprintf("%s, %dx%d, code page %s, pictures %s", strings.TrimSpace(u.dev.TerminalType()), cols, rows,
+		cp, pictures)
 }
 
-func (u *ui) TerminalActions() []view.Action { return nil }
-func (u *ui) TerminalAction(string) error    { return nil }
-func (u *ui) TerminalInfo() error            { return u.terminal() }
+// TerminalActions: pictures on and off, where the terminal can show them.
+func (u *ui) TerminalActions() []view.Action {
+	off := u.noPictures
+	u.noPictures = false
+	can := u.pictureMode() != picNone
+	u.noPictures = off
+	if !can {
+		return nil
+	}
+	return []view.Action{{ID: "pictures", Label: "Pictures on/off", Key: 'M', PF: 11, Short: "Pictures"}}
+}
+
+// TerminalAction switches pictures, and keeps it for next time.
+func (u *ui) TerminalAction(id string) error {
+	if id != "pictures" {
+		return nil
+	}
+	u.noPictures = !u.noPictures
+	return u.n.SetPref("pictures", map[bool]string{true: "off", false: "on"}[u.noPictures])
+}
+
+// applyPrefs: pictures as the caller left them last time.
+func (u *ui) applyPrefs() {
+	if on, ok := u.n.Prefs().On("pictures"); ok {
+		u.noPictures = !on
+	}
+}
+func (u *ui) TerminalInfo() error { return u.terminal() }
 
 // Watch: a 3270 shows a node's screen no more than it shows a door's.
 func (u *ui) Watch(int) error {

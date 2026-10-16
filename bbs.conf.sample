@@ -63,10 +63,12 @@ goodbye = Thanks for calling.
 ; terminal has it.  tn3270_symbols: the logo (the system's name, or
 ; tn3270_logo, a PNG, or logo: one color, dark or opaque pixels drawn) loaded as programmed
 ; symbols on terminals that take them (IBM PCOMM, HostExplorer; not the
-; x3270 family).  tn3270_vector: the logo drawn with vector graphics instead
-; on terminals that have them (PCOMM with host graphics on); experimental
+; x3270 family).  tn3270_vector: pictures (an image board's) drawn in the
+; terminal's own colors, and the logo, with vector graphics on terminals
+; that have them (PCOMM with host graphics on); without them, pictures
+; are drawn in blocks (graphic escape, x3270) or said in words
 tn3270_symbols = yes
-tn3270_vector = no
+tn3270_vector = yes
 ;tn3270_logo = /etc/bbs/logo.png
 ; file areas: where the files are kept (by number, never by their names),
 ; the largest file, and what a user may upload a day (sysops: no limit)

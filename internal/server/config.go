@@ -274,7 +274,7 @@ func (c *Config) general(g *config.Section) error {
 	if c.Graphics.Symbols, err = g.Bool("tn3270_symbols", true); err != nil {
 		return err
 	}
-	if c.Graphics.Vector, err = g.Bool("tn3270_vector", false); err != nil {
+	if c.Graphics.Vector, err = g.Bool("tn3270_vector", true); err != nil {
 		return err
 	}
 	c.LogoFile = g.String("logo", "")

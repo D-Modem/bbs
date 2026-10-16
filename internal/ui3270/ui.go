@@ -68,10 +68,14 @@ type ui struct {
 	logo     *logo     // nil: no graphics logo
 	logoAt   [2]int    // where the vector logo goes on this screen
 	drawn    bool      // vector graphics are on the screen
-	chatting bool      // in a chat room (its lines are its screen's)
-	backlog  []string  // other nodes' lines not shown yet
-	say      string    // for the next screen's message line
-	sayBad   bool      // and it is of something refused or failed
+	pictures []placed  // vector pictures for this screen
+	laid     *laidOut  // the last picture laid out
+	// noPictures: the caller turned pictures off (pictureMode)
+	noPictures bool
+	chatting   bool     // in a chat room (its lines are its screen's)
+	backlog    []string // other nodes' lines not shown yet
+	say        string   // for the next screen's message line
+	sayBad     bool     // and it is of something refused or failed
 }
 
 // Run is a caller's session on a 3270, from the logon screen to the
@@ -97,6 +101,7 @@ func (u *ui) run() error {
 	if err := u.logon(); err != nil {
 		return err
 	}
+	u.applyPrefs()
 	err := app.Run(u.b, u.n, u)
 	if errors.Is(err, app.ErrLogoff) {
 		err = errLogoff
@@ -114,19 +119,21 @@ func (u *ui) show(scr go3270.Screen, vals map[string]string) (go3270.Response, m
 			break
 		}
 	}
-	if u.drawn {
-		// vector graphics stay until the terminal is reset: Erase/Reset,
-		// to the alternate screen size if that is what go3270 writes to
-		flag := byte(0)
-		if u.rows != 24 || u.cols != 80 {
-			flag = 0x80
-		}
-		if err := go3270.WriteStructuredFields(u.g, []byte{0x03, flag}); err != nil {
-			return go3270.Response{}, nil, err
-		}
-		u.drawn = false
-	}
+	// the screen's vector pictures are its own
+	defer func() { u.pictures = nil }()
 	for {
+		if u.drawn {
+			// vector graphics stay until the terminal is reset: Erase/Reset,
+			// to the alternate screen size if that is what go3270 writes to
+			flag := byte(0)
+			if u.rows != 24 || u.cols != 80 {
+				flag = 0x80
+			}
+			if err := go3270.WriteStructuredFields(u.g, []byte{0x03, flag}); err != nil {
+				return go3270.Response{}, nil, err
+			}
+			u.drawn = false
+		}
 		u.g.n = 0
 		d := time.Now().Add(u.b.Conf().IdleTimeout)
 		if !u.deadline.IsZero() && u.deadline.Before(d) {
@@ -136,7 +143,7 @@ func (u *ui) show(scr go3270.Screen, vals map[string]string) (go3270.Response, m
 		resp, err := go3270.ShowScreenOpts(scr, vals, u.g, go3270.ScreenOpts{
 			AltScreen: u.dev, Codepage: u.dev.Codepage(),
 			CursorRow: crow, CursorCol: ccol,
-			PostSendCallback: func(any) error { return u.drawLogo() },
+			PostSendCallback: func(any) error { return u.drawGraphics() },
 		})
 		u.g.SetReadDeadline(time.Time{})
 		if err != nil {
