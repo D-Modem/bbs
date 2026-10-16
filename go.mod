@@ -48,4 +48,4 @@ require (
 	modernc.org/token v1.1.0 // indirect
 )
 
-replace github.com/racingmars/go3270 => github.com/Neo-Desktop/go3270-sec v0.9.14-0.20261016021140-6c4a4ee0bbe9
+replace github.com/racingmars/go3270 => github.com/Neo-Desktop/go3270-sec v0.9.14-0.20261016024102-aeb7581efaee

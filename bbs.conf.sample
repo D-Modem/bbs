@@ -66,7 +66,8 @@ goodbye = Thanks for calling.
 ; x3270 family).  tn3270_vector: pictures (an image board's) drawn in the
 ; terminal's own colors, and the logo, with vector graphics on terminals
 ; that have them (PCOMM with host graphics on); without them, pictures
-; are drawn in blocks (graphic escape, x3270) or said in words
+; are drawn in programmed symbols (tn3270_symbols), in blocks (graphic
+; escape, x3270), or said in words
 tn3270_symbols = yes
 tn3270_vector = yes
 ;tn3270_logo = /etc/bbs/logo.png

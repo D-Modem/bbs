@@ -58,7 +58,8 @@ func (u *ui) Terminal() string {
 	if c := u.dev.Codepage(); c != nil {
 		cp = c.ID()
 	}
-	pictures := map[string]string{picNone: "off", picVector: "vector graphics", picBlocks: "blocks"}[u.pictureMode()]
+	pictures := map[string]string{picNone: "off", picVector: "vector graphics", picSymbols: "programmed symbols",
+		picBlocks: "blocks"}[u.pictureMode()]
 	return fmt.Sprintf("%s, %dx%d, code page %s, pictures %s", strings.TrimSpace(u.dev.TerminalType()), cols, rows,
 		cp, pictures)
 }

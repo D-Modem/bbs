@@ -5,7 +5,9 @@ import (
 	"encoding/hex"
 	"image"
 	"image/color"
+	"image/png"
 	"net"
+	"os"
 	"testing"
 
 	"github.com/racingmars/go3270"
@@ -149,8 +151,12 @@ func TestBlockFields(t *testing.T) {
 	set(3, 0, color.RGBA{0, 0, 0, 255})
 	set(3, 1, color.RGBA{0, 0, 0, 255})
 	scr := blockFields(img, 7, 2)
-	if len(scr) != 2 {
+	if len(scr) != 3 {
 		t.Fatalf("fields %+v", scr)
+	}
+	// the colors set back after it, not the character set
+	if f := scr[2]; !f.AttributeOnly || f.Color != go3270.DefaultColor || f.DefaultCharSet || f.Content != "" {
+		t.Errorf("reset %+v", f)
 	}
 	if f := scr[0]; f.Row != 7 || f.Col != 2 || f.Color != go3270.Red || f.Content != "▀▌ " || !f.AttributeOnly {
 		t.Errorf("first %+v", f)
@@ -158,4 +164,119 @@ func TestBlockFields(t *testing.T) {
 	if f := scr[1]; f.Col != 5 || f.Color != go3270.Blue || f.Content != "█" {
 		t.Errorf("second %+v", f)
 	}
+}
+
+// TestSymbolPicture: on PCOMM without vector graphics a picture is cells
+// of programmed symbols: loaded before the screen into its two sets (380
+// symbols at most, LCIDs 0xC2 and 0xC3), each cell a Set Attribute's
+// color and set, the attributes reset after it.  What the terminal would
+// show is drawn to SYMBOLS_PNG if set.
+func TestSymbolPicture(t *testing.T) {
+	dev := pcomm(t)
+	u := &ui{dev: dev, rows: 24, cols: 80, o: Options{Graphics: Graphics{Symbols: true}}}
+	if m := u.pictureMode(); m != picSymbols {
+		t.Fatalf("mode %q", m)
+	}
+	// a disc: red to yellow left to right, blue below, on black
+	img := image.NewRGBA(image.Rect(0, 0, 320, 240))
+	for y := 0; y < 240; y++ {
+		for x := 0; x < 320; x++ {
+			dx, dy := x-160, y-120
+			switch {
+			case dx*dx+dy*dy < 100*100:
+				img.Set(x, y, color.RGBA{255, uint8(x * 255 / 320), 0, 255})
+			case y > 200:
+				img.Set(x, y, color.RGBA{0, 0, 200, 255})
+			default:
+				img.Set(x, y, color.RGBA{0, 0, 0, 255})
+			}
+		}
+	}
+	p := &view.Picture{Load: func(w, h int) (image.Image, error) { return img, nil }}
+	fields, used := u.picture(p, 5, 1, 12, 78)
+	if used == 0 || used > 12 || len(u.loads) == 0 || len(u.loads) > 2 {
+		t.Fatalf("rows %d, loads %d", used, len(u.loads))
+	}
+	symbols := 0
+	for i, sf := range u.loads {
+		// Load PS: 06, flags (clear), LCID, first code point, RWS
+		if sf[0] != 0x06 || sf[2] != byte(0xc2+i) || sf[3] != 0x41 || sf[4] != byte(2+i) {
+			t.Errorf("load %d: % x", i, sf[:5])
+		}
+		symbols += (len(sf) - 5) / 18 // format 1: 18 bytes a symbol
+	}
+	if symbols == 0 || symbols > 380 {
+		t.Errorf("%d symbols", symbols)
+	}
+	last := fields[len(fields)-1]
+	if !last.AttributeOnly || !last.DefaultCharSet || last.Color != go3270.DefaultColor {
+		t.Errorf("no reset after it: %+v", last)
+	}
+	colorsSeen := map[go3270.Color]bool{}
+	for _, f := range fields[:len(fields)-1] {
+		if !f.AttributeOnly || f.CharSet < 0xc2 || f.CharSet > 0xc3 || len(f.Raw) == 0 || f.Row < 5 || f.Row >= 5+used {
+			t.Fatalf("field %+v", f)
+		}
+		for _, c := range f.Raw {
+			if c != 0x40 && (c < 0x41 || c > 0xfe) {
+				t.Fatalf("code point %x", c)
+			}
+		}
+		colorsSeen[f.Color] = true
+	}
+	for _, c := range []go3270.Color{go3270.Red, go3270.Yellow, go3270.Blue} {
+		if !colorsSeen[c] {
+			t.Errorf("no %x cells: %v", c, colorsSeen)
+		}
+	}
+	if out := os.Getenv("SYMBOLS_PNG"); out != "" {
+		drawSymbols(t, out, fields[:len(fields)-1], u.loads)
+	}
+}
+
+// drawSymbols draws symbol fields as the terminal would, 2x, to a PNG.
+func drawSymbols(t *testing.T, name string, fields go3270.Screen, loads [][]byte) {
+	syms := map[[2]byte][]byte{} // LCID, code point: 18 bytes of format 1
+	for _, sf := range loads {
+		data := sf[5:]
+		for i := 0; i+18 <= len(data); i += 18 {
+			syms[[2]byte{sf[2], byte(0x41 + i/18)}] = data[i : i+18]
+		}
+	}
+	rgb := map[go3270.Color]color.RGBA{}
+	for _, bc := range blockColors {
+		rgb[bc.c] = bc.rgb
+	}
+	out := image.NewRGBA(image.Rect(0, 0, 80*9*2, 24*16*2))
+	for _, f := range fields {
+		for i, c := range f.Raw {
+			s, ok := syms[[2]byte{f.CharSet, c}]
+			if !ok {
+				continue
+			}
+			x0, y0 := (f.Col+i)*9, f.Row*16
+			for y := 0; y < 16; y++ {
+				for x := 0; x < 9; x++ {
+					// format 1: 2 bytes of column 0's 16 bits, then a byte a row of columns 1 to 8
+					var bit bool
+					if x == 0 {
+						bit = (uint16(s[0])<<8|uint16(s[1]))&(0x8000>>y) != 0
+					} else {
+						bit = s[2+y]&(0x80>>(x-1)) != 0
+					}
+					if bit {
+						for d := 0; d < 4; d++ {
+							out.SetRGBA(2*(x0+x)+d%2, 2*(y0+y)+d/2, rgb[f.Color])
+						}
+					}
+				}
+			}
+		}
+	}
+	f, err := os.Create(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	png.Encode(f, out)
 }

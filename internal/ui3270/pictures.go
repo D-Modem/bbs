@@ -7,6 +7,10 @@ package ui3270
 //     colors (16 on IBM Personal Communications), drawn over cells kept
 //     empty for it: a character, or the cursor, over a picture clears it
 //     in its cell
+//   - programmed symbols: the picture cut into cells, each a symbol loaded
+//     into the terminal's symbol sets (380 on PCOMM with vector graphics
+//     too, 570 without) in one of the 7 colors: HostExplorer, Quick3270,
+//     PCOMM with only programmed symbols on
 //   - graphic escape's blocks (▀ ▄ ▌ ▐ █) in the 3270's 7 colors, a cell
 //     two pixels by two: x3270 and nearly every color 3270
 //
@@ -25,10 +29,17 @@ import (
 
 // Ways of showing a picture.
 const (
-	picNone   = ""
-	picVector = "vector"
-	picBlocks = "blocks"
+	picNone    = ""
+	picVector  = "vector"
+	picSymbols = "symbols"
+	picBlocks  = "blocks"
 )
+
+// the symbol sets' local IDs for pictures: 0xC2 on (the logo's is 0xC1)
+const pictureLCID = 0xc2
+
+// symbolsASet is how many symbols a set takes: code points 0x41 to 0xFE
+const symbolsASet = 0xfe - 0x41 + 1
 
 // placed is a vector picture to draw once its screen is on the terminal.
 type placed struct {
@@ -40,10 +51,11 @@ type placed struct {
 type laidOut struct {
 	p                    *view.Picture
 	row, col, rows, cols int
+	mode                 string
 	fields               go3270.Screen
 	used                 int
-	sfs                  [][]byte
-	mode                 string
+	sfs                  [][]byte // vector graphics, drawn after the screen
+	loads                [][]byte // Load PS, sent before it
 }
 
 // pictureMode is how pictures are shown on the terminal ("": they are not).
@@ -53,6 +65,8 @@ func (u *ui) pictureMode() string {
 		return picNone
 	case u.o.Graphics.Vector && u.dev.SupportsVectorGraphics():
 		return picVector
+	case u.o.Graphics.Symbols && len(u.pictureSets()) > 0 && u.colorTerminal():
+		return picSymbols
 	case u.dev.SupportsGE() && u.colorTerminal():
 		return picBlocks
 	}
@@ -66,7 +80,7 @@ func (u *ui) colorTerminal() bool {
 		return true
 	}
 	r := u.dev.QueryReply(0x86)
-	return len(r) >= 4 && r[3] >= 8 // QCODE, flags, NP: the pairs
+	return len(r) >= 3 && r[2] >= 8 // QCODE, flags, NP: the pairs
 }
 
 // cell is the character cell in pels, as the terminal said or a 3279's.
@@ -87,35 +101,42 @@ func (u *ui) picture(p *view.Picture, row, col, rows, cols int) (go3270.Screen, 
 	if mode == picNone || p == nil || p.Load == nil || rows < 1 || cols < 1 {
 		return nil, 0
 	}
-	if c := u.laid; c != nil && c.p == p && c.row == row && c.col == col && c.rows == rows && c.cols == cols && c.mode == mode {
-		if c.sfs != nil {
-			u.pictures = append(u.pictures, placed{sfs: c.sfs})
-		}
-		return c.fields, c.used
+	c := u.laid
+	if c == nil || c.p != p || c.row != row || c.col != col || c.rows != rows || c.cols != cols || c.mode != mode {
+		c = u.layOut(mode, p, row, col, rows, cols)
+		c.p, c.row, c.col, c.rows, c.cols, c.mode = p, row, col, rows, cols, mode
+		u.laid = c
 	}
-	fields, used, sfs := u.layOut(mode, p, row, col, rows, cols)
-	u.laid = &laidOut{p: p, row: row, col: col, rows: rows, cols: cols, fields: fields, used: used, sfs: sfs, mode: mode}
-	if sfs != nil {
-		u.pictures = append(u.pictures, placed{sfs: sfs})
+	if c.sfs != nil {
+		u.pictures = append(u.pictures, placed{sfs: c.sfs})
 	}
-	return fields, used
+	u.loads = append(u.loads, c.loads...)
+	return c.fields, c.used
 }
 
-// layOut makes p into blocks' fields, or vector graphics' structured
-// fields.
-func (u *ui) layOut(mode string, p *view.Picture, row, col, rows, cols int) (go3270.Screen, int, [][]byte) {
+// layOut makes p into blocks' or symbols' fields (and the symbols' Load
+// PS), or vector graphics' structured fields.
+func (u *ui) layOut(mode string, p *view.Picture, row, col, rows, cols int) *laidOut {
 	cw, ch := u.cell()
 	maxW, maxH := cols*cw, rows*ch
 	img, err := p.Load(maxW, maxH)
 	if err != nil || img == nil {
-		return nil, 0, nil
+		return &laidOut{}
 	}
-	if mode == picBlocks {
+	switch mode {
+	case picBlocks:
 		// a cell is two block pixels by two, each cw/2 by ch/2 pels: the
 		// image as many of them as fit, its shape kept
 		w, h := fitSize(img.Bounds().Dx(), img.Bounds().Dy()*cw/ch, 2*cols, 2*rows)
 		w, h = w+w%2, h+h%2
-		return blockFields(scale(img, w, h), row, col), h / 2, nil
+		return &laidOut{fields: blockFields(scale(img, w, h), row, col), used: h / 2}
+	case picSymbols:
+		fields, used, loads, err := u.symbolPicture(img, row, col, rows, cols)
+		if err != nil {
+			u.b.Log.Printf("node %d: picture: %v", u.n.Num, err)
+			return &laidOut{}
+		}
+		return &laidOut{fields: fields, used: used, loads: loads}
 	}
 	// fitted in pels, which are square: the shape it has
 	w, h := fitSize(img.Bounds().Dx(), img.Bounds().Dy(), maxW, maxH)
@@ -128,9 +149,9 @@ func (u *ui) layOut(mode string, p *view.Picture, row, col, rows, cols int) (go3
 	sfs, _, err := go3270.ImagePictures(x, y, go3270.PictureOptions{Mix: go3270.MixOverpaint}, bitmaps...)
 	if err != nil {
 		u.b.Log.Printf("node %d: picture: %v", u.n.Num, err)
-		return nil, 0, nil
+		return &laidOut{}
 	}
-	return nil, used, sfs
+	return &laidOut{used: used, sfs: sfs}
 }
 
 // fitSize is w by h made to fit maxW by maxH, its shape kept (never made
@@ -164,6 +185,12 @@ var blockColors = []struct {
 	{go3270.White, color.RGBA{255, 255, 255, 255}},
 }
 
+// colorDist is how far apart two colors look: green counts most.
+func colorDist(a, b color.RGBA) int {
+	dr, dg, db := int(a.R)-int(b.R), int(a.G)-int(b.G), int(a.B)-int(b.B)
+	return 2*dr*dr + 4*dg*dg + 3*db*db
+}
+
 // blocks are graphic escape's blocks by the quarters of the cell they
 // fill: top left, top right, bottom left, bottom right.
 var blocks = []struct {
@@ -179,10 +206,7 @@ var blocks = []struct {
 // col: a cell is one color, or black, so each takes the color and the
 // block nearest its four pixels.  Runs of a color are one Set Attribute.
 func blockFields(img *image.RGBA, row, col int) go3270.Screen {
-	dist := func(a color.RGBA, b color.RGBA) int {
-		dr, dg, db := int(a.R)-int(b.R), int(a.G)-int(b.G), int(a.B)-int(b.B)
-		return 2*dr*dr + 4*dg*dg + 3*db*db
-	}
+	dist := colorDist
 	black := color.RGBA{0, 0, 0, 255}
 	var scr go3270.Screen
 	cells := img.Bounds().Dx() / 2
@@ -230,7 +254,15 @@ func blockFields(img *image.RGBA, row, col int) go3270.Screen {
 		}
 		flush(0)
 	}
-	return scr
+	return append(scr, resetAttributes(row+img.Bounds().Dy()/2-1, col+cells, false))
+}
+
+// resetAttributes is a Set Attribute back to the defaults (the character
+// set too, if charSet: a terminal without programmed symbols may refuse
+// it), at the end of a picture: a Set Attribute lasts the rest of the
+// screen's write, its text after the picture too.
+func resetAttributes(row, col int, charSet bool) go3270.Field {
+	return go3270.Field{Row: row, Col: col, AttributeOnly: true, DefaultCharSet: charSet}
 }
 
 // drawGraphics draws the screen's vector graphics, the logo and pictures,

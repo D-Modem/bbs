@@ -70,6 +70,7 @@ type ui struct {
 	drawn    bool      // vector graphics are on the screen
 	pictures []placed  // vector pictures for this screen
 	laid     *laidOut  // the last picture laid out
+	loads    [][]byte  // Load PS for this screen's picture, sent before it
 	// noPictures: the caller turned pictures off (pictureMode)
 	noPictures bool
 	chatting   bool     // in a chat room (its lines are its screen's)
@@ -120,7 +121,7 @@ func (u *ui) show(scr go3270.Screen, vals map[string]string) (go3270.Response, m
 		}
 	}
 	// the screen's vector pictures are its own
-	defer func() { u.pictures = nil }()
+	defer func() { u.pictures, u.loads = nil, nil }()
 	for {
 		if u.drawn {
 			// vector graphics stay until the terminal is reset: Erase/Reset,
@@ -133,6 +134,12 @@ func (u *ui) show(scr go3270.Screen, vals map[string]string) (go3270.Response, m
 				return go3270.Response{}, nil, err
 			}
 			u.drawn = false
+		}
+		if len(u.loads) > 0 {
+			// the symbols before the screen that shows them
+			if err := go3270.WriteStructuredFields(u.g, u.loads...); err != nil {
+				return go3270.Response{}, nil, err
+			}
 		}
 		u.g.n = 0
 		d := time.Now().Add(u.b.Conf().IdleTimeout)

@@ -90,6 +90,10 @@ func TestPictures3270(t *testing.T) {
 			t.Errorf("row %d, not %s blocks: %s", r, color, rows[r])
 		}
 	}
+	// the text after it in its own color, not the picture's last
+	if strings.Contains(rows[17], "SA(") || !strings.Contains(rows[17], "5b 66 6c 61 67") {
+		t.Errorf("the caption's row: %s", rows[17])
+	}
 	if !strings.Contains(out, "[flag.png, 200x100, 0 KB]") || !strings.Contains(out, "red over green") {
 		t.Errorf("no caption or body:\n%s", out)
 	}

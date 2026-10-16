@@ -69,7 +69,7 @@ var labels = map[string]string{
 	"general.phone_country": "Caller ID country", "general.geoip": "GeoIP database",
 	"general.geoip_credit": "GeoIP credit", "general.geoip_credit_url": "GeoIP credit link",
 	"general.new_user_level": "New users' level", "general.validated_level": "Validated users' level",
-	"general.tn3270_symbols": "Logo as programmed symbols", "general.tn3270_vector": "Vector graphics (pictures, logo)",
+	"general.tn3270_symbols": "Programmed symbols (pictures, logo)", "general.tn3270_vector": "Vector graphics (pictures, logo)",
 	"general.tn3270_logo": "3270 logo (PNG)", "general.page_command": "Page command",
 	"security.deny_file": "Addresses refused (file)", "security.name_deny_file": "Names refused (file)",
 	"security.hack_log": "Hack log", "security.ban_minutes": "Ban after a lock-out (min)",
