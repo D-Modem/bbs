@@ -179,3 +179,64 @@ func TestBinaryKeepsNUL(t *testing.T) {
 		t.Errorf("binary: %q", got)
 	}
 }
+
+// TestHandoffContrary: a client that answers our DONT TTYPE with WILL
+// leaves the option off (no new request for its type), and the data it
+// sent while that went on reaches go3270's side, its IAC doubled again.
+func TestHandoffContrary(t *testing.T) {
+	srv, cli := net.Pipe()
+	defer cli.Close()
+	sbAfter := make(chan bool, 1)
+	go func() {
+		buf := make([]byte, 256)
+		dontSeen, asked := false, false
+		for {
+			cli.SetReadDeadline(time.Now().Add(3 * time.Second))
+			n, err := cli.Read(buf)
+			if err != nil {
+				sbAfter <- asked
+				return
+			}
+			b := buf[:n]
+			for i := 0; i+2 < len(b); i++ {
+				if b[i] != IAC {
+					continue
+				}
+				switch {
+				case b[i+1] == DO && b[i+2] == OptTType:
+					cli.Write([]byte{IAC, WILL, OptTType})
+				case b[i+1] == SB && b[i+2] == OptTType:
+					if dontSeen {
+						asked = true
+					} else {
+						cli.Write(append(append([]byte{IAC, SB, OptTType, ttypeIs}, "IBM-3278-2-E"...), IAC, SE))
+					}
+				case b[i+1] == DONT && b[i+2] == OptTType:
+					dontSeen = true
+					// data, an escaped 0xFF, then the contrary answer
+					cli.Write([]byte{'x', IAC, IAC, IAC, WILL, OptTType})
+				}
+			}
+		}
+	}()
+	c := New(srv)
+	if tt, _ := c.ProbeTermType(2 * time.Second); !Is3270(tt) {
+		t.Fatalf("ttype %q", tt)
+	}
+	raw, err := c.Handoff3270(2 * time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.him[OptTType] {
+		t.Error("TTYPE on after its DONT was answered WILL")
+	}
+	got := make([]byte, 3)
+	raw.SetReadDeadline(time.Now().Add(2 * time.Second)) // not there: fail, not hang
+	if _, err := io.ReadFull(raw, got); err != nil || string(got) != "x\xff\xff" {
+		t.Errorf("early data %q, %v", got, err)
+	}
+	raw.Close()
+	if <-sbAfter {
+		t.Error("the terminal type asked for again after DONT")
+	}
+}

@@ -6,7 +6,9 @@ package telnet
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
+	"io"
 	"net"
 	"os"
 	"regexp"
@@ -54,6 +56,10 @@ type Conn struct {
 	us, him [256]bool // options in effect: we do, the client does
 	askUs   [256]bool // a WILL or WONT of ours is unanswered
 	askHim  [256]bool // a DO or DONT of ours is unanswered
+	// what the request unanswered asked for: true for WILL (DO), false
+	// for WONT (DONT); an answer to the contrary leaves it as asked
+	wantUs  [256]bool
+	wantHim [256]bool
 	ttype   string
 	cols    int
 	rows    int
@@ -198,9 +204,8 @@ func (c *Conn) input(b byte) (byte, bool) {
 			c.state = stIAC
 			return 0, false
 		}
-		// CR NUL is a bare CR; CR LF is passed as it is
-		// CR NUL is a bare CR in text; in binary mode (a file transfer's)
-		// a NUL is a NUL
+		// CR NUL is a bare CR in text (CR LF is passed as it is); in
+		// binary mode (a file transfer's) a NUL is a NUL
 		if b == 0 && c.lastCR && !c.him[OptBinary] {
 			c.lastCR = false
 			return 0, false
@@ -259,14 +264,16 @@ func acceptUs(opt byte) bool {
 }
 
 // option handles WILL, WONT, DO and DONT, so that no answer is sent to an
-// answer (RFC 854's rule against loops).  c.mu is held.
+// answer (RFC 854's rule against loops).  An answer to a request of ours
+// that says the contrary (WILL to our DONT) leaves the option as we asked:
+// off, never turned on by it (RFC 1143).  c.mu is held.
 func (c *Conn) option(cmd, opt byte) {
 	switch cmd {
 	case WILL:
 		switch {
 		case c.askHim[opt]:
 			c.askHim[opt] = false
-			c.him[opt] = true
+			c.him[opt] = c.wantHim[opt]
 		case c.him[opt]:
 			return
 		case acceptHim(opt):
@@ -292,7 +299,7 @@ func (c *Conn) option(cmd, opt byte) {
 		switch {
 		case c.askUs[opt]:
 			c.askUs[opt] = false
-			c.us[opt] = true
+			c.us[opt] = c.wantUs[opt]
 		case c.us[opt]:
 		case acceptUs(opt):
 			c.us[opt] = true
@@ -366,23 +373,23 @@ func (c *Conn) askLocked(cmd, opt byte) {
 		if c.him[opt] || c.askHim[opt] {
 			return
 		}
-		c.askHim[opt] = true
+		c.askHim[opt], c.wantHim[opt] = true, true
 	case DONT:
 		if !c.him[opt] || c.askHim[opt] {
 			return
 		}
-		c.askHim[opt] = true
+		c.askHim[opt], c.wantHim[opt] = true, false
 		c.him[opt] = false
 	case WILL:
 		if c.us[opt] || c.askUs[opt] {
 			return
 		}
-		c.askUs[opt] = true
+		c.askUs[opt], c.wantUs[opt] = true, true
 	case WONT:
 		if !c.us[opt] || c.askUs[opt] {
 			return
 		}
-		c.askUs[opt] = true
+		c.askUs[opt], c.wantUs[opt] = true, false
 		c.us[opt] = false
 	}
 	c.queue(IAC, cmd, opt)
@@ -471,13 +478,19 @@ func (c *Conn) Handoff3270(timeout time.Duration) (net.Conn, error) {
 	if err := c.pump(time.Now().Add(100*time.Millisecond), func() bool { return false }); err != nil {
 		return nil, err
 	}
-	return &rawConn{c.Conn, c.r}, nil
+	// the data that came while negotiating first, its IACs doubled again
+	// (go3270 reads telnet), then what is buffered, then the connection
+	c.mu.Lock()
+	early := bytes.ReplaceAll(c.early, []byte{IAC}, []byte{IAC, IAC})
+	c.early = nil
+	c.mu.Unlock()
+	return &rawConn{c.Conn, io.MultiReader(bytes.NewReader(early), c.r)}, nil
 }
 
-// rawConn is the connection under a Conn, its buffered bytes first.
+// rawConn is the connection under a Conn, the bytes read already first.
 type rawConn struct {
 	net.Conn
-	r *bufio.Reader
+	r io.Reader
 }
 
 // Read reads what the Conn had buffered, then the connection.
