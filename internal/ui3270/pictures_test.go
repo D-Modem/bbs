@@ -8,6 +8,7 @@ import (
 	"image/png"
 	"net"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/racingmars/go3270"
@@ -32,6 +33,27 @@ var pcommReplies = [][]string{{
 
 // pcomm is a DevInfo as NegotiateTelnet makes it of PCOMM's answers.
 func pcomm(t *testing.T) go3270.DevInfo {
+	t.Helper()
+	return pcommWith(t, pcommReplies)
+}
+
+// pcommTriple is PCOMM with programmed symbols alone (no vector
+// graphics): three single-plane sets and three triple-plane ones.
+func pcommTriple(t *testing.T) go3270.DevInfo {
+	t.Helper()
+	first := append([]string{}, pcommReplies[0]...)
+	for i, r := range first {
+		if strings.HasPrefix(r, "85") {
+			first[i] = r + "04" + "80ff00000000" + "05" + "c0ff00000000" + "06" + "c0ff00000000" + "07" + "c0ff00000000"
+		}
+		if strings.HasPrefix(r, "80") {
+			first[i] = "80808184858687889599a6" // no graphics replies
+		}
+	}
+	return pcommWith(t, [][]string{first, nil})
+}
+
+func pcommWith(t *testing.T, replies [][]string) go3270.DevInfo {
 	t.Helper()
 	srv, cli := net.Pipe()
 	t.Cleanup(func() { srv.Close(); cli.Close() })
@@ -66,9 +88,11 @@ func pcomm(t *testing.T) go3270.DevInfo {
 			cli.Write(a)
 		}
 		until([]byte{0x01, 0xff, 0xff, 0x02, 0xff, 0xef})
-		cli.Write(rec(pcommReplies[0]))
-		until([]byte{0x01, 0xff, 0xff, 0x03, 0x00})
-		cli.Write(rec(pcommReplies[1]))
+		cli.Write(rec(replies[0]))
+		if replies[1] != nil {
+			until([]byte{0x01, 0xff, 0xff, 0x03, 0x00})
+			cli.Write(rec(replies[1]))
+		}
 		for {
 			if _, err := cli.Read(buf); err != nil {
 				return
@@ -268,6 +292,136 @@ func drawSymbols(t *testing.T, name string, fields go3270.Screen, loads [][]byte
 						for d := 0; d < 4; d++ {
 							out.SetRGBA(2*(x0+x)+d%2, 2*(y0+y)+d/2, rgb[f.Color])
 						}
+					}
+				}
+			}
+		}
+	}
+	f, err := os.Create(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	png.Encode(f, out)
+}
+
+// TestColorSymbolPicture: with triple-plane sets a cell's pels are in any
+// of 8 colors: cells of several colors in the triple-plane sets, each
+// loaded a plane at a time (blue, red, green; cleared with the first), and
+// shown neutral; cells of one color in the single-plane sets, in their
+// color.  What the terminal would show is drawn to COLOR_SYMBOLS_PNG.
+func TestColorSymbolPicture(t *testing.T) {
+	dev := pcommTriple(t)
+	u := &ui{dev: dev, rows: 24, cols: 80, o: Options{Graphics: Graphics{Symbols: true, Vector: true}}}
+	if m := u.pictureMode(); m != picSymbols || !u.colorSets() {
+		t.Fatalf("mode %q, color sets %v", m, u.colorSets())
+	}
+	// a rainbow, left to right, darker downwards, and a white disc
+	img := image.NewRGBA(image.Rect(0, 0, 320, 200))
+	for y := 0; y < 200; y++ {
+		for x := 0; x < 320; x++ {
+			h := float64(x) / 320 * 6
+			f := h - float64(int(h))
+			v := 255 - y
+			q, tt := uint8(float64(v)*(1-f)), uint8(float64(v)*f)
+			c := [6]color.RGBA{{uint8(v), tt, 0, 255}, {q, uint8(v), 0, 255}, {0, uint8(v), tt, 255},
+				{0, q, uint8(v), 255}, {tt, 0, uint8(v), 255}, {uint8(v), 0, q, 255}}[int(h)%6]
+			if dx, dy := x-250, y-60; dx*dx+dy*dy < 30*30 {
+				c = color.RGBA{255, 255, 255, 255}
+			}
+			img.Set(x, y, c)
+		}
+	}
+	p := &view.Picture{Load: func(w, h int) (image.Image, error) { return img, nil }}
+	fields, used := u.picture(p, 5, 1, 12, 78)
+	if used == 0 {
+		t.Fatal("not shown")
+	}
+	planes := map[byte][]byte{} // LCID: the planes loaded, in order
+	for _, sf := range u.loads {
+		lcid := sf[2]
+		if sf[1]&0x80 != 0 && sf[5] == 6 { // extended, through the color plane
+			planes[lcid] = append(planes[lcid], sf[10])
+			if (sf[1]&0x40 != 0) != (sf[10] == go3270.PlaneBlue) {
+				t.Errorf("LCID %x plane %d: clear %v", lcid, sf[10], sf[1]&0x40 != 0)
+			}
+		}
+	}
+	if len(planes) == 0 {
+		t.Fatalf("no plane loaded: %d loads", len(u.loads))
+	}
+	for lcid, ps := range planes {
+		if !bytes.Equal(ps, []byte{1, 2, 4}) || lcid < 0xc2 || lcid > 0xc4 {
+			t.Errorf("LCID %x: planes %v", lcid, ps)
+		}
+	}
+	neutral, single := 0, 0
+	for _, f := range fields[:len(fields)-1] {
+		if planes[f.CharSet] != nil {
+			if f.Color != go3270.White {
+				t.Errorf("a triple-plane run not neutral: %+v", f)
+			}
+			neutral++
+		} else {
+			single++
+		}
+	}
+	if neutral == 0 {
+		t.Errorf("%d neutral runs, %d single", neutral, single)
+	}
+	if out := os.Getenv("COLOR_SYMBOLS_PNG"); out != "" {
+		drawColorSymbols(t, out, fields[:len(fields)-1], u.loads)
+	}
+}
+
+// drawColorSymbols draws symbol fields as the terminal would, triple-plane
+// sets' cells in their planes' colors, 2x, to a PNG.
+func drawColorSymbols(t *testing.T, name string, fields go3270.Screen, loads [][]byte) {
+	type key struct {
+		lcid, code, plane byte
+	}
+	syms := map[key][]byte{}
+	triple := map[byte]bool{}
+	for _, sf := range loads {
+		plane, data := byte(0), sf[5:]
+		if sf[1]&0x80 != 0 {
+			plane, data = sf[10], sf[5+int(sf[5]):]
+			triple[sf[2]] = true
+		}
+		for i := 0; i+18 <= len(data); i += 18 {
+			syms[key{sf[2], byte(0x41 + i/18), plane}] = data[i : i+18]
+		}
+	}
+	bit := func(s []byte, x, y int) bool {
+		if x == 0 {
+			return (uint16(s[0])<<8|uint16(s[1]))&(0x8000>>y) != 0
+		}
+		return s[2+y]&(0x80>>(x-1)) != 0
+	}
+	rgb := map[go3270.Color]color.RGBA{}
+	for _, bc := range blockColors {
+		rgb[bc.c] = bc.rgb
+	}
+	out := image.NewRGBA(image.Rect(0, 0, 80*9*2, 24*16*2))
+	for _, f := range fields {
+		for i, c := range f.Raw {
+			x0, y0 := (f.Col+i)*9, f.Row*16
+			for y := 0; y < 16; y++ {
+				for x := 0; x < 9; x++ {
+					var px color.RGBA
+					if triple[f.CharSet] {
+						v := 0
+						for _, p := range []byte{1, 2, 4} {
+							if s, ok := syms[key{f.CharSet, c, p}]; ok && bit(s, x, y) {
+								v |= int(p)
+							}
+						}
+						px = planeColors[v]
+					} else if s, ok := syms[key{f.CharSet, c, 0}]; ok && bit(s, x, y) {
+						px = rgb[f.Color]
+					}
+					for d := 0; d < 4; d++ {
+						out.SetRGBA(2*(x0+x)+d%2, 2*(y0+y)+d/2, px)
 					}
 				}
 			}

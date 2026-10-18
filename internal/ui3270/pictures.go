@@ -8,9 +8,10 @@ package ui3270
 //     empty for it: a character, or the cursor, over a picture clears it
 //     in its cell
 //   - programmed symbols: the picture cut into cells, each a symbol loaded
-//     into the terminal's symbol sets (380 on PCOMM with vector graphics
-//     too, 570 without) in one of the 7 colors: HostExplorer, Quick3270,
-//     PCOMM with only programmed symbols on
+//     into the terminal's symbol sets: in triple-plane sets each pel any
+//     of 8 colors, in single-plane ones each cell one of the 7
+//     (symbolpics.go): HostExplorer, Quick3270, PCOMM with only
+//     programmed symbols on
 //   - graphic escape's blocks (▀ ▄ ▌ ▐ █) in the 3270's 7 colors, a cell
 //     two pixels by two: x3270 and nearly every color 3270
 //
