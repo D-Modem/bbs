@@ -11,6 +11,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"io"
 	"log"
 	"math/big"
@@ -405,5 +406,60 @@ func TestQWK(t *testing.T) {
 	a := e2.login(t, "anonymous", "x")
 	if _, err := a.List("/qwk"); err == nil {
 		t.Error("anonymous sees /qwk")
+	}
+}
+
+// TestDownloadCounting: a download counts once the transfer reaches the
+// file's end: one cut short does not; a resumption (REST) of one counted
+// today is not counted again, and needs no downloads left when a fresh
+// one is refused for the day's limit.
+func TestDownloadCounting(t *testing.T) {
+	e := start(t, nil)
+	c := e.login(t, "alice", "alicepass1")
+	if err := c.Stor("/Uploads/big.bin", bytes.NewReader(make([]byte, 300000))); err != nil {
+		t.Fatal(err)
+	}
+	alice, _ := e.b.Store.UserByName("alice")
+	fs := &fileSystem{s: &Server{B: e.b}, user: alice, who: "test"}
+	downloads := func() int {
+		a, _ := e.b.Store.FileAreaByName("Uploads")
+		f, _ := e.b.Store.FileByName(a.ID, "big.bin")
+		return f.Downloads
+	}
+	get := func(offset int64, n int64) error {
+		t.Helper()
+		h, err := fs.GetHandle("/Uploads/big.bin", os.O_RDONLY, offset)
+		if err != nil {
+			return err
+		}
+		if offset > 0 {
+			h.Seek(offset, io.SeekStart)
+		}
+		if n < 0 {
+			io.Copy(io.Discard, h)
+		} else {
+			io.CopyN(io.Discard, h, n)
+		}
+		return h.Close()
+	}
+	if err := get(0, 1000); err != nil || downloads() != 0 {
+		t.Fatalf("cut short: %v, %d counted", err, downloads())
+	}
+	if err := get(0, -1); err != nil || downloads() != 1 {
+		t.Fatalf("whole: %v, %d counted", err, downloads())
+	}
+	if err := get(5000, -1); err != nil || downloads() != 1 {
+		t.Errorf("resumed: %v, %d counted", err, downloads())
+	}
+	conf := *e.b.Conf()
+	one := bbs.AllowAll(0, "One a day")
+	one.Downloads = 1
+	conf.Levels = []bbs.Level{one}
+	e.b.Reconfigure(conf)
+	if err := get(0, -1); !errors.Is(err, os.ErrPermission) {
+		t.Errorf("over the day's limit: %v", err)
+	}
+	if err := get(5000, -1); err != nil {
+		t.Errorf("resumed over the limit: %v", err)
 	}
 }

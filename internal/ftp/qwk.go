@@ -78,7 +78,7 @@ func (fs *fileSystem) qwkHandle(q string, flags int, offset int64) (ftpserver.Fi
 		}
 		return &qwkDownload{r: bytes.NewReader(out.Data), fs: fs, out: out}, nil
 	}
-	if !strings.HasSuffix(strings.ToUpper(q), ".REP") || offset != 0 || flags&os.O_APPEND != 0 {
+	if !strings.EqualFold(q, fs.s.B.BBSID()+".REP") || offset != 0 || flags&os.O_APPEND != 0 {
 		return nil, fmt.Errorf("%w: put your replies here as %s.REP", os.ErrPermission, fs.s.B.BBSID())
 	}
 	return &repUpload{fs: fs}, nil

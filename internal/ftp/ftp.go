@@ -392,14 +392,21 @@ func (fs *fileSystem) GetHandle(name string, flags int, offset int64) (ftpserver
 		if f == nil {
 			return nil, errors.New("not a file")
 		}
-		if err := fs.s.B.MayDownload(fs.user, a); err != nil {
+		// a download resumed (REST) of the file counted today needs no
+		// downloads left, and is not counted again
+		resume := offset > 0 && fs.s.B.Resuming(fs.user, f)
+		if resume {
+			if !fs.s.B.CanDownload(fs.user, a) {
+				return nil, os.ErrPermission
+			}
+		} else if err := fs.s.B.MayDownload(fs.user, a); err != nil {
 			return nil, fmt.Errorf("%w: %v", os.ErrPermission, err)
 		}
 		r, err := fs.s.B.Files.OpenFile(f)
 		if err != nil {
 			return nil, err
 		}
-		return &download{file: r, fs: fs, f: f}, nil
+		return &download{file: r, fs: fs, f: f, resume: resume}, nil
 	}
 	// an upload: a new file in an area, from its start
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -431,33 +438,47 @@ func (fs *fileSystem) GetHandle(name string, flags int, offset int64) (ftpserver
 // download is a file being downloaded.  The file is not embedded: its
 // WriteTo would let the copy go around Read, and the download uncounted.
 type download struct {
-	file *os.File
-	fs   *fileSystem
-	f    *store.File
-	read int64
+	file   *os.File
+	fs     *fileSystem
+	f      *store.File
+	read   int64 // bytes sent
+	pos    int64 // where in the file
+	resume bool  // a download counted already, resumed
 }
 
 // Read reads the file, counting what has gone.
 func (d *download) Read(p []byte) (int, error) {
 	n, err := d.file.Read(p)
 	d.read += int64(n)
+	d.pos += int64(n)
 	return n, err
 }
 
 // Seek moves in the file (for a resumed download).
 func (d *download) Seek(offset int64, whence int) (int64, error) {
-	return d.file.Seek(offset, whence)
+	pos, err := d.file.Seek(offset, whence)
+	if err == nil {
+		d.pos = pos
+	}
+	return pos, err
 }
 
 // Write is refused: a download is read only.
 func (d *download) Write([]byte) (int, error) { return 0, os.ErrPermission }
 
-// Close closes the file, counting it downloaded and logging it if any of it
-// was read (all of it or not).
+// Close closes the file, counting it downloaded if the transfer reached its
+// end (a resumed one counted already is not counted again), and logging
+// what was sent, a transfer cut short as partial.
 func (d *download) Close() error {
-	if d.read > 0 {
-		d.fs.s.B.Downloaded(d.fs.user, d.f)
+	switch {
+	case (d.read > 0 || d.f.Size == 0) && d.pos >= d.f.Size:
+		if !d.resume {
+			d.fs.s.B.Downloaded(d.fs.user, d.f)
+		}
 		d.fs.s.B.Log.Printf("%s: %s downloaded %q (%d bytes)", d.fs.who, d.fs.user.Name, d.f.Name, d.read)
+	case d.read > 0:
+		d.fs.s.B.Log.Printf("%s: %s downloaded %q in part (%d of %d bytes): not counted", d.fs.who,
+			d.fs.user.Name, d.f.Name, d.read, d.f.Size)
 	}
 	return d.file.Close()
 }
