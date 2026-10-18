@@ -59,7 +59,9 @@ anything else a caller writes.
   The first time only records where to start: the history is not dumped
   on a new peer.
 - the peer may *feed* us by `IHAVE` from the addresses in `accept_from`;
-  nobody else may use `IHAVE`.
+  nobody else may use `IHAVE`.  Names there are looked up when the
+  configuration is loaded (at the start and each reload), not on each
+  connection: if a peer's address changes, reload, or list its addresses.
 
 An article is taken once (a history of Message-IDs, also of those refused),
 never if this site is in its Path already (so two peers that both carry a

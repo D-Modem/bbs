@@ -17,7 +17,7 @@ import (
 
 var tokenPat = regexp.MustCompile(`>>>/([a-z0-9]{1,16})/(\d{1,12})?|>>(\d{1,12})|https?://[^\s<>"'\x60]+|\[/?spoiler\]`)
 
-// Linker finds what a comment's quotes point at.
+// linker finds what a comment's quotes point at.
 type linker interface {
 	// thread is the thread a post of this board is in (ok false: it is
 	// not there)

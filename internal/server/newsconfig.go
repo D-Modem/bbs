@@ -134,6 +134,8 @@ func peer(s *config.Section) (*nntp.Peer, error) {
 	if p.Initial, err = s.Int("initial", 100, 0, 100000); err != nil {
 		return nil, err
 	}
+	// names are looked up here, once: at the start and each reload, so a
+	// peer whose address changes needs a reload (or its addresses given)
 	for _, h := range strings.Fields(strings.ReplaceAll(s.String("accept_from", ""), ",", " ")) {
 		if ip := net.ParseIP(h); ip != nil {
 			p.AcceptFrom = append(p.AcceptFrom, ip)

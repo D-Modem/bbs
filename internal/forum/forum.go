@@ -441,10 +441,10 @@ func (q *req) needLogin() bool {
 	return true
 }
 
-// back sends the user on after a form.
+// redirect sends the user on after a form.
 func (q *req) redirect(to string) { http.Redirect(q.w, q.r, to, http.StatusSeeOther) }
 
-// errNotFound pages
+// errNoArea is a forum that is not there, or not open to the user.
 var errNoArea = errors.New("there is no such forum, or it is not open to you")
 
 // setCookie gives the browser its session.

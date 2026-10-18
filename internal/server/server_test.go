@@ -386,6 +386,9 @@ func (tc *tnClient) read(t *testing.T) {
 			return 1
 		}
 		for i+need() >= len(b) {
+			if n == len(buf) {
+				buf = append(buf, make([]byte, 4096)...) // room for the rest
+			}
 			m, err := tc.c.Read(buf[n:])
 			if err != nil {
 				t.Fatal(err)

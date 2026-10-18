@@ -58,7 +58,7 @@ var funcs = template.FuncMap{
 	},
 }
 
-// whenTime is a time as boards show it: today, yesterday, or the date.
+// when is a time as boards show it: today, yesterday, or the date.
 func when(t time.Time) string {
 	if t.IsZero() {
 		return "never"

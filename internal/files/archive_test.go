@@ -16,6 +16,7 @@ import (
 // zipOf is a ZIP of those of FILE_ID.DIZ, doom.exe, sub/FILE_ID.DIZ and
 // readme.txt given, in that order, dated 1994.
 func zipOf(t *testing.T, files map[string][]byte) []byte {
+	t.Helper()
 	var b bytes.Buffer
 	z := zip.NewWriter(&b)
 	for _, n := range []string{"FILE_ID.DIZ", "doom.exe", "sub/FILE_ID.DIZ", "readme.txt"} {

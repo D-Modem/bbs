@@ -198,7 +198,8 @@ func (c *client) part(ch string) {
 	c.send(nil, c.source(), "PART", "#"+name)
 }
 
-// prefix is a member's name in NAMES and WHO: @ for sysops.
+// member is a room member as NAMES and WHO give one: nick, user (how they
+// came), host (their node), and op for a sysop (@).
 func (c *client) member(m bbs.RoomMember) (nick, user, host string, op bool) {
 	nick, user, host = Nick(m.Name), m.Via, fmt.Sprintf("node%d", m.Node)
 	if u, err := c.s.B.Store.UserByName(m.Name); err == nil && u.Sysop {

@@ -255,7 +255,6 @@ func (s *Server) agent(r *http.Request) *bbs.Node {
 	return s.B.Agent(whoOf(r).user, "api")
 }
 
-// lines splits a body into lines for the BBS's editor's checks.
 // --- login
 
 // login: a session token for a name and password, checked and throttled

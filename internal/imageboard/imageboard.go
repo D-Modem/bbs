@@ -665,7 +665,7 @@ func (s *Server) file(q *req, b *store.Board, kind, name string) {
 	http.ServeContent(q.w, q.r, "", fi.ModTime(), f)
 }
 
-// paths are where a board's files are kept.
+// srcPath is where a post's file is kept (thumbPath its thumbnail).
 func (s *Server) srcPath(dir string, tim int64, ext string) string {
 	return filepath.Join(s.conf().Dir, dir, "src", strconv.FormatInt(tim, 10)+ext)
 }

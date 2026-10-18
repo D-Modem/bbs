@@ -30,7 +30,8 @@ type Peer struct {
 	Pull     bool   // fetch its new articles
 	Push     bool   // offer it ours (IHAVE, or POST if it takes no IHAVE)
 	Interval time.Duration
-	// addresses it connects from: it may IHAVE (and read)
+	// addresses it connects from: it may IHAVE (and read); names in the
+	// configuration are looked up when it is loaded
 	AcceptFrom []net.IP
 	// the most articles a run takes or gives, each way
 	MaxPerRun int

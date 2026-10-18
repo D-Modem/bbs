@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -92,7 +91,7 @@ func TestQWKByIndFile(t *testing.T) {
 	if _, err := exec.LookPath("s3270"); err != nil {
 		t.Skip("no s3270")
 	}
-	addr := freeAddr(t)
+	addr := freeTCP(t)
 	e := start(t, nil, &Listener{Name: "telnet", Kind: "telnet", Address: addr, TN3270: true})
 	rep := qwkSetup(t, e)
 	dir := t.TempDir()
@@ -116,15 +115,4 @@ func TestQWKByIndFile(t *testing.T) {
 	if !strings.Contains(string(out), "1 posted") {
 		t.Errorf("no word of the replies:\n%s", out)
 	}
-}
-
-// freeAddr is a local TCP address free to listen on.
-func freeAddr(t *testing.T) string {
-	t.Helper()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer ln.Close()
-	return ln.Addr().String()
 }

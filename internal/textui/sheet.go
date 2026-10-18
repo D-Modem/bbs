@@ -110,7 +110,7 @@ type sheetDraw struct {
 	top int // the first entry shown
 }
 
-// rows: where the entries' window begins, and how many rows it has
+// first is the row where the entries' window begins, below the notes.
 func (d *sheetDraw) first() int { return 3 + min(len(d.sh.Note), 3) }
 
 // height is how many rows the entries' window has, at least 3.

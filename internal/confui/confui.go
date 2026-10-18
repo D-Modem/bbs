@@ -301,14 +301,7 @@ func (e *Editor) review() error {
 // changeLines are what saving would do, a line each: the file's changes
 // (those at a restart marked) and then the database's.
 func (e *Editor) changeLines() []view.Line {
-	var lines []view.Line
-	for _, c := range confedit.Diff(e.orig, e.doc) {
-		if c.Live() {
-			lines = append(lines, view.T(view.Good, c.String()))
-		} else {
-			lines = append(lines, view.T(view.Warn, c.String()+"  (at a restart)"))
-		}
-	}
+	lines := e.diffLines(confedit.Diff(e.orig, e.doc))
 	if e.db != nil {
 		for _, o := range e.db.ops() {
 			lines = append(lines, view.T(view.Good, o.desc))
