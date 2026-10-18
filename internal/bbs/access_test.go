@@ -1,6 +1,7 @@
 package bbs
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -296,5 +297,41 @@ func TestGuardedLogins(t *testing.T) {
 		if !strings.Contains(log, want) {
 			t.Errorf("no %q in the hack log:\n%s", want, log)
 		}
+	}
+}
+
+// TestFailuresPruned: when too many sources have failed logins, those
+// failing now are kept and the long-quiet ones forgotten, so flooding the
+// map with new sources does not clear an attacker's count.
+func TestFailuresPruned(t *testing.T) {
+	b, _ := chatBBS(t)
+	b.Conf().ThrottleFails, b.Conf().ThrottleTime = 3, time.Hour
+	b.failed("ip:192.0.2.1")
+	b.failed("ip:192.0.2.1")
+	old := time.Now().Add(-30 * time.Minute)
+	b.failed("ip:192.0.2.1")
+	for round := 0; round < 10; round++ { // so that chance would not keep it
+		b.mu.Lock()
+		for i := 0; len(b.failures) < maxFailSources; i++ {
+			b.failures[fmt.Sprintf("ip:old%d.%d", round, i)] = []time.Time{old}
+		}
+		b.mu.Unlock()
+		b.failed(fmt.Sprintf("ip:198.51.100.%d", round)) // past the bound: pruned
+	}
+	if !b.throttled("ip:192.0.2.1") {
+		t.Error("the source failing now was forgotten")
+	}
+	b.mu.Lock()
+	n := len(b.failures)
+	b.mu.Unlock()
+	if n > maxFailSources/2 {
+		t.Errorf("%d sources kept", n)
+	}
+
+	// the oldest of those still within the time go first
+	f := map[string][]time.Time{"a": {old}, "b": {time.Now()}, "c": {time.Now().Add(-2 * time.Hour)}}
+	pruneFailures(f, time.Now().Add(-time.Hour), 1)
+	if len(f) != 1 || f["b"] == nil {
+		t.Errorf("kept %v", f)
 	}
 }

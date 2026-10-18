@@ -418,15 +418,46 @@ func (b *BBS) failed(source string) {
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.failures[source] = append(b.failures[source], time.Now())
-	// keep the map small: forget the oldest sources
-	if len(b.failures) > 10000 {
-		for k := range b.failures {
-			delete(b.failures, k)
-			if len(b.failures) <= 5000 {
-				break
-			}
+	f := append(b.failures[source], time.Now())
+	if len(f) > maxFailures {
+		f = f[len(f)-maxFailures:]
+	}
+	b.failures[source] = f
+	if len(b.failures) > maxFailSources {
+		pruneFailures(b.failures, time.Now().Add(-b.Conf().ThrottleTime), maxFailSources/2)
+	}
+}
+
+const (
+	// maxFailSources is how many sources failed logins are kept for, at
+	// most; past it, those failed longest ago are forgotten
+	maxFailSources = 10000
+	// maxFailures is how many failed logins are kept for a source
+	maxFailures = 1000
+)
+
+// pruneFailures shrinks failures to keep sources at most: those whose last
+// failure is before cut go first, then those whose last failure is oldest,
+// so that a source failing now (one being throttled) is the last forgotten.
+func pruneFailures(failures map[string][]time.Time, cut time.Time, keep int) {
+	type last struct {
+		source string
+		at     time.Time
+	}
+	ls := make([]last, 0, len(failures))
+	for k, f := range failures {
+		if len(f) == 0 || f[len(f)-1].Before(cut) {
+			delete(failures, k)
+			continue
 		}
+		ls = append(ls, last{k, f[len(f)-1]})
+	}
+	if len(ls) <= keep {
+		return
+	}
+	sort.Slice(ls, func(i, j int) bool { return ls[i].at.Before(ls[j].at) })
+	for _, l := range ls[:len(ls)-keep] {
+		delete(failures, l.source)
 	}
 }
 
