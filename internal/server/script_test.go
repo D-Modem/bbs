@@ -112,3 +112,53 @@ func TestScriptsConfig(t *testing.T) {
 		t.Errorf("a broken script: %v", err)
 	}
 }
+
+// TestScreens3270: on a 3270, a table shows every line of its note, a long
+// question wraps with its answer field on the screen, and a form with
+// more fields than fit pages them (PF8), every value coming back.
+func TestScreens3270(t *testing.T) {
+	if _, err := exec.LookPath("s3270"); err != nil {
+		t.Skip("no s3270")
+	}
+	scripts := t.TempDir()
+	os.WriteFile(filepath.Join(scripts, "screens.js"), []byte(`
+ui.table({title: "Noted", note: ["NOTE ONE", "NOTE TWO"], columns: [{title: "Col"}], rows: [["row a"]]});
+var q = "Q";
+for (var i = 0; i < 12; i++) q += " question";
+var yes = ui.confirm(q + " END?", false);
+var fs = [];
+for (var i = 0; i < 30; i++) fs.push({name: "f" + i, label: "Field " + i, width: 8, value: "v" + i});
+var r = ui.form({title: "Many", fields: fs});
+ui.show("Result", ["confirm " + yes, "f0=" + r.f0 + " f29=" + r.f29 + " f5=" + r.f5]);
+`), 0644)
+	addr := freeTCP(t)
+	startFull(t, ui3270.Graphics{}, nil, func(b *bbs.BBS, _ string) {
+		b.ScriptsDir = scripts
+		it, err := bbs.ParseMenuItem("s", "script:screens Screens")
+		if err != nil {
+			t.Fatal(err)
+		}
+		b.Menus = map[string]*bbs.Menu{"main": {Name: "main", Title: "Main", Items: []bbs.MenuItem{it}}}
+	}, &Listener{Name: "telnet", Kind: "telnet", Address: addr, TN3270: true})
+	script := strings.Join([]string{
+		"Connect(" + addr + ")", "Wait(10,InputField)",
+		`String("sysop")`, "Tab()", `String("sysoppass1")`, "Enter()", "Wait(5,InputField)",
+		`String("s")`, "Enter()", "Wait(5,InputField)", "Ascii()", // the table
+		"Enter()", "Wait(5,InputField)", "Ascii()", // the question
+		`String("y")`, "Enter()", "Wait(5,InputField)", "Ascii()", // the form's first page
+		`String("typed")`, "PF(8)", "Wait(5,InputField)", "Ascii()", // its second
+		"Enter()", "Wait(5,InputField)", "Ascii()", // what came back
+		"PF(3)", "Wait(5,InputField)", "Quit()", ""}, "\n")
+	cmd := exec.Command("s3270", "-model", "3279-2")
+	cmd.Stdin = strings.NewReader(script)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("s3270: %v\n%s", err, out)
+	}
+	for _, want := range []string{"NOTE ONE", "NOTE TWO", "row a", "END? (Y/N)", "PF7/8=Page", "Field 29",
+		"confirm true", "f0=typed f29=v29 f5=v5"} {
+		if !strings.Contains(string(out), want) {
+			t.Errorf("the 3270 did not show %q:\n%s", want, out)
+		}
+	}
+}

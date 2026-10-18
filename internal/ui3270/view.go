@@ -184,13 +184,16 @@ func (u *ui) Menu(m *view.Menu) (string, error) {
 // Table shows the rows a page at a time, PF7 and PF8 paging (and past the ends
 // Less and More, where the table has them): a row picked by anything typed in
 // its select field, an action by its PF key, a command from the command line
-// where the table has one. Enter with nothing to pick or do is Back. Only the
-// note's first line is shown.
+// where the table has one. Enter with nothing to pick or do is Back. The
+// note's first line goes above the column titles, any more (three at most)
+// below it, the rows moved down for them.
 func (u *ui) Table(t *view.Table) (view.Choice, error) {
 	per := u.perPage()
 	if t.Command != "" {
 		per -= 2
 	}
+	extra := min(max(len(t.Note)-1, 0), 3, max(per-1, 0)) // note lines past the first
+	per -= extra
 	pick := t.Pick != ""
 	keyLine := func(sel, sep string) string {
 		keys := []string{}
@@ -232,17 +235,17 @@ func (u *ui) Table(t *view.Table) (view.Choice, error) {
 			scr = append(scr, u.input(u.rows-3, 13, u.cols-15, "cmd", false)...)
 			scr = append(scr, u.text(u.rows-4, 0, t.Command, go3270.Blue, false))
 		}
-		if len(t.Note) > 0 {
-			scr = append(scr, u.text(1, 2, t.Note[0].Text, toneColors[t.Note[0].Tone], false))
+		for i := 0; i < len(t.Note) && i <= extra; i++ {
+			scr = append(scr, u.text(1+i, 2, t.Note[i].Text, toneColors[t.Note[i].Tone], false))
 		}
 		if len(t.Columns) > 0 {
-			scr = append(scr, u.text(2, 0, strings.Repeat(" ", lead)+view.Cells(t.Columns, idx, widths, view.Titles(t.Columns)),
+			scr = append(scr, u.text(2+extra, 0, strings.Repeat(" ", lead)+view.Cells(t.Columns, idx, widths, view.Titles(t.Columns)),
 				go3270.Turquoise, false))
 		}
 		for i := 0; i < per && top+i < len(t.Rows); i++ {
 			r := t.Rows[top+i]
 			if pick {
-				scr = append(scr, go3270.Field{Row: 3 + i, Col: 0, Write: true, Name: "s" + strconv.Itoa(i),
+				scr = append(scr, go3270.Field{Row: 3 + extra + i, Col: 0, Write: true, Name: "s" + strconv.Itoa(i),
 					Color: go3270.Green, Highlighting: go3270.Underscore})
 			}
 			line := ""
@@ -256,14 +259,14 @@ func (u *ui) Table(t *view.Table) (view.Choice, error) {
 			if r.Hot {
 				color = go3270.White
 			}
-			scr = append(scr, u.text(3+i, 2, line+view.Cells(t.Columns, idx, widths, r.Cells), color, r.Hot))
+			scr = append(scr, u.text(3+extra+i, 2, line+view.Cells(t.Columns, idx, widths, r.Cells), color, r.Hot))
 		}
 		if len(t.Rows) == 0 {
 			empty := t.Empty
 			if empty == "" {
 				empty = "Nothing here yet."
 			}
-			scr = append(scr, u.text(4, 2, empty, go3270.White, false))
+			scr = append(scr, u.text(4+extra, 2, empty, go3270.White, false))
 		}
 		resp, v, err := u.show(scr, nil)
 		if err != nil {
@@ -416,9 +419,9 @@ func (u *ui) field(row, col, width int, name string, hidden bool) ([]go3270.Fiel
 	}, end/u.cols + 1
 }
 
-// Form shows the fields by their labels, a long one going on in the rows below
-// (fields past the screen left off); the values on Enter, trimmed (a secret's
-// leading spaces kept), and false for PF3.
+// Form shows the fields by their labels, a long one going on in the rows below,
+// as many pages of them as it takes (PF7 and PF8, what was typed kept); the
+// values on Enter, trimmed (a secret's leading spaces kept), and false for PF3.
 func (u *ui) Form(f *view.Form) (map[string]string, bool, error) {
 	submit := f.Submit
 	if submit == "" {
@@ -428,43 +431,71 @@ func (u *ui) Form(f *view.Form) (map[string]string, bool, error) {
 	for _, fd := range f.Fields {
 		vals[fd.Name] = fd.Value
 	}
+	start := 0     // the page's first field
+	var back []int // the pages before's first fields
+	msg := ""
 	for {
-		scr := u.frame(f.Title, "Enter="+submit+"  PF3=Back", "")
+		var body, inputs go3270.Screen
 		row := 2
 		for _, l := range f.Intro {
 			fs, n := u.viewLine(row, l)
-			scr = append(scr, fs...)
+			body = append(body, fs...)
 			row += n
 		}
 		if len(f.Intro) > 0 {
 			row++
 		}
-		var inputs go3270.Screen
-		for _, fd := range f.Fields {
+		end := start
+		for ; end < len(f.Fields); end++ {
 			if row >= u.rows-3 {
-				break
+				if end > start {
+					break
+				}
+				row = u.rows - 4 // a page has a field at least, over the intro if need be
 			}
-			scr = append(scr, u.text(row, 2, fmt.Sprintf("%-16s ===>", bbs.Trunc(fd.Label, 16)), go3270.Turquoise, false))
+			fd := f.Fields[end]
+			body = append(body, u.text(row, 2, fmt.Sprintf("%-16s ===>", bbs.Trunc(fd.Label, 16)), go3270.Turquoise, false))
 			fs, next := u.field(row, 24, fd.Width, fd.Name, fd.Secret) // the label ends at 23
 			inputs = append(inputs, fs...)
 			row = next
 		}
+		keys := "Enter=" + submit + "  PF3=Back"
+		if start > 0 || end < len(f.Fields) {
+			keys += "  PF7/8=Page"
+		}
 		// the fields first: the cursor goes to the first
-		scr = append(inputs, scr...)
+		scr := append(inputs, u.frame(f.Title, keys, msg)...)
+		scr = append(scr, body...)
+		msg = ""
 		resp, v, err := u.show(scr, vals)
 		if err != nil {
 			return nil, false, err
 		}
+		for _, fd := range f.Fields[start:end] {
+			vals[fd.Name] = strings.Trim(v[fd.Name], "\x00")
+		}
 		switch resp.AID {
 		case go3270.AIDPF3:
 			return nil, false, nil
+		case go3270.AIDPF7:
+			if len(back) == 0 {
+				msg = "That is the first page."
+				continue
+			}
+			start, back = back[len(back)-1], back[:len(back)-1]
+		case go3270.AIDPF8:
+			if end >= len(f.Fields) {
+				msg = "That is the last page."
+				continue
+			}
+			back, start = append(back, start), end
 		case go3270.AIDEnter:
 			out := map[string]string{}
 			for _, fd := range f.Fields {
 				if fd.Secret {
-					out[fd.Name] = strings.TrimRight(v[fd.Name], "\x00 ")
+					out[fd.Name] = strings.TrimRight(vals[fd.Name], " ")
 				} else {
-					out[fd.Name] = strings.TrimSpace(strings.Trim(v[fd.Name], "\x00"))
+					out[fd.Name] = strings.TrimSpace(vals[fd.Name])
 				}
 			}
 			return out, true, nil
@@ -543,12 +574,24 @@ func (u *ui) Confirm(question string, def bool) (bool, error) {
 	if def {
 		yn = "Y"
 	}
+	// a long question wrapped, the answer after its last line (or below it)
+	lines := bbs.Wrap(question+" (Y/N)", u.cols-6)
+	if len(lines) > u.rows-8 {
+		lines = lines[:u.rows-8]
+	}
+	last := lines[len(lines)-1]
+	row, col := 4+len(lines)-1, 2+len([]rune(last))+2
+	if col+3 > u.cols {
+		row, col = row+1, 2
+	}
 	msg := ""
 	for {
 		scr := go3270.Screen{}
-		scr = append(scr, u.input(4, 2+len([]rune(question))+8, 1, "yn", false)...)
+		scr = append(scr, u.input(row, col, 1, "yn", false)...)
 		scr = append(scr, u.frame("", "Enter=Answer  PF3=No", msg)...)
-		scr = append(scr, u.text(4, 2, question+" (Y/N)", go3270.White, true))
+		for i, l := range lines {
+			scr = append(scr, u.text(4+i, 2, l, go3270.White, true))
+		}
 		resp, v, err := u.show(scr, map[string]string{"yn": yn})
 		if err != nil {
 			return false, err
