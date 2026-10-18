@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 	"github.com/Neo-Desktop/bbs-sec/internal/news"
 	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
@@ -446,7 +447,9 @@ func (ss *session) authinfo(args []string) {
 			ss.reply(482, "AUTHINFO USER first")
 			return
 		}
-		source := ""
+		// a local client's address is everyone's: its failures count
+		// against the account named
+		source := bbs.LocalSource("nntp", ss.name)
 		if a, ok := ss.c.RemoteAddr().(*net.TCPAddr); ok && !a.IP.IsLoopback() {
 			source = "ip:" + a.IP.String()
 		}

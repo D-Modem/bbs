@@ -392,6 +392,16 @@ func (b *BBS) Refuse(service string, addr net.Addr) bool {
 	return false
 }
 
+// LocalSource is what failed logins are counted against for a caller on
+// this machine (a loopback address: a modem server, a menu, a local proxy),
+// whose address is everyone's: the account named, by service.  Repeated
+// guesses at one account are throttled without shutting out the other
+// callers that come the same way, and nothing is banned (bans are of
+// "ip:" sources).
+func LocalSource(service, name string) string {
+	return "local:" + service + ":" + strings.ToLower(Clean(name, MaxNameLen))
+}
+
 // ban bans a source that is an address (not a caller ID), for the guard's
 // ban time.
 func (b *BBS) ban(source, why string) {

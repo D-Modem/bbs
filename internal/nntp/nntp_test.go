@@ -440,3 +440,25 @@ func TestMessageIDOutsideNews(t *testing.T) {
 		cv.expect("430")
 	}
 }
+
+// TestLocalThrottle: a client on this machine is throttled by the account
+// it guesses at (its address is everyone's): alice's password refused once
+// she has failed enough, the sysop still let in.
+func TestLocalThrottle(t *testing.T) {
+	s := newSite(t, "news.a.test", ServerSettings{}, nil)
+	conf := *s.b.Conf()
+	conf.ThrottleFails, conf.ThrottleTime = 2, time.Hour
+	s.b.Reconfigure(conf)
+	login := func(name, pw, want string) {
+		t.Helper()
+		cv := dialConv(t, s.addr)
+		cv.send("AUTHINFO USER " + name)
+		cv.expect("381")
+		cv.send("AUTHINFO PASS " + pw)
+		cv.expect(want)
+	}
+	login("alice", "wrong1", "481")
+	login("Alice", "wrong2", "481")
+	login("alice", "alicepass1", "481") // throttled
+	login("sysop", "sysoppass1", "281")
+}

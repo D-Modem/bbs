@@ -196,7 +196,9 @@ func (s *Server) ClientDisconnected(cc ftpserver.ClientContext) {
 // AuthUser checks the BBS name and password.
 func (s *Server) AuthUser(cc ftpserver.ClientContext, name, pass string) (ftpserver.ClientDriver, error) {
 	h := host(cc.RemoteAddr())
-	source := ""
+	// a local client's address is everyone's: its failures count against
+	// the account named
+	source := bbs.LocalSource("ftp", name)
 	if a, ok := cc.RemoteAddr().(*net.TCPAddr); ok && !a.IP.IsLoopback() {
 		source = "ip:" + h
 	}
