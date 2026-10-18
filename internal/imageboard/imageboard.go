@@ -200,18 +200,37 @@ func (s *Server) init() error {
 }
 
 // loadKey is the image boards' secret, made the first time: it must last,
-// or secure tripcodes and posts' passwords would change.
+// or secure tripcodes and posts' passwords would change.  So a secret file
+// that is there but is not a key (32 bytes in hex; whitespace around it is
+// let be) is an error, never replaced: the sysop puts it right or removes
+// it.
 func loadKey(p string) ([]byte, error) {
 	b, err := os.ReadFile(p)
-	if err == nil && len(b) == 64 {
-		return hex.DecodeString(string(b))
+	if err == nil {
+		k, err := hex.DecodeString(strings.TrimSpace(string(b)))
+		if err != nil || len(k) != 32 {
+			return nil, fmt.Errorf("%s is not the image boards' secret (64 hex digits): put it right, or "+
+				"remove it for a new one, which changes secure tripcodes and posts' passwords", p)
+		}
+		return k, nil
 	}
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
+	if !errors.Is(err, os.ErrNotExist) {
 		return nil, err
 	}
 	k := make([]byte, 32)
-	rand.Read(k)
-	return k, os.WriteFile(p, []byte(hex.EncodeToString(k)), 0600)
+	if _, err := rand.Read(k); err != nil {
+		return nil, err
+	}
+	// made only if there is still none: never over one
+	f, err := os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := f.WriteString(hex.EncodeToString(k)); err != nil {
+		f.Close()
+		return nil, err
+	}
+	return k, f.Close()
 }
 
 // req is a request in hand.

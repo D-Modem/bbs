@@ -510,3 +510,30 @@ func TestPrune(t *testing.T) {
 		t.Errorf("page 2: %d", code)
 	}
 }
+
+// TestLoadKey: the secret is made once and kept; one with whitespace around
+// it is read; one that is no key is an error, the file left as it was.
+func TestLoadKey(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "secret")
+	k1, err := loadKey(p)
+	if err != nil || len(k1) != 32 {
+		t.Fatalf("made: %x %v", k1, err)
+	}
+	if k2, err := loadKey(p); err != nil || !bytes.Equal(k1, k2) {
+		t.Fatalf("again: %x %v", k2, err)
+	}
+	raw, _ := os.ReadFile(p)
+	os.WriteFile(p, append(raw, '\n'), 0600)
+	if k3, err := loadKey(p); err != nil || !bytes.Equal(k1, k3) {
+		t.Errorf("with a newline: %x %v", k3, err)
+	}
+	for _, bad := range []string{"short", strings.Repeat("zz", 32), string(raw[:62])} {
+		os.WriteFile(p, []byte(bad), 0600)
+		if _, err := loadKey(p); err == nil {
+			t.Errorf("%q taken", bad)
+		}
+		if got, _ := os.ReadFile(p); string(got) != bad {
+			t.Errorf("%q replaced with %q", bad, got)
+		}
+	}
+}
