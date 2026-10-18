@@ -333,6 +333,11 @@ func TestAccess(t *testing.T) {
 	cv.expect("423")
 	cv.send(strings.Repeat("X", 600))
 	cv.expect("501")
+	// 512 octets, CRLF included, is the most a command line may be
+	cv.send(strings.Repeat("X", 510))
+	cv.expect("500")
+	cv.send(strings.Repeat("X", 511))
+	cv.expect("501")
 	cv.send("FROB")
 	cv.expect("500")
 

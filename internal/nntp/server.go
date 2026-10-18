@@ -237,7 +237,7 @@ func (ss *session) readLine() (string, error) {
 			return "", err
 		}
 		line = append(line, chunk...)
-		if len(line) > maxLine {
+		if len(line)+2 > maxLine { // maxLine counts the CRLF ReadLine took off
 			for isPrefix {
 				if _, isPrefix, err = ss.r.ReadLine(); err != nil {
 					return "", err

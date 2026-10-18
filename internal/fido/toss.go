@@ -29,7 +29,7 @@ var bundleName = regexp.MustCompile(`(?i)\.(mo|tu|we|th|fr|sa|su)[0-9a-z]$`)
 
 // TossStats counts what a toss did.
 type TossStats struct {
-	Echomail, Netmail, Dupes, Bad, Forwarded, Files int
+	Echomail, Netmail, Dupes, Bad, Files int
 }
 
 // String sums up the toss for the log.
@@ -231,6 +231,8 @@ func (f *Fido) tossEcho(l *Link, h *ftn.Header, m *ftn.Message, st *TossStats) e
 		mid = ftn.MessageID(msgid)
 	}
 	if !news.ValidMessageID(mid) {
+		f.B.Log.Printf("fido: %s sent echomail in %s with a MSGID that makes no Message-ID (%q): dropped",
+			l.Name, m.Area, bbs.Clean(msgid, 80))
 		st.Bad++
 		return nil
 	}
@@ -333,8 +335,8 @@ func asciiName(s string) string {
 	}, s)
 }
 
-// originAddr is where an echomail message was written: its origin line's
-// address, else its MSGID's.
+// originPattern finds an origin line's address: "(1:2/3.4@domain)" at its
+// end.
 var originPattern = regexp.MustCompile(`\(([0-9]+:[0-9]+/[0-9]+(\.[0-9]+)?)(@[A-Za-z0-9_-]+)?\)\s*$`)
 
 // originAddr is where an echomail message was written: the address of an origin
