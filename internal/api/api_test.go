@@ -335,6 +335,10 @@ func TestRateAndOpenAPI(t *testing.T) {
 	if err != nil || !bytes.Contains(b, []byte(`"openapi":"3.1.0"`)) {
 		t.Errorf("document: %v", err)
 	}
+	// what GET /file-areas sends, can_download included
+	if !bytes.Contains(b, []byte(`"can_download":{"type":"boolean"}`)) {
+		t.Error("FileAreas has no can_download")
+	}
 }
 
 // wsClient is a WebSocket client in either encoding.
@@ -600,6 +604,13 @@ func TestEventsAndNodeMessages(t *testing.T) {
 	w.recv()
 	if code, m, _ := s.do("POST", "/api/v1/nodes/1/message", bob, map[string]any{"text": "over here"}); code != 202 {
 		t.Fatalf("node message: %d %v", code, m)
+	}
+	// a page that reaches no sysop is unavailable, as on the WebSocket
+	if code, m, _ := s.do("POST", "/api/v1/page", bob, map[string]any{"reason": "help"}); code != 503 || m["code"] != "unavailable" {
+		t.Errorf("page with no sysop: %d %v", code, m)
+	}
+	if len(s.b.Pages()) != 0 {
+		t.Errorf("left waiting: %v", s.b.Pages())
 	}
 	var ev, data string
 	for ev == "" || data == "" {

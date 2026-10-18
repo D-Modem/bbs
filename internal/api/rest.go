@@ -1239,7 +1239,7 @@ func (s *Server) nodeMessage(w http.ResponseWriter, r *http.Request) {
 
 // page: the sysop paged from the user's stream's node, which joins the
 // page's room to wait if anyone was told; if no one was, the page is
-// called off.
+// called off: 503, as the WebSocket answers "unavailable".
 func (s *Server) page(w http.ResponseWriter, r *http.Request) {
 	n := s.streamNode(w, r)
 	if n == nil {
@@ -1256,12 +1256,14 @@ func (s *Server) page(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusTooManyRequests, err.Error())
 		return
 	}
-	if told > 0 {
-		n.JoinRoom(room)
-	} else {
+	if told == 0 {
+		// as the WebSocket's Page answers: unavailable, the page withdrawn
 		n.CancelPage()
+		fail(w, http.StatusServiceUnavailable, "the sysop is not available just now")
+		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"told": told, "room": room, "waiting": told > 0})
+	n.JoinRoom(room)
+	writeJSON(w, http.StatusOK, map[string]any{"told": told, "room": room, "waiting": true})
 }
 
 // --- admin

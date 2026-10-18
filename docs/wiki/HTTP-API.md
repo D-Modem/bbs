@@ -157,7 +157,9 @@ The event stream and each WebSocket take a node, as a caller does
 and gets the node's events: lines said in its chat room, node messages,
 pages (for sysops), new mail and notices.  The node goes when the
 connection does.  `POST /nodes/{n}/message`, `/page` and answering a
-page are done from the token's open stream (409 without one).
+page are done from the token's open stream (409 without one).  A page
+that reaches no sysop is 503 (`unavailable`), as the WebSocket's Page
+request answers it, and is not left waiting.
 
 ### Server-sent events
 

@@ -130,7 +130,7 @@ var schemas = map[string]any{
 	"LastRead":    obj(map[string]any{"id": num}, "id"),
 	"REPResult":   obj(map[string]any{"posted": num, "mailed": num, "duplicates": num, "errors": map[string]any{"type": "array", "items": str}}),
 	"Sent":        obj(map[string]any{"sent": boo}),
-	"FileAreas":   map[string]any{"type": "array", "items": obj(map[string]any{"id": num, "name": str, "description": str, "sysop_upload": boo, "files": num, "can_upload": boo})},
+	"FileAreas":   map[string]any{"type": "array", "items": obj(map[string]any{"id": num, "name": str, "description": str, "sysop_upload": boo, "files": num, "can_download": boo, "can_upload": boo})},
 	"File":        obj(map[string]any{"id": num, "area": num, "name": str, "description": str, "size": num, "sha256": str, "uploader": str, "created": date, "downloads": num, "long_description": str}),
 	"Callers":     map[string]any{"type": "array", "items": obj(map[string]any{"user": str, "location": str, "via": str, "node": num, "at": date})},
 	"EventResult": obj(map[string]any{"start": date, "seconds": num, "ok": boo, "error": str, "output": str, "by": str}),
