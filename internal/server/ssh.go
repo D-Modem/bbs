@@ -13,6 +13,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -84,12 +85,15 @@ func makeHostKey(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err := f.Write(b); err != nil {
-		f.Close()
-		os.Remove(path)
+	_, err = f.Write(b)
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		os.Remove(path) // not left half written, to be read as the key
 		return nil, err
 	}
-	return b, f.Close()
+	return b, nil
 }
 
 // HostKeyInfo describes a host key file for bbs check: its type and
@@ -347,6 +351,15 @@ func (t *sshTerm) pump() {
 			t.rerr = err
 			close(t.in)
 			return
+		}
+		if n == 0 {
+			// nothing read and no error: stop if closed, never spin
+			select {
+			case <-t.done:
+				return
+			default:
+				runtime.Gosched()
+			}
 		}
 	}
 }

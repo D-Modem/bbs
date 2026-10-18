@@ -34,6 +34,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/racingmars/go3270"
@@ -470,13 +471,21 @@ func (s *Server) tn3270(tc *telnet.Conn, l *Listener, node *bbs.Node) error {
 	if err != nil {
 		return err
 	}
-	// go3270 negotiates without deadlines of its own: a client that
-	// stops answering is hung up
-	watchdog := time.AfterFunc(30*time.Second, func() { raw.Close() })
+	// go3270 negotiates without deadlines of its own (and clears those
+	// set): a client that stops answering is hung up.  Whichever ends
+	// first, negotiation or the wait, decides, so a negotiation ending
+	// as time runs out keeps its connection
+	var state atomic.Int32 // 0 negotiating, 1 negotiated, 2 timed out
+	watchdog := time.AfterFunc(30*time.Second, func() {
+		if state.CompareAndSwap(0, 2) {
+			raw.Close()
+		}
+	})
 	dev, err := go3270.NegotiateTelnet(raw)
-	if !watchdog.Stop() {
+	if !state.CompareAndSwap(0, 1) {
 		return errors.New("tn3270: negotiation timed out")
 	}
+	watchdog.Stop()
 	if err != nil {
 		return fmt.Errorf("tn3270: %w", err)
 	}

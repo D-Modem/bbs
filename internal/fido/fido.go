@@ -114,7 +114,11 @@ func (k *linkLock) flock(how int) bool {
 	if err != nil {
 		return true // no lock file to be had: the mutex will do
 	}
-	if err := syscall.Flock(int(fh.Fd()), how); err != nil {
+	err = syscall.Flock(int(fh.Fd()), how)
+	for err == syscall.EINTR {
+		err = syscall.Flock(int(fh.Fd()), how)
+	}
+	if err != nil {
 		fh.Close()
 		return false
 	}
@@ -122,10 +126,14 @@ func (k *linkLock) flock(how int) bool {
 	return true
 }
 
-// Lock waits for the link.
+// Lock waits for the link.  Should the lock file fail to lock (as on a
+// file system without locks) the mutex alone keeps it, as with no lock
+// file; it is retried a while first, in case it is held but not waited for.
 func (k *linkLock) Lock() {
 	k.mu.Lock()
-	k.flock(syscall.LOCK_EX)
+	for i := 0; i < 3 && !k.flock(syscall.LOCK_EX); i++ {
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
 // TryLock takes the link if it is free.

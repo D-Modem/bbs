@@ -320,6 +320,7 @@ type telnetClient struct {
 	c    net.Conn
 	in   *Info
 	wmu  sync.Mutex
+	werr error  // send's failure, for the next Read or Write (wmu)
 	rbuf []byte // read from the connection
 	st   int    // the parser's state
 	cmd  byte
@@ -339,6 +340,9 @@ func (t *telnetClient) Close() error { return t.c.Close() }
 func (t *telnetClient) Write(p []byte) (int, error) {
 	t.wmu.Lock()
 	defer t.wmu.Unlock()
+	if t.werr != nil {
+		return 0, t.werr
+	}
 	if bytes.IndexByte(p, tIAC) < 0 {
 		return t.c.Write(p)
 	}
@@ -348,12 +352,21 @@ func (t *telnetClient) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// send writes telnet commands as they are, between Writes; an error is let
-// go (the next Read or Write meets it).
+// send writes telnet commands as they are, between Writes; a failure is
+// kept for the next Read or Write to return.
 func (t *telnetClient) send(b ...byte) {
 	t.wmu.Lock()
-	t.c.Write(b)
+	if _, err := t.c.Write(b); err != nil && t.werr == nil {
+		t.werr = err
+	}
 	t.wmu.Unlock()
+}
+
+// sendErr is send's failure, if there was one.
+func (t *telnetClient) sendErr() error {
+	t.wmu.Lock()
+	defer t.wmu.Unlock()
+	return t.werr
 }
 
 // states
@@ -366,8 +379,11 @@ const (
 )
 
 // Read is the server's data, telnet commands taken out and answered; it
-// reads on until there is some data or an error.
+// reads on until there is some data or an error (send's too).
 func (t *telnetClient) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		return 0, nil // nothing could be read into it: reading on would never end
+	}
 	for {
 		if cap(t.rbuf) < len(p) {
 			t.rbuf = make([]byte, len(p))
@@ -418,6 +434,9 @@ func (t *telnetClient) Read(p []byte) (int, error) {
 		}
 		if len(out) > 0 || err != nil {
 			return len(out), err
+		}
+		if err := t.sendErr(); err != nil {
+			return 0, err
 		}
 	}
 }

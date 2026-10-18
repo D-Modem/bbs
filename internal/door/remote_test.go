@@ -287,3 +287,44 @@ func TestDoorPartyDoor(t *testing.T) {
 		}
 	}
 }
+
+// optionConn is a connection that reads telnet options forever and
+// fails every write.
+type optionConn struct{ net.Conn }
+
+func (optionConn) Read(p []byte) (int, error) {
+	return copy(p, []byte{tIAC, tDO, 1}), nil // DO ECHO, and nothing else
+}
+func (optionConn) Write([]byte) (int, error) { return 0, io.ErrClosedPipe }
+
+// TestTelnetClientStops: a Read with no room returns at once, and one
+// whose answers to options cannot be written ends with that error, not
+// reading on forever.
+func TestTelnetClientStops(t *testing.T) {
+	done := make(chan error, 1)
+	go func() {
+		c := newTelnetClient(optionConn{}, &Info{})
+		if n, err := c.Read(nil); n != 0 || err != nil {
+			done <- fmt.Errorf("empty Read: %d, %v", n, err)
+			return
+		}
+		_, err := c.Read(make([]byte, 16))
+		if err != io.ErrClosedPipe {
+			done <- fmt.Errorf("Read: %v, want the write's error", err)
+			return
+		}
+		if _, err := c.Write([]byte("x")); err != io.ErrClosedPipe {
+			done <- fmt.Errorf("Write: %v", err)
+			return
+		}
+		done <- nil
+	}()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Read never returned")
+	}
+}

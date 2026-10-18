@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -368,5 +369,25 @@ func TestSSHLegacy(t *testing.T) {
 		HostKeys: []string{filepath.Join(t.TempDir(), "k")}, Legacy: true})
 	if err := cbc(addr); err != nil {
 		t.Fatalf("CBC with legacy: %v", err)
+	}
+}
+
+// emptyReader reads nothing, without error, for ever.
+type emptyReader struct{ io.Writer }
+
+func (emptyReader) Read([]byte) (int, error) { return 0, nil }
+
+// TestSSHPumpStops: a channel reading nothing without error does not keep
+// the reading goroutine once the terminal is closed.
+func TestSSHPumpStops(t *testing.T) {
+	before := runtime.NumGoroutine()
+	tm := newSSHTerm(emptyReader{io.Discard}, io.NopCloser(nil), sshPty{})
+	tm.close()
+	deadline := time.Now().Add(5 * time.Second)
+	for runtime.NumGoroutine() > before {
+		if time.Now().After(deadline) {
+			t.Fatal("the reading goroutine is still running")
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
