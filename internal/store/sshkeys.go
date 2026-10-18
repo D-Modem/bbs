@@ -50,8 +50,11 @@ func scanSSHKey(row interface{ Scan(...any) error }) (*SSHKey, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
+	if err != nil {
+		return nil, err // nothing half scanned
+	}
 	k.Created, k.LastUsed = unix(created), unix(last)
-	return &k, err
+	return &k, nil
 }
 
 // SSHKeyByFingerprint finds a key.

@@ -125,8 +125,11 @@ func scanBoard(row interface{ Scan(...any) error }) (*Board, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
+	if err != nil {
+		return nil, err // nothing half scanned
+	}
 	b.Created = unix(created)
-	return &b, err
+	return &b, nil
 }
 
 // CreateBoard adds an image board, as b has it (ID, LastNo, Created
@@ -221,11 +224,14 @@ func scanPost(row interface{ Scan(...any) error }, more ...any) (*BoardPost, err
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
+	if err != nil {
+		return nil, err // nothing half scanned
+	}
 	p.Created, p.Bumped = unix(created), unix(bumped)
 	if archived != 0 {
 		p.Archived = unix(archived)
 	}
-	return &p, err
+	return &p, nil
 }
 
 // posts are the posts a query of postCols finds.

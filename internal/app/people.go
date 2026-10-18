@@ -517,7 +517,7 @@ func (s *Session) validate() error {
 			Actions: []view.Action{
 				{ID: "validate", Label: fmt.Sprintf("Validate (level %d)", s.B.Conf().ValidatedLevel), Key: 'V', PF: 5, Short: "Validate"},
 				{ID: "level", Label: "Level...", Key: 'L', PF: 6, Short: "Level"},
-				{ID: "lock", Label: "lock", Key: 'K', PF: 9, Short: "Lock"},
+				{ID: "lock", Label: "Lock", Key: 'K', PF: 9},
 				{ID: "skip", Label: "Skip", Key: 'S', PF: 8}}})
 		if err != nil {
 			return err

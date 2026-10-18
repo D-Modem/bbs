@@ -229,8 +229,7 @@ func (s *Session) editUser(id int64) error {
 				{ID: "flags", Label: "Flags", Key: 'F', PF: 6}}}
 		if u.ID != s.User.ID {
 			p.Actions = append(p.Actions,
-				view.Action{ID: "lock", Label: map[bool]string{true: "Unlock", false: "lock"}[u.Locked], Key: 'K', PF: 9,
-					Short: map[bool]string{true: "Unlock", false: "Lock"}[u.Locked]},
+				view.Action{ID: "lock", Label: map[bool]string{true: "Unlock", false: "Lock"}[u.Locked], Key: 'K', PF: 9},
 				view.Action{ID: "sysop", Label: map[bool]string{true: "Sysop no more", false: "Sysop"}[u.Sysop], Key: 'S', PF: 10})
 		}
 		if !u.External {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -530,6 +531,9 @@ func (r *run) checkKey(k string) {
 	}
 }
 
+// dataMu keeps data.set's limit check and its write together.
+var dataMu sync.Mutex
+
 // dataObject is the script's data, kept for everyone (user 0) or for that user:
 // get (undefined if there is none), set as JSON (up to maxValue bytes, and a
 // limit on the names), remove, and keys, the names with a prefix.
@@ -566,12 +570,19 @@ func (r *run) dataObject(user int64) *goja.Object {
 		if len(b) > maxValue {
 			r.throw("data.set: the value is over %d bytes", maxValue)
 		}
-		if _, had, _ := r.b.Store.ScriptGet(r.name, user, k); !had {
-			if n, _ := r.b.Store.ScriptCount(r.name, user); n >= most {
-				r.throw("data.set: that is the %d names a script keeps", most)
+		// the count and the set together, so that callers setting new names
+		// at once cannot pass the limit between them
+		dataMu.Lock()
+		err := func() error {
+			if _, had, _ := r.b.Store.ScriptGet(r.name, user, k); !had {
+				if n, _ := r.b.Store.ScriptCount(r.name, user); n >= most {
+					return fmt.Errorf("data.set: that is the %d names a script keeps", most)
+				}
 			}
-		}
-		if err := r.b.Store.ScriptSet(r.name, user, k, string(b)); err != nil {
+			return r.b.Store.ScriptSet(r.name, user, k, string(b))
+		}()
+		dataMu.Unlock()
+		if err != nil {
 			r.throw("%v", err)
 		}
 	})

@@ -46,8 +46,11 @@ func scanToken(row interface{ Scan(...any) error }) (*Token, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
+	if err != nil {
+		return nil, err // nothing half scanned
+	}
 	t.Created, t.Expires, t.LastUsed = unix(created), unix(expires), unix(last)
-	return &t, err
+	return &t, nil
 }
 
 // TokenByHash finds a token, if it has not expired.

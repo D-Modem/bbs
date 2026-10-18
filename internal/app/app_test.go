@@ -685,3 +685,12 @@ func TestNodelist(t *testing.T) {
 		t.Errorf("sent %q", sent)
 	}
 }
+
+// TestCapital: the first letter upper-cased, however many bytes it is.
+func TestCapital(t *testing.T) {
+	for in, want := range map[string]string{"": "", "abc": "Abc", "élan": "Élan", "über": "Über", "1x": "1x"} {
+		if got := capital(in); got != want {
+			t.Errorf("%q: %q, want %q", in, got, want)
+		}
+	}
+}

@@ -69,14 +69,6 @@ func names(n string) (string, string) {
 	return f[0], strings.Join(f[1:], " ")
 }
 
-// yn is a flag as Y or N.
-func yn(b bool) string {
-	if b {
-		return "Y"
-	}
-	return "N"
-}
-
 // onezero is a flag as 1 or 0.
 func onezero(b bool) string {
 	if b {

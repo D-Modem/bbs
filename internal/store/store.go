@@ -393,7 +393,10 @@ func scanArea(row interface{ Scan(...any) error }) (*Area, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
-	return &a, err
+	if err != nil {
+		return nil, err // nothing half scanned
+	}
+	return &a, nil
 }
 
 // Areas lists the message areas.
@@ -437,8 +440,11 @@ func scanMessage(row interface{ Scan(...any) error }) (*Message, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
+	if err != nil {
+		return nil, err // nothing half scanned
+	}
 	m.Created = unix(created)
-	return &m, err
+	return &m, nil
 }
 
 // Post adds a message to an area.
@@ -597,8 +603,11 @@ func scanMail(row interface{ Scan(...any) error }) (*Message, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
+	if err != nil {
+		return nil, err // nothing half scanned
+	}
 	m.Created = unix(created)
-	return &m, err
+	return &m, nil
 }
 
 // SendMail delivers a private message.
@@ -721,7 +730,10 @@ func scanFileArea(row interface{ Scan(...any) error }) (*FileArea, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
-	return &a, err
+	if err != nil {
+		return nil, err // nothing half scanned
+	}
+	return &a, nil
 }
 
 // FileAreas lists the file areas.
@@ -764,8 +776,11 @@ func scanFile(row interface{ Scan(...any) error }) (*File, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
+	if err != nil {
+		return nil, err // nothing half scanned
+	}
 	f.Created = unix(created)
-	return &f, err
+	return &f, nil
 }
 
 // AddFile records a file; ErrExists if the area has one of that name.

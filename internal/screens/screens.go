@@ -16,6 +16,7 @@ package screens
 
 import (
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -128,9 +129,16 @@ func readFile(path string) ([]byte, error) {
 	if fi.Size() > MaxSize {
 		return nil, errors.New("too big")
 	}
-	b := make([]byte, fi.Size())
-	n, err := f.Read(b)
-	return b[:n], err
+	// all of it (one Read may stop short), and no more than MaxSize should
+	// it have grown since
+	b, err := io.ReadAll(io.LimitReader(f, MaxSize+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(b) > MaxSize {
+		return nil, errors.New("too big")
+	}
+	return b, nil
 }
 
 // stripSAUCE drops what follows ^Z: a SAUCE record, comments.
