@@ -17,6 +17,7 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -425,9 +426,15 @@ func (q *req) needLogin() bool {
 	}
 	back := q.r.URL.Path
 	if q.r.Method != http.MethodGet {
-		back = q.r.Referer()
-		if !strings.HasPrefix(back, "/") {
-			back = Base + "/"
+		// the form's page: browsers send its whole URL, kept if it is this
+		// host's (its path and query, then, checked as the login checks)
+		back = Base + "/"
+		if u, err := url.Parse(q.r.Referer()); err == nil && (u.Host == "" || strings.EqualFold(u.Host, q.r.Host)) {
+			back = u.EscapedPath()
+			if u.RawQuery != "" {
+				back += "?" + u.RawQuery
+			}
+			back = safeBack(back)
 		}
 	}
 	http.Redirect(q.w, q.r, Base+"/login?back="+urlEscape(back), http.StatusSeeOther)

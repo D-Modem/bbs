@@ -226,6 +226,26 @@ func TestGuestsAndLogin(t *testing.T) {
 	if _, at, _ := guest.post("", "/forum/area/"+itoa(s.ar["General"].ID)+"/new", url.Values{"subject": {"x"}}); !strings.HasPrefix(at, "/forum/login") {
 		t.Errorf("guest post: %s", at)
 	}
+	// ... and back to the page the form was on, if it is this site's
+	newTopic := s.ts.URL + "/forum/area/" + itoa(s.ar["General"].ID) + "/new"
+	noFollow := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	for referer, want := range map[string]string{
+		s.ts.URL + "/forum/topic/1?page=2": "/forum/login?back=" + url.QueryEscape("/forum/topic/1?page=2"),
+		"https://evil.example/forum/x":     "/forum/login?back=" + url.QueryEscape("/forum/"),
+		s.ts.URL + "/elsewhere":            "/forum/login?back=" + url.QueryEscape("/forum/"),
+	} {
+		req, _ := http.NewRequest("POST", newTopic, strings.NewReader("subject=x"))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Referer", referer)
+		resp, err := noFollow.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if at := resp.Header.Get("Location"); at != want {
+			t.Errorf("from %s: to %s, want %s", referer, at, want)
+		}
+	}
 	_, _, body = guest.post("", "/forum/login", url.Values{"name": {"alice"}, "password": {"wrong"}})
 	has(t, "bad login", body, "class=\"message error\"", `value="alice"`)
 	// back only to the forum's own pages
