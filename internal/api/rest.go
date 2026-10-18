@@ -383,8 +383,9 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 }
 
 // patchMe: the user's location, about, settings or password changed (a
-// new password needs the old); then their account, as me.  A refused
-// password leaves the other changes made.
+// new password needs the old); then their account, as me.  All or nothing:
+// the settings are checked and the password changed (the step that can be
+// refused) before anything else is saved.
 func (s *Server) patchMe(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Location    *string           `json:"location"`
@@ -397,30 +398,38 @@ func (s *Server) patchMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u := whoOf(r).user
+	var prefs string
 	if req.Prefs != nil {
 		fresh, err := s.B.Store.UserByID(u.ID)
 		if err != nil {
 			fail(w, http.StatusNotFound, "no such user")
 			return
 		}
-		prefs, err := bbs.ChangePrefs(fresh.Prefs, req.Prefs)
-		if err != nil {
+		if prefs, err = bbs.ChangePrefs(fresh.Prefs, req.Prefs); err != nil {
 			fail(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		s.B.Store.SetPrefs(u.ID, prefs)
-	}
-	if req.Location != nil {
-		s.B.Store.SetLocation(u.ID, bbs.Clean(*req.Location, bbs.MaxLocationLen))
-	}
-	if req.About != nil {
-		s.B.Store.SetAbout(u.ID, bbs.Clean(*req.About, 60))
 	}
 	if req.NewPassword != "" {
 		if err := s.agent(r).ChangePassword(req.OldPassword, req.NewPassword); err != nil {
 			fail(w, http.StatusBadRequest, err.Error())
 			return
 		}
+	}
+	var err error
+	if req.Prefs != nil {
+		err = errors.Join(err, s.B.Store.SetPrefs(u.ID, prefs))
+	}
+	if req.Location != nil {
+		err = errors.Join(err, s.B.Store.SetLocation(u.ID, bbs.Clean(*req.Location, bbs.MaxLocationLen)))
+	}
+	if req.About != nil {
+		err = errors.Join(err, s.B.Store.SetAbout(u.ID, bbs.Clean(*req.About, 60)))
+	}
+	if err != nil {
+		s.B.Log.Printf("http: %s: changing their account: %v", u.Name, err)
+		fail(w, http.StatusInternalServerError, "the system is in trouble")
+		return
 	}
 	s.me(w, r)
 }
@@ -1304,8 +1313,8 @@ func (s *Server) addUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // patchUser: a user's lock, sysop, QWK node, password, location, level or
-// flags set; then the user.  The changes are made one by one, so one
-// refused leaves those before it made.
+// flags set; then the user.  All or nothing: every change is checked before
+// any is made.
 func (s *Server) patchUser(w http.ResponseWriter, r *http.Request) {
 	u, err := s.B.Store.UserByName(r.PathValue("name"))
 	if err != nil {
@@ -1329,37 +1338,48 @@ func (s *Server) patchUser(w http.ResponseWriter, r *http.Request) {
 			fail(w, http.StatusBadRequest, msg)
 			return
 		}
-		s.B.Store.SetPassword(u.ID, *req.Password)
 	}
-	if req.Locked != nil {
-		s.B.Store.SetLocked(u.ID, *req.Locked)
+	if req.Level != nil && (*req.Level < 0 || *req.Level > bbs.MaxLevel) {
+		fail(w, http.StatusBadRequest, fmt.Sprintf("a level is 0 to %d", bbs.MaxLevel))
+		return
 	}
-	if req.Sysop != nil {
-		s.B.Store.SetSysop(u.ID, *req.Sysop)
-	}
-	if req.QWKNode != nil {
-		s.B.Store.SetQWKNode(u.ID, *req.QWKNode)
-	}
-	if req.Location != nil {
-		s.B.Store.SetLocation(u.ID, bbs.Clean(*req.Location, bbs.MaxLocationLen))
-	}
-	if req.Level != nil {
-		if *req.Level < 0 || *req.Level > bbs.MaxLevel {
-			fail(w, http.StatusBadRequest, "a level is 0 to 255")
-			return
-		}
-		s.B.Store.SetLevel(u.ID, *req.Level)
-	}
+	var flags string
 	if req.Flags != nil {
-		fl, err := bbs.EditFlags(u.Flags, *req.Flags)
-		if err != nil {
+		if flags, err = bbs.EditFlags(u.Flags, *req.Flags); err != nil {
 			fail(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		s.B.Store.SetFlags(u.ID, fl)
+	}
+	st := s.B.Store
+	err = nil
+	if req.Password != nil {
+		err = errors.Join(err, st.SetPassword(u.ID, *req.Password))
+	}
+	if req.Locked != nil {
+		err = errors.Join(err, st.SetLocked(u.ID, *req.Locked))
+	}
+	if req.Sysop != nil {
+		err = errors.Join(err, st.SetSysop(u.ID, *req.Sysop))
+	}
+	if req.QWKNode != nil {
+		err = errors.Join(err, st.SetQWKNode(u.ID, *req.QWKNode))
+	}
+	if req.Location != nil {
+		err = errors.Join(err, st.SetLocation(u.ID, bbs.Clean(*req.Location, bbs.MaxLocationLen)))
+	}
+	if req.Level != nil {
+		err = errors.Join(err, st.SetLevel(u.ID, *req.Level))
+	}
+	if req.Flags != nil {
+		err = errors.Join(err, st.SetFlags(u.ID, flags))
+	}
+	if err != nil {
+		s.B.Log.Printf("http: %s changing user %s: %v", whoOf(r).user.Name, u.Name, err)
+		fail(w, http.StatusInternalServerError, "the system is in trouble")
+		return
 	}
 	s.B.Log.Printf("http: %s changed user %s", whoOf(r).user.Name, u.Name)
-	u, _ = s.B.Store.UserByID(u.ID)
+	u, _ = st.UserByID(u.ID)
 	writeJSON(w, http.StatusOK, s.userView(r, u))
 }
 
@@ -1392,8 +1412,9 @@ func (s *Server) addArea(w http.ResponseWriter, r *http.Request) {
 }
 
 // patchArea: an area's newsgroup, echo tag, requirements, group, aliases
-// or limits set; then the area.  As patchUser, one refused leaves those
-// before it made.
+// or limits set; then the area.  All or nothing: every change is checked,
+// a newsgroup or echo tag another area has refused (409), before any is
+// made.
 func (s *Server) patchArea(w http.ResponseWriter, r *http.Request) {
 	a := s.areaByPath(w, r)
 	if a == nil {
@@ -1412,67 +1433,91 @@ func (s *Server) patchArea(w http.ResponseWriter, r *http.Request) {
 	if !s.decode(w, r, &req) {
 		return
 	}
-	if req.Newsgroup != nil {
-		if *req.Newsgroup != "" && !news.ValidGroup(*req.Newsgroup) {
+	st := s.B.Store
+	// another area's: the name or tag taken
+	taken := func(other *store.Area, err error) bool { return err == nil && other.ID != a.ID }
+	if req.Newsgroup != nil && *req.Newsgroup != "" {
+		if !news.ValidGroup(*req.Newsgroup) {
 			fail(w, http.StatusBadRequest, "a newsgroup name is lower case words with dots: bbs.general")
 			return
 		}
-		if err := s.B.Store.SetNewsgroup(a.ID, *req.Newsgroup); err != nil {
+		if taken(st.AreaByNewsgroup(*req.Newsgroup)) {
+			fail(w, http.StatusConflict, "another area is that newsgroup")
+			return
+		}
+	}
+	var tag string
+	if req.EchoTag != nil {
+		if tag = strings.ToUpper(*req.EchoTag); tag != "" && !ftn.ValidTag(tag) {
+			fail(w, http.StatusBadRequest, "an echo tag is letters, digits and . _ - (FSX_GEN), up to 60")
+			return
+		}
+		if tag != "" && taken(st.AreaByEchoTag(tag)) {
+			fail(w, http.StatusConflict, "another area has that echo tag")
+			return
+		}
+	}
+	read, post := a.ReadReq, a.PostReq
+	if req.ReadReq != nil {
+		read = *req.ReadReq
+	}
+	if req.PostReq != nil {
+		post = *req.PostReq
+	}
+	for _, q := range []string{read, post} {
+		if _, err := bbs.ParseRequire(q); err != nil {
+			fail(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+	msgs, days := a.MaxMsgs, a.MaxDays
+	if req.MaxMsgs != nil {
+		msgs = *req.MaxMsgs
+	}
+	if req.MaxDays != nil {
+		days = *req.MaxDays
+	}
+	if msgs < 0 || days < 0 {
+		fail(w, http.StatusBadRequest, "max_messages and max_days are 0 (no limit) or more")
+		return
+	}
+
+	// the newsgroup and echo tag first: unique, they can still be taken
+	// in the meantime, and the newsgroup is put back if the tag is
+	if req.Newsgroup != nil {
+		if err := st.SetNewsgroup(a.ID, *req.Newsgroup); err != nil {
 			fail(w, http.StatusConflict, err.Error())
 			return
 		}
 	}
 	if req.EchoTag != nil {
-		tag := strings.ToUpper(*req.EchoTag)
-		if tag != "" && !ftn.ValidTag(tag) {
-			fail(w, http.StatusBadRequest, "an echo tag is letters, digits and . _ - (FSX_GEN), up to 60")
-			return
-		}
-		if err := s.B.Store.SetEchoTag(a.ID, tag); err != nil {
+		if err := st.SetEchoTag(a.ID, tag); err != nil {
+			if req.Newsgroup != nil {
+				st.SetNewsgroup(a.ID, a.Newsgroup)
+			}
 			fail(w, http.StatusConflict, err.Error())
 			return
 		}
 	}
+	var err error
 	if req.ReadReq != nil || req.PostReq != nil {
-		read, post := a.ReadReq, a.PostReq
-		if req.ReadReq != nil {
-			read = *req.ReadReq
-		}
-		if req.PostReq != nil {
-			post = *req.PostReq
-		}
-		for _, q := range []string{read, post} {
-			if _, err := bbs.ParseRequire(q); err != nil {
-				fail(w, http.StatusBadRequest, err.Error())
-				return
-			}
-		}
-		if err := s.B.Store.SetAreaRequire(a.ID, read, post); err != nil {
-			fail(w, http.StatusInternalServerError, "the system is in trouble")
-			return
-		}
+		err = errors.Join(err, st.SetAreaRequire(a.ID, read, post))
 	}
 	if req.Group != nil {
-		s.B.Store.SetAreaGroup(a.ID, bbs.Clean(*req.Group, 30))
+		err = errors.Join(err, st.SetAreaGroup(a.ID, bbs.Clean(*req.Group, 30)))
 	}
 	if req.Aliases != nil {
-		s.B.Store.SetAreaAliases(a.ID, *req.Aliases)
+		err = errors.Join(err, st.SetAreaAliases(a.ID, *req.Aliases))
 	}
 	if req.MaxMsgs != nil || req.MaxDays != nil {
-		msgs, days := a.MaxMsgs, a.MaxDays
-		if req.MaxMsgs != nil {
-			msgs = *req.MaxMsgs
-		}
-		if req.MaxDays != nil {
-			days = *req.MaxDays
-		}
-		if msgs < 0 || days < 0 {
-			fail(w, http.StatusBadRequest, "max_messages and max_days are 0 (no limit) or more")
-			return
-		}
-		s.B.Store.SetAreaKeep(a.ID, msgs, days)
+		err = errors.Join(err, st.SetAreaKeep(a.ID, msgs, days))
 	}
-	a, _ = s.B.Store.Area(a.ID)
+	if err != nil {
+		s.B.Log.Printf("http: %s changing area %d: %v", whoOf(r).user.Name, a.ID, err)
+		fail(w, http.StatusInternalServerError, "the system is in trouble")
+		return
+	}
+	a, _ = st.Area(a.ID)
 	writeJSON(w, http.StatusOK, s.areaOut(r, a))
 }
 

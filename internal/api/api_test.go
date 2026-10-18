@@ -1039,3 +1039,44 @@ func TestRangeDownloadLimits(t *testing.T) {
 		}
 	}
 }
+
+// TestPatchAllOrNothing: a PATCH with one change refused makes none of the
+// others: a user's password with a bad level, an area's group with a bad
+// echo tag or another area's newsgroup, the caller's location with a wrong
+// old password.
+func TestPatchAllOrNothing(t *testing.T) {
+	s := setup(t, Settings{})
+	sys := s.login("sysop", "sysoppass1")
+	if code, m, _ := s.do("PATCH", "/api/v1/admin/users/alice", sys,
+		map[string]any{"password": "newpass123", "locked": true, "level": 999}); code != 400 {
+		t.Fatalf("bad level: %d %v", code, m)
+	}
+	if u, _ := s.b.Store.UserByName("alice"); u.Locked {
+		t.Error("locked, though the request was refused")
+	}
+	s.login("alice", "alicepass1") // the password unchanged
+
+	if code, _, _ := s.do("PATCH", "/api/v1/admin/areas/2", sys, map[string]any{"newsgroup": "bbs.news"}); code != 200 {
+		t.Fatalf("newsgroup: %d", code)
+	}
+	for _, req := range []map[string]any{
+		{"group": "Elsewhere", "echo_tag": "BAD TAG!"},
+		{"group": "Elsewhere", "newsgroup": "bbs.news"}, // area 2's
+	} {
+		if code, m, _ := s.do("PATCH", "/api/v1/admin/areas/1", sys, req); code != 400 && code != 409 {
+			t.Errorf("%v: %d %v", req, code, m)
+		}
+	}
+	if a, _ := s.b.Store.Area(1); a.Group != "" || a.Newsgroup != "" {
+		t.Errorf("area changed: group %q, newsgroup %q", a.Group, a.Newsgroup)
+	}
+
+	alice := s.login("alice", "alicepass1")
+	if code, _, _ := s.do("PATCH", "/api/v1/me", alice,
+		map[string]any{"location": "Moved", "old_password": "wrong", "new_password": "newpass123"}); code != 400 {
+		t.Errorf("wrong old password: %d", code)
+	}
+	if u, _ := s.b.Store.UserByName("alice"); u.Location != "Here" {
+		t.Errorf("location %q, though the request was refused", u.Location)
+	}
+}
