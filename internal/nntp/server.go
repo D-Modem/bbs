@@ -645,16 +645,29 @@ func (ss *session) nextLast(next bool) {
 	ss.reply(223, fmt.Sprintf("%d %s", m.ID, m.MessageID))
 }
 
+// byMessageID is the article with Message-ID id, if it is in a newsgroup
+// this session may read: nil otherwise, however it is not (no such
+// message, one in an area that is no newsgroup, or one not visible here),
+// so that a client learns nothing of messages it may not read.
+func (ss *session) byMessageID(id string) *store.Message {
+	st := ss.s.Svc.B.Store
+	m, err := st.MessageByMessageID(id)
+	if err != nil || m.MessageID == "" {
+		return nil
+	}
+	if a, err := st.Area(m.AreaID); err != nil || a.Newsgroup == "" || !ss.visible(a) {
+		return nil
+	}
+	return m
+}
+
 // selectArticle finds the article an ARTICLE-like command names: by
 // Message-ID (number 0), by number in the group, or the current one.
 func (ss *session) selectArticle(args []string) (*store.Message, int64, bool) {
 	st := ss.s.Svc.B.Store
 	if len(args) > 0 && strings.HasPrefix(args[0], "<") {
-		m, err := st.MessageByMessageID(args[0])
-		if err == nil {
-			if a, err := st.Area(m.AreaID); err == nil && a.Newsgroup != "" && ss.visible(a) {
-				return m, 0, true
-			}
+		if m := ss.byMessageID(args[0]); m != nil {
+			return m, 0, true
 		}
 		ss.reply(430, "No article with that message-id")
 		return nil, 0, false
@@ -743,13 +756,8 @@ func overview(raw []byte) (map[string]string, int, int) {
 func (ss *session) selectRange(args []string) ([]*store.Message, bool, bool) {
 	st := ss.s.Svc.B.Store
 	if len(args) > 0 && strings.HasPrefix(args[0], "<") {
-		m, err := st.MessageByMessageID(args[0])
-		if err == nil {
-			if a, err2 := st.Area(m.AreaID); err2 != nil || !ss.visible(a) {
-				err = store.ErrNotFound
-			}
-		}
-		if err != nil || m.MessageID == "" {
+		m := ss.byMessageID(args[0])
+		if m == nil {
 			ss.reply(430, "No article with that message-id")
 			return nil, false, false
 		}

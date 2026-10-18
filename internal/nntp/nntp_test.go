@@ -418,3 +418,25 @@ func TestIHAVE(t *testing.T) {
 		t.Fatalf("%+v, %v", m, err)
 	}
 }
+
+// TestMessageIDOutsideNews: a message whose area is no newsgroup (taken out
+// of news after it was posted) is no article by its Message-ID, to OVER and
+// HDR as to ARTICLE: the reader learns nothing of it.
+func TestMessageIDOutsideNews(t *testing.T) {
+	s := newSite(t, "news.a.test", ServerSettings{}, nil)
+	m := s.post(t, "alice", "Not news now", "hush", 0)
+	if m.MessageID == "" {
+		t.Fatal("no Message-ID")
+	}
+	cv := dialConv(t, s.addr)
+	cv.send("OVER " + m.MessageID)
+	cv.expect("224") // news, for now
+	cv.block()
+	if err := s.b.Store.SetNewsgroup(s.area.ID, ""); err != nil {
+		t.Fatal(err)
+	}
+	for _, cmd := range []string{"OVER ", "HDR Subject ", "ARTICLE ", "STAT "} {
+		cv.send(cmd + m.MessageID)
+		cv.expect("430")
+	}
+}
