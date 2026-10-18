@@ -26,6 +26,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// init makes bcrypt cheap, for the tests' users.
 func init() { store.BcryptCost = 4 }
 
 type site struct {
@@ -36,6 +37,7 @@ type site struct {
 	log  *bytes.Buffer
 }
 
+// freeAddr is a local address with a TCP port free a moment ago.
 func freeAddr(t *testing.T) string {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -45,6 +47,8 @@ func freeAddr(t *testing.T) string {
 	return ln.Addr().String()
 }
 
+// selfSigned writes a certificate for 127.0.0.1, signed by its own key, and the
+// key into dir: their files.
 func selfSigned(t *testing.T, dir string) (string, string) {
 	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	tmpl := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "news"},
@@ -145,6 +149,7 @@ type conv struct {
 	r *bufio.Reader
 }
 
+// dialConv connects to a server and reads its greeting.
 func dialConv(t *testing.T, addr string) *conv {
 	c, err := net.Dial("tcp", addr)
 	if err != nil {
@@ -156,6 +161,8 @@ func dialConv(t *testing.T, addr string) *conv {
 	return cv
 }
 
+// expect reads a response line, failing the test unless it starts with prefix
+// (or none comes in 5 seconds): the line, trimmed.
 func (cv *conv) expect(prefix string) string {
 	cv.t.Helper()
 	cv.c.SetReadDeadline(time.Now().Add(5 * time.Second))
@@ -169,8 +176,11 @@ func (cv *conv) expect(prefix string) string {
 	return strings.TrimSpace(line)
 }
 
+// send sends a line, CRLF ended.
 func (cv *conv) send(s string) { fmt.Fprintf(cv.c, "%s\r\n", s) }
 
+// block reads a multi-line block's lines up to the "." that ends it, as sent
+// (CRLF ended, dots still stuffed).
 func (cv *conv) block() string {
 	var b strings.Builder
 	for {
@@ -301,6 +311,11 @@ func TestPeering(t *testing.T) {
 	}
 }
 
+// TestAccess: with TLS required, IHAVE is for peers, POST and AUTHINFO wait for
+// STARTTLS; bad article numbers and Message-IDs, long lines and unknown
+// commands are answered as RFC 3977 says; after STARTTLS a wrong password
+// fails, the right one posts as the user (forged From and Path gone), and
+// control messages and articles too large are refused.
 func TestAccess(t *testing.T) {
 	s := newSite(t, "news.a.test", ServerSettings{Post: true, TLS: TLSRequired}, nil)
 	cv := dialConv(t, s.addr)
@@ -362,6 +377,9 @@ func TestAccess(t *testing.T) {
 	cv.expect("205")
 }
 
+// TestIHAVE: a peer's article is taken once, as it was sent (dots unstuffed);
+// one that has been here, for no group of ours or not the one offered is
+// refused, and a refused one is not wanted again.
 func TestIHAVE(t *testing.T) {
 	s := newSite(t, "news.a.test", ServerSettings{}, []*Peer{
 		{Name: "p", AcceptFrom: []net.IP{net.ParseIP("127.0.0.1")}}})

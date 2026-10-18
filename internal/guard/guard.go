@@ -41,6 +41,7 @@ type list[T any] struct {
 	checked time.Time
 }
 
+// clock is the time now (a test's own clock, if it has set one).
 func (g *Guard) clock() time.Time {
 	if g.now != nil {
 		return g.now()

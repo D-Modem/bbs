@@ -25,6 +25,7 @@ var (
 	inherited = map[string]net.Listener{} // by key: "tcp :23"
 )
 
+// key is how an inherited socket is found: "tcp :23".
 func key(network, address string) string { return network + " " + address }
 
 // Inherit takes the sockets handed down, if any (once, at the start).

@@ -26,6 +26,9 @@ var (
 	placeMax   int // the longest prefix
 )
 
+// key is a prefix as placeKeys has it, its digits and its length (so
+// "01" and "1" differ); false if it is empty, over 18 digits or not
+// digits.
 func key(p string) (uint64, bool) {
 	if len(p) == 0 || len(p) > 18 {
 		return 0, false
@@ -34,6 +37,8 @@ func key(p string) (uint64, bool) {
 	return n*32 + uint64(len(p)), err == nil
 }
 
+// loadPlaces reads places.gz into placeDesc, placeKeys and placeIdx, once;
+// it panics if the embedded file is broken.
 func loadPlaces() {
 	placesOnce.Do(func() {
 		z, err := gzip.NewReader(bytes.NewReader(placesGz))
@@ -75,8 +80,13 @@ func loadPlaces() {
 
 type byKey struct{}
 
-func (byKey) Len() int           { return len(placeKeys) }
+// Len is the number of prefixes.
+func (byKey) Len() int { return len(placeKeys) }
+
+// Less orders the prefixes by key.
 func (byKey) Less(i, j int) bool { return placeKeys[i] < placeKeys[j] }
+
+// Swap swaps two prefixes and their descriptions.
 func (byKey) Swap(i, j int) {
 	placeKeys[i], placeKeys[j] = placeKeys[j], placeKeys[i]
 	placeIdx[i], placeIdx[j] = placeIdx[j], placeIdx[i]

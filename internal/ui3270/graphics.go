@@ -54,6 +54,8 @@ var (
 	asciiBox = box{"-", "|", "+", "+", "+", "+", "#", "|"}
 )
 
+// box is the terminal's line drawing: code page 310's where it has graphic
+// escape, ASCII where it has not.
 func (u *ui) box() box {
 	if u.dev.SupportsGE() {
 		return geBox

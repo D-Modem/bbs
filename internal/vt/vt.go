@@ -93,6 +93,8 @@ func Parse(reply []byte) Info {
 	return in
 }
 
+// numbers are a sequence's parameters: the numbers between the semicolons,
+// those empty, not numbers or too large left out, at most 32.
 func numbers(s string) []int {
 	var out []int
 	for _, f := range strings.Split(s, ";") {
@@ -111,6 +113,8 @@ func numbers(s string) []int {
 	return out
 }
 
+// printable is s's printable ASCII, at most max bytes, trimmed: what a
+// terminal said of itself, safe to show and log.
 func printable(s string, max int) string {
 	var sb strings.Builder
 	for _, r := range s {

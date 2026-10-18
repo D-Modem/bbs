@@ -59,6 +59,8 @@ func LoadHostKey(path string) (signer ssh.Signer, made bool, err error) {
 	return signer, made, nil
 }
 
+// makeHostKey makes a host key at path (RSA, ECDSA or ed25519 as its name
+// says, mode 0600, never over a file there) and is its PEM.
 func makeHostKey(path string) ([]byte, error) {
 	var key any
 	var err error
@@ -315,6 +317,9 @@ type sshTerm struct {
 	changed chan struct{} // closed when dl changes
 }
 
+// newSSHTerm is ch as a terminal, conn closed when a write hangs; the pty's
+// size kept if it is a sensible one.  Its reading goroutine runs until ch
+// ends or close.
 func newSSHTerm(ch io.ReadWriter, conn io.Closer, p sshPty) *sshTerm {
 	t := &sshTerm{ch: ch, conn: conn, in: make(chan []byte), done: make(chan struct{}),
 		changed: make(chan struct{})}
@@ -325,6 +330,8 @@ func newSSHTerm(ch io.ReadWriter, conn io.Closer, p sshPty) *sshTerm {
 	return t
 }
 
+// pump reads ch into in until ch errs (rerr then, in closed) or the
+// terminal is closed.
 func (t *sshTerm) pump() {
 	for {
 		b := make([]byte, 4096)
@@ -344,11 +351,14 @@ func (t *sshTerm) pump() {
 	}
 }
 
+// close stops the reading goroutine; ch is not closed.
 func (t *sshTerm) close() { close(t.done) }
 
 // Size is the pty's (0, 0 if the client gave none).
 func (t *sshTerm) Size() (cols, rows int) { return t.cols, t.rows }
 
+// SetReadDeadline sets when a Read gives up, a Read waiting now included.
+// It never closes ch: a read that times out loses nothing.
 func (t *sshTerm) SetReadDeadline(d time.Time) error {
 	t.mu.Lock()
 	t.dl = d
@@ -358,6 +368,8 @@ func (t *sshTerm) SetReadDeadline(d time.Time) error {
 	return nil
 }
 
+// Read is what has come, os.ErrDeadlineExceeded at the deadline, or ch's
+// error once it has ended.
 func (t *sshTerm) Read(p []byte) (int, error) {
 	if len(t.pend) > 0 {
 		n := copy(p, t.pend)
@@ -402,6 +414,8 @@ func (t *sshTerm) Read(p []byte) (int, error) {
 	}
 }
 
+// Write writes p, closing the connection if it takes longer than
+// writeTimeout.
 func (t *sshTerm) Write(p []byte) (int, error) {
 	hang := time.AfterFunc(writeTimeout, func() { t.conn.Close() })
 	defer hang.Stop()

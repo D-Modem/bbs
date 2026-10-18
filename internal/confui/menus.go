@@ -10,6 +10,7 @@ import (
 
 // The menus, by what a sysop looks for.
 
+// mainMenu is the first page: the menus, then review, check, save and quit.
 func (e *Editor) mainMenu() page {
 	return page{title: "Configuration", items: func() []item {
 		g := sec("general")
@@ -46,6 +47,8 @@ func (e *Editor) count(kind string, keep func(confedit.Section) bool, noun strin
 	return fmt.Sprintf("%d %ss", n, noun)
 }
 
+// boardMenu is Board configuration: the BBS's name and where it is, what
+// callers see, menus and prompts.
 func (e *Editor) boardMenu() page {
 	g := sec("general")
 	return page{title: "Board configuration", items: func() []item {
@@ -77,6 +80,9 @@ func (e *Editor) stringsPage() page {
 	}}
 }
 
+// systemMenu is System configuration: the database and log, where files
+// are, security, the user and group it runs as, scheduled events, and every
+// section.
 func (e *Editor) systemMenu() page {
 	g := sec("general")
 	return page{title: "System configuration", items: func() []item {
@@ -110,6 +116,8 @@ func listenType(e *Editor, s confedit.Section) string {
 	return t
 }
 
+// listeners is a list of [listen] sections (those keep says), each with its
+// type and address; added ones get the keys of with.
 func (e *Editor) listeners(keep func(confedit.Section) bool, title string, with map[string]string) page {
 	return e.listPage(title, "listen", "listener", keep, func(s confedit.Section) string {
 		a, _ := e.doc.Get(s, "address")
@@ -117,11 +125,14 @@ func (e *Editor) listeners(keep func(confedit.Section) bool, title string, with 
 	}, with)
 }
 
+// isModem is whether a listener is a modem line: raw, or with header = yes.
 func (e *Editor) isModem(s confedit.Section) bool {
 	h, _ := e.doc.Get(s, "header")
 	return listenType(e, s) == "raw" || h == "yes"
 }
 
+// connectionsMenu is Connections and modems: modem lines and all listeners,
+// callers' limits, modemmenu's auth socket, caller ID and GeoIP.
 func (e *Editor) connectionsMenu() page {
 	g := sec("general")
 	return page{title: "Connections and modems", items: func() []item {
@@ -144,6 +155,7 @@ func (e *Editor) connectionsMenu() page {
 	}}
 }
 
+// onOff is "on" if the file has section s, "off" if not.
 func (e *Editor) onOff(s confedit.Section) string {
 	if e.doc.Has(s) {
 		return "on"
@@ -151,6 +163,8 @@ func (e *Editor) onOff(s confedit.Section) string {
 	return "off"
 }
 
+// servicesMenu is Services: listeners by type, the servers whose section
+// turns them on, and the networks and doors.
 func (e *Editor) servicesMenu() page {
 	ofType := func(t string) func(confedit.Section) bool {
 		return func(s confedit.Section) bool { return listenType(e, s) == t }
@@ -196,6 +210,8 @@ func (e *Editor) servicesMenu() page {
 	}}
 }
 
+// tn3270Page is TN3270: the 3270 pictures and logo, and the tn3270 key of
+// each telnet listener.
 func (e *Editor) tn3270Page() page {
 	g := sec("general")
 	return page{title: "TN3270", note: []view.Line{view.T(view.Dim, "3270s come in by telnet listeners with TN3270 on.")},
@@ -209,6 +225,7 @@ func (e *Editor) tn3270Page() page {
 		}}
 }
 
+// newsPage is News (NNTP): the server, the [news] keys, and the peers.
 func (e *Editor) newsPage() page {
 	return page{title: "News (NNTP)", items: func() []item {
 		out := []item{e.enabled(sec("nntp"), "NNTP server")}
@@ -225,6 +242,8 @@ func (e *Editor) newsPage() page {
 	}}
 }
 
+// webPage is the HTTP server and the image boards (their dir is under
+// System configuration).
 func (e *Editor) webPage() page {
 	return page{title: "Web: API, forum, image boards", items: func() []item {
 		out := []item{e.enabled(sec("http"), "HTTP server")}
@@ -239,6 +258,8 @@ func (e *Editor) webPage() page {
 	}}
 }
 
+// fidoPage is FidoNet: [fido] but its dir (under System configuration),
+// binkp's answering, and the links.
 func (e *Editor) fidoPage() page {
 	return page{title: "FidoNet", items: func() []item {
 		out := []item{e.enabled(sec("fido"), "On FidoNet")}

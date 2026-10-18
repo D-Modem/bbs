@@ -120,6 +120,7 @@ func (s *session) fullEdit(to, subject string, body, quote []string) ([]string, 
 	}
 }
 
+// done clears the screen: the message's lines, to save.
 func (e *fsEdit) done() []string {
 	e.t.Clear()
 	return e.b.Text()
@@ -136,6 +137,8 @@ func (e *fsEdit) line(i int) string {
 	return ""
 }
 
+// drawAll draws the whole screen again: the To and Subject heading, the
+// text from the top line shown, the last row.
 func (e *fsEdit) drawAll() {
 	t := e.t
 	var w strings.Builder
@@ -158,6 +161,8 @@ func (e *fsEdit) drawFrom(i int) {
 	e.t.Print(w.String())
 }
 
+// drawStatus draws the last row: the word to the caller, or the keys, and
+// the cursor's line of how many.
 func (e *fsEdit) drawStatus() {
 	t := e.t
 	msg := e.status
@@ -216,9 +221,13 @@ func (e *fsEdit) place() {
 
 // The quote window: the lower half of the text rows.
 
-func (e *fsEdit) qRow() int    { return textRow + e.height } // its title row
+// qRow is the quote window's title row, just below the text.
+func (e *fsEdit) qRow() int { return textRow + e.height } // its title row
+// qHeight is the quote window's rows of lines, down to the last row.
 func (e *fsEdit) qHeight() int { return e.t.Rows - 1 - e.qRow() }
 
+// openQuote gives the lower half of the text rows to the quote window, the
+// cursor's line kept on the screen.
 func (e *fsEdit) openQuote() {
 	full := e.t.Rows - textRow
 	e.height = full / 2
@@ -228,6 +237,7 @@ func (e *fsEdit) openQuote() {
 	e.drawQuote()
 }
 
+// closeQuote gives the text its rows back.
 func (e *fsEdit) closeQuote() {
 	e.qOpen = false
 	e.height = e.t.Rows - textRow
@@ -236,6 +246,8 @@ func (e *fsEdit) closeQuote() {
 	e.drawStatus()
 }
 
+// drawQuote draws the quote window, its chosen line in reverse, and which
+// line of how many on the last row.
 func (e *fsEdit) drawQuote() {
 	t := e.t
 	var w strings.Builder
@@ -257,6 +269,9 @@ func (e *fsEdit) drawQuote() {
 	e.say(fmt.Sprintf("Quoting %d of %d", e.qSel+1, len(e.quote)))
 }
 
+// quoteKey is a key while the quote window is open: ^Q or ESC closes it,
+// the cursor keys choose a line, Enter puts it in at the cursor and goes on
+// to the next; anything else is ignored.
 func (e *fsEdit) quoteKey(k rune) {
 	switch k {
 	case 0x11, 0x1b:

@@ -23,6 +23,7 @@ type webClient struct {
 	id uint32
 }
 
+// send sends m as JSON with the next id, and is that id.
 func (w *webClient) send(m *pb.ClientMessage) uint32 {
 	w.t.Helper()
 	w.id++

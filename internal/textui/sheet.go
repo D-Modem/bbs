@@ -111,7 +111,9 @@ type sheetDraw struct {
 }
 
 // rows: where the entries' window begins, and how many rows it has
-func (d *sheetDraw) first() int  { return 3 + min(len(d.sh.Note), 3) }
+func (d *sheetDraw) first() int { return 3 + min(len(d.sh.Note), 3) }
+
+// height is how many rows the entries' window has, at least 3.
 func (d *sheetDraw) height() int { return max(d.t.Rows-3-d.first()+1, 3) }
 
 // step is the next entry the cursor may rest on from i, by dir (-1 if none).
@@ -127,6 +129,8 @@ func (d *sheetDraw) step(i, dir int) int {
 	return -1
 }
 
+// page is the entry the cursor goes to a page up (dir -1) or down (1):
+// the nearest that may be chosen, -1 if none.
 func (d *sheetDraw) page(dir int) int {
 	j := min(max(d.cur+dir*(d.height()-1), 0), len(d.sh.Entries)-1)
 	if n := d.step(j-dir, dir); n >= 0 {
@@ -135,6 +139,8 @@ func (d *sheetDraw) page(dir int) int {
 	return d.step(j, -dir)
 }
 
+// letter is the next entry after the cursor, going round, that may be
+// chosen and begins with r; -1 if none.
 func (d *sheetDraw) letter(r rune) int {
 	n := len(d.sh.Entries)
 	for k := 1; k <= n; k++ {
@@ -179,6 +185,8 @@ func (d *sheetDraw) scroll() bool {
 	return top != d.top
 }
 
+// drawAll draws the whole sheet: the title bar (the crumbs, if any), up to
+// three lines of note, the entries, the foot.
 func (d *sheetDraw) drawAll() {
 	t := d.t
 	d.scroll()
@@ -200,6 +208,7 @@ func (d *sheetDraw) drawAll() {
 	d.drawFoot()
 }
 
+// tone is a note's line, fitted to the screen, in its tone's color.
 func (d *sheetDraw) tone(l view.Line) string {
 	t := d.t
 	s := bbs.Trunc(" "+l.Label+l.Text, t.Cols-1)
@@ -218,6 +227,7 @@ func (d *sheetDraw) tone(l view.Line) string {
 	return s
 }
 
+// drawEntries draws every row of the entries' window.
 func (d *sheetDraw) drawEntries() {
 	for r := 0; r < d.height(); r++ {
 		d.drawEntry(d.top + r)
@@ -237,6 +247,9 @@ func (d *sheetDraw) widths() (label, note int) {
 	return label, min(note, d.t.Cols/4)
 }
 
+// drawEntry draws entry i on its row, if it is in the window (a row past
+// the entries is cleared): a heading, or its changed mark, label, value
+// and note in columns, in reverse under the cursor.
 func (d *sheetDraw) drawEntry(i int) {
 	t := d.t
 	row := d.first() + i - d.top

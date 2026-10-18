@@ -105,6 +105,7 @@ func Encode(img image.Image) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+// pct is a 16-bit color channel as a sixel palette's 0 to 100, rounded.
 func pct(v uint32) int { return int((v*100 + 0x7fff) / 0xffff) }
 
 // quantize gives the picture's palette and each pel's index in it (-1 for

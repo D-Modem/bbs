@@ -14,22 +14,37 @@ import (
 
 // What only a 3270 does, for internal/app.
 
+// Kind is app.TN3270: a 3270.
 func (u *ui) Kind() string { return app.TN3270 }
 
 // ShowScreen: a 3270's display files always wait for Enter.
 func (u *ui) ShowScreen(name string, wait bool) (bool, error) { return u.screen(name) }
 
+// Chat is the chat rooms from room ("": the main one), with the note to begin
+// with.
 func (u *ui) Chat(room, note string) error { return u.chat(room, note) }
 
 // Doors are ANSI programs: none here.
-func (u *ui) Doors() []*door.Door          { return nil }
-func (u *ui) OpenDoor(*door.Door) error    { return nil }
-func (u *ui) Transfers() bool              { return false }
+func (u *ui) Doors() []*door.Door { return nil }
+
+// OpenDoor does nothing: there are no doors.
+func (u *ui) OpenDoor(*door.Door) error { return nil }
+
+// Transfers is false: files go by IND$FILE, typed on the command line
+// (FileCommand).
+func (u *ui) Transfers() bool { return false }
+
+// Download does nothing: see Transfers.
 func (u *ui) Download([]app.FileRef) error { return nil }
+
+// Upload does nothing: see Transfers.
 func (u *ui) Upload(*store.FileArea) error { return nil }
 
+// SendData sends nothing: a packet goes by IND$FILE (DataCommand).
 func (u *ui) SendData(string, []byte) (bool, error) { return false, nil }
-func (u *ui) ReceiveData(int64) ([]byte, error)     { return nil, nil }
+
+// ReceiveData receives nothing: replies come by IND$FILE (DataCommand).
+func (u *ui) ReceiveData(int64) ([]byte, error) { return nil, nil }
 
 // DataCommand runs an IND$FILE transfer of a file made for the caller.
 func (u *ui) DataCommand(cmd string, get func(string) ([]byte, func(), error), put func(string, []byte) string) (string, error) {
@@ -91,6 +106,8 @@ func (u *ui) applyPrefs() {
 		u.noPictures = !on
 	}
 }
+
+// TerminalInfo shows what the terminal told of itself.
 func (u *ui) TerminalInfo() error { return u.terminal() }
 
 // Watch: a 3270 shows a node's screen no more than it shows a door's.

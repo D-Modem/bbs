@@ -79,6 +79,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// usage prints the commands and exits 2.
 func usage() {
 	fmt.Fprint(os.Stderr, `usage:
   bbs [-config FILE] [serve]         answer callers
@@ -149,6 +150,9 @@ func usage() {
 	os.Exit(2)
 }
 
+// main reads the configuration (but for config, which may be putting a bad
+// one right) and runs the command, serve when none; as root with a user =,
+// any command but serve, check and backup restore gives up root first.
 func main() {
 	configPath := flag.String("config", "", "the configuration file (none: the defaults)")
 	flag.Usage = usage
@@ -319,11 +323,13 @@ func main() {
 	}
 }
 
+// fatal prints err and exits 1.
 func fatal(err error) {
 	fmt.Fprintln(os.Stderr, "bbs:", err)
 	os.Exit(1)
 }
 
+// open is the configured database, opened; fatal if it cannot be.
 func open(cfg *server.Config) *store.Store {
 	st, err := store.Open(cfg.Database)
 	if err != nil {
@@ -332,6 +338,8 @@ func open(cfg *server.Config) *store.Store {
 	return st
 }
 
+// logger is the log that spec (log =) names: stderr (also ""), none,
+// syslog, or a file appended to.
 func logger(spec string) (*log.Logger, error) {
 	switch spec {
 	case "", "stderr":
@@ -352,6 +360,10 @@ func logger(spec string) (*log.Logger, error) {
 	return log.New(f, "bbs: ", log.LstdFlags), nil
 }
 
+// serve answers callers until SIGTERM or SIGINT, and is the exit status.
+// As root with a user =, it binds the ports and becomes that user (this
+// program again), returning only if it could not; with a configuration file,
+// SIGHUP reads it again.
 func serve(cfg *server.Config, path string) int {
 	if a := cfg.RunAs; a != nil {
 		switch {
@@ -638,6 +650,8 @@ func split(args []string) (words []string, flags map[string]bool) {
 	return words, flags
 }
 
+// userCmd lists, adds and changes users: passwords, locks, sysops, levels,
+// flags, validation, QWK network nodes, and deletion.
 func userCmd(cfg *server.Config, args []string) {
 	if len(args) >= 3 && args[0] == "flags" {
 		// -C is an edit here, not an option
@@ -768,6 +782,9 @@ func limit(n int, what string) string {
 	return strconv.Itoa(n) + " " + what
 }
 
+// areaCmd lists, adds and deletes message areas, and sets what they require,
+// their newsgroup, echo, group, aliases and keeping; purge takes away what
+// they keep no more.
 func areaCmd(cfg *server.Config, args []string) {
 	words, flags := split(args)
 	if len(words) == 0 {
@@ -945,6 +962,8 @@ func areaCmd(cfg *server.Config, args []string) {
 	}
 }
 
+// fileAreaCmd lists, adds and deletes file areas, and sets their file echo
+// and what they require.
 func fileAreaCmd(cfg *server.Config, args []string) {
 	words, flags := split(args)
 	if len(words) == 0 {
@@ -1039,6 +1058,7 @@ func fileAreaCmd(cfg *server.Config, args []string) {
 	}
 }
 
+// fileCmd lists, adds (as the first sysop) and deletes an area's files.
 func fileCmd(cfg *server.Config, args []string) {
 	words, _ := split(args)
 	if len(words) < 2 {
@@ -1110,6 +1130,7 @@ func firstSysop(st *store.Store) *store.User {
 	return nil
 }
 
+// newsCmd exchanges articles with the news peers now, or the one named.
 func newsCmd(cfg *server.Config, args []string) {
 	words, _ := split(args)
 	if len(words) == 0 || words[0] != "sync" || len(words) > 2 {
@@ -1139,6 +1160,8 @@ func newsCmd(cfg *server.Config, args []string) {
 	}
 }
 
+// roomCmd lists the permanent chat rooms, makes one permanent, sets its
+// topic, or makes it permanent no more.
 func roomCmd(cfg *server.Config, args []string) {
 	words, _ := split(args)
 	if len(words) == 0 {
@@ -1177,6 +1200,7 @@ func roomCmd(cfg *server.Config, args []string) {
 	fmt.Println("done")
 }
 
+// qwkNetCmd calls the QWK networks' hubs now, or the named network's.
 func qwkNetCmd(cfg *server.Config, args []string) {
 	words, _ := split(args)
 	if len(words) == 0 || words[0] != "call" || len(words) > 2 {
@@ -1199,6 +1223,9 @@ func qwkNetCmd(cfg *server.Config, args []string) {
 	}
 }
 
+// fidoCmd scans, tosses or polls the FidoNet links (or the one named),
+// exiting 1 if any failed; or looks in the nodelist, or asks a link's
+// AreaFix or FileFix.
 func fidoCmd(cfg *server.Config, args []string) {
 	words, _ := split(args)
 	if len(words) == 0 {
@@ -1368,6 +1395,7 @@ func nodelistCmd(fd *fido.Fido, words []string) {
 	fmt.Printf("%d found (of %d)\n", len(found), nl.Len())
 }
 
+// tokenCmd adds an API key (printed once), lists them, or revokes one.
 func tokenCmd(cfg *server.Config, args []string) {
 	if len(args) == 0 {
 		usage()
@@ -1480,6 +1508,8 @@ func tokenCmd(cfg *server.Config, args []string) {
 	}
 }
 
+// sshKeyCmd adds a user's SSH keys (authorized_keys lines, from a file or
+// stdin), lists them, or deletes one.
 func sshKeyCmd(cfg *server.Config, args []string) {
 	if len(args) == 0 {
 		usage()
@@ -1576,6 +1606,7 @@ func requireArg(s string) string {
 	return r.String()
 }
 
+// dbCmd copies the database into another (a new one), table by table.
 func dbCmd(cfg *server.Config, args []string) {
 	if len(args) != 2 || args[0] != "copy" {
 		usage()

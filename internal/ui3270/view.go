@@ -92,9 +92,14 @@ func (u *ui) viewLine(row int, l view.Line) (go3270.Screen, int) {
 	return out, len(rows)
 }
 
+// PageSize is a table's rows on one screen (perPage).
 func (u *ui) PageSize() int { return u.perPage() }
-func (u *ui) Narrow() bool  { return false }
 
+// Narrow is false: a 3270 is 80 columns or more.
+func (u *ui) Narrow() bool { return false }
+
+// Say keeps msg for the next screen's message line, after whatever was said
+// before it; red if any of it is Bad.
 func (u *ui) Say(tn view.Tone, msg string) {
 	if tn == view.Bad {
 		u.sayBad = true
@@ -105,6 +110,9 @@ func (u *ui) Say(tn view.Tone, msg string) {
 	u.say += msg
 }
 
+// Menu shows the intro (dropped if the menu has no room for it), then the items
+// boxed, or the sysop's display file for the menu if there is one for a 3270,
+// and an option line; the item's key typed, or view.Back for PF3.
 func (u *ui) Menu(m *view.Menu) (string, error) {
 	msg := ""
 	for {
@@ -173,6 +181,11 @@ func (u *ui) Menu(m *view.Menu) (string, error) {
 	}
 }
 
+// Table shows the rows a page at a time, PF7 and PF8 paging (and past the ends
+// Less and More, where the table has them): a row picked by anything typed in
+// its select field, an action by its PF key, a command from the command line
+// where the table has one. Enter with nothing to pick or do is Back. Only the
+// note's first line is shown.
 func (u *ui) Table(t *view.Table) (view.Choice, error) {
 	per := u.perPage()
 	if t.Command != "" {
@@ -301,6 +314,9 @@ func (u *ui) Table(t *view.Table) (view.Choice, error) {
 	}
 }
 
+// Message shows the message, its picture above the body, PF7 and PF8 scrolling;
+// PF3 is Back, Enter the message's Default (Back without one), and an action's
+// PF key its action.
 func (u *ui) Message(m *view.Message) (string, error) {
 	off := 0
 	msg := ""
@@ -400,6 +416,9 @@ func (u *ui) field(row, col, width int, name string, hidden bool) ([]go3270.Fiel
 	}, end/u.cols + 1
 }
 
+// Form shows the fields by their labels, a long one going on in the rows below
+// (fields past the screen left off); the values on Enter, trimmed (a secret's
+// leading spaces kept), and false for PF3.
 func (u *ui) Form(f *view.Form) (map[string]string, bool, error) {
 	submit := f.Submit
 	if submit == "" {
@@ -453,6 +472,8 @@ func (u *ui) Form(f *view.Form) (map[string]string, bool, error) {
 	}
 }
 
+// Panel shows the picture, then the lines that fit; an action's PF key is its
+// action, PF3 Back, and any other key "".
 func (u *ui) Panel(p *view.Panel) (string, error) {
 	keys := "PF3=Back"
 	if k := pfKeys(p.Actions, "  "); k != "" {
@@ -491,6 +512,9 @@ func (u *ui) Panel(p *view.Panel) (string, error) {
 	return pfAction(p.Actions, resp.AID), nil
 }
 
+// Edit is the editor for the draft, its quote for the body when it has none;
+// PF5 sends it through CheckTo and Send (the To kept as it was if NoTo), their
+// errors shown to put right.
 func (u *ui) Edit(d *view.Draft) (bool, error) {
 	body := d.Body
 	if len(body) == 0 {
@@ -512,6 +536,8 @@ func (u *ui) Edit(d *view.Draft) (bool, error) {
 	})
 }
 
+// Confirm asks a question answered Y or N: Enter with nothing typed is def, PF3
+// no.
 func (u *ui) Confirm(question string, def bool) (bool, error) {
 	yn := "N"
 	if def {
@@ -545,6 +571,8 @@ func (u *ui) Confirm(question string, def bool) (bool, error) {
 	}
 }
 
+// Show shows the lines, wrapped, and their bars, a page at a time until PF3 or
+// Enter.
 func (u *ui) Show(title string, lines []view.Line) error {
 	var out []string
 	var colors []go3270.Color

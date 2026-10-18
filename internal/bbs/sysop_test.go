@@ -5,6 +5,9 @@ import (
 	"testing"
 )
 
+// TestWatchSummonAvailable: only a sysop watches a node (echoing, not their
+// own) and sees what it is sent until stopped; only a sysop summons a caller to
+// a private room; pages reach no one while the sysop is away.
 func TestWatchSummonAvailable(t *testing.T) {
 	b, ns := chatBBS(t)
 	alice, bob, sysop := ns["alice"], ns["bob"], ns["sysop"]

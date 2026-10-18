@@ -76,8 +76,12 @@ func prefixRE(p string) *regexp.Regexp {
 	return regexp.MustCompile(`^(?:` + p + `)`)
 }
 
+// wholeRE is a pattern that matches the whole.
 func wholeRE(p string) *regexp.Regexp { return regexp.MustCompile(`^(?:` + p + `)$`) }
 
+// compile indexes the territories, once: byID (not 001, the
+// non-geographic ones) and byCode, each code's main country first. Their
+// patterns are compiled later, by prepare.
 func compile() {
 	compileOnce.Do(func() {
 		byID, byCode = map[string]*territory{}, map[string][]*territory{}

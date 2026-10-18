@@ -83,6 +83,8 @@ func escape(s string) string {
 // Script is a RIP scene being built: a line per command.
 type Script struct{ sb strings.Builder }
 
+// cmd adds a command: "!|", its name, its arguments (m2's as meganums,
+// strings as they are) and CR LF.  Any other argument panics.
 func (s *Script) cmd(name string, args ...any) *Script {
 	s.sb.WriteString("!|" + name)
 	for _, a := range args {
@@ -101,6 +103,7 @@ func (s *Script) cmd(name string, args ...any) *Script {
 
 type mn struct{ n, w int }
 
+// m2 is n for cmd as a two-digit meganum.
 func m2(n int) mn { return mn{n, 2} }
 
 // String is the scene: CR LF ended lines, each beginning with "!".

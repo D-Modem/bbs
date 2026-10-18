@@ -15,6 +15,8 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// setup is a BBS with alice on node 1 and a locked user, and a finger
+// server of set on addr: the BBS and the address it listens on.
 func setup(t *testing.T, set Settings, addr string) (*bbs.BBS, string) {
 	t.Helper()
 	store.BcryptCost = 4
@@ -42,6 +44,7 @@ func setup(t *testing.T, set Settings, addr string) (*bbs.BBS, string) {
 	return b, ln.Addr().String()
 }
 
+// ask is the finger server's answer to query q.
 func ask(t *testing.T, addr, q string) string {
 	t.Helper()
 	c, err := net.Dial("tcp", addr)
@@ -54,6 +57,9 @@ func ask(t *testing.T, addr, q string) string {
 	return string(b)
 }
 
+// TestFinger: who is on, a user (with /W, in any case), no locked or
+// unknown users, no forwarding, nothing for an overlong query, and
+// nothing told when the settings say not.
 func TestFinger(t *testing.T) {
 	_, addr := setup(t, Settings{Online: true, Users: true}, "127.0.0.1:0")
 	got := ask(t, addr, "")

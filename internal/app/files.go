@@ -285,6 +285,7 @@ func (s *Session) fileList(title, empty string, list []*store.File, areas []*sto
 	}
 }
 
+// ids is the areas' IDs, in order.
 func ids(areas []*store.FileArea) []int64 {
 	out := make([]int64, len(areas))
 	for i, a := range areas {
@@ -355,6 +356,8 @@ func (s *Session) archive(f *store.File) error {
 	return err
 }
 
+// capital is s with its first byte in upper case: for the errors said to the
+// caller as sentences.
 func capital(s string) string {
 	if s == "" {
 		return s

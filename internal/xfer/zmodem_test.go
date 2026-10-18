@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+// TestReceiveZMODEM: a batch sz sends, an empty file and one of many
+// segments in it, comes whole, in order and committed.
 func TestReceiveZMODEM(t *testing.T) {
 	dir := t.TempDir()
 	var names []string
@@ -39,6 +41,8 @@ func TestReceiveZMODEM(t *testing.T) {
 	}
 }
 
+// TestSendZMODEM: a batch we send rz, an empty file and one of many segments
+// in it, comes whole.
 func TestSendZMODEM(t *testing.T) {
 	dir := t.TempDir()
 	var out []Outgoing
@@ -71,6 +75,7 @@ type noisy struct {
 	every int
 }
 
+// Write sends p with every nth byte of the line's flipped (0x55 XORed in).
 func (c *noisy) Write(p []byte) (int, error) {
 	c.mu.Lock()
 	q := append([]byte(nil), p...)

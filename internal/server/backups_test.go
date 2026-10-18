@@ -13,6 +13,8 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// TestBackupConfig: [backup]'s defaults (beside the database, 7 kept, the
+// files taken), the keys set, and an at = that is not HH:MM refused.
 func TestBackupConfig(t *testing.T) {
 	dir := t.TempDir()
 	load := func(body string) (*Config, error) {

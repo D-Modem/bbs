@@ -43,6 +43,8 @@ type guard struct {
 
 var errTooMuch = errors.New("3270: too much data from the client")
 
+// Read reads from the connection, no more than maxResponse bytes in all since n
+// was last reset (for each screen): errTooMuch past that.
 func (g *guard) Read(p []byte) (int, error) {
 	if g.n >= maxResponse {
 		return 0, errTooMuch
@@ -98,6 +100,7 @@ func Run(b *bbs.BBS, n *bbs.Node, conn net.Conn, dev go3270.DevInfo, o Options) 
 	return err
 }
 
+// run is the logon, then the shared screens; the app's log off is errLogoff.
 func (u *ui) run() error {
 	if err := u.logon(); err != nil {
 		return err
@@ -234,6 +237,8 @@ func (u *ui) frame(title, keys, msg string) go3270.Screen {
 	}
 }
 
+// centre is s, cut to w, with the spaces before it that centre it in w columns
+// (none after).
 func centre(s string, w int) string {
 	s = bbs.Trunc(s, w)
 	return strings.Repeat(" ", (w-len([]rune(s)))/2) + s
@@ -383,6 +388,8 @@ func (u *ui) register() (bool, error) {
 	}
 }
 
+// perPage is the rows of a list on one screen: all but the title, note and
+// heading lines above it and the input, message and key lines below.
 func (u *ui) perPage() int { return u.rows - 6 }
 
 // scroll moves a body window by a PF7 or PF8; the new offset, and false if

@@ -17,6 +17,9 @@ import (
 const bbsservHelp = `$b%s$b is your BBS account: what you have set, and
 setting it, as your profile on the BBS does.`
 
+// newBBSServ is the account service under nick name: its commands, and
+// the IRC commands that reach it, its name upper-cased and a short one
+// (/BS for BBSServ; for another name, its name again).
 func newBBSServ(name string) *service {
 	short := "BS"
 	if fold(name) != "bbsserv" {
@@ -129,6 +132,7 @@ func (c *client) fresh() *store.User {
 	return c.u
 }
 
+// onOff is b as "on" or "off".
 func onOff(b bool) string {
 	if b {
 		return "on"
@@ -136,6 +140,8 @@ func onOff(b bool) string {
 	return "off"
 }
 
+// bsInfo is INFO: the caller's account, profile, settings, and counts of
+// their unread mail, SSH keys, API tokens and areas in their new scan.
 func bsInfo(svc *service, c *client, _ string, _ []string) {
 	b := c.s.B
 	u := c.fresh()
@@ -183,6 +189,9 @@ func bsInfo(svc *service, c *client, _ string, _ []string) {
 // cleared: a value that clears a setting.
 func cleared(v string) bool { v = strings.TrimSpace(v); return v == "" || v == "-" }
 
+// bsSet is SET: one of the profile's fields (location, about, alias,
+// signature) or a terminal setting changed, or cleared by none or "-",
+// checked as the BBS checks its own.
 func bsSet(svc *service, c *client, _ string, params []string) {
 	b := c.s.B
 	u := c.fresh()
@@ -251,6 +260,7 @@ func bsSet(svc *service, c *client, _ string, params []string) {
 	}
 }
 
+// bsPasswd is PASSWD: the password changed, given the one now.
 func bsPasswd(svc *service, c *client, _ string, params []string) {
 	if err := c.n.ChangePassword(params[0], params[1]); err != nil {
 		svc.notice(c, capital(err.Error())+".")
@@ -259,6 +269,8 @@ func bsPasswd(svc *service, c *client, _ string, params []string) {
 	svc.notice(c, "Your password is changed.")
 }
 
+// bsScan is SCAN: the caller's areas and whether each is in their new
+// scan; SCAN ON or OFF with an area's name, or ALL, puts it in or out.
 func bsScan(svc *service, c *client, _ string, params []string) {
 	b := c.s.B
 	u := c.fresh()
@@ -311,6 +323,9 @@ func bsScan(svc *service, c *client, _ string, params []string) {
 	svc.notice(c, fmt.Sprintf("%d areas %s your new scan.", n, map[bool]string{true: "are in", false: "are out of"}[on]))
 }
 
+// bsKeys is KEYS: the caller's SSH keys listed; ADD one, given the
+// password again; DEL one by its number in the list.  An external
+// account's keys are not changed here.
 func bsKeys(svc *service, c *client, _ string, params []string) {
 	b := c.s.B
 	u := c.fresh()
@@ -365,6 +380,8 @@ func bsKeys(svc *service, c *client, _ string, params []string) {
 	}
 }
 
+// bsTokens is TOKENS: the caller's API tokens listed, or REVOKE one by
+// its id.
 func bsTokens(svc *service, c *client, _ string, params []string) {
 	b := c.s.B
 	u := c.fresh()
@@ -407,6 +424,7 @@ func bsTokens(svc *service, c *client, _ string, params []string) {
 	svc.notice(c, "Revoked.")
 }
 
+// param2 is the second parameter trimmed, or "".
 func param2(params []string) string {
 	if len(params) > 1 {
 		return strings.TrimSpace(params[1])
@@ -422,6 +440,8 @@ func capital(s string) string {
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
+// bsRooms is ROOMS: the permanent rooms, how many are in each, and its
+// topic.
 func bsRooms(svc *service, c *client, _ string, _ []string) {
 	rs := c.s.B.PermanentRooms()
 	if len(rs) == 0 {
@@ -437,6 +457,8 @@ func bsRooms(svc *service, c *client, _ string, _ []string) {
 	}
 }
 
+// bsRoom is ROOM, the sysop's alone: ADD makes a room permanent, DEL lets
+// it go, TOPIC sets its topic.
 func bsRoom(svc *service, c *client, _ string, params []string) {
 	b := c.s.B
 	if !c.fresh().Sysop {

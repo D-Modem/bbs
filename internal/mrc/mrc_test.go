@@ -16,6 +16,8 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// TestParse: a line's fields, and the line made again; a short line
+// refused; names and text sanitized.
 func TestParse(t *testing.T) {
 	m, ok := Parse("bob~Far~lobby~~~lobby~|03<|14bob|03> |07hi~\r\n")
 	if !ok || m.FromUser != "bob" || m.FromSite != "Far" || m.ToRoom != "lobby" || m.Body != "|03<|14bob|03> |07hi" {
@@ -45,6 +47,7 @@ type fakeServer struct {
 	conns chan string // each handshake
 }
 
+// newServer is a fake MRC server listening, closed when the test ends.
 func newServer(t *testing.T) *fakeServer {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -79,12 +82,14 @@ func newServer(t *testing.T) *fakeServer {
 	return s
 }
 
+// say sends a line to the last connection.
 func (s *fakeServer) say(line string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.conn.Write([]byte(line + "\n"))
 }
 
+// drop closes the last connection.
 func (s *fakeServer) drop() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -115,6 +120,8 @@ type env struct {
 	server *fakeServer
 }
 
+// start is a BBS (alice and bob) whose MRC client, with require, is
+// connected to a fake server: its handshake and first lines checked.
 func start(t *testing.T, require string) *env {
 	t.Helper()
 	store.BcryptCost = 4
@@ -149,6 +156,7 @@ func start(t *testing.T, require string) *env {
 	return &env{b: b, c: c, server: srv}
 }
 
+// node is a node on telnet with the user name, gone when the test ends.
 func (e *env) node(t *testing.T, name string) *bbs.Node {
 	t.Helper()
 	u, _ := e.b.Store.UserByName(name)
@@ -181,6 +189,11 @@ func wait(t *testing.T, n *bbs.Node, want string) {
 	}
 }
 
+// TestRelay: callers in MRC's rooms here: their arrivals, lines, emotes,
+// commands and moves between rooms sent; others' lines, notices and
+// direct messages shown to whom they are for, not our own twice; the
+// server's PING answered; a dropped line reconnected, those here back on;
+// rooms not MRC's not sent.
 func TestRelay(t *testing.T) {
 	e := start(t, "")
 	srv := e.server
@@ -267,6 +280,8 @@ func TestRelay(t *testing.T) {
 	}
 }
 
+// TestRequire: a user the require does not allow cannot join MRC's rooms,
+// only the others.
 func TestRequire(t *testing.T) {
 	e := start(t, "sysop")
 	alice := e.node(t, "alice")

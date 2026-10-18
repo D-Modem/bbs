@@ -127,6 +127,9 @@ func (c *client) joined() []string {
 	return out
 }
 
+// join is JOIN: each channel's room joined, with its topic, names and
+// last lines; "0" parts them all. A sysop joining #sysop-N answers node
+// N's page.
 func (c *client) join(list string) {
 	if list == "0" {
 		for _, r := range c.joined() {
@@ -184,6 +187,7 @@ func (c *client) join(list string) {
 	}
 }
 
+// part leaves a channel's room.
 func (c *client) part(ch string) {
 	name := room(ch)
 	if name == "" || !c.n.InRoom(name) {
@@ -203,6 +207,8 @@ func (c *client) member(m bbs.RoomMember) (nick, user, host string, op bool) {
 	return
 }
 
+// names is NAMES for one channel: the service first in a permanent room,
+// sysops as ops; a sysop- room's only to those in it.
 func (c *client) names(ch string) {
 	name := room(ch)
 	if name != "" && (c.n.InRoom(name) || !strings.HasPrefix(name, "sysop-")) {
@@ -257,6 +263,8 @@ func (c *client) nodesOf(nick string) []bbs.NodeInfo {
 	return out
 }
 
+// who is WHO: a channel's members (and the service, in a permanent room),
+// or a nick's nodes.
 func (c *client) who(mask string) {
 	if name := room(mask); name != "" {
 		if c.n.InRoom(name) || !strings.HasPrefix(name, "sysop-") {
@@ -283,6 +291,8 @@ func (c *client) who(mask string) {
 	c.reply(RPL_ENDOFWHO, mask, "End of WHO list")
 }
 
+// whois is WHOIS: the service, or a nick's user, their nodes and what each
+// is doing, whether they are the sysop, and how long since they came on.
 func (c *client) whois(nick string) {
 	if svc := c.s.svc; fold(nick) == fold(svc.Name) {
 		c.reply(RPL_WHOISUSER, svc.Name, svc.Name, c.s.S.ServerName, "*",
@@ -327,6 +337,8 @@ func (c *client) whois(nick string) {
 	c.reply(RPL_ENDOFWHOIS, nick, "End of /WHOIS list")
 }
 
+// list is LIST: the rooms, their numbers of callers (the service counted
+// in a permanent room) and their topics.
 func (c *client) list() {
 	c.reply(RPL_LISTSTART, "Channel", "Users  Name")
 	for _, r := range c.n.Rooms() {
@@ -339,6 +351,8 @@ func (c *client) list() {
 	c.reply(RPL_LISTEND, "End of /LIST")
 }
 
+// topic is TOPIC: a room's topic shown; set it only if it is permanent and
+// the user is the sysop.
 func (c *client) topic(ch, text string, set bool) {
 	name := room(ch)
 	_, permanent := c.s.B.RoomTopic(name)
@@ -367,6 +381,7 @@ func (c *client) sendTopic(ch, name string) {
 	}
 }
 
+// mode is MODE: a channel's are +nt and never change; a user's own is +i.
 func (c *client) mode(m *ircmsg.Message) {
 	target := param(m, 0)
 	if name := room(target); name != "" {
@@ -389,6 +404,10 @@ func (c *client) mode(m *ircmsg.Message) {
 	}
 }
 
+// privmsg is PRIVMSG or NOTICE: to the service, to a room the client is
+// in, or to each node of a nick's user (CTCP ACTION as an emote, other
+// CTCPs dropped, formatting stripped). A NOTICE is never answered with an
+// error.
 func (c *client) privmsg(command, target, text string) {
 	notice := command == "NOTICE"
 	if target == "" || text == "" {

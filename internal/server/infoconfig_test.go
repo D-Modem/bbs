@@ -7,6 +7,9 @@ import (
 	"testing"
 )
 
+// TestInfoConfig: page_command split into words, [finger] and [gopher]
+// with their defaults and the warning that gopher shows areas to anyone;
+// bad addresses, ports, commands and QWK IDs refused.
 func TestInfoConfig(t *testing.T) {
 	load := func(body string) (*Config, error) {
 		p := filepath.Join(t.TempDir(), "bbs.conf")

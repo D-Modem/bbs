@@ -41,6 +41,8 @@ func (s *Store) AddSSHKey(k *SSHKey) (int64, error) {
 
 const sshKeyCols = `k.id, k.user_id, u.name, k.type, k.fingerprint, k."key", k.comment, k.created, k.last_used`
 
+// scanSSHKey is the key in a row of sshKeyCols; ErrNotFound if there is
+// none.
 func scanSSHKey(row interface{ Scan(...any) error }) (*SSHKey, error) {
 	var k SSHKey
 	var created, last int64

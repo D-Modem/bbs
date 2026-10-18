@@ -14,6 +14,7 @@ type bitReader struct {
 	n   uint   // how many of them are good
 }
 
+// fill tops buf up to at least 25 good bits, with zeros past the end.
 func (r *bitReader) fill() {
 	for r.n <= 24 {
 		var c byte
@@ -32,6 +33,7 @@ func (r *bitReader) peek() uint16 {
 	return uint16(r.buf >> 16)
 }
 
+// skip drops the next n (at most 16) bits.
 func (r *bitReader) skip(n uint) {
 	r.fill()
 	r.buf <<= n

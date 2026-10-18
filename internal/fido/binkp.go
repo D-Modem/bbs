@@ -60,6 +60,8 @@ type frame struct {
 	data []byte
 }
 
+// arg is a command frame's argument, a trailing NUL some mailers send taken
+// off.
 func (fr frame) arg() string { return strings.TrimRight(string(fr.data), "\x00") }
 
 // session is one binkp session, either side.
@@ -76,6 +78,8 @@ type session struct {
 	rerr   error
 }
 
+// send writes a frame: its two-byte length (the top bit set for a command), the
+// command's id and its data.
 func (s *session) send(fr frame) error {
 	if len(fr.data)+1 > maxFrame {
 		return errors.New("frame too long")
@@ -97,6 +101,7 @@ func (s *session) send(fr frame) error {
 	return s.w.Flush()
 }
 
+// cmd sends a command frame.
 func (s *session) cmd(id byte, arg string) error {
 	return s.send(frame{cmd: true, id: id, data: []byte(arg)})
 }
@@ -145,6 +150,7 @@ func (s *session) next() (frame, error) {
 	return fr, nil
 }
 
+// logf logs for the session, after who it is with.
 func (s *session) logf(format string, a ...any) {
 	s.f.B.Log.Printf("binkp %s: "+format, append([]any{s.who}, a...)...)
 }
@@ -166,6 +172,8 @@ func (s *session) hello(extra ...string) error {
 	return s.cmd(mADR, strings.Join(addrs, " "))
 }
 
+// cramDigest is our answer to a CRAM-MD5 challenge (hex): the HMAC-MD5 of the
+// challenge's bytes by the password, in hex.
 func cramDigest(password, challenge string) (string, error) {
 	ch, err := hex.DecodeString(challenge)
 	if err != nil || len(ch) == 0 {
@@ -337,6 +345,8 @@ func (sv *Server) Serve(ctx context.Context, ln net.Listener) error {
 	}
 }
 
+// admit counts a connection in, unless there are MaxClients already or MaxPerIP
+// from its address (false: turn it away).
 func (sv *Server) admit(c net.Conn) bool {
 	h, _, _ := net.SplitHostPort(c.RemoteAddr().String())
 	sv.mu.Lock()
@@ -350,6 +360,7 @@ func (sv *Server) admit(c net.Conn) bool {
 	return true
 }
 
+// release counts out a connection admit let in.
 func (sv *Server) release(c net.Conn) {
 	h, _, _ := net.SplitHostPort(c.RemoteAddr().String())
 	sv.mu.Lock()
@@ -361,6 +372,8 @@ func (sv *Server) release(c net.Conn) {
 	delete(sv.conns, c)
 }
 
+// serve answers a connection: refused by the guard, or told busy past the
+// limits, else a session answered (a panic in it logged, not fatal).
 func (sv *Server) serve(c net.Conn) {
 	defer c.Close()
 	f := sv.F
@@ -487,6 +500,7 @@ type outFile struct {
 	off        int64
 }
 
+// desc is the file as M_FILE and M_GOT give it: name, size and time.
 func (o *outFile) desc() string { return fmt.Sprintf("%s %d %d", o.name, o.size, o.time) }
 
 // inFile is a file being received.

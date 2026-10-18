@@ -51,6 +51,7 @@ var cryptVectors = []struct{ key, salt, want string }{
 	{"\x61\x26\x61\x6d\x70\x3b\x62", "A0", "A0LaAfTVberTc"},
 }
 
+// TestDESCrypt: desCrypt is crypt(3)'s, by its vectors.
 func TestDESCrypt(t *testing.T) {
 	for _, v := range cryptVectors {
 		if got := desCrypt([]byte(v.key), v.salt); got != v.want {
@@ -59,6 +60,8 @@ func TestDESCrypt(t *testing.T) {
 	}
 }
 
+// TestTripcode: names split from their tripcodes, plain and secure (and
+// both), with keys escaped as HTML and in Shift JIS before hashing.
 func TestTripcode(t *testing.T) {
 	for typed, want := range map[string][2]string{
 		"Anon#tea":   {"Anon", "!WokonZwxw2"},

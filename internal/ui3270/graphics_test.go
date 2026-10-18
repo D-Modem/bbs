@@ -8,6 +8,8 @@ import (
 	"github.com/racingmars/go3270"
 )
 
+// TestCut: an image cut into cells: cells alike are one symbol, an empty cell a
+// blank (0x40), and each symbol its rows of pels.
 func TestCut(t *testing.T) {
 	img := image.NewGray(image.Rect(0, 0, 18, 32))
 	// a pel in the first cell, the same in the third, the second empty
@@ -34,6 +36,7 @@ func TestCut(t *testing.T) {
 	}
 }
 
+// TestCutTooMany: more different cells than a symbol set holds are an error.
 func TestCutTooMany(t *testing.T) {
 	// 200 different cells: more than a symbol set holds
 	img := image.NewGray(image.Rect(0, 0, 9*200, 16))
@@ -50,6 +53,8 @@ func TestCutTooMany(t *testing.T) {
 	}
 }
 
+// TestNameLogo: the system's name as a logo, the 7x13 font at twice its size,
+// cut into cells; fitLogo makes it fit a smaller box.
 func TestNameLogo(t *testing.T) {
 	img, err := logoImage(Graphics{}, "BBS", 2, 16)
 	if err != nil {
@@ -69,6 +74,10 @@ func TestNameLogo(t *testing.T) {
 	}
 }
 
+// TestSymbolCell: the cell and Load PS format for a terminal's symbol sets: the
+// 3278's format 1 at 9 by 16, format 3 at the slot's size where sizes must
+// match and 8 wide where they need not; none without a loadable set, or with
+// the sets not loadable.
 func TestSymbolCell(t *testing.T) {
 	cases := []struct {
 		s            *go3270.SymbolSets
@@ -96,5 +105,8 @@ func TestSymbolCell(t *testing.T) {
 
 type fakeDev struct{ s *go3270.SymbolSets }
 
+// SymbolSets is the sets given.
 func (f fakeDev) SymbolSets() *go3270.SymbolSets { return f.s }
-func (f fakeDev) CellSize() (int, int)           { return 0, 0 }
+
+// CellSize is not known: 0 by 0.
+func (f fakeDev) CellSize() (int, int) { return 0, 0 }

@@ -16,6 +16,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// newBBS is a BBS named name on a new database, its log thrown away.
 func newBBS(t *testing.T, name string) *bbs.BBS {
 	t.Helper()
 	store.BcryptCost = 4
@@ -29,6 +30,7 @@ func newBBS(t *testing.T, name string) *bbs.BBS {
 	return bbs.New(s, st, log.New(&bytes.Buffer{}, "", 0))
 }
 
+// user is a new user called name, its password name+"pass1".
 func user(t *testing.T, b *bbs.BBS, name string) *store.User {
 	t.Helper()
 	u, err := b.Store.CreateUser(name, name+"pass1", "", false)
@@ -38,6 +40,7 @@ func user(t *testing.T, b *bbs.BBS, name string) *store.User {
 	return u
 }
 
+// post posts to All in a as u, in reply to reply (0: none); its ID.
 func post(t *testing.T, b *bbs.BBS, u *store.User, a *store.Area, subject, body string, reply int64) int64 {
 	t.Helper()
 	id, err := b.Agent(u, "test").Post(a, "All", subject, []string{body}, reply)

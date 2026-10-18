@@ -123,6 +123,8 @@ func longDate(t time.Time) string {
 	return strconv.Itoa(d) + suffix + t.Format(" January 2006 - 03:04 PM")
 }
 
+// plural is n, its digits grouped, with one or many after it: "1 post",
+// "1,204 posts".
 func plural(n int, one, many string) string {
 	if n == 1 {
 		return groupDigits(n) + " " + one
@@ -130,6 +132,8 @@ func plural(n int, one, many string) string {
 	return groupDigits(n) + " " + many
 }
 
+// groupDigits is n with commas between its thousands ("1,234,567"); a
+// negative n is left as it is.
 func groupDigits(n int) string {
 	s := strconv.Itoa(n)
 	if n < 0 || len(s) <= 3 {
@@ -145,6 +149,8 @@ func groupDigits(n int) string {
 	return b.String()
 }
 
+// truncate is s cut to its first n runes, trailing space trimmed and an
+// ellipsis put on; s as it is if it is no longer than that.
 func truncate(s string, n int) string {
 	if utf8.RuneCountInString(s) <= n {
 		return s
@@ -268,6 +274,8 @@ type pages struct {
 	Base       string // the URL, to which page=N is put
 }
 
+// URL is the link to page n: Base itself for the first page, else Base with
+// page=n put on.
 func (p pages) URL(n int) string {
 	sep := "?"
 	if strings.Contains(p.Base, "?") {
@@ -292,7 +300,10 @@ func (p pages) Shown() []int {
 	return out
 }
 
+// Prev is the page before the current one (0 on the first).
 func (p pages) Prev() int { return p.Cur - 1 }
+
+// Next is the page after the current one, 0 on the last.
 func (p pages) Next() int {
 	if p.Cur < p.Total {
 		return p.Cur + 1
@@ -300,6 +311,8 @@ func (p pages) Next() int {
 	return 0
 }
 
+// newPages is the pagination of count items at perPage a page, cur held to
+// between 1 and the last page (at least one page, even of nothing).
 func newPages(base string, count, cur int) pages {
 	total := (count + perPage - 1) / perPage
 	if total < 1 {
@@ -314,6 +327,7 @@ func newPages(base string, count, cur int) pages {
 	return pages{Cur: cur, Total: total, Base: base}
 }
 
+// urlEscape is s escaped for a URL's query.
 func urlEscape(s string) string { return url.QueryEscape(s) }
 
 // yabb2Date writes a time as YaBB 2 did by default: "Oct 12th, 2026, 11:12pm".

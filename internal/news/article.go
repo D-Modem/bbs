@@ -177,6 +177,8 @@ func NewMessageID(domain string) string {
 	return fmt.Sprintf("<%s.%s@%s>", strings.ToLower(base32(time.Now().UnixNano())), hex.EncodeToString(r[:]), domain)
 }
 
+// base32 is n in base 32, lower case digits ("" for 0 or less): short, for
+// Message-IDs.
 func base32(n int64) string {
 	const digits = "0123456789abcdefghijklmnopqrstuv"
 	var b []byte
@@ -284,6 +286,8 @@ func New(l Local) *Article {
 
 var decoder = &mime.WordDecoder{CharsetReader: charsetReader}
 
+// charsetReader reads r in charset as UTF-8 (r itself for UTF-8, ASCII or
+// none); an error for a charset it does not know.
 func charsetReader(charset string, r io.Reader) (io.Reader, error) {
 	switch strings.ToLower(charset) {
 	case "utf-8", "us-ascii", "ascii", "":
@@ -329,6 +333,9 @@ func Text(a *Article) string {
 	return text(ct, a.Get("Content-Transfer-Encoding"), a.Body, 0)
 }
 
+// text is Text of a body with its content type and transfer encoding: a
+// multipart's first text/plain part (or multipart part, as deep as 3), or a
+// line saying it is not text.  At most 1 MiB is decoded.
 func text(ctype, cte string, body []byte, depth int) string {
 	media, params, err := mime.ParseMediaType(ctype)
 	if err != nil {
@@ -375,6 +382,7 @@ func text(ctype, cte string, body []byte, depth int) string {
 // stripNL drops line ends, for base64.
 type stripNL struct{ r io.Reader }
 
+// Read reads from the reader with CR and LF taken out.
 func (s *stripNL) Read(p []byte) (int, error) {
 	n, err := s.r.Read(p)
 	j := 0

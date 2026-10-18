@@ -43,6 +43,8 @@ func (s *session) chooseProtocol() (*xfer.Protocol, error) {
 	}
 }
 
+// startHint tells the caller to start the transfer, upload or download, at
+// his end, and how to cancel it.
 func startHint(p *xfer.Protocol, upload bool) string {
 	dir := "download"
 	if upload {
@@ -63,6 +65,7 @@ type started struct {
 	on *bool
 }
 
+// Read notes that the file has begun to be read, and reads it.
 func (s started) Read(p []byte) (int, error) {
 	*s.on = true
 	return s.r.Read(p)
@@ -142,8 +145,13 @@ type incoming struct {
 	done func(*store.File)
 }
 
+// Write writes p to the upload.
 func (in *incoming) Write(p []byte) (int, error) { return in.up.Write(p) }
-func (in *incoming) Abort()                      { in.up.Abort() }
+
+// Abort throws the upload away.
+func (in *incoming) Abort() { in.up.Abort() }
+
+// Commit makes the upload a file of its area, and gives it to done.
 func (in *incoming) Commit() error {
 	f, err := in.up.Commit()
 	if err == nil {
@@ -297,13 +305,18 @@ type buffer struct {
 	done *[]byte
 }
 
+// Write keeps p; files.ErrTooLarge, and nothing kept, if it would go past max.
 func (in *buffer) Write(p []byte) (int, error) {
 	if int64(in.b.Len()+len(p)) > in.max {
 		return 0, files.ErrTooLarge
 	}
 	return in.b.Write(p)
 }
-func (in *buffer) Abort()        {}
+
+// Abort does nothing: what was kept is dropped with the buffer.
+func (in *buffer) Abort() {}
+
+// Commit gives what was received to done.
 func (in *buffer) Commit() error { *in.done = in.b.Bytes(); return nil }
 
 // ReceiveData receives one file from the caller.

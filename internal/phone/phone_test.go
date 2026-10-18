@@ -9,6 +9,9 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
 )
 
+// TestParse: numbers written as people write them, international or
+// national to a home country, are their E.164, country, region, kind,
+// place and international form.
 func TestParse(t *testing.T) {
 	for _, c := range []struct {
 		in, home                     string
@@ -57,6 +60,9 @@ func TestParse(t *testing.T) {
 	}
 }
 
+// TestParseRefused: a number withheld, not a number, too short, too long,
+// of no calling code, or national without a home country is refused, and
+// says which.
 func TestParseRefused(t *testing.T) {
 	for _, c := range []struct {
 		in, home string

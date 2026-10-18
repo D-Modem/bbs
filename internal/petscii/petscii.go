@@ -234,11 +234,14 @@ func (p *Writer) Raw(b []byte) error {
 	return err
 }
 
+// settleCR does the pending CR: the cursor left to column 0, there being no
+// carriage return on a C64 but RETURN, which also goes down a line.
 func (p *Writer) settleCR() {
 	p.pendCR = false
 	p.lefts(p.col)
 }
 
+// lefts moves the cursor n columns left, no further than column 0.
 func (p *Writer) lefts(n int) {
 	for i := 0; i < n && p.col > 0; i++ {
 		p.out = append(p.out, Left)
@@ -246,6 +249,10 @@ func (p *Writer) lefts(n int) {
 	}
 }
 
+// rune translates one rune: CR held to see whether LF follows (CR LF is
+// RETURN), LF down, backspace left, tab to the next eighth column in spaces,
+// ESC the start of a sequence, other controls dropped; a character as the
+// set has it, a reversed block, or "?" for one it lacks.
 func (p *Writer) rune(r rune) {
 	if p.pendCR {
 		if r == '\n' {
@@ -292,11 +299,13 @@ func (p *Writer) rune(r rune) {
 	}
 }
 
+// put writes a character's bytes, a column each.
 func (p *Writer) put(b []byte) {
 	p.out = append(p.out, b...)
 	p.advance(len(b))
 }
 
+// advance moves the column on n, wrapping at the width as the screen does.
 func (p *Writer) advance(n int) {
 	p.col += n
 	for p.col >= p.Width {
@@ -304,6 +313,8 @@ func (p *Writer) advance(n int) {
 	}
 }
 
+// escape takes a byte of an escape sequence: CSI's parameters (32 at most)
+// and its final byte, to csi; any other sequence is dropped.
 func (p *Writer) escape(c byte) {
 	switch p.state {
 	case 1:
@@ -327,6 +338,8 @@ func (p *Writer) escape(c byte) {
 	}
 }
 
+// nums is a CSI's parameters as numbers, 0 for one empty or not a number
+// (always at least one).
 func nums(s string) []int {
 	var out []int
 	for _, f := range strings.Split(s, ";") {
@@ -336,6 +349,10 @@ func nums(s string) []int {
 	return out
 }
 
+// csi does what a CSI sequence can on a C64: colors (SGR), clearing the
+// screen (2J), cursor position and movement (counts held to 100, rows to 50,
+// columns to the width), and erasing to the end of a line (by spaces);
+// private sequences and the rest are dropped.
 func (p *Writer) csi(final byte, params string) {
 	if strings.ContainsAny(params, "?=<>!") {
 		return
@@ -399,6 +416,9 @@ func (p *Writer) csi(final byte, params string) {
 	}
 }
 
+// sgr sets reverse, which follows each change, and the color: one of the
+// eight ANSI colors, normal or bright by bold (90-97 bright too), whose
+// code it always writes.
 func (p *Writer) sgr(ns []int) {
 	fg, bold := p.fg, p.bold
 	for _, n := range ns {

@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// typeIn types s into b, CR as Enter.
 func typeIn(b *fsBuffer, s string) {
 	for _, r := range s {
 		if r == '\r' {
@@ -15,6 +16,8 @@ func typeIn(b *fsBuffer, s string) {
 	}
 }
 
+// TestBufferWrap: typing wraps at a space, a word too long breaks at the
+// width, the cursor going with the text; a body given is wrapped too.
 func TestBufferWrap(t *testing.T) {
 	b := newBuffer(nil, 10, 100)
 	typeIn(b, "the quick brown fox")
@@ -37,6 +40,9 @@ func TestBufferWrap(t *testing.T) {
 	}
 }
 
+// TestBufferEditing: Backspace and Delete join lines, KillLine takes one
+// out, and the cursor keys go past a line's ends to the next or the one
+// before.
 func TestBufferEditing(t *testing.T) {
 	b := newBuffer(nil, 20, 100)
 	typeIn(b, "hello\rworld")
@@ -72,6 +78,8 @@ func TestBufferEditing(t *testing.T) {
 	}
 }
 
+// TestBufferQuoteAndLimit: quoted lines go in at the cursor; a message has
+// no more lines than its limit, by Enter or by quoting.
 func TestBufferQuoteAndLimit(t *testing.T) {
 	b := newBuffer(nil, 20, 4)
 	if n := b.InsertLines([]string{"> one", "> two"}); n != 2 {

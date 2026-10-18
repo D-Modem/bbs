@@ -145,6 +145,7 @@ func (s *Server) GetTLSConfig() (*tls.Config, error) {
 	return s.tlsConfig, nil
 }
 
+// host is a TCP address's IP, as text ("" for any other address).
 func host(a net.Addr) string {
 	if t, ok := a.(*net.TCPAddr); ok {
 		return t.IP.String()
@@ -239,6 +240,7 @@ var (
 	_ ftpserver.ClientDriverExtensionRemoveDir    = (*fileSystem)(nil)
 )
 
+// anonymous: the user logged in as anonymous, with no account (download only).
 func (fs *fileSystem) anonymous() bool { return fs.user.ID == 0 }
 
 // sees: an area the user may download from or upload into
@@ -283,11 +285,22 @@ type info struct {
 	mtime time.Time
 }
 
-func (i info) Name() string       { return i.name }
-func (i info) Size() int64        { return i.size }
+// Name is the entry's name.
+func (i info) Name() string { return i.name }
+
+// Size is a file's size in bytes.
+func (i info) Size() int64 { return i.size }
+
+// ModTime is when a file was uploaded (the epoch for a directory).
 func (i info) ModTime() time.Time { return i.mtime }
-func (i info) IsDir() bool        { return i.dir }
-func (i info) Sys() any           { return nil }
+
+// IsDir: the entry is / or an area.
+func (i info) IsDir() bool { return i.dir }
+
+// Sys is nil: there is nothing underneath.
+func (i info) Sys() any { return nil }
+
+// Mode is read-only: r-x for a directory, r-- for a file.
 func (i info) Mode() os.FileMode {
 	if i.dir {
 		return os.ModeDir | 0o555
@@ -295,8 +308,11 @@ func (i info) Mode() os.FileMode {
 	return 0o444
 }
 
+// areaInfo is an area's entry: a directory, dated the epoch.
 func areaInfo(a *store.FileArea) info { return info{name: a.Name, dir: true, mtime: time.Unix(0, 0)} }
-func fileInfo(f *store.File) info     { return info{name: f.Name, size: f.Size, mtime: f.Created} }
+
+// fileInfo is a file's entry: its size, dated its upload.
+func fileInfo(f *store.File) info { return info{name: f.Name, size: f.Size, mtime: f.Created} }
 
 // Stat describes an entry.
 func (fs *fileSystem) Stat(name string) (os.FileInfo, error) {
@@ -419,18 +435,23 @@ type download struct {
 	read int64
 }
 
+// Read reads the file, counting what has gone.
 func (d *download) Read(p []byte) (int, error) {
 	n, err := d.file.Read(p)
 	d.read += int64(n)
 	return n, err
 }
 
+// Seek moves in the file (for a resumed download).
 func (d *download) Seek(offset int64, whence int) (int64, error) {
 	return d.file.Seek(offset, whence)
 }
 
+// Write is refused: a download is read only.
 func (d *download) Write([]byte) (int, error) { return 0, os.ErrPermission }
 
+// Close closes the file, counting it downloaded and logging it if any of it
+// was read (all of it or not).
 func (d *download) Close() error {
 	if d.read > 0 {
 		d.fs.s.B.Downloaded(d.fs.user, d.f)
@@ -447,12 +468,17 @@ type upload struct {
 	failed error
 }
 
-func (u *upload) Read([]byte) (int, error)                     { return 0, os.ErrPermission }
+// Read is refused: an upload is written only.
+func (u *upload) Read([]byte) (int, error) { return 0, os.ErrPermission }
+
+// Seek is refused: an upload is from its start.
 func (u *upload) Seek(offset int64, whence int) (int64, error) { return 0, os.ErrPermission }
 
 // TransferError is told of a transfer that failed.
 func (u *upload) TransferError(err error) { u.failed = err }
 
+// Close keeps the file if the transfer went well (Commit), else throws it
+// away and gives the transfer's error.
 func (u *upload) Close() error {
 	if u.failed != nil {
 		u.Abort()
@@ -488,17 +514,39 @@ func (fs *fileSystem) Remove(name string) error {
 
 // What the file areas do not do over FTP: areas are made with the bbs
 // command, files are not renamed, opened otherwise or changed.
-func (fs *fileSystem) RemoveDir(string) error                     { return os.ErrPermission }
-func (fs *fileSystem) RemoveAll(string) error                     { return os.ErrPermission }
-func (fs *fileSystem) Mkdir(string, os.FileMode) error            { return os.ErrPermission }
-func (fs *fileSystem) MkdirAll(string, os.FileMode) error         { return os.ErrPermission }
-func (fs *fileSystem) Rename(string, string) error                { return os.ErrPermission }
-func (fs *fileSystem) Chmod(string, os.FileMode) error            { return os.ErrPermission }
-func (fs *fileSystem) Chown(string, int, int) error               { return os.ErrPermission }
+func (fs *fileSystem) RemoveDir(string) error { return os.ErrPermission }
+
+// RemoveAll is refused.
+func (fs *fileSystem) RemoveAll(string) error { return os.ErrPermission }
+
+// Mkdir is refused.
+func (fs *fileSystem) Mkdir(string, os.FileMode) error { return os.ErrPermission }
+
+// MkdirAll is refused.
+func (fs *fileSystem) MkdirAll(string, os.FileMode) error { return os.ErrPermission }
+
+// Rename is refused.
+func (fs *fileSystem) Rename(string, string) error { return os.ErrPermission }
+
+// Chmod is refused.
+func (fs *fileSystem) Chmod(string, os.FileMode) error { return os.ErrPermission }
+
+// Chown is refused.
+func (fs *fileSystem) Chown(string, int, int) error { return os.ErrPermission }
+
+// Chtimes is refused.
 func (fs *fileSystem) Chtimes(string, time.Time, time.Time) error { return os.ErrPermission }
-func (fs *fileSystem) Create(string) (afero.File, error)          { return nil, os.ErrPermission }
-func (fs *fileSystem) Open(string) (afero.File, error)            { return nil, os.ErrPermission }
-func (fs *fileSystem) Name() string                               { return "bbs" }
+
+// Create is refused: uploads go through GetHandle.
+func (fs *fileSystem) Create(string) (afero.File, error) { return nil, os.ErrPermission }
+
+// Open is refused: downloads go through GetHandle.
+func (fs *fileSystem) Open(string) (afero.File, error) { return nil, os.ErrPermission }
+
+// Name is the file system's name, "bbs".
+func (fs *fileSystem) Name() string { return "bbs" }
+
+// OpenFile is refused: transfers go through GetHandle.
 func (fs *fileSystem) OpenFile(string, int, os.FileMode) (afero.File, error) {
 	return nil, os.ErrPermission
 }

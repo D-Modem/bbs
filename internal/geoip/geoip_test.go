@@ -24,6 +24,8 @@ var cases = []struct{ ip, code, name string }{
 	{"8.8.8.8", "", ""},
 }
 
+// TestMMDB: the test databases, in each record size, find each case's
+// country, and none where they have none.
 func TestMMDB(t *testing.T) {
 	for _, rs := range []string{"24", "28", "32"} {
 		r, err := Open(filepath.Join("testdata", "test-"+rs+".mmdb"))
@@ -39,6 +41,8 @@ func TestMMDB(t *testing.T) {
 	}
 }
 
+// TestBroken: a database cut at any point, or with any byte flipped, is
+// refused or looked up in without a panic.
 func TestBroken(t *testing.T) {
 	good, _ := os.ReadFile(filepath.Join("testdata", "test-24.mmdb"))
 	dir := t.TempDir()
@@ -56,12 +60,16 @@ func TestBroken(t *testing.T) {
 	}
 }
 
+// flip is a copy of b with byte i inverted.
 func flip(b []byte, i int) []byte {
 	c := append([]byte{}, b...)
 	c[i] ^= 0xff
 	return c
 }
 
+// TestCSV: DB-IP's and IP2Location's country CSVs, plain and gzipped, find
+// countries by IPv4, IPv6 and IPv4 in 6to4 and Teredo, and none in gaps or
+// ranges of no country; a text file of no ranges is refused.
 func TestCSV(t *testing.T) {
 	dir := t.TempDir()
 	dbip := "0.0.0.0,0.255.255.255,ZZ\n1.0.0.0,1.0.0.255,AU\n203.0.113.0,203.0.113.255,NZ\n2001:db8::,2001:db8:ffff:ffff:ffff:ffff:ffff:ffff,FR\n"
@@ -112,6 +120,7 @@ func TestCSV(t *testing.T) {
 	}
 }
 
+// mustOpen is the database dir/name opened, failing the test if it won't.
 func mustOpen(t *testing.T, dir, name string) *Reader {
 	r, err := Open(filepath.Join(dir, name))
 	if err != nil {
@@ -120,6 +129,8 @@ func mustOpen(t *testing.T, dir, name string) *Reader {
 	return r
 }
 
+// TestFlag: a code's flag is its two regional indicators, no code's is
+// "", and a nil Reader finds no country.
 func TestFlag(t *testing.T) {
 	if Flag("nz") != "\U0001F1F3\U0001F1FF" || Flag("") != "" {
 		t.Errorf("%q", Flag("nz"))
@@ -190,6 +201,8 @@ func TestCity(t *testing.T) {
 	}
 }
 
+// writeTemp writes b to a file name in a new temporary directory, and is
+// its path.
 func writeTemp(t *testing.T, name string, b []byte) string {
 	t.Helper()
 	p := filepath.Join(t.TempDir(), name)

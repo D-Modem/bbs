@@ -5,6 +5,8 @@ import (
 	"testing"
 )
 
+// TestTIC: a TIC's fields are read (unknown ones skipped), its SEEN-BY says who
+// has the file, it writes back the same, and one with no File is refused.
 func TestTIC(t *testing.T) {
 	in := "Area fsx_dat\r\nAreadesc fsxNet data\r\nOrigin 21:1/100\r\nFrom 21:1/100\r\nTo Test, 21:1/200\r\n" +
 		"File FSXNET.Z83\r\nLfile fsxnet.z83\r\nReplaces FSXNET.Z*\r\nDesc fsxNet nodelist, day 283\r\n" +

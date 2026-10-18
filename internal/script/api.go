@@ -68,6 +68,8 @@ func obj(v goja.Value) map[string]any {
 	return m
 }
 
+// str is m[k] as a string: "" for none, a date in RFC 3339, anything else as
+// fmt prints it.
 func str(m map[string]any, k string) string {
 	switch v := m[k].(type) {
 	case nil:
@@ -81,6 +83,8 @@ func str(m map[string]any, k string) string {
 	}
 }
 
+// num is m[k] as an int: a number (a fraction cut off), or a string of digits;
+// 0 for anything else.
 func num(m map[string]any, k string) int {
 	switch v := m[k].(type) {
 	case int64:
@@ -94,11 +98,13 @@ func num(m map[string]any, k string) int {
 	return 0
 }
 
+// flag is m[k] if it is a bool; false otherwise.
 func flag(m map[string]any, k string) bool {
 	v, _ := m[k].(bool)
 	return v
 }
 
+// list is v if it is an array; nil otherwise.
 func list(v any) []any {
 	l, _ := v.([]any)
 	return l
@@ -113,6 +119,8 @@ func key(s string) rune {
 var toneNames = map[string]view.Tone{"": view.Plain, "plain": view.Plain, "dim": view.Dim,
 	"bright": view.Bright, "good": view.Good, "bad": view.Bad, "warn": view.Warn}
 
+// tone is the view.Tone a script names, in any case; Plain for a name it does
+// not know.
 func tone(s string) view.Tone { return toneNames[strings.ToLower(s)] }
 
 // lines are a script's lines: strings, or {label, text, tone, bar}.
@@ -138,6 +146,8 @@ func lines(v any) []view.Line {
 	return out
 }
 
+// actions are a script's actions, {id, label, key, pf, short}, cleaned: the key
+// in upper case, a PF key past 0 to 24 none. What is not an object is skipped.
 func actions(v any) []view.Action {
 	var out []view.Action
 	for _, a := range list(v) {
@@ -155,6 +165,7 @@ func actions(v any) []view.Action {
 	return out
 }
 
+// clean is a script's text made one line safe to show, at most 200 runes.
 func clean(s string) string { return bbs.Clean(s, 200) }
 
 // prompt is a prompt cleaned, keeping the space it ends in.
@@ -167,6 +178,10 @@ func prompt(s string) string {
 
 // --- ui
 
+// uiObject is the script's ui: the terminal's kind, page size and narrowness,
+// the choices' names (BACK, PICK, ...), and menu, table, message, form, panel,
+// edit, confirm, say, show and screen, drawing the shared screens with what the
+// script gives cleaned. A form left or a draft not sent is null.
 func (r *run) uiObject() *goja.Object {
 	vm := r.vm
 	o := vm.NewObject()
@@ -346,6 +361,8 @@ func (r *run) uiObject() *goja.Object {
 
 // --- the BBS, the caller, their node
 
+// bbsObject is the script's bbs: the system's name, sysop and location, and
+// log, a line in the BBS's log.
 func (r *run) bbsObject() *goja.Object {
 	o := r.vm.NewObject()
 	o.Set("name", r.b.Conf().Name)
@@ -357,6 +374,9 @@ func (r *run) bbsObject() *goja.Object {
 	return o
 }
 
+// userObject is the script's user: the caller as they were when the script
+// began (empty before a login), and has, whether they meet an access
+// requirement (bbs.ParseRequire's) now.
 func (r *run) userObject() *goja.Object {
 	o := r.vm.NewObject()
 	u := r.n.Refresh()
@@ -385,6 +405,8 @@ func (r *run) userObject() *goja.Object {
 	return o
 }
 
+// nodeObject is the script's node: its number, doing (what who's online shows),
+// who (the nodes in use), and message, a node message to another.
 func (r *run) nodeObject() *goja.Object {
 	o := r.vm.NewObject()
 	o.Set("number", r.n.Num)
@@ -407,11 +429,14 @@ func (r *run) nodeObject() *goja.Object {
 
 // --- messages and mail, with the caller's access
 
+// messageOut is a message as a script sees it.
 func messageOut(m *store.Message) map[string]any {
 	return map[string]any{"id": m.ID, "area": m.AreaID, "from": m.From, "to": m.To, "subject": m.Subject,
 		"body": m.Body, "date": m.Created.Format(time.RFC3339), "replyTo": m.ReplyTo}
 }
 
+// area is area id if the caller may read it; otherwise it throws, as if there
+// were no such area.
 func (r *run) area(id int64) *store.Area {
 	a, err := r.b.Store.Area(id)
 	if err != nil || !r.b.CanRead(r.n.User(), a) {
@@ -435,6 +460,9 @@ func body(v any) []string {
 	return nil
 }
 
+// msgObject is the script's msg, with the caller's access: the areas they may
+// read, a page of an area's messages, a message by its id (null if they may not
+// read it), and posting and mail as the caller.
 func (r *run) msgObject() *goja.Object {
 	o := r.vm.NewObject()
 	o.Set("areas", func() []map[string]any {
@@ -494,12 +522,17 @@ func (r *run) msgObject() *goja.Object {
 
 // --- data the script keeps: for everyone (user 0), or for a user
 
+// checkKey throws unless k is a name a script may keep data under: 1 to maxKey
+// characters of valid UTF-8.
 func (r *run) checkKey(k string) {
 	if k == "" || utf8.RuneCountInString(k) > maxKey || !utf8.ValidString(k) {
 		r.throw("a name is 1 to %d characters", maxKey)
 	}
 }
 
+// dataObject is the script's data, kept for everyone (user 0) or for that user:
+// get (undefined if there is none), set as JSON (up to maxValue bytes, and a
+// limit on the names), remove, and keys, the names with a prefix.
 func (r *run) dataObject(user int64) *goja.Object {
 	o := r.vm.NewObject()
 	most := maxGlobalKeys

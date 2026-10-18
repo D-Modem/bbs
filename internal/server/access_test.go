@@ -72,6 +72,9 @@ func TestValidation(t *testing.T) {
 	d.expect("Members")
 }
 
+// TestLevelConfig: [level N] sections, new_user_level and validated_level,
+// and what doors, menus and menu items require; a bad level, one given
+// twice, levels the wrong way round and a bad requirement are refused.
 func TestLevelConfig(t *testing.T) {
 	load := func(body string) (*Config, error) {
 		p := filepath.Join(t.TempDir(), "bbs.conf")

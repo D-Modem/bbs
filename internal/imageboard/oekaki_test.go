@@ -12,6 +12,7 @@ import (
 	"testing"
 )
 
+// testReplay is a w by h drawing of a pen stroke, an eraser and a fill.
 func testReplay(w, h int) *replay {
 	return &replay{V: 1, W: w, H: h, BG: "#ffffff", S: []stroke{
 		{T: "p", C: "#ff0000", Z: 3, P: []int{0, 1, 1, 100, 10, 10, 250, 20, 5}},
@@ -20,6 +21,9 @@ func testReplay(w, h int) *replay {
 	}}
 }
 
+// TestPNGReplay: a drawing's strokes kept in its PNG come back with their
+// time; one of the wrong size, a bad stroke, two chunks, not zlib or JSON,
+// or a zlib bomb is taken out, the picture left.
 func TestPNGReplay(t *testing.T) {
 	plain := pngOf(40, 40, color.RGBA{255, 0, 0, 255})
 	good, err := withReplay(plain, testReplay(40, 40))
@@ -65,6 +69,7 @@ func TestPNGReplay(t *testing.T) {
 	}
 }
 
+// zlibOf is b compressed with zlib.
 func zlibOf(b []byte) []byte {
 	var z bytes.Buffer
 	w := zlib.NewWriter(&z)

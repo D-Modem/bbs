@@ -130,6 +130,8 @@ func (r *run) end(err error) error {
 	return nil
 }
 
+// firstLine is s up to its first newline: a script's error, as a sysop is told
+// it, without its stack.
 func firstLine(s string) string {
 	s, _, _ = strings.Cut(s, "\n")
 	return s

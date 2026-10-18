@@ -53,6 +53,10 @@ func pcommTriple(t *testing.T) go3270.DevInfo {
 	return pcommWith(t, [][]string{first, nil})
 }
 
+// pcommWith is a DevInfo negotiated with a terminal on a pipe that answers the
+// telnet options as an IBM-3278-2-E, the Query with replies[0] and, where there
+// is a replies[1], the Query List with it (query replies in hex, without their
+// lengths and 0x81).
 func pcommWith(t *testing.T, replies [][]string) go3270.DevInfo {
 	t.Helper()
 	srv, cli := net.Pipe()

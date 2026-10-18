@@ -6,6 +6,8 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/view"
 )
 
+// TestKeyLabel: a key in brackets where it begins a word of its label,
+// else before it; actions with no key are left out of the prompt.
 func TestKeyLabel(t *testing.T) {
 	for _, c := range []struct {
 		key        rune

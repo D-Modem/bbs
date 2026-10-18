@@ -61,6 +61,7 @@ type apiPost struct {
 	LastReplies   []*apiPost `json:"last_replies,omitempty"`
 }
 
+// flag is b as the API's 0 or 1.
 func flag(b bool) int {
 	if b {
 		return 1
@@ -83,6 +84,9 @@ func semanticURL(p *store.BoardPost) string {
 	return s
 }
 
+// apiPost is a post as 4chan's API has it: its file's fields only while
+// the file is there, and a thread's own (sticky, replies, limits, slug)
+// only on its first post.
 func (q *req) apiPost(b *store.Board, v *postView) *apiPost {
 	p := v.BoardPost
 	a := &apiPost{No: p.No, Resto: p.Thread, Now: postDate(p.Created), Time: p.Created.Unix(),
@@ -117,6 +121,7 @@ func (q *req) apiPost(b *store.Board, v *postView) *apiPost {
 	return a
 }
 
+// json writes v as the answer: JSON anyone's script may fetch, not cached.
 func (q *req) json(v any) {
 	h := q.w.Header()
 	h.Set("Content-Type", "application/json")
@@ -125,6 +130,7 @@ func (q *req) json(v any) {
 	json.NewEncoder(q.w).Encode(v)
 }
 
+// jsonFail answers status with a JSON error (always "not found").
 func (q *req) jsonFail(status int) {
 	q.w.Header().Set("Content-Type", "application/json")
 	q.w.WriteHeader(status)

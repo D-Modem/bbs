@@ -117,6 +117,9 @@ func TestCaptcha(t *testing.T) {
 	}
 }
 
+// TestCaptchaTokens: a token opens to an answer of the default length, of
+// none of the letters left out, ending in about ten minutes; another key
+// or a changed byte does not open it.
 func TestCaptchaTokens(t *testing.T) {
 	s := &Server{S: Defaults()}
 	s.key = []byte("0123456789abcdef0123456789abcdef")

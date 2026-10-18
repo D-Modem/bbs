@@ -12,6 +12,9 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// TestSignInCodes: a sign-in code signs in its own user only, once, before it
+// expires, typed loosely; a new one ends the last; a locked user's opens
+// nothing; guessing is throttled; and no code goes in the log.
 func TestSignInCodes(t *testing.T) {
 	st, err := store.Open(filepath.Join(t.TempDir(), "bbs.db"))
 	if err != nil {
@@ -82,6 +85,8 @@ func TestSignInCodes(t *testing.T) {
 	}
 }
 
+// TestNormalCode: a code is taken in any case, with a dash or spaces, and not
+// with the wrong length or letters not in the alphabet.
 func TestNormalCode(t *testing.T) {
 	for in, want := range map[string]string{"abcd-efgh": "ABCDEFGH", " ABCD EFGH ": "ABCDEFGH", "ABCDEFG": "",
 		"ABCD-EFG0": "", "ABCD-EFGI": "", "password1": ""} {

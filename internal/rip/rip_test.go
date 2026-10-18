@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// TestMeganum: numbers in base 36 to their width, a negative as 0.
 func TestMeganum(t *testing.T) {
 	for _, c := range []struct {
 		n, w int
@@ -17,6 +18,8 @@ func TestMeganum(t *testing.T) {
 	}
 }
 
+// TestScript: commands as RIP has them, text escaped and controls dropped;
+// and the version is found in a terminal's answer.
 func TestScript(t *testing.T) {
 	s := (&Script{}).Reset().Color(White).Text(10, 20, "a|b!c\\d\x1b").Bar(0, 0, 639, 349).
 		Button(1, 2, 3, 4, 'M', "[M] Mail", "M").End()
@@ -29,6 +32,8 @@ func TestScript(t *testing.T) {
 	}
 }
 
+// TestMenu: a menu is RIP lines only: its title, a button a choice (in
+// columns of three), and the text window put below them.
 func TestMenu(t *testing.T) {
 	items := []Item{{"M", "Message areas"}, {"E", "E-mail"}, {"W", "Who's online"}, {"G", "Goodbye"}, {"P", "Profile"}}
 	s, row := Menu("Main menu", items)

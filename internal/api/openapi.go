@@ -78,6 +78,7 @@ var ops = []op{
 	{"GET", "/api/v1/openapi.json", "This document", "", "", "Object", 200},
 }
 
+// obj is a JSON Schema object of props, the required ones named.
 func obj(props map[string]any, required ...string) map[string]any {
 	o := map[string]any{"type": "object", "properties": props}
 	if len(required) > 0 {
@@ -93,7 +94,10 @@ var (
 	date = map[string]any{"type": "string", "format": "date-time"}
 )
 
+// ref is a reference to the schema called name.
 func ref(name string) map[string]any { return map[string]any{"$ref": "#/components/schemas/" + name} }
+
+// arr is an array of the schema called name.
 func arr(name string) map[string]any { return map[string]any{"type": "array", "items": ref(name)} }
 
 var schemas = map[string]any{
@@ -208,8 +212,10 @@ func document() map[string]any {
 	}
 }
 
+// itoa is n in decimal.
 func itoa(n int) string { return strconv.Itoa(n) }
 
+// openapi answers with the OpenAPI document.
 func (s *Server) openapi(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, document())
 }

@@ -7,8 +7,13 @@ import (
 	"testing"
 )
 
+// writeFile writes s to p, mode 0600.
 func writeFile(p, s string) error { return os.WriteFile(p, []byte(s), 0600) }
+
+// contains is strings.Contains.
 func contains(s, sub string) bool { return strings.Contains(s, sub) }
+
+// containsAny reports whether sub is in ss, joined by newlines.
 func containsAny(ss []string, sub string) bool {
 	return strings.Contains(strings.Join(ss, "\n"), sub)
 }
@@ -63,6 +68,9 @@ func TestSysopTools(t *testing.T) {
 	alice.expect("The sysop is not available just now.")
 }
 
+// TestEventConfig: [event NAME]s at a time or every so many minutes, a
+// missing program a warning; no command, no time, both, bad quotes and an
+// event twice refused.
 func TestEventConfig(t *testing.T) {
 	dir := t.TempDir()
 	load := func(body string) (*Config, error) {

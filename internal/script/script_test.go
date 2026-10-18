@@ -26,6 +26,8 @@ type fake struct {
 	fail    error         // each screen fails so
 }
 
+// next is the next answer, after the fake's delay; running out of answers fails
+// the test.
 func (f *fake) next() any {
 	if f.delay > 0 {
 		time.Sleep(f.delay)
@@ -38,9 +40,17 @@ func (f *fake) next() any {
 	return a
 }
 
+// PageSize is 10 rows.
 func (f *fake) PageSize() int { return 10 }
-func (f *fake) Narrow() bool  { return false }
-func (f *fake) Kind() string  { return "text" }
+
+// Narrow is false: a wide screen.
+func (f *fake) Narrow() bool { return false }
+
+// Kind is "text": a text terminal.
+func (f *fake) Kind() string { return "text" }
+
+// Menu keeps the menu's title and items and answers the next key, or fails with
+// the fake's error.
 func (f *fake) Menu(m *view.Menu) (string, error) {
 	var ks []string
 	for _, it := range m.Items {
@@ -52,6 +62,9 @@ func (f *fake) Menu(m *view.Menu) (string, error) {
 	}
 	return f.next().(string), nil
 }
+
+// Table keeps the title and rows, with their numbers, and answers the next
+// view.Choice.
 func (f *fake) Table(t *view.Table) (view.Choice, error) {
 	var rows []string
 	for _, r := range t.Rows {
@@ -60,15 +73,22 @@ func (f *fake) Table(t *view.Table) (view.Choice, error) {
 	f.shown = append(f.shown, "table "+t.Title+": "+strings.Join(rows, "; "))
 	return f.next().(view.Choice), nil
 }
+
+// Message keeps the subject and body and answers the next action.
 func (f *fake) Message(m *view.Message) (string, error) {
 	f.shown = append(f.shown, "message "+m.Subject+": "+m.Body)
 	return f.next().(string), nil
 }
+
+// Form keeps the title and answers the next values; any other answer is the
+// form left.
 func (f *fake) Form(fm *view.Form) (map[string]string, bool, error) {
 	f.shown = append(f.shown, "form "+fm.Title)
 	v, _ := f.next().(map[string]string)
 	return v, v != nil, nil
 }
+
+// Panel keeps the title and lines and answers the next action.
 func (f *fake) Panel(p *view.Panel) (string, error) {
 	var ls []string
 	for _, l := range p.Lines {
@@ -77,6 +97,9 @@ func (f *fake) Panel(p *view.Panel) (string, error) {
 	f.shown = append(f.shown, "panel "+p.Title+": "+strings.Join(ls, "; "))
 	return f.next().(string), nil
 }
+
+// Edit sends the next answer's lines as the body, to the draft's To with its
+// subject; any other answer is the draft not sent.
 func (f *fake) Edit(d *view.Draft) (bool, error) {
 	f.shown = append(f.shown, "edit "+d.Title)
 	b, _ := f.next().([]string)
@@ -85,11 +108,17 @@ func (f *fake) Edit(d *view.Draft) (bool, error) {
 	}
 	return true, d.Send(d.To, d.Subject, b)
 }
+
+// Confirm keeps the question and answers the next yes or no.
 func (f *fake) Confirm(q string, def bool) (bool, error) {
 	f.shown = append(f.shown, "confirm "+q)
 	return f.next().(bool), nil
 }
+
+// Say keeps what was said.
 func (f *fake) Say(tn view.Tone, msg string) { f.said = append(f.said, msg) }
+
+// Show keeps the title and lines.
 func (f *fake) Show(title string, ls []view.Line) error {
 	var out []string
 	for _, l := range ls {
@@ -98,6 +127,8 @@ func (f *fake) Show(title string, ls []view.Line) error {
 	f.shown = append(f.shown, "show "+title+": "+strings.Join(out, "; "))
 	return nil
 }
+
+// ShowScreen has no display files: none is shown.
 func (f *fake) ShowScreen(name string, wait bool) (bool, error) { return false, nil }
 
 type world struct {
@@ -108,6 +139,9 @@ type world struct {
 	logged *bytes.Buffer
 }
 
+// setup is a BBS with General and News (where only the sysop posts), nodes for
+// alice and the sysop, and an engine with a short limit for the scripts given,
+// name to source.
 func setup(t *testing.T, scripts map[string]string) *world {
 	t.Helper()
 	store.BcryptCost = 4
@@ -145,6 +179,8 @@ func setup(t *testing.T, scripts map[string]string) *world {
 	return w
 }
 
+// run runs the script for n with a fake giving the answers in turn; the fake,
+// for what it was shown and said, and Run's error.
 func (w *world) run(t *testing.T, name string, n *bbs.Node, answers ...any) (*fake, error) {
 	t.Helper()
 	f := &fake{t: t, answers: answers}
@@ -152,6 +188,7 @@ func (w *world) run(t *testing.T, name string, n *bbs.Node, answers ...any) (*fa
 	return f, err
 }
 
+// has fails the test unless one of all (the what, for the failure) holds want.
 func has(t *testing.T, what string, all []string, want string) {
 	t.Helper()
 	for _, s := range all {
@@ -178,6 +215,8 @@ for (;;) {
 }
 `
 
+// TestScreensAndData: a one-liners script's menu and form; what it keeps for
+// everyone, and for alice alone.
 func TestScreensAndData(t *testing.T) {
 	w := setup(t, map[string]string{"oneliners": oneliners})
 	f, err := w.run(t, "oneliners", w.alice, "A", map[string]string{"line": "hello <world>"}, "Q")
@@ -201,6 +240,9 @@ func TestScreensAndData(t *testing.T) {
 	}
 }
 
+// TestTablesMessagesAndPosting: a table of the areas, a post written in the
+// editor and read back as a message, a post where only the sysop posts thrown
+// and caught, and a show's labels, lines and bars.
 func TestTablesMessagesAndPosting(t *testing.T) {
 	w := setup(t, map[string]string{"news": `
 var areas = msg.areas();
@@ -239,6 +281,8 @@ if (c.action === ui.PICK) {
 	}
 }
 
+// TestRunaway: a script computing too long is stopped, and the caller told; the
+// time the caller takes over a screen is not counted.
 func TestRunaway(t *testing.T) {
 	w := setup(t, map[string]string{"loop": `for (;;) {}`, "slow": `
 var k = ui.menu({title: "Slow", items: [{key: "x", label: "X"}]});
@@ -257,6 +301,10 @@ ui.say("got " + k);
 	has(t, "said", f.said, "got X")
 }
 
+// TestFailures: a script's failure is logged and said (with the error, to the
+// sysop); a syntax error, or a script not there, would not run; the caller
+// hanging up ends a script though it catches it; exit; data's names and values;
+// valid names, and the scripts in the directory.
 func TestFailures(t *testing.T) {
 	w := setup(t, map[string]string{
 		"bad":    `null.x = 1;`,
@@ -335,6 +383,8 @@ func TestPollSample(t *testing.T) {
 	has(t, "screens", f.shown, "Tea0; Coffee1; ; 1 vote")
 }
 
+// TestES6AndRequire: classes, let, Map, arrow functions and template strings
+// run; user.has meets alice's level but not a higher one, nor a flag she lacks.
 func TestES6AndRequire(t *testing.T) {
 	w := setup(t, map[string]string{"es6": "class A { constructor(n) { this.n = n; } twice() { return this.n * 2; } }\n" +
 		"let m = new Map([[1, 'one']]);\n" +

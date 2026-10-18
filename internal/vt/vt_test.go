@@ -5,6 +5,9 @@ import (
 	"testing"
 )
 
+// TestParse: DEC's terminals and emulators known by their answers (name,
+// level, sixel, mono, hardware), the character cell read, Done at the
+// position report, and junk kept out of the answerback and version.
 func TestParse(t *testing.T) {
 	for _, c := range []struct {
 		name, reply, want string
@@ -46,6 +49,9 @@ func TestParse(t *testing.T) {
 	}
 }
 
+// TestDECWriter: line drawing in DEC Special Graphics, Latin-1 as 8 bits or
+// not, ASCII look alikes, escapes passing without ending the graphics, and
+// characters split across writes.
 func TestDECWriter(t *testing.T) {
 	for _, c := range []struct {
 		in     []string
@@ -76,6 +82,8 @@ func TestDECWriter(t *testing.T) {
 	}
 }
 
+// TestVT52Writer: ANSI's clearing, cursor moves and erasing as a VT52's
+// escapes; attributes, DCS and what is not ASCII dropped or made ASCII.
 func TestVT52Writer(t *testing.T) {
 	var buf bytes.Buffer
 	v := NewVT52Writer(&buf)

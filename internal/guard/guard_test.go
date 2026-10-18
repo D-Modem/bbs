@@ -8,6 +8,9 @@ import (
 	"time"
 )
 
+// TestGuard: the deny list (read again when it changes), bans and their
+// end, names denied by pattern, the hack log (escapes made harmless), a
+// bad entry found by Check, and a nil Guard that does nothing.
 func TestGuard(t *testing.T) {
 	dir := t.TempDir()
 	deny := filepath.Join(dir, "deny")

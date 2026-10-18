@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// TestQWKNetConfig: a [qwknet NAME] with its defaults and conferences; bad
+// addresses, tls, hub IDs and conferences refused; tls = no a warning.
 func TestQWKNetConfig(t *testing.T) {
 	load := func(body string) (*Config, error) {
 		p := filepath.Join(t.TempDir(), "bbs.conf")

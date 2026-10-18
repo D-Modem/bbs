@@ -12,6 +12,8 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// chatBBS is a BBS on a new store with alice, bob and a sysop (password
+// "password1"), each logged in on a node of their own.
 func chatBBS(t *testing.T) (*BBS, map[string]*Node) {
 	t.Helper()
 	store.BcryptCost = 4
@@ -40,6 +42,7 @@ func chatBBS(t *testing.T) (*BBS, map[string]*Node) {
 	return b, nodes
 }
 
+// lines is events as they are shown, a line each.
 func lines(es []Event) string {
 	var out []string
 	for _, e := range es {
@@ -48,6 +51,9 @@ func lines(es []Event) string {
 	return strings.Join(out, "\n")
 }
 
+// TestChatRooms: a room's history, comings, goings and lines reach its members,
+// control characters cleaned; bad room names and flooding are refused; node
+// messages reach another node, not oneself or no one.
 func TestChatRooms(t *testing.T) {
 	_, ns := chatBBS(t)
 	alice, bob, sysop := ns["alice"], ns["bob"], ns["sysop"]
@@ -104,6 +110,10 @@ func TestChatRooms(t *testing.T) {
 	}
 }
 
+// TestPaging: a page tells the sysop and opens a private room only the caller
+// and sysops may join; a sysop answers it; a busy sysop is not told and the
+// page command runs instead (the reason passed safely); a caller leaving ends
+// their page.
 func TestPaging(t *testing.T) {
 	b, ns := chatBBS(t)
 	alice, bob, sysop := ns["alice"], ns["bob"], ns["sysop"]

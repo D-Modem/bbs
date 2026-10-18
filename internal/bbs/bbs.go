@@ -397,6 +397,8 @@ func (b *BBS) ban(source, why string) {
 	}
 }
 
+// failed counts a failed login (or a new account) against source, for
+// throttled; "" counts nothing.
 func (b *BBS) failed(source string) {
 	if source == "" {
 		return
@@ -548,6 +550,8 @@ func (n *Node) LoginTrusted(name string, create bool) (*store.User, error) {
 	return n.loggedIn(u, how)
 }
 
+// loggedIn makes u the node's user once let in (how, for the log): it records
+// the login and the call, starts the call's clock and counts it.
 func (n *Node) loggedIn(u *store.User, how string) (*store.User, error) {
 	if err := n.b.Store.LoggedIn(u.ID); err != nil {
 		return nil, err

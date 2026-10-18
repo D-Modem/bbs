@@ -164,18 +164,22 @@ type db struct {
 	d *dialect
 }
 
+// Exec is sql.DB's, the statement made the engine's.
 func (x *db) Exec(q string, args ...any) (sql.Result, error) {
 	return x.DB.Exec(x.d.query(q), args...)
 }
 
+// Query is sql.DB's, the statement made the engine's.
 func (x *db) Query(q string, args ...any) (*sql.Rows, error) {
 	return x.DB.Query(x.d.query(q), args...)
 }
 
+// QueryRow is sql.DB's, the statement made the engine's.
 func (x *db) QueryRow(q string, args ...any) *sql.Row {
 	return x.DB.QueryRow(x.d.query(q), args...)
 }
 
+// Begin starts a transaction whose statements are made the engine's.
 func (x *db) Begin() (*tx, error) {
 	t, err := x.DB.Begin()
 	if err != nil {
@@ -195,18 +199,23 @@ type tx struct {
 	d *dialect
 }
 
+// Exec is sql.Tx's, the statement made the engine's.
 func (t *tx) Exec(q string, args ...any) (sql.Result, error) {
 	return t.Tx.Exec(t.d.query(q), args...)
 }
 
+// QueryRow is sql.Tx's, the statement made the engine's.
 func (t *tx) QueryRow(q string, args ...any) *sql.Row {
 	return t.Tx.QueryRow(t.d.query(q), args...)
 }
 
+// insertID runs an INSERT in the transaction and returns the new row's id.
 func (t *tx) insertID(q string, args ...any) (int64, error) {
 	return insertID(t.d, t.Tx.Exec, t.Tx.QueryRow, q, args)
 }
 
+// insertID runs an INSERT by exec or row and returns the new row's id: by
+// LastInsertId on MySQL, by RETURNING id on the others.
 func insertID(d *dialect, exec func(string, ...any) (sql.Result, error),
 	row func(string, ...any) *sql.Row, q string, args []any) (int64, error) {
 	if d.name == MySQL {

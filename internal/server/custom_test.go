@@ -13,6 +13,9 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
 )
 
+// TestCustomConfig: [menu NAME] and [strings] sections and screens_dir read;
+// bad items, menus, doors and screens they name, and unknown strings
+// refused; a screens_dir that is not there a warning.
 func TestCustomConfig(t *testing.T) {
 	dir := t.TempDir()
 	load := func(body string) (*Config, error) {
@@ -78,6 +81,8 @@ func customize(t *testing.T, files map[string]string) func(*bbs.BBS, string) {
 	return func(b *bbs.BBS, top string) { customizeBBS(t, b, top, files) }
 }
 
+// customizeBBS gives b screens (files, written in top/screens), a main and
+// an extras menu, and strings of its own.
 func customizeBBS(t *testing.T, b *bbs.BBS, top string, files map[string]string) {
 	dir := filepath.Join(top, "screens")
 	os.Mkdir(dir, 0755)
@@ -258,6 +263,7 @@ func TestCustom3270(t *testing.T) {
 	}
 }
 
+// freeTCP is a loopback TCP address that was free a moment ago.
 func freeTCP(t *testing.T) string {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

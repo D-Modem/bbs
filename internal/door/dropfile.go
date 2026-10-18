@@ -69,6 +69,7 @@ func names(n string) (string, string) {
 	return f[0], strings.Join(f[1:], " ")
 }
 
+// yn is a flag as Y or N.
 func yn(b bool) string {
 	if b {
 		return "Y"
@@ -76,6 +77,7 @@ func yn(b bool) string {
 	return "N"
 }
 
+// onezero is a flag as 1 or 0.
 func onezero(b bool) string {
 	if b {
 		return "1"
@@ -99,6 +101,7 @@ func cp437(s string) string {
 	return b.String()
 }
 
+// doorSys is DOOR.SYS's 52 lines (GAP's), the caller's password left out.
 func (in *Info) doorSys() []string {
 	ansi := "NG"
 	if in.ANSI {
@@ -150,6 +153,7 @@ func (in *Info) doorSys() []string {
 	}
 }
 
+// dorInfo is DORINFO1.DEF's 13 lines (RBBS's), the line said to be a FOSSIL.
 func (in *Info) dorInfo() []string {
 	sf, sl := names(in.SysopName)
 	uf, ul := names(in.UserName)
@@ -165,6 +169,7 @@ func (in *Info) dorInfo() []string {
 	}
 }
 
+// door32Sys is DOOR32.SYS's 11 lines, the COM port given as the handle.
 func (in *Info) door32Sys() []string {
 	emu := "0"
 	if in.ANSI {
@@ -184,6 +189,7 @@ func (in *Info) door32Sys() []string {
 	}
 }
 
+// chainTxt is WWIV's CHAIN.TXT, 31 lines.
 func (in *Info) chainTxt() []string {
 	secs := int(in.TimeLeft / time.Second)
 	midnight := time.Date(in.Now.Year(), in.Now.Month(), in.Now.Day(), 0, 0, 0, 0, in.Now.Location())

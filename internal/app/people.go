@@ -65,6 +65,8 @@ func (s *Session) who() error {
 	return nil
 }
 
+// users is the user list (read once, on the way in): where each is from, their
+// posts and last call; one picked shows their details.
 func (s *Session) users() error {
 	s.N.Doing("User list")
 	us, err := s.B.Store.Users()
@@ -181,6 +183,8 @@ func (s *Session) feedback() error {
 	return err
 }
 
+// info shows the system: where it is and how to reach it, the sysop, how many
+// users, messages and nodes in use, and the messages by area as bars.
 func (s *Session) info() error {
 	s.N.Doing("System info")
 	b := s.B
@@ -226,6 +230,10 @@ func (s *Session) info() error {
 	return s.UI.Show(b.Conf().Name, lines)
 }
 
+// profile is the caller's profile, read afresh each time round, and their
+// changes to it: location, about, alias (not someone's name), signature, expert
+// menus (a text terminal's), the terminal's own actions, the password (unless
+// the account is external), SSH keys, and a sign-in code for the web.
 func (s *Session) profile() error {
 	for {
 		u := s.refresh()
@@ -399,6 +407,8 @@ func (s *Session) profile() error {
 	}
 }
 
+// password changes the caller's password, given the one now and the new one
+// twice; new ones that differ, or a change refused, are said, not returned.
 func (s *Session) password() error {
 	v, ok, err := s.UI.Form(&view.Form{Title: "Your password", Submit: "Change", Fields: []view.Field{
 		{Name: "old", Label: "Password now", Prompt: "Your password now: ", Width: 32, Secret: true},

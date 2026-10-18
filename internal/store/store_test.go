@@ -278,6 +278,9 @@ func TestCopy(t *testing.T) {
 	}
 }
 
+// TestScanAndSearch: an area left out of a user's new scan, once however
+// often, and put back; messages to a name in any case; searches in any case,
+// in the areas given only, with % and _ taken as themselves.
 func TestScanAndSearch(t *testing.T) {
 	s := open(t)
 	u, _ := s.CreateUser("alice", "password1", "", false)
@@ -336,6 +339,9 @@ func TestScanAndSearch(t *testing.T) {
 	}
 }
 
+// TestFilesFound: files found by name, description or long description in
+// the areas given, and by when they came; a user's uploads and downloads
+// counted.
 func TestFilesFound(t *testing.T) {
 	s := open(t)
 	u, _ := s.CreateUser("alice", "password1", "", false)
@@ -385,6 +391,9 @@ func TestFilesFound(t *testing.T) {
 	}
 }
 
+// TestScriptData: a script's values, its own and each user's apart from
+// another script's; names listed by prefix (_ taken as itself) and limit;
+// counted, deleted, and a deleted user's gone with them.
 func TestScriptData(t *testing.T) {
 	s := open(t)
 	u, _ := s.CreateUser("alice", "password1", "", false)
@@ -421,6 +430,9 @@ func TestScriptData(t *testing.T) {
 	}
 }
 
+// TestMessageBaseDepth: a thread in order with its depths; votes, a vote
+// changed and taken back; a poll; aliases and signatures, an alias not
+// another's name or alias; area groups, and keeping by count and by age.
 func TestMessageBaseDepth(t *testing.T) {
 	s := open(t)
 	u, _ := s.CreateUser("alice", "password1", "", false)

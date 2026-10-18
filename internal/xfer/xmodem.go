@@ -139,6 +139,7 @@ func sendData(l *line, r io.Reader, crc, big bool) error {
 	return sendEOT(l)
 }
 
+// pad is b made size long with SUBs, as XMODEM pads a short block.
 func pad(b []byte, size int) []byte {
 	out := make([]byte, size)
 	copy(out, b)
@@ -148,6 +149,8 @@ func pad(b []byte, size int) []byte {
 	return out
 }
 
+// sendEOT ends a file: EOT until the receiver ACKs it, up to xRetries
+// times.
 func sendEOT(l *line) error {
 	for try := 0; try < xRetries; try++ {
 		if err := l.write([]byte{eot}); err != nil {
@@ -298,6 +301,7 @@ func recvBlocks(l *line, w io.Writer, crc bool, first byte, size int64, ymodem b
 	}
 }
 
+// btoi is 1 for true, 0 for false.
 func btoi(b bool) int {
 	if b {
 		return 1
@@ -391,6 +395,7 @@ func SendYMODEM(p Port, files []Outgoing) error {
 	return sendBlock(l, 0, make([]byte, 128), true)
 }
 
+// pad0 is b made size long with zeros, as YMODEM pads its header block.
 func pad0(b []byte, size int) []byte {
 	out := make([]byte, size)
 	copy(out, b)

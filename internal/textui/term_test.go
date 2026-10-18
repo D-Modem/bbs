@@ -11,6 +11,7 @@ import (
 
 type bufConn struct{ bytes.Buffer }
 
+// SetReadDeadline does nothing: a buffer has no deadline.
 func (*bufConn) SetReadDeadline(time.Time) error { return nil }
 
 // TestCode: the sysop's tags as each terminal's escape sequences.

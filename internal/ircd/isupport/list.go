@@ -35,6 +35,7 @@ func NewList() *List {
 	return &il
 }
 
+// Initialize empties il.
 func (il *List) Initialize() {
 	il.Tokens = make(map[string]string)
 	il.CachedReply = make([][]string, 0)
@@ -124,6 +125,8 @@ func (il *List) GetDifference(newil *List) [][]string {
 	return replies
 }
 
+// validateToken says why a token cannot be sent in RPL_ISUPPORT: empty,
+// starting with ':', with a space, CR, LF or NUL, or too long.
 func validateToken(token string) error {
 	if len(token) == 0 || token[0] == ':' || strings.Contains(token, " ") {
 		return fmt.Errorf("bad isupport token (cannot be sent as IRC parameter): `%s`", token)

@@ -12,6 +12,8 @@ import (
 	"testing"
 )
 
+// picture is 20 by 9, two sixel bands: a red line along the top, blue along
+// the bottom and down column 3.
 func picture() *image.NRGBA {
 	img := image.NewNRGBA(image.Rect(0, 0, 20, 9))
 	red := color.NRGBA{255, 0, 0, 255}
@@ -26,6 +28,9 @@ func picture() *image.NRGBA {
 	return img
 }
 
+// TestEncodeShape: the DCS framing and raster size, a band per six rows,
+// runs as run-lengths, nothing but printable characters within; an empty
+// picture is refused.
 func TestEncodeShape(t *testing.T) {
 	data, err := Encode(picture())
 	if err != nil {
@@ -53,6 +58,8 @@ func TestEncodeShape(t *testing.T) {
 	}
 }
 
+// TestManyColors: a picture of 4096 colors is given no more than MaxColors
+// (and register 0).
 func TestManyColors(t *testing.T) {
 	img := image.NewNRGBA(image.Rect(0, 0, 64, 64))
 	for y := 0; y < 64; y++ {

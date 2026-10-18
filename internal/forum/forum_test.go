@@ -29,6 +29,7 @@ type sessions struct {
 	m  map[string]int64
 }
 
+// Login checks the name and password on the BBS and starts a session.
 func (s *sessions) Login(r *http.Request, name, pw string) (string, *store.User, error) {
 	u, err := s.b.Authenticate("forum", "test", name, pw)
 	if err != nil {
@@ -37,6 +38,7 @@ func (s *sessions) Login(r *http.Request, name, pw string) (string, *store.User,
 	return s.session(u)
 }
 
+// LoginCode signs in by a BBS sign-in code and starts a session.
 func (s *sessions) LoginCode(r *http.Request, code string) (string, *store.User, error) {
 	u, err := s.b.AuthenticateCode("forum", "test", code)
 	if err != nil {
@@ -45,6 +47,7 @@ func (s *sessions) LoginCode(r *http.Request, code string) (string, *store.User,
 	return s.session(u)
 }
 
+// session starts a session for u: a new random secret kept against its ID.
 func (s *sessions) session(u *store.User) (string, *store.User, error) {
 	var k [16]byte
 	rand.Read(k[:])
@@ -55,6 +58,7 @@ func (s *sessions) session(u *store.User) (string, *store.User, error) {
 	return secret, u, nil
 }
 
+// User is the session's user, read fresh from the store (nil: no such session).
 func (s *sessions) User(secret string) *store.User {
 	s.mu.Lock()
 	id, ok := s.m[secret]
@@ -66,6 +70,7 @@ func (s *sessions) User(secret string) *store.User {
 	return u
 }
 
+// Logout forgets the session.
 func (s *sessions) Logout(secret string) {
 	s.mu.Lock()
 	delete(s.m, secret)
@@ -80,6 +85,9 @@ type site struct {
 	fs *Server
 }
 
+// setup is a forum on a new BBS, served: alice, bob and a sysop (all with
+// password1); areas General (aliases allowed), Secret (the sysop's to read)
+// and News (read-only); guests let in.
 func setup(t *testing.T) *site {
 	t.Helper()
 	store.BcryptCost = 4
@@ -123,6 +131,7 @@ type browser struct {
 	c *http.Client
 }
 
+// browser is a new client, with a cookie jar of its own.
 func (s *site) browser() *browser {
 	jar, _ := cookiejar.New(nil)
 	return &browser{s: s, c: &http.Client{Jar: jar}}
@@ -160,6 +169,8 @@ func (br *browser) post(from, path string, form url.Values) (int, string, string
 	return resp.StatusCode, resp.Request.URL.RequestURI(), string(b)
 }
 
+// login signs in as name (password1), failing the test unless it lands
+// signed in on the index.
 func (br *browser) login(name string) {
 	br.s.t.Helper()
 	code, at, body := br.post("", "/forum/login", url.Values{"name": {name}, "password": {"password1"}})
@@ -168,6 +179,7 @@ func (br *browser) login(name string) {
 	}
 }
 
+// has fails the test for each of wants not in body; what names the page.
 func has(t *testing.T, what, body string, wants ...string) {
 	t.Helper()
 	for _, w := range wants {
@@ -177,6 +189,7 @@ func has(t *testing.T, what, body string, wants ...string) {
 	}
 }
 
+// hasNot fails the test for each of nots in body; what names the page.
 func hasNot(t *testing.T, what, body string, nots ...string) {
 	t.Helper()
 	for _, w := range nots {
@@ -186,6 +199,9 @@ func hasNot(t *testing.T, what, body string, nots ...string) {
 	}
 }
 
+// TestGuestsAndLogin: a guest sees the areas open to anyone and not the
+// sysop's, is sent to the login for those and for posting; a bad login says
+// so; a login goes back only to the forum's own pages; logout signs out.
 func TestGuestsAndLogin(t *testing.T) {
 	s := setup(t)
 	guest := s.browser()
@@ -224,13 +240,16 @@ func TestGuestsAndLogin(t *testing.T) {
 	has(t, "signed out", body, "Sign In")
 }
 
+// itoa is n in decimal.
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
 
+// atoi is s as a number (0 if it is not one).
 func atoi(s string) int64 {
 	n, _ := strconv.ParseInt(s, 10, 64)
 	return n
 }
 
+// mustUser is the user of the name, failing the test if there is none.
 func mustUser(s *site, name string) *store.User {
 	u, err := s.b.Store.UserByName(name)
 	if err != nil {
@@ -239,6 +258,12 @@ func mustUser(s *site, name string) *store.User {
 	return u
 }
 
+// TestPostingAndReading: forms need their token; a new topic with a poll is
+// shown escaped and its links made links; replies quote, likes and votes
+// count (not one's own like, not an answer the poll lacks) and unread marks
+// clear on reading; an alias hides who is behind it; only the author or the
+// sysop deletes; read-only areas take no topics; search, who's online and
+// the post finder work.
 func TestPostingAndReading(t *testing.T) {
 	s := setup(t)
 	alice, bob, sysop := s.browser(), s.browser(), s.browser()
@@ -342,6 +367,8 @@ func TestPostingAndReading(t *testing.T) {
 	has(t, "online", body, "No one is on just now.")
 }
 
+// TestRegister: signing up needs the passwords to agree, makes the account
+// and signs in; with new users closed the page is refused.
 func TestRegister(t *testing.T) {
 	s := setup(t)
 	s.b.Settings.NewUsers = true
@@ -362,6 +389,9 @@ func TestRegister(t *testing.T) {
 	}
 }
 
+// TestRenderBody: quotes and their "wrote:" line are boxed and titled, text
+// escaped and links made; snippets leave the quoting out; pagination and
+// digit grouping.
 func TestRenderBody(t *testing.T) {
 	got := string(renderBody("Bob wrote:\n> one <i>\n BW> two\n\nthree & www.example.org."))
 	want := `<p class="citation">Bob said:</p><blockquote class="quote">one &lt;i&gt;<br>two<br></blockquote>three &amp; <a href="http://www.example.org" rel="nofollow ugc noopener" class="bbc_url">www.example.org</a>.`
@@ -383,6 +413,10 @@ func TestRenderBody(t *testing.T) {
 	}
 }
 
+// TestThemes: every theme has its stylesheet, can be chosen by a guest and by
+// a member (with a token), wears on every page and lays out pages its own
+// way; an unknown theme or an outside page to go back to is refused; the
+// forum's theme holds until a caller chooses theirs.
 func TestThemes(t *testing.T) {
 	s := setup(t)
 	alice, guest := s.browser(), s.browser()
@@ -476,6 +510,7 @@ func TestThemes(t *testing.T) {
 	has(t, "guest's own", body, "/forum/static/ipb3.css")
 }
 
+// TestThemeLineage: every parent is a theme, and lineages run eldest first.
 func TestThemeLineage(t *testing.T) {
 	for _, th := range Themes {
 		if th.Parent != "" && !KnownTheme(th.Parent) {
@@ -494,6 +529,7 @@ func TestThemeLineage(t *testing.T) {
 	}
 }
 
+// TestAgo: times told relative to now, from "Just now" to a full date.
 func TestAgo(t *testing.T) {
 	now := time.Now()
 	y, m, d := now.Date()
@@ -515,6 +551,7 @@ func TestAgo(t *testing.T) {
 	}
 }
 
+// TestYabb2Date: day suffixes, 11th to 13th among them.
 func TestYabb2Date(t *testing.T) {
 	for _, c := range []struct {
 		day  int

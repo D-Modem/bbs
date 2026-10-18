@@ -98,6 +98,9 @@ func (p *Plan) Run(now time.Time) (*Archive, error) {
 	return &Archive{Path: final, Time: now, Size: fi.Size()}, nil
 }
 
+// write writes the backup to w as a gzipped tar: the manifest first, then
+// the configuration, a snapshot of the database, and the directories and
+// keys (those not there yet left out, of the manifest too).
 func (p *Plan) write(w io.Writer, now time.Time) error {
 	gz := gzip.NewWriter(w)
 	tw := tar.NewWriter(gz)
@@ -147,6 +150,7 @@ func (p *Plan) write(w io.Writer, now time.Time) error {
 	return gz.Close()
 }
 
+// addBytes adds data to the archive as a file name, made at t.
 func addBytes(tw *tar.Writer, name string, data []byte, t time.Time) error {
 	if err := tw.WriteHeader(&tar.Header{Name: name, Mode: 0o600, Size: int64(len(data)), ModTime: t,
 		Typeflag: tar.TypeReg}); err != nil {
@@ -156,6 +160,8 @@ func addBytes(tw *tar.Writer, name string, data []byte, t time.Time) error {
 	return err
 }
 
+// addFile adds the file src to the archive as name, its mode and time kept:
+// as much as it had when opened, though it grows.
 func addFile(tw *tar.Writer, name, src string) error {
 	f, err := os.Open(src)
 	if err != nil {
@@ -239,6 +245,8 @@ func List(dir string) ([]Archive, error) {
 	return out, nil
 }
 
+// timeOf is when the archive name says it was made, and whether name is an
+// archive's (as Name makes them).
 func timeOf(name string) (time.Time, bool) {
 	if !strings.HasPrefix(name, "bbs-") || !strings.HasSuffix(name, ".tar.gz") {
 		return time.Time{}, false
@@ -288,6 +296,8 @@ func Manifest(archive string) (map[string]string, error) {
 
 var errStop = errors.New("stop")
 
+// walk calls f with each file of the gzipped tar archive in turn, stopping
+// at the first error f gives (errStop to stop early) and returning it.
 func walk(archive string, f func(h *tar.Header, r io.Reader) error) error {
 	file, err := os.Open(archive)
 	if err != nil {

@@ -49,6 +49,8 @@ func (fs *fileSystem) qwkPacket() (*bbs.QWKOut, error) {
 	return out, nil
 }
 
+// qwkStat describes /qwk (q "") or the user's packet, BBSID.QWK (any case),
+// making the packet if it is due; anything else there is not.
 func (fs *fileSystem) qwkStat(q string) (os.FileInfo, error) {
 	if q == "" {
 		return info{name: qwkDir, dir: true, mtime: time.Unix(0, 0)}, nil
@@ -63,6 +65,8 @@ func (fs *fileSystem) qwkStat(q string) (os.FileInfo, error) {
 	return info{name: out.Name, size: int64(len(out.Data)), mtime: fs.made}, nil
 }
 
+// qwkHandle opens the user's packet to download, or takes a .REP upload (from
+// its start); nothing else in /qwk can be opened.
 func (fs *fileSystem) qwkHandle(q string, flags int, offset int64) (ftpserver.FileTransfer, error) {
 	if flags&(os.O_WRONLY|os.O_RDWR) == 0 {
 		if _, err := fs.qwkStat(q); err != nil || q == "" {
@@ -90,15 +94,21 @@ type qwkDownload struct {
 	read bool
 }
 
+// Read reads the packet, noting that some has gone.
 func (d *qwkDownload) Read(p []byte) (int, error) {
 	n, err := d.r.Read(p)
 	d.read = d.read || n > 0
 	return n, err
 }
 
+// Seek moves in the packet (for a resumed download).
 func (d *qwkDownload) Seek(offset int64, whence int) (int64, error) { return d.r.Seek(offset, whence) }
-func (d *qwkDownload) Write([]byte) (int, error)                    { return 0, os.ErrPermission }
 
+// Write is refused: the packet is read only.
+func (d *qwkDownload) Write([]byte) (int, error) { return 0, os.ErrPermission }
+
+// Close, once the packet has all been read, marks its messages read and has
+// the next one made afresh; else it changes nothing.
 func (d *qwkDownload) Close() error {
 	if d.read && d.r.Len() == 0 {
 		d.fs.packet = nil
@@ -115,10 +125,16 @@ type repUpload struct {
 	failed error
 }
 
-func (u *repUpload) Read([]byte) (int, error)       { return 0, os.ErrPermission }
-func (u *repUpload) Seek(int64, int) (int64, error) { return 0, os.ErrPermission }
-func (u *repUpload) TransferError(err error)        { u.failed = err }
+// Read is refused: a REP is written only.
+func (u *repUpload) Read([]byte) (int, error) { return 0, os.ErrPermission }
 
+// Seek is refused: a REP comes from its start.
+func (u *repUpload) Seek(int64, int) (int64, error) { return 0, os.ErrPermission }
+
+// TransferError is told of a transfer that failed, so Close imports nothing.
+func (u *repUpload) TransferError(err error) { u.failed = err }
+
+// Write keeps what comes, refusing a REP larger than qwk.MaxREP.
 func (u *repUpload) Write(p []byte) (int, error) {
 	if u.buf.Len()+len(p) > qwk.MaxREP {
 		return 0, errors.New("a REP packet is at most 16 MB")
@@ -126,6 +142,8 @@ func (u *repUpload) Write(p []byte) (int, error) {
 	return u.buf.Write(p)
 }
 
+// Close imports the REP's replies, if it all came, logging those refused,
+// and has the next packet made afresh.
 func (u *repUpload) Close() error {
 	if u.failed != nil {
 		return u.failed

@@ -69,6 +69,8 @@ func normalCode(s string) (string, bool) {
 	return s, true
 }
 
+// codeHash is a code as kept: its SHA-256 in hex, so that the codes are not
+// held as typed.
 func codeHash(code string) string {
 	h := sha256.Sum256([]byte(code))
 	return hex.EncodeToString(h[:])

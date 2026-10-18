@@ -111,6 +111,8 @@ func (svc *service) command(c *client, params []string) {
 	svc.privmsg(c, line)
 }
 
+// ctcp answers a CTCP VERSION, PING or TIME sent to the service; others
+// get nothing.
 func (svc *service) ctcp(c *client, message string) {
 	ctcp := fieldsN(strings.TrimSuffix(message[1:], "\x01"), 2)
 	if len(ctcp) == 0 {
@@ -132,6 +134,8 @@ func (svc *service) ctcp(c *client, message string) {
 	}
 }
 
+// run runs cmd (nil: unknown) with params, or says why not: too few or
+// too many parameters. A command with no handler is HELP.
 func (svc *service) run(c *client, cmd *serviceCommand, name string, params []string) {
 	if cmd == nil {
 		svc.notice(c, fmt.Sprintf("Unknown command. To see the commands, /msg %s HELP", svc.Name))

@@ -19,6 +19,8 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// routes is the API's endpoints, by method and path, each with the scope
+// it needs (the OpenAPI document's ops must list the same ones).
 func (s *Server) routes() map[string]route {
 	return map[string]route{
 		"POST /api/v1/login":  {h: s.login},
@@ -123,6 +125,8 @@ func (s *Server) userView(r *http.Request, u *store.User) userJSON {
 	return j
 }
 
+// userOut is u as anyone may see them (no level, flags or QWK node: see
+// userView), with the node they are on now, if any.
 func (s *Server) userOut(u *store.User) userJSON {
 	j := userJSON{Name: u.Name, Location: u.Location, Sysop: u.Sysop, Created: u.Created,
 		Calls: u.Logins, Posts: u.Posts, Locked: u.Locked, About: u.About}
@@ -198,6 +202,7 @@ type pollJSON struct {
 	Mine    int      `json:"mine"` // -1: not answered
 }
 
+// msgOut is m as JSON, its body only if body.
 func msgOut(m *store.Message, body bool) messageJSON {
 	j := messageJSON{ID: m.ID, Area: m.AreaID, From: m.From, To: m.To, Subject: m.Subject,
 		ReplyTo: m.ReplyTo, Created: m.Created, MessageID: m.MessageID, FTNMsgID: m.FTNMsgID}
@@ -207,6 +212,7 @@ func msgOut(m *store.Message, body bool) messageJSON {
 	return j
 }
 
+// mailOut is a mail as JSON (no area or Message-ID; whether it is read).
 func mailOut(m *store.Message, body bool) messageJSON {
 	j := msgOut(m, body)
 	j.Area, j.MessageID = 0, ""
@@ -228,17 +234,22 @@ type fileJSON struct {
 	LongDesc    string    `json:"long_description,omitempty"`
 }
 
+// fileOut is f as JSON.
 func fileOut(f *store.File) fileJSON {
 	return fileJSON{f.ID, f.AreaID, f.Name, f.Description, f.Size, f.SHA256, f.Uploader, f.Created, f.Downloads, f.LongDesc}
 }
 
 // --- helpers
 
+// pathID is the path's value name as an id; false unless it is a number
+// above 0.
 func pathID(r *http.Request, name string) (int64, bool) {
 	n, err := strconv.ParseInt(r.PathValue(name), 10, 64)
 	return n, err == nil && n > 0
 }
 
+// agent is the request's user as a node that takes no line, for acting
+// through the BBS as a caller would (see bbs.BBS.Agent).
 func (s *Server) agent(r *http.Request) *bbs.Node {
 	return s.B.Agent(whoOf(r).user, "api")
 }
@@ -246,6 +257,9 @@ func (s *Server) agent(r *http.Request) *bbs.Node {
 // lines splits a body into lines for the BBS's editor's checks.
 // --- login
 
+// login: a session token for a name and password, checked and throttled
+// as any login; its scopes all but sysop's (a sysop's: all), or those
+// asked for.
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name     string `json:"name"`
@@ -284,6 +298,8 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		"scopes": strings.Fields(scopes)})
 }
 
+// logout: the session's token revoked; an API key is refused (it is
+// revoked by its id).
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 	wh := whoOf(r)
 	if !wh.token.Session {
@@ -296,6 +312,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 
 // --- the system
 
+// system: the BBS's name, sysop, counts and features.
 func (s *Server) system(w http.ResponseWriter, r *http.Request) {
 	us, _ := s.B.Store.Users()
 	areas, _ := s.B.Store.Areas()
@@ -318,6 +335,7 @@ func (s *Server) system(w http.ResponseWriter, r *http.Request) {
 		"version": "bbs-sec/1"})
 }
 
+// who: the nodes with a caller logged in.
 func (s *Server) who(w http.ResponseWriter, r *http.Request) {
 	out := []nodeJSON{}
 	for _, n := range s.B.Nodes() {
@@ -331,6 +349,8 @@ func (s *Server) who(w http.ResponseWriter, r *http.Request) {
 
 // --- me and users
 
+// me: the user's account, unread mail, access (level, limits, what they
+// may do) and settings, and the token's scopes.
 func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 	u, err := s.B.Store.UserByID(whoOf(r).user.ID)
 	if err != nil {
@@ -362,6 +382,9 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 		"prefs": bbs.ParsePrefs(u.Prefs), "scopes": strings.Fields(whoOf(r).token.Scopes)})
 }
 
+// patchMe: the user's location, about, settings or password changed (a
+// new password needs the old); then their account, as me.  A refused
+// password leaves the other changes made.
 func (s *Server) patchMe(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Location    *string           `json:"location"`
@@ -421,6 +444,8 @@ func (s *Server) callers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// myTokens: the user's tokens, sessions and API keys, the one in use
+// marked current.
 func (s *Server) myTokens(w http.ResponseWriter, r *http.Request) {
 	ts, _ := s.B.Store.Tokens(whoOf(r).user.ID)
 	out := []map[string]any{}
@@ -438,6 +463,8 @@ func (s *Server) myTokens(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// revokeMine: a token of the user's revoked; 404 if it is no token of
+// theirs.
 func (s *Server) revokeMine(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r, "id")
 	if !ok || s.B.Store.RevokeToken(id, whoOf(r).user.ID) != nil {
@@ -447,6 +474,7 @@ func (s *Server) revokeMine(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// sshKeyJSON is k as JSON.
 func sshKeyJSON(k *store.SSHKey) map[string]any {
 	m := map[string]any{"id": k.ID, "type": k.Type, "fingerprint": k.Fingerprint, "comment": k.Comment,
 		"key": k.Key, "created": k.Created}
@@ -456,6 +484,7 @@ func sshKeyJSON(k *store.SSHKey) map[string]any {
 	return m
 }
 
+// myKeys: the user's SSH keys.
 func (s *Server) myKeys(w http.ResponseWriter, r *http.Request) {
 	ks, err := s.B.Store.SSHKeys(whoOf(r).user.ID)
 	if err != nil {
@@ -494,6 +523,8 @@ func (s *Server) addKey(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// delKey: an SSH key of the user's deleted; 404 if it is no key of
+// theirs.
 func (s *Server) delKey(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r, "id")
 	if !ok || s.B.Store.RemoveSSHKey(id, whoOf(r).user.ID) != nil {
@@ -503,6 +534,8 @@ func (s *Server) delKey(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// users: the users as the user may see them (the locked ones only to a
+// sysop).
 func (s *Server) users(w http.ResponseWriter, r *http.Request) {
 	us, err := s.B.Store.Users()
 	if err != nil {
@@ -519,6 +552,8 @@ func (s *Server) users(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// user: one user by name, as the user may see them; a locked user is 404
+// but to a sysop.
 func (s *Server) user(w http.ResponseWriter, r *http.Request) {
 	u, err := s.B.Store.UserByName(r.PathValue("name"))
 	if err != nil || u.Locked && !whoOf(r).user.Sysop {
@@ -530,6 +565,8 @@ func (s *Server) user(w http.ResponseWriter, r *http.Request) {
 
 // --- message areas
 
+// areaOut is a as JSON for the request's user: their unread, last read,
+// and whether they may post.
 func (s *Server) areaOut(r *http.Request, a *store.Area) areaJSON {
 	u := whoOf(r).user
 	unread, _ := s.B.Store.NewCount(u.ID, a.ID)
@@ -539,6 +576,7 @@ func (s *Server) areaOut(r *http.Request, a *store.Area) areaJSON {
 		a.Group, a.Aliases, a.MaxMsgs, a.MaxDays}
 }
 
+// areas: the message areas the user may read.
 func (s *Server) areas(w http.ResponseWriter, r *http.Request) {
 	as, err := s.B.Store.Areas()
 	if err != nil {
@@ -554,6 +592,8 @@ func (s *Server) areas(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// areaByPath is the path's area; nil, answered 404, if there is none or
+// the user may not read it.
 func (s *Server) areaByPath(w http.ResponseWriter, r *http.Request) *store.Area {
 	id, ok := pathID(r, "id")
 	if !ok {
@@ -568,12 +608,16 @@ func (s *Server) areaByPath(w http.ResponseWriter, r *http.Request) *store.Area 
 	return a
 }
 
+// area: one message area.
 func (s *Server) area(w http.ResponseWriter, r *http.Request) {
 	if a := s.areaByPath(w, r); a != nil {
 		writeJSON(w, http.StatusOK, s.areaOut(r, a))
 	}
 }
 
+// messages: an area's messages after ?after=, ?limit= of them (50, up to
+// 200), without bodies if ?body=no; next is the following page's path
+// when the page is full.
 func (s *Server) messages(w http.ResponseWriter, r *http.Request) {
 	a := s.areaByPath(w, r)
 	if a == nil {
@@ -621,6 +665,7 @@ func (s *Server) readable(w http.ResponseWriter, r *http.Request) *store.Message
 	return m
 }
 
+// message: one message, its votes and poll with the user's own, if any.
 func (s *Server) message(w http.ResponseWriter, r *http.Request) {
 	m := s.readable(w, r)
 	if m == nil {
@@ -708,6 +753,9 @@ func (s *Server) thread(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// post: a message posted to the area as the user (as their alias, or a
+// poll, if asked), as a caller's post is checked and cleaned; a reply
+// must be to a message of the same area.
 func (s *Server) post(w http.ResponseWriter, r *http.Request) {
 	a := s.areaByPath(w, r)
 	if a == nil {
@@ -745,6 +793,8 @@ func (s *Server) post(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, msgOut(m, true))
 }
 
+// lastRead: the user's last read in the area set to an id (0 up to its
+// last message); then the area.
 func (s *Server) lastRead(w http.ResponseWriter, r *http.Request) {
 	a := s.areaByPath(w, r)
 	if a == nil {
@@ -766,6 +816,7 @@ func (s *Server) lastRead(w http.ResponseWriter, r *http.Request) {
 
 // --- mail
 
+// mail: the user's inbox, without bodies.
 func (s *Server) mail(w http.ResponseWriter, r *http.Request) {
 	in, err := s.B.Store.Inbox(whoOf(r).user.ID)
 	if err != nil {
@@ -779,6 +830,8 @@ func (s *Server) mail(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// mailOne: a mail of the user's, now marked read; 404 if it is no mail of
+// theirs.
 func (s *Server) mailOne(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r, "id")
 	u := whoOf(r).user
@@ -792,6 +845,8 @@ func (s *Server) mailOne(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, mailOut(m, true))
 }
 
+// mailDelete: a mail of the user's deleted; 404 if it is no mail of
+// theirs.
 func (s *Server) mailDelete(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r, "id")
 	if !ok || s.B.Store.DeleteMail(whoOf(r).user.ID, id) != nil {
@@ -801,6 +856,8 @@ func (s *Server) mailDelete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// sendMail: mail sent as the user, to a user or by netmail, as a caller's
+// is checked.
 func (s *Server) sendMail(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		To      string `json:"to"`
@@ -820,6 +877,7 @@ func (s *Server) sendMail(w http.ResponseWriter, r *http.Request) {
 
 // --- files
 
+// noFiles says whether the BBS has no file areas, answering 404 if so.
 func (s *Server) noFiles(w http.ResponseWriter) bool {
 	if s.B.Files == nil {
 		fail(w, http.StatusNotFound, "there are no file areas")
@@ -828,6 +886,7 @@ func (s *Server) noFiles(w http.ResponseWriter) bool {
 	return false
 }
 
+// fileAreas: the file areas the user may download from or upload to.
 func (s *Server) fileAreas(w http.ResponseWriter, r *http.Request) {
 	if s.noFiles(w) {
 		return
@@ -918,6 +977,8 @@ func (s *Server) listing(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// fileAreaByPath is the path's file area; nil, answered 404, if there is
+// none or the user may neither download from it nor upload to it.
 func (s *Server) fileAreaByPath(w http.ResponseWriter, r *http.Request) *store.FileArea {
 	if s.noFiles(w) {
 		return nil
@@ -932,6 +993,7 @@ func (s *Server) fileAreaByPath(w http.ResponseWriter, r *http.Request) *store.F
 	return fa
 }
 
+// files: a file area's files.
 func (s *Server) files(w http.ResponseWriter, r *http.Request) {
 	fa := s.fileAreaByPath(w, r)
 	if fa == nil {
@@ -945,6 +1007,8 @@ func (s *Server) files(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// fileByPath is the path's file; nil, answered 404, if there is none or
+// the user may neither download from its area nor upload to it.
 func (s *Server) fileByPath(w http.ResponseWriter, r *http.Request) *store.File {
 	if s.noFiles(w) {
 		return nil
@@ -964,12 +1028,16 @@ func (s *Server) fileByPath(w http.ResponseWriter, r *http.Request) *store.File 
 	return f
 }
 
+// file: one file's details.
 func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 	if f := s.fileByPath(w, r); f != nil {
 		writeJSON(w, http.StatusOK, fileOut(f))
 	}
 }
 
+// download: a file's content (Range works), if the user may download it
+// and has downloads left today; counted as a download unless it is asked
+// for by Range.
 func (s *Server) download(w http.ResponseWriter, r *http.Request) {
 	f := s.fileByPath(w, r)
 	if f == nil {
@@ -1094,6 +1162,8 @@ func (s *Server) qwkREP(w http.ResponseWriter, r *http.Request) {
 
 // --- chat (what needs a node needs an open stream: /events or /ws)
 
+// streamNode is the node of the token's newest open stream (/events or
+// /ws); nil, answered 409, if it has none.
 func (s *Server) streamNode(w http.ResponseWriter, r *http.Request) *bbs.Node {
 	s.mu.Lock()
 	ns := s.streams[whoOf(r).token.ID]
@@ -1105,6 +1175,7 @@ func (s *Server) streamNode(w http.ResponseWriter, r *http.Request) *bbs.Node {
 	return ns[len(ns)-1]
 }
 
+// rooms: the chat rooms in use and who is in each.
 func (s *Server) rooms(w http.ResponseWriter, r *http.Request) {
 	out := []map[string]any{}
 	for _, ro := range s.B.Agent(whoOf(r).user, "api").Rooms() {
@@ -1113,6 +1184,7 @@ func (s *Server) rooms(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// nodeMessage: a line from the user's stream's node to node n.
 func (s *Server) nodeMessage(w http.ResponseWriter, r *http.Request) {
 	n := s.streamNode(w, r)
 	if n == nil {
@@ -1141,6 +1213,9 @@ func (s *Server) nodeMessage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusAccepted, map[string]any{"sent": true})
 }
 
+// page: the sysop paged from the user's stream's node, which joins the
+// page's room to wait if anyone was told; if no one was, the page is
+// called off.
 func (s *Server) page(w http.ResponseWriter, r *http.Request) {
 	n := s.streamNode(w, r)
 	if n == nil {
@@ -1167,6 +1242,7 @@ func (s *Server) page(w http.ResponseWriter, r *http.Request) {
 
 // --- admin
 
+// pages: the callers paging the sysop.
 func (s *Server) pages(w http.ResponseWriter, r *http.Request) {
 	out := []map[string]any{}
 	for _, p := range s.B.Pages() {
@@ -1175,6 +1251,8 @@ func (s *Server) pages(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// answer: a page answered from the sysop's stream's node (node 0: the
+// longest waiting), which joins the caller's room.
 func (s *Server) answer(w http.ResponseWriter, r *http.Request) {
 	n := s.streamNode(w, r)
 	if n == nil {
@@ -1189,6 +1267,8 @@ func (s *Server) answer(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"node": node, "room": n.Room()})
 }
 
+// addUser: a user added, their name and password checked as a new
+// caller's are.
 func (s *Server) addUser(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name     string `json:"name"`
@@ -1220,6 +1300,9 @@ func (s *Server) addUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, s.userView(r, u))
 }
 
+// patchUser: a user's lock, sysop, QWK node, password, location, level or
+// flags set; then the user.  The changes are made one by one, so one
+// refused leaves those before it made.
 func (s *Server) patchUser(w http.ResponseWriter, r *http.Request) {
 	u, err := s.B.Store.UserByName(r.PathValue("name"))
 	if err != nil {
@@ -1277,6 +1360,7 @@ func (s *Server) patchUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.userView(r, u))
 }
 
+// addArea: a message area added.
 func (s *Server) addArea(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name        string `json:"name"`
@@ -1304,6 +1388,9 @@ func (s *Server) addArea(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, s.areaOut(r, a))
 }
 
+// patchArea: an area's newsgroup, echo tag, requirements, group, aliases
+// or limits set; then the area.  As patchUser, one refused leaves those
+// before it made.
 func (s *Server) patchArea(w http.ResponseWriter, r *http.Request) {
 	a := s.areaByPath(w, r)
 	if a == nil {
@@ -1386,6 +1473,7 @@ func (s *Server) patchArea(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.areaOut(r, a))
 }
 
+// kick: the caller on node n thrown off.
 func (s *Server) kick(w http.ResponseWriter, r *http.Request) {
 	n, err := strconv.Atoi(r.PathValue("n"))
 	if err != nil || s.B.Kick(n) != nil {
@@ -1395,6 +1483,7 @@ func (s *Server) kick(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// bans: the banned addresses and until when, by address.
 func (s *Server) bans(w http.ResponseWriter, r *http.Request) {
 	out := []map[string]any{}
 	for ip, until := range s.B.Guard.Bans() {
@@ -1404,6 +1493,7 @@ func (s *Server) bans(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// unban: an address's ban lifted, in the log and the hack log.
 func (s *Server) unban(w http.ResponseWriter, r *http.Request) {
 	ip := r.PathValue("ip")
 	if !s.B.Guard.Unban(ip) {
@@ -1415,6 +1505,7 @@ func (s *Server) unban(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// hackLog: the hack log's last ?lines= lines (100, up to 1000).
 func (s *Server) hackLog(w http.ResponseWriter, r *http.Request) {
 	n, err := strconv.Atoi(r.URL.Query().Get("lines"))
 	if err != nil || n <= 0 || n > 1000 {
@@ -1427,6 +1518,7 @@ func (s *Server) hackLog(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, lines)
 }
 
+// resultOut is an event's run as JSON.
 func resultOut(r *events.Result) map[string]any {
 	m := map[string]any{"start": r.Start, "seconds": r.Took.Seconds(), "ok": r.Err == "", "output": r.Output, "by": r.By}
 	if r.Err != "" {
@@ -1451,6 +1543,7 @@ func (s *Server) scheduled(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// runEvent: an event run now, by the user, waited for; how it went.
 func (s *Server) runEvent(w http.ResponseWriter, r *http.Request) {
 	if s.B.Events == nil {
 		fail(w, http.StatusNotFound, "there are no events")
@@ -1467,6 +1560,7 @@ func (s *Server) runEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// setAvailable: whether pages reach the sysop, set.
 func (s *Server) setAvailable(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Available *bool `json:"available"`
@@ -1482,6 +1576,8 @@ func (s *Server) setAvailable(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"available": s.B.SysopAvailable()})
 }
 
+// fido: the BBS's FidoNet addresses, and its links with what waits for
+// each.
 func (s *Server) fido(w http.ResponseWriter, r *http.Request) {
 	if s.Fido == nil {
 		fail(w, http.StatusNotFound, "the BBS is not on FidoNet")
@@ -1499,6 +1595,8 @@ func (s *Server) fido(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"addresses": addrs, "links": links})
 }
 
+// fidoPoll: the FidoNet links that have a host called, in the background;
+// which they are.
 func (s *Server) fidoPoll(w http.ResponseWriter, r *http.Request) {
 	if s.Fido == nil {
 		fail(w, http.StatusNotFound, "the BBS is not on FidoNet")
@@ -1518,6 +1616,7 @@ func (s *Server) fidoPoll(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusAccepted, map[string]any{"calling": called})
 }
 
+// qwkNets: the QWK networks, their hubs and conferences.
 func (s *Server) qwkNets(w http.ResponseWriter, r *http.Request) {
 	out := []map[string]any{}
 	if s.QWKNet != nil {
@@ -1548,6 +1647,7 @@ func (s *Server) qwkNetCall(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusAccepted, map[string]any{"calling": name})
 }
 
+// news: the news peers, and the areas' newsgroups.
 func (s *Server) news(w http.ResponseWriter, r *http.Request) {
 	if s.News == nil {
 		fail(w, http.StatusNotFound, "no news")
@@ -1567,6 +1667,8 @@ func (s *Server) news(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"peers": peers, "newsgroups": groups})
 }
 
+// newsSync: every news peer synced with, in the background; which they
+// are.
 func (s *Server) newsSync(w http.ResponseWriter, r *http.Request) {
 	if s.News == nil {
 		fail(w, http.StatusNotFound, "no news")

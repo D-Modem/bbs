@@ -80,6 +80,9 @@ func TestScriptOnBoth(t *testing.T) {
 	}
 }
 
+// TestScriptsConfig: scripts_dir and script: menu items; a script not
+// there, a bad name, no such directory and a script that does not compile
+// refused.
 func TestScriptsConfig(t *testing.T) {
 	dir := t.TempDir()
 	scripts := filepath.Join(dir, "scripts")

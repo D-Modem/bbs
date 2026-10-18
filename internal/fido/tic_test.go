@@ -122,6 +122,7 @@ func TestFileEchoes(t *testing.T) {
 	}
 }
 
+// visible is the names of the regular files not hidden (.name) in ents.
 func visible(ents []os.DirEntry) []string {
 	var out []string
 	for _, e := range ents {

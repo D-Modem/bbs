@@ -24,6 +24,7 @@ type Section struct {
 	Kind, Name string
 }
 
+// String is the section's header: [KIND] or [KIND NAME].
 func (s Section) String() string {
 	if s.Name == "" {
 		return "[" + s.Kind + "]"
@@ -185,6 +186,7 @@ func (d *Doc) Get(s Section, key string) (string, bool) {
 	return v, true
 }
 
+// find is the line of key in section s, or -1 if either is not there.
 func (d *Doc) find(s Section, key string) int {
 	start, end, ok := d.span(s)
 	if !ok {
@@ -240,6 +242,8 @@ func (d *Doc) Set(s Section, key, value string) error {
 	return nil
 }
 
+// validKey reports whether k is a key's name: lower-case letters, digits and
+// _, at least one.
 func validKey(k string) bool {
 	if k == "" {
 		return false
@@ -252,6 +256,7 @@ func validKey(k string) bool {
 	return true
 }
 
+// insert puts lines in before line at.
 func (d *Doc) insert(at int, lines ...string) {
 	d.lines = append(d.lines[:at], append(lines, d.lines[at:]...)...)
 }

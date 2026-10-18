@@ -2,6 +2,8 @@ package view
 
 import "testing"
 
+// TestLayout: columns laid out wide and narrow (the wide-only one left
+// out, the widths fitting), and cells cut and padded to their widths.
 func TestLayout(t *testing.T) {
 	cols := []Column{{Title: "Area", Width: 20}, {Title: "Description", Width: 36, Wide: true},
 		{Title: "Msgs", Width: 5, Right: true}, {Title: "Doing"}}

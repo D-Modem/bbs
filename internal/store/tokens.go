@@ -37,6 +37,8 @@ func (s *Store) AddToken(t *Token) (int64, error) {
 
 const tokenCols = `t.id, t.user_id, u.name, t.name, t.hash, t.scopes, t.session, t.created, t.expires, t.last_used`
 
+// scanToken is the token in a row of tokenCols; ErrNotFound if there is
+// none.
 func scanToken(row interface{ Scan(...any) error }) (*Token, error) {
 	var t Token
 	var created, expires, last int64

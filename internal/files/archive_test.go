@@ -13,6 +13,8 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 )
 
+// zipOf is a ZIP of those of FILE_ID.DIZ, doom.exe, sub/FILE_ID.DIZ and
+// readme.txt given, in that order, dated 1994.
 func zipOf(t *testing.T, files map[string][]byte) []byte {
 	var b bytes.Buffer
 	z := zip.NewWriter(&b)
@@ -31,6 +33,10 @@ func zipOf(t *testing.T, files map[string][]byte) []byte {
 	return b.Bytes()
 }
 
+// TestDIZAndListing: a ZIP's top FILE_ID.DIZ, made UTF-8 and plain (no ANSI,
+// no DOS end of file), is the long description and its first line the short
+// one unless one was given; a ZIP and a tar.gz are listed; a file that is not
+// an archive, or only named like one, is ErrNotArchive.
 func TestDIZAndListing(t *testing.T) {
 	s, alice, _, a := setup(t, 1<<20, 0)
 	// CP437 box drawing, an ANSI color, a DOS end of file

@@ -33,6 +33,8 @@ func (b *BBS) Menu(name string) *Menu {
 	return b.Menus[name]
 }
 
+// text is the sysop's strings in force: those put in force while the BBS runs,
+// or else those it started with.
 func (b *BBS) text() map[string]string {
 	if c := b.custom.Load(); c != nil {
 		return c.text

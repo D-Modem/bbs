@@ -29,6 +29,9 @@ func system(t *testing.T, dir string) (conf, db, files string, st *store.Store) 
 	return
 }
 
+// TestBackupAndRestore: a backup has the manifest, configuration, database,
+// files and keys there are; the oldest past Keep go; and a restore puts the
+// system back as it was, what had changed set aside.
 func TestBackupAndRestore(t *testing.T) {
 	dir := t.TempDir()
 	conf, db, files, st := system(t, dir)
@@ -148,6 +151,8 @@ func TestRestoreRefuses(t *testing.T) {
 	}
 }
 
+// TestClean: a name in an archive that climbs out, is absolute, is empty,
+// holds a backslash or is not clean is refused.
 func TestClean(t *testing.T) {
 	for name, ok := range map[string]bool{"files/1/7": true, "files/": true, "bbs.conf": true,
 		"../x": false, "/etc/passwd": false, "files/../../x": false, "files/./x": false, "": false, "a\\b": false} {

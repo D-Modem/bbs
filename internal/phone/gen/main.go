@@ -65,8 +65,13 @@ type territoryXML struct {
 
 var space = regexp.MustCompile(`\s+`)
 
+// clean is s without its whitespace (the XML's patterns are laid out over
+// lines).
 func clean(s string) string { return space.ReplaceAllString(s, "") }
 
+// main writes nanpa.go, metadata.go (each territory's codes, prefixes,
+// patterns, checked to compile, and formats), places.gz and libphonenumber's
+// LICENSE into -out.
 func main() {
 	src := flag.String("src", "", "a checkout of github.com/google/libphonenumber")
 	out := flag.String("out", "internal/phone", "where the tables go")

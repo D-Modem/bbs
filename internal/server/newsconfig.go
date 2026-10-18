@@ -93,6 +93,8 @@ func (c *Config) newsSections(cf *config.File) error {
 	return nil
 }
 
+// peer reads a [peer NAME], a news server articles are exchanged with;
+// accept_from's host names are looked up now.
 func peer(s *config.Section) (*nntp.Peer, error) {
 	if s.Name == "" {
 		return nil, errors.New("a peer needs a name: [peer NAME]")

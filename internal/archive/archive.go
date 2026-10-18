@@ -160,10 +160,16 @@ func crc16(b []byte) uint16 {
 // crc32 is the CRC ARJ keeps (the usual one).
 func crc32sum(b []byte) uint32 { return crc32.ChecksumIEEE(b) }
 
+// le16 is the little-endian 16-bit number at b's start.
 func le16(b []byte) uint16 { return uint16(b[0]) | uint16(b[1])<<8 }
+
+// le32 is the little-endian 32-bit number at b's start.
 func le32(b []byte) uint32 { return uint32(le16(b)) | uint32(le16(b[2:]))<<16 }
 
+// put16 writes v at b's start, little-endian.
 func put16(b []byte, v uint16) { b[0], b[1] = byte(v), byte(v>>8) }
+
+// put32 writes v at b's start, little-endian.
 func put32(b []byte, v uint32) { put16(b, uint16(v)); put16(b[2:], uint16(v>>16)) }
 
 // cString is a NUL-ended string's text.

@@ -34,6 +34,8 @@ func (c *Config) doorSections(cf *config.File) error {
 	return nil
 }
 
+// doorSection reads a [door NAME]: a program run with drop files in a
+// directory of its node's, or with a type, a door elsewhere.
 func doorSection(s *config.Section) (*door.Door, error) {
 	if s.Name == "" {
 		return nil, errors.New("a door needs a name: [door NAME]")

@@ -22,6 +22,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/xfer"
 )
 
+// init makes the tests' password hashes cheap.
 func init() { store.BcryptCost = 4 } // fast hashes for tests
 
 type env struct {
@@ -135,6 +136,7 @@ type dialog struct {
 	got []byte
 }
 
+// dial is a dialog on the unix socket name in the test's directory.
 func (e *env) dial(name string) *dialog {
 	c, err := net.Dial("unix", filepath.Join(e.dir, name))
 	if err != nil {
@@ -144,6 +146,7 @@ func (e *env) dial(name string) *dialog {
 	return &dialog{t: e.t, c: c}
 }
 
+// send writes s to the BBS, or the test fails.
 func (d *dialog) send(s string) {
 	d.t.Helper()
 	if _, err := io.WriteString(d.c, s); err != nil {
@@ -170,6 +173,8 @@ func (d *dialog) expect(want string) {
 	}
 }
 
+// TestHeaderTrust: with trust_user and create_users, a header's MODEM_USER
+// is logged in, an external account made for it that has no password.
 func TestHeaderTrust(t *testing.T) {
 	e := start(t, nil, &Listener{Name: "menu", Kind: "raw", Address: "menu.sock", ANSI: "no",
 		Header: true, TrustUser: true, CreateUsers: true})
@@ -196,6 +201,8 @@ func TestHeaderTrust(t *testing.T) {
 	}
 }
 
+// TestHeaderUntrusted: without trust_user, a header's user is asked to log
+// in.
 func TestHeaderUntrusted(t *testing.T) {
 	// without trust_user a header's user is not believed
 	e := start(t, nil, &Listener{Name: "menu", Kind: "raw", Address: "menu.sock", ANSI: "no", Header: true})
@@ -204,6 +211,8 @@ func TestHeaderUntrusted(t *testing.T) {
 	d.expect("Name (or NEW): ")
 }
 
+// TestLoginAndPost: a caller logs in and posts, and the escape sequences
+// typed are not stored.
 func TestLoginAndPost(t *testing.T) {
 	e := start(t, nil, &Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no"})
 	d := e.dial("modem.sock")
@@ -234,6 +243,8 @@ func TestLoginAndPost(t *testing.T) {
 	}
 }
 
+// TestRLogin: rlogin's user and password log in, its speed shown; a wrong
+// password asks again with the name filled in.
 func TestRLogin(t *testing.T) {
 	e := start(t, nil, &Listener{Name: "rlogin", Kind: "rlogin", Address: "rlogin.sock", ANSI: "auto"})
 	d := e.dial("rlogin.sock")
@@ -252,6 +263,8 @@ func TestRLogin(t *testing.T) {
 	d.expect("Password: ")
 }
 
+// TestRLoginTrust: with trust_user, rlogin's server user is logged in with
+// no password.
 func TestRLoginTrust(t *testing.T) {
 	e := start(t, nil, &Listener{Name: "rlogin", Kind: "rlogin", Address: "rlogin.sock", ANSI: "no", TrustUser: true})
 	d := e.dial("rlogin.sock")
@@ -259,6 +272,8 @@ func TestRLoginTrust(t *testing.T) {
 	d.expect("Welcome, alice.")
 }
 
+// TestThrottle: failed logins lock out the caller ID they came from, not
+// another.
 func TestThrottle(t *testing.T) {
 	e := start(t, func(s *bbs.Settings) { s.ThrottleFails = 2; s.Attempts = 5 },
 		&Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no", Header: true})
@@ -282,6 +297,7 @@ func TestThrottle(t *testing.T) {
 	d.expect("Welcome, alice.")
 }
 
+// TestBusy: a caller past max_nodes is told all lines are busy.
 func TestBusy(t *testing.T) {
 	e := start(t, func(s *bbs.Settings) { s.MaxNodes = 1 },
 		&Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no"})
@@ -291,6 +307,7 @@ func TestBusy(t *testing.T) {
 	d2.expect("All lines are busy")
 }
 
+// TestNewUser: a new caller is refused a name taken, and makes an account.
 func TestNewUser(t *testing.T) {
 	e := start(t, nil, &Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no"})
 	d := e.dial("modem.sock")
@@ -310,6 +327,7 @@ func TestNewUser(t *testing.T) {
 	}
 }
 
+// TestTelnetANSI: a telnet client that says ANSI gets the ANSI logon.
 func TestTelnetANSI(t *testing.T) {
 	e := start(t, nil, &Listener{Name: "telnet", Kind: "telnet", Address: "telnet.sock",
 		TN3270: true, ANSI: "auto", UTF8: "auto"})
@@ -340,6 +358,9 @@ const (
 	iac, sb, se, will, wont, do, dont, eor = 255, 250, 240, 251, 252, 253, 254, 239
 )
 
+// read reads what has come, answering telnet negotiation (WILL binary,
+// SGA, terminal type, EOR and NAWS, WONT the rest; its terminal type when
+// asked) and splitting 3270 records at IAC EOR; the test fails on an error.
 func (tc *tnClient) read(t *testing.T) {
 	t.Helper()
 	buf := make([]byte, 4096)
@@ -423,6 +444,7 @@ func (tc *tnClient) answer() {
 	}
 }
 
+// expect reads, answering the terminal queries, until want has come.
 func (tc *tnClient) expect(t *testing.T, want string) {
 	t.Helper()
 	for !bytes.Contains(tc.got, []byte(want)) {
@@ -442,6 +464,8 @@ func (tc *tnClient) record(t *testing.T) []byte {
 	return r
 }
 
+// TestTN3270: a TN3270 client gets the 3270 logon screen, and PF3 says
+// goodbye.
 func TestTN3270(t *testing.T) {
 	e := start(t, nil, &Listener{Name: "telnet", Kind: "telnet", Address: "telnet.sock",
 		TN3270: true, ANSI: "auto", UTF8: "auto"})
@@ -540,6 +564,8 @@ func graphicsSession(t *testing.T, g ui3270.Graphics, vector bool) (before [][]b
 	return before, logon, after, e
 }
 
+// TestProgrammedSymbolsLogo: a 3270 with loadable symbol sets has the
+// logo's symbols loaded before the logon screen, which shows them.
 func TestProgrammedSymbolsLogo(t *testing.T) {
 	before, logon, _, e := graphicsSession(t, ui3270.Graphics{Symbols: true}, false)
 	// the logo's symbols are loaded before the logon screen: WSF, Load PS
@@ -566,6 +592,8 @@ func TestProgrammedSymbolsLogo(t *testing.T) {
 	_ = e
 }
 
+// TestNoSymbolsWithoutSupport: a 3270 that says nothing of symbol sets is
+// sent none, the settings on or not.
 func TestNoSymbolsWithoutSupport(t *testing.T) {
 	// the plain TN3270 client of TestTN3270 says nothing of symbols: none
 	// are loaded even with the setting on
@@ -597,6 +625,8 @@ func TestNoSymbolsWithoutSupport(t *testing.T) {
 	t.Fatal("no logon screen")
 }
 
+// TestVectorLogo: a 3270 with vector graphics gets the logo as an Object
+// Picture after the logon screen, not as symbols.
 func TestVectorLogo(t *testing.T) {
 	_, logon, after, _ := graphicsSession(t, ui3270.Graphics{Symbols: true, Vector: true}, true)
 	if bytes.Contains(logon, []byte{0x43, 0xc1}) {
@@ -608,6 +638,8 @@ func TestVectorLogo(t *testing.T) {
 	}
 }
 
+// TestSixelLogo: a terminal whose device attributes say sixel gets the logo
+// in sixels, sized by its cell.
 func TestSixelLogo(t *testing.T) {
 	e := start(t, nil, &Listener{Name: "telnet", Kind: "telnet", Address: "telnet.sock",
 		TN3270: true, ANSI: "auto", UTF8: "auto", Sixel: "auto"})
@@ -627,6 +659,8 @@ func TestSixelLogo(t *testing.T) {
 	tc.expect(t, "Name")
 }
 
+// TestNoSixel: a terminal whose device attributes do not say sixel gets
+// none.
 func TestNoSixel(t *testing.T) {
 	e := start(t, nil, &Listener{Name: "telnet", Kind: "telnet", Address: "telnet.sock",
 		TN3270: true, ANSI: "auto", UTF8: "auto", Sixel: "auto"})
@@ -650,10 +684,17 @@ type memIn struct {
 	ok   bool
 }
 
+// Write adds p to the file.
 func (m *memIn) Write(p []byte) (int, error) { return m.buf.Write(p) }
-func (m *memIn) Commit() error               { m.ok = true; return nil }
-func (m *memIn) Abort()                      {}
 
+// Commit marks the file received whole.
+func (m *memIn) Commit() error { m.ok = true; return nil }
+
+// Abort does nothing.
+func (m *memIn) Abort() {}
+
+// TestFileTransfers: uploads by ZMODEM and Kermit stored as sent;
+// downloads by YMODEM and XMODEM-1K, and a tagged batch by YMODEM, counted.
 func TestFileTransfers(t *testing.T) {
 	e := start(t, nil, &Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no"})
 	d := e.dial("modem.sock")

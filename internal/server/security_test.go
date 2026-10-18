@@ -112,6 +112,9 @@ func TestSecurity(t *testing.T) {
 	}
 }
 
+// TestSecurityConfig: [security]'s deny file (a bad line a warning), hack
+// log and ban time, and a listener's TLS certificate; half a pair, TLS on
+// ssh, a bad certificate and a bad ban time refused.
 func TestSecurityConfig(t *testing.T) {
 	dir := t.TempDir()
 	cert, key := selfSigned(t, dir)

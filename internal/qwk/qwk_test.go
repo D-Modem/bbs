@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// TestID: MakeID makes a valid BBSID of a BBS's name (BBS when the name has
+// none of its letters), and ValidID refuses ones too long, with spaces or
+// empty.
 func TestID(t *testing.T) {
 	for in, want := range map[string]string{"The Cave BBS": "THECAVEB", "x-1": "X1", "!!": "BBS"} {
 		if got := MakeID(in); got != want || !ValidID(got) {
@@ -20,6 +23,8 @@ func TestID(t *testing.T) {
 	}
 }
 
+// TestMBF: numbers as Microsoft Binary Format floats, as known values have
+// them.
 func TestMBF(t *testing.T) {
 	// known values: 1 is 00 00 00 81, 2 is 00 00 00 82, 3 is 00 00 40 82
 	for n, want := range map[int][]byte{0: {0, 0, 0, 0}, 1: {0, 0, 0, 0x81}, 2: {0, 0, 0, 0x82}, 3: {0, 0, 0x40, 0x82}} {
@@ -29,6 +34,8 @@ func TestMBF(t *testing.T) {
 	}
 }
 
+// TestPacketRoundTrip: a packet written holds the files a QWK reader wants,
+// and reads back as written: a long subject kept, what CP437 lacks as '?'.
 func TestPacketRoundTrip(t *testing.T) {
 	when := time.Date(2026, 3, 4, 13, 45, 0, 0, time.UTC)
 	long := "A subject a good deal longer than twenty-five characters"
@@ -79,6 +86,9 @@ func TestPacketRoundTrip(t *testing.T) {
 	}
 }
 
+// TestREP: a REP reads back as written; another BBS's, or nonsense, is
+// ErrNotREP; the bare .MSG ended by ^Z reads, and a bad block count is
+// refused.
 func TestREP(t *testing.T) {
 	ms := []Message{
 		{Conf: 0, Private: true, To: "Sysop", From: "Alice", Subject: "Help", Body: "Please"},

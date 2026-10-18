@@ -19,6 +19,10 @@ import (
 // statistics, the hack log and bans, the scheduled events, the
 // configuration, and whether pages reach them.
 
+// sysopMenu is the sysop's tools until Back, or nothing if the caller is no
+// longer a sysop: watching a node (on a text terminal), chat, kicking, the
+// users, statistics, the hack log, the events and configuration where there are
+// any, and whether pages reach the sysop.
 func (s *Session) sysopMenu() error {
 	for {
 		u := s.refresh()
@@ -163,6 +167,8 @@ func (s *Session) summoned() error {
 
 // --- users
 
+// userEditor is the users, with their levels, flags and last calls, until Back;
+// one picked is edited.
 func (s *Session) userEditor() error {
 	for {
 		us, err := s.B.Store.Users()
@@ -200,6 +206,10 @@ func (s *Session) userEditor() error {
 	}
 }
 
+// editUser is user id's panel for a sysop, until Back: the level and flags,
+// locking and sysop rights (not for the sysop's own account), and a new
+// password (not for an external account). Each change is logged. A user that
+// cannot be read ends it quietly.
 func (s *Session) editUser(id int64) error {
 	by := fmt.Sprintf("node %d: %s", s.N.Num, s.User.Name)
 	for {
@@ -324,6 +334,9 @@ func (s *Session) editUser(id int64) error {
 // days is how many days the statistics go back.
 const days = 14
 
+// statistics shows the totals, the counts since the BBS started, and the calls,
+// new users, posts and uploads of each of the last 14 (days) days, as bars against
+// the busiest day.
 func (s *Session) statistics() error {
 	s.N.Doing("Statistics")
 	totals, err := s.B.Store.Totals()
@@ -371,6 +384,8 @@ func (s *Session) statistics() error {
 
 // --- the hack log and bans
 
+// hackLog is the banned addresses until Back: one picked has its ban lifted
+// (and that put in the hack log); Log shows the hack log's last 100 lines.
 func (s *Session) hackLog() error {
 	for {
 		s.N.Doing("Hack log")
@@ -417,6 +432,9 @@ func (s *Session) hackLog() error {
 
 // --- scheduled events
 
+// eventsScreen is the scheduled events until Back, with their schedules and
+// last runs (failures marked); one picked shows its command and last output,
+// and may be run now.
 func (s *Session) eventsScreen() error {
 	for {
 		s.N.Doing("Scheduled events")

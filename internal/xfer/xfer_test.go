@@ -14,8 +14,13 @@ import (
 // pipePort is our end of a program's stdin and stdout.
 type pipePort struct{ r, w *os.File }
 
-func (p *pipePort) Read(b []byte) (int, error)        { return p.r.Read(b) }
-func (p *pipePort) Write(b []byte) (int, error)       { return p.w.Write(b) }
+// Read reads from the program's stdout.
+func (p *pipePort) Read(b []byte) (int, error) { return p.r.Read(b) }
+
+// Write writes to the program's stdin.
+func (p *pipePort) Write(b []byte) (int, error) { return p.w.Write(b) }
+
+// SetReadDeadline sets the stdout pipe's.
 func (p *pipePort) SetReadDeadline(t time.Time) error { return p.r.SetReadDeadline(t) }
 
 // run starts a program on a port of ours, in dir.
@@ -64,18 +69,25 @@ type memFile struct {
 	aborted   bool
 }
 
+// Write keeps p.
 func (m *memFile) Write(p []byte) (int, error) { return m.buf.Write(p) }
-func (m *memFile) Commit() error               { m.committed = true; return nil }
-func (m *memFile) Abort()                      { m.aborted = true }
+
+// Commit notes the file committed.
+func (m *memFile) Commit() error { m.committed = true; return nil }
+
+// Abort notes the file aborted.
+func (m *memFile) Abort() { m.aborted = true }
 
 type memSink struct{ files []*memFile }
 
+// sink takes every file, into memory, and keeps it in files.
 func (s *memSink) sink(name string, size int64) (Incoming, error) {
 	f := &memFile{name: name, size: size}
 	s.files = append(s.files, f)
 	return f, nil
 }
 
+// data is n random bytes from seed, not ending in a SUB.
 func data(n int, seed int64) []byte {
 	b := make([]byte, n)
 	rand.New(rand.NewSource(seed)).Read(b)
@@ -87,6 +99,8 @@ func data(n int, seed int64) []byte {
 
 var sizes = []int{1, 127, 128, 129, 1000, 1024, 1025, 5000, 70000}
 
+// TestReceiveXMODEM: files of sizes about the block's sx sends, by 128 and
+// by 1K blocks, come whole, the padding taken off.
 func TestReceiveXMODEM(t *testing.T) {
 	for _, n := range sizes {
 		for _, big := range []bool{false, true} {
@@ -111,6 +125,8 @@ func TestReceiveXMODEM(t *testing.T) {
 	}
 }
 
+// TestSendXMODEM: files of sizes about the block's we send rx, by 128 and
+// by 1K blocks, come whole, but for the padding of SUBs.
 func TestSendXMODEM(t *testing.T) {
 	for _, n := range sizes {
 		for _, big := range []bool{false, true} {
@@ -132,6 +148,8 @@ func TestSendXMODEM(t *testing.T) {
 	}
 }
 
+// TestReceiveYMODEM: a batch sb sends, an empty file in it, comes whole, its
+// names and sizes as sent.
 func TestReceiveYMODEM(t *testing.T) {
 	dir := t.TempDir()
 	var names []string
@@ -160,6 +178,7 @@ func TestReceiveYMODEM(t *testing.T) {
 	}
 }
 
+// TestSendYMODEM: a batch we send rb, an empty file in it, comes whole.
 func TestSendYMODEM(t *testing.T) {
 	dir := t.TempDir()
 	var out []Outgoing

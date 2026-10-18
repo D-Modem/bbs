@@ -32,6 +32,7 @@ type TossStats struct {
 	Echomail, Netmail, Dupes, Bad, Forwarded, Files int
 }
 
+// String sums up the toss for the log.
 func (s TossStats) String() string {
 	return fmt.Sprintf("%d echomail, %d netmail, %d files, %d dupes, %d bad", s.Echomail, s.Netmail, s.Files, s.Dupes, s.Bad)
 }
@@ -46,6 +47,8 @@ func (f *Fido) Toss(l *Link) (TossStats, error) {
 	return f.toss(l)
 }
 
+// toss is Toss with the link's lock held.  A packet or bundle that cannot be
+// tossed is moved to bad; one tossed is removed.
 func (f *Fido) toss(l *Link) (TossStats, error) {
 	var st TossStats
 	dir := f.inbound(l)
@@ -83,6 +86,7 @@ func (f *Fido) toss(l *Link) (TossStats, error) {
 	return st, nil
 }
 
+// tossFile tosses a packet file, read as far as maxPacket.
 func (f *Fido) tossFile(l *Link, path string, st *TossStats) error {
 	fh, err := os.Open(path)
 	if err != nil {
@@ -92,6 +96,9 @@ func (f *Fido) tossFile(l *Link, path string, st *TossStats) error {
 	return f.tossPacket(l, io.LimitReader(fh, maxPacket), st)
 }
 
+// tossBundle tosses the packets in an ARCmail bundle (an archive), others in it
+// skipped, within the limits on its files and their size; an empty one is
+// nothing.
 func (f *Fido) tossBundle(l *Link, path string, st *TossStats) error {
 	fh, err := os.Open(path)
 	if err != nil {
@@ -202,6 +209,9 @@ func text(m *ftn.Message, dec func(string) string) string {
 	return body
 }
 
+// tossEcho posts an echomail message in its echo's area (made if the link may
+// create it); one in an echo not exchanged with the link is bad, one seen
+// before or with our address in its PATH a dupe.
 func (f *Fido) tossEcho(l *Link, h *ftn.Header, m *ftn.Message, st *TossStats) error {
 	area, err := f.B.Store.AreaByEchoTag(m.Area)
 	if errors.Is(err, store.ErrNotFound) && l.Create && l.allows(Echoes, m.Area) {
@@ -327,6 +337,8 @@ func asciiName(s string) string {
 // address, else its MSGID's.
 var originPattern = regexp.MustCompile(`\(([0-9]+:[0-9]+/[0-9]+(\.[0-9]+)?)(@[A-Za-z0-9_-]+)?\)\s*$`)
 
+// originAddr is where an echomail message was written: the address of an origin
+// line among its last three lines, else its MSGID's, else none.
 func originAddr(m *ftn.Message) ftn.Addr {
 	for i := len(m.Lines) - 1; i >= 0 && i >= len(m.Lines)-3; i-- {
 		if strings.HasPrefix(m.Lines[i], " * Origin:") {
@@ -365,6 +377,9 @@ func netmailAddrs(h *ftn.Header, m *ftn.Message) (orig, dest ftn.Addr) {
 	return orig, dest
 }
 
+// tossNetmail delivers a netmail for us to its user (the sysop if no user has
+// the name), or answers it if it is for AreaFix or FileFix; netmail for
+// elsewhere is dropped, as bad, since we route nothing.
 func (f *Fido) tossNetmail(l *Link, h *ftn.Header, m *ftn.Message, st *TossStats) error {
 	orig, dest := netmailAddrs(h, m)
 	if !f.ours(dest) {

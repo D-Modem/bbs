@@ -13,6 +13,8 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/door"
 )
 
+// TestDoorConfig: program doors' commands (quoted words kept whole), dirs,
+// drop files, charsets and options; bad ones and a door twice refused.
 func TestDoorConfig(t *testing.T) {
 	load := func(body string) (*Config, error) {
 		p := filepath.Join(t.TempDir(), "bbs.conf")
@@ -96,6 +98,9 @@ func TestDoorSession(t *testing.T) {
 	d.expect("Door number (Enter to go back): ")
 }
 
+// TestRemoteDoorConfig: telnet, rlogin, BBSLink and DoorParty doors with
+// their defaults, a warning for DoorParty with no host key, and what each
+// needs refused when missing or bad.
 func TestRemoteDoorConfig(t *testing.T) {
 	load := func(body string) (*Config, error) {
 		p := filepath.Join(t.TempDir(), "bbs.conf")

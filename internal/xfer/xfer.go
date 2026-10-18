@@ -58,6 +58,7 @@ type line struct {
 	w   int
 }
 
+// newLine is a line on p, with an 8 KB buffer.
 func newLine(p Port) *line { return &line{p: p, buf: make([]byte, 8192)} }
 
 // getc reads a byte, waiting up to d.
@@ -102,6 +103,7 @@ func (l *line) purge(d time.Duration) {
 	}
 }
 
+// write sends p, whole or an error.
 func (l *line) write(p []byte) error {
 	_, err := l.p.Write(p)
 	return err

@@ -44,6 +44,7 @@ func (s *session) line(l view.Line) string {
 	return s.tone(l.Tone, l.Text)
 }
 
+// lines are view lines as text, each as line has it.
 func (s *session) lines(ls []view.Line) []string {
 	out := make([]string, len(ls))
 	for i, l := range ls {
@@ -101,9 +102,16 @@ func (s *session) picture(p *view.Picture, rows int) int {
 	return used
 }
 
+// PageSize is the screen's rows less 5 for the heading and prompt, at
+// least 5.
 func (s *session) PageSize() int { return max(s.t.Rows-5, 5) }
-func (s *session) Narrow() bool  { return s.t.Narrow() }
 
+// Narrow is the terminal's being under 60 columns.
+func (s *session) Narrow() bool { return s.t.Narrow() }
+
+// Menu shows a menu: its intro, the sysop's screen if there is one, else
+// its items (in RIP buttons where it can; in brief, only on ?), and reads
+// a key.  It is the key typed, unchecked; "" for Enter.
 func (s *session) Menu(m *view.Menu) (string, error) {
 	t := s.t
 	if len(m.Intro) > 0 {
@@ -145,6 +153,10 @@ func (s *session) Menu(m *view.Menu) (string, error) {
 	return string(k), nil
 }
 
+// Table shows a table a page at a time, its columns fitted to the screen,
+// and asks what next: a row's number (Pick, Row -1 if no row has it), an
+// action's key, More at Enter if there is more, or Back.  With nothing to
+// pick or do it pauses at the end and is Back.
 func (s *session) Table(tb *view.Table) (view.Choice, error) {
 	t := s.t
 	t.Println("")
@@ -250,6 +262,9 @@ func (s *session) Table(tb *view.Table) (view.Choice, error) {
 	}
 }
 
+// Message shows a message from the top of the screen: its heading, its
+// picture, its body a page at a time; then waits for an action's key (Q:
+// Quit, Enter or space: Default, each Back if unset).
 func (s *session) Message(m *view.Message) (string, error) {
 	t := s.t
 	t.Clear()
@@ -295,6 +310,8 @@ func (s *session) Message(m *view.Message) (string, error) {
 	}
 }
 
+// Form asks for each field in turn, Enter keeping its value; nothing typed
+// for a first field with no value is giving up (false).
 func (s *session) Form(f *view.Form) (map[string]string, bool, error) {
 	t := s.t
 	for _, l := range f.Intro {
@@ -339,6 +356,8 @@ func (s *session) Form(f *view.Form) (map[string]string, bool, error) {
 	return out, true, nil
 }
 
+// Panel shows a panel's title, picture and lines, and reads a key: an
+// action's ID, Back for Q or Enter, "" for any other.
 func (s *session) Panel(p *view.Panel) (string, error) {
 	t := s.t
 	t.Println("")
@@ -369,6 +388,10 @@ func (s *session) Panel(p *view.Panel) (string, error) {
 	return action(p.Actions, k), nil
 }
 
+// Edit asks who a draft is to (unless NoTo) and its subject, and has the
+// body written in the full-screen editor if the caller gets it, else the
+// line editor; true if it was sent.  An error sending is told the caller,
+// and is false.
 func (s *session) Edit(d *view.Draft) (bool, error) {
 	t := s.t
 	t.Println("")
@@ -435,10 +458,13 @@ func (s *session) Edit(d *view.Draft) (bool, error) {
 	return true, nil
 }
 
+// Confirm asks a yes or no question, def at Enter.
 func (s *session) Confirm(question string, def bool) (bool, error) {
 	return s.t.YesNo(question, def)
 }
 
+// Say prints msg in its tone; a Bright one as a heading, after a blank
+// line.
 func (s *session) Say(tn view.Tone, msg string) {
 	if tn == view.Bright {
 		s.t.Println("")
@@ -448,6 +474,8 @@ func (s *session) Say(tn view.Tone, msg string) {
 	s.t.Println(s.tone(tn, msg))
 }
 
+// Show shows a title and lines a page at a time, and waits for a key at
+// the end (not if the caller quit before it).
 func (s *session) Show(title string, ls []view.Line) error {
 	t := s.t
 	t.Println("")

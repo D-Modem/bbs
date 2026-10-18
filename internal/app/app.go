@@ -123,6 +123,8 @@ func Run(b *bbs.BBS, n *bbs.Node, ui Frontend) error {
 	return s.mainMenu(intro)
 }
 
+// refresh is the caller's user read again (kept in s.User), for what the sysop
+// or another node changed since; the one held if it cannot be read.
 func (s *Session) refresh() *store.User {
 	if u := s.N.Refresh(); u != nil {
 		s.User = u

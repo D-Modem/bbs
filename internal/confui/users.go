@@ -130,6 +130,7 @@ func (d *data) ops() []op {
 	return out
 }
 
+// keeps is what an area keeps, in words: "the newest 100, for 30 days".
 func keeps(a *store.Area) string {
 	m, days := "all messages", "for ever"
 	if a.MaxMsgs > 0 {
@@ -147,6 +148,8 @@ func noData(err error) []item {
 		Value: "not to be had: " + err.Error(), Disabled: true}}}
 }
 
+// usersMenu is Users and groups: the accounts, new and validated users'
+// levels, and the [level] sections.
 func (e *Editor) usersMenu() page {
 	g := sec("general")
 	return page{title: "Users and groups", items: func() []item {
@@ -163,6 +166,8 @@ func (e *Editor) usersMenu() page {
 	}}
 }
 
+// userCount is how many accounts there will be after the save; "" until the
+// database has been read.
 func (e *Editor) userCount() string {
 	if e.db == nil {
 		return ""
@@ -176,6 +181,8 @@ func (e *Editor) userCount() string {
 	return fmt.Sprintf("%d", n)
 }
 
+// accountsPage is the accounts, each with its level, flags, and what is to
+// happen to it; A adds one.
 func (e *Editor) accountsPage() page {
 	return page{title: "User accounts",
 		keys: []view.Action{{ID: "add", Label: "Add", Key: 'A', PF: 5}},
@@ -218,6 +225,9 @@ func (e *Editor) accountsPage() page {
 		}}
 }
 
+// addUser asks for a new account's name and password and, if both will do,
+// opens its page with it there to be made at the save, at the new users'
+// level.  What will not do is said and nothing added.
 func (e *Editor) addUser() error {
 	d, err := e.data()
 	if err != nil {
@@ -266,6 +276,10 @@ func (e *Editor) value(s confedit.Section, key, def string) string {
 	return def
 }
 
+// userPage is an account's page: its level, flags, sysop, locked, a new
+// password, and Delete (or Keep, undoing it).  Whoever edits cannot change
+// sysop or locked on his own account, or delete it; a new account deleted
+// is gone at once (errClose).
 func (e *Editor) userPage(u *store.User) page {
 	d := e.db
 	return page{title: "User " + u.Name, items: func() []item {

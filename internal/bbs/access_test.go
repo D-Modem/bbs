@@ -13,6 +13,9 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// TestRequire: requirements read, write back and allow as they say, a locked
+// user meets none and a sysop all, bad ones are refused (and shut out all but
+// the sysop), and flags are edited.
 func TestRequire(t *testing.T) {
 	alice := &store.User{ID: 1, Level: 30, Flags: "AF"}
 	low := &store.User{ID: 2, Level: 10}
@@ -65,6 +68,8 @@ func TestRequire(t *testing.T) {
 	}
 }
 
+// levelBBS is chatBBS with two levels, New (10: no posting, mail, chat; a time
+// and download limit) and Member (20), alice at 10 and bob at 20.
 func levelBBS(t *testing.T) (*BBS, map[string]*Node) {
 	b, nodes := chatBBS(t)
 	b.Conf().NewUserLevel, b.Settings.ValidatedLevel = 10, 20
@@ -81,6 +86,9 @@ func levelBBS(t *testing.T) (*BBS, map[string]*Node) {
 	return b, nodes
 }
 
+// TestLevels: a user's level decides the areas they see, posting, mail, chat,
+// paging, files a day and doors; a sysop has no limits, and validating raises a
+// user to the validated level.
 func TestLevels(t *testing.T) {
 	b, nodes := levelBBS(t)
 	alice, bob, sysop := nodes["alice"].User(), nodes["bob"].User(), nodes["sysop"].User()
@@ -217,6 +225,8 @@ func TestTimeLimit(t *testing.T) {
 	s.Leave()
 }
 
+// TestDownloadRatio: downloads left are the free ones, then a ratio to uploads,
+// then the day's limit, whichever is least; a sysop has no limit.
 func TestDownloadRatio(t *testing.T) {
 	b, ns := chatBBS(t)
 	l := AllowAll(20, "Member")
@@ -246,6 +256,9 @@ func TestDownloadRatio(t *testing.T) {
 	}
 }
 
+// TestGuardedLogins: failed logins get an address banned and refused (not
+// another address, not a unix socket), names in the deny file are refused, and
+// all of it goes in the hack log.
 func TestGuardedLogins(t *testing.T) {
 	b, ns := chatBBS(t)
 	dir := t.TempDir()

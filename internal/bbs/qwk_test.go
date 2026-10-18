@@ -8,6 +8,9 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
 )
 
+// TestQWK: a QWK packet holds the user's mail and the new messages of the areas
+// they scan, the same again until Done; a REP posts and mails as the user (not
+// as its From), refuses a conference not there, and posts nothing twice.
 func TestQWK(t *testing.T) {
 	b, ns := chatBBS(t)
 	alice, bob := ns["alice"], ns["bob"]

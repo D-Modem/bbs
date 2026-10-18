@@ -142,12 +142,14 @@ type syncBuf struct {
 	b  strings.Builder
 }
 
+// Write adds p to the buffer.
 func (s *syncBuf) Write(p []byte) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.b.Write(p)
 }
 
+// String is what has been written so far.
 func (s *syncBuf) String() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()

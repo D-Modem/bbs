@@ -120,6 +120,9 @@ func (c *Config) fidoSections(cf *config.File) error {
 	return nil
 }
 
+// link reads a [link NAME], a FidoNet system mail is exchanged with: its
+// address, host (port 24554 if none is given), passwords, echoes, AreaFix,
+// packer and polling.
 func link(s *config.Section) (*fido.Link, error) {
 	if s.Name == "" || strings.ContainsAny(s.Name, "/\\. ") {
 		return nil, errors.New("a link needs a name of letters and digits: [link NAME]")

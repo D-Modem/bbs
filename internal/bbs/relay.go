@@ -27,6 +27,7 @@ func (b *BBS) SetRelay(r Relay) {
 	b.mu.Unlock()
 }
 
+// relayFor is the relay if it carries room (nil if not, or no relay).
 func (b *BBS) relayFor(room string) Relay {
 	b.mu.Lock()
 	r := b.relay

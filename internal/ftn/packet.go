@@ -300,6 +300,8 @@ func (m *Message) parseText(text []byte) {
 	}
 }
 
+// splitKludge is a ^A line's name (upper case) and value, split at the first
+// colon or space (a space after a colon is dropped).
 func splitKludge(l string) (string, string) {
 	if i := strings.IndexAny(l, ": "); i >= 0 {
 		name := l[:i]
@@ -360,6 +362,7 @@ func (m *Message) Text() []byte {
 	return b.Bytes()
 }
 
+// cut is s made short enough for a NUL-ended field of max bytes.
 func cut(s string, max int) string {
 	if len(s) >= max {
 		return s[:max-1]

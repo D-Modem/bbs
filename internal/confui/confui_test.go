@@ -31,6 +31,8 @@ type script struct {
 	sheets   []string // the crumbs of each sheet drawn
 }
 
+// Sheet keeps the sheet's crumbs and status and answers with the next step;
+// out of steps fails the test.
 func (s *script) Sheet(sh *view.Sheet) (view.SheetResult, error) {
 	s.t.Helper()
 	s.sheets = append(s.sheets, sh.Crumbs)
@@ -45,16 +47,33 @@ func (s *script) Sheet(sh *view.Sheet) (view.SheetResult, error) {
 	return st(s.t, sh), nil
 }
 
-func (s *script) PageSize() int                     { return 20 }
-func (s *script) Narrow() bool                      { return false }
+// PageSize is 20 lines.
+func (s *script) PageSize() int { return 20 }
+
+// Narrow is false: a wide screen.
+func (s *script) Narrow() bool { return false }
+
+// Menu goes back.
 func (s *script) Menu(m *view.Menu) (string, error) { return view.Back, nil }
+
+// Table goes back.
 func (s *script) Table(t *view.Table) (view.Choice, error) {
 	return view.Choice{Action: view.Back}, nil
 }
+
+// Message goes back.
 func (s *script) Message(m *view.Message) (string, error) { return view.Back, nil }
-func (s *script) Panel(p *view.Panel) (string, error)     { return view.Back, nil }
-func (s *script) Edit(d *view.Draft) (bool, error)        { return false, nil }
-func (s *script) Say(tn view.Tone, msg string)            { s.said = append(s.said, msg) }
+
+// Panel goes back.
+func (s *script) Panel(p *view.Panel) (string, error) { return view.Back, nil }
+
+// Edit leaves the draft unsaved.
+func (s *script) Edit(d *view.Draft) (bool, error) { return false, nil }
+
+// Say keeps msg.
+func (s *script) Say(tn view.Tone, msg string) { s.said = append(s.said, msg) }
+
+// Form fills it with the next of forms; out of forms fails the test.
 func (s *script) Form(f *view.Form) (map[string]string, bool, error) {
 	if len(s.forms) == 0 {
 		s.t.Fatalf("out of forms at %s", f.Title)
@@ -63,6 +82,9 @@ func (s *script) Form(f *view.Form) (map[string]string, bool, error) {
 	s.forms = s.forms[1:]
 	return v, true, nil
 }
+
+// Confirm keeps q and answers with the next of confirms; out of confirms
+// fails the test.
 func (s *script) Confirm(q string, def bool) (bool, error) {
 	s.said = append(s.said, q)
 	if len(s.confirms) == 0 {
@@ -72,6 +94,8 @@ func (s *script) Confirm(q string, def bool) (bool, error) {
 	s.confirms = s.confirms[1:]
 	return a, nil
 }
+
+// Show keeps the title and each line.
 func (s *script) Show(title string, ls []view.Line) error {
 	s.said = append(s.said, title)
 	for _, l := range ls {
@@ -80,6 +104,7 @@ func (s *script) Show(title string, ls []view.Line) error {
 	return nil
 }
 
+// told is whether anything said, confirmed or shown has sub in it.
 func (s *script) told(sub string) bool {
 	return strings.Contains(strings.Join(s.said, "\n"), sub)
 }
@@ -100,12 +125,14 @@ func entry(t *testing.T, sh *view.Sheet, label string) int {
 	return -1
 }
 
+// open is a step that picks the entry labelled label.
 func open(label string) step {
 	return func(t *testing.T, sh *view.Sheet) view.SheetResult {
 		return view.SheetResult{Action: view.Pick, Entry: entry(t, sh, label)}
 	}
 }
 
+// set is a step that sets the entry labelled label to v.
 func set(label, v string) step {
 	return func(t *testing.T, sh *view.Sheet) view.SheetResult {
 		i := entry(t, sh, label)
@@ -124,6 +151,7 @@ func expect(label, value string, changed bool, next step) step {
 	}
 }
 
+// key is a step that presses action.
 func key(action string) step {
 	return func(t *testing.T, sh *view.Sheet) view.SheetResult { return view.SheetResult{Action: action} }
 }
@@ -136,6 +164,7 @@ var (
 
 const file = "[general]\nname = Test BBS\n; how to reach it\n;phone = 555 0100\n\n[listen telnet]\ntype = telnet\naddress = :2300\n"
 
+// writeConf writes file to a bbs.conf in a temporary directory: its path.
 func writeConf(t *testing.T) string {
 	p := filepath.Join(t.TempDir(), "bbs.conf")
 	if err := os.WriteFile(p, []byte(file), 0o600); err != nil {
@@ -144,6 +173,8 @@ func writeConf(t *testing.T) string {
 	return p
 }
 
+// check stands for the BBS's check: max_nodes = lots will not start, and
+// anything else starts with a warning.
 func check(data []byte) ([]string, error) {
 	if strings.Contains(string(data), "max_nodes = lots") {
 		return nil, errors.New("[general] max_nodes: \"lots\" is not a number")

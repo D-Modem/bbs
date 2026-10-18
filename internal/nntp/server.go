@@ -98,6 +98,7 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 }
 
+// hostOf is a TCP address's IP ("" for another kind of address).
 func hostOf(a net.Addr) string {
 	if t, ok := a.(*net.TCPAddr); ok {
 		return t.IP.String()
@@ -105,6 +106,8 @@ func hostOf(a net.Addr) string {
 	return ""
 }
 
+// admit lets a connection in, counted, unless the guard refuses it or there are
+// too many clients, or from its address; if not, the response to send it.
 func (s *Server) admit(c net.Conn) (string, bool) {
 	if s.Svc.B.Refuse("nntp", c.RemoteAddr()) {
 		return "502 Not here", false
@@ -124,6 +127,7 @@ func (s *Server) admit(c net.Conn) (string, bool) {
 	return "", true
 }
 
+// release counts out a connection admit let in.
 func (s *Server) release(c net.Conn) {
 	h := hostOf(c.RemoteAddr())
 	s.mu.Lock()
@@ -165,6 +169,9 @@ type session struct {
 
 const maxLine = 512 // RFC 3977: a command line, CRLF included
 
+// serve is a client's session: admitted (or told why not), TLS first if
+// implicit, greeted, then commands until QUIT or the connection ends.  A panic
+// is logged and ends only this session.
 func (s *Server) serve(c net.Conn) {
 	defer c.Close()
 	defer func() {
@@ -217,6 +224,8 @@ func (s *Server) serve(c net.Conn) {
 
 var errLineTooLong = errors.New("line too long")
 
+// readLine reads a command line within the idle timeout; one longer than
+// maxLine is read to its end and is errLineTooLong.
 func (ss *session) readLine() (string, error) {
 	ss.c.SetReadDeadline(time.Now().Add(ss.s.Set.IdleTimeout))
 	defer ss.c.SetReadDeadline(time.Time{})
@@ -241,6 +250,7 @@ func (ss *session) readLine() (string, error) {
 	}
 }
 
+// splitCommand is a command line's command (upper case) and arguments.
 func splitCommand(line string) (string, []string) {
 	f := strings.Fields(line)
 	if len(f) == 0 {
@@ -249,6 +259,7 @@ func splitCommand(line string) (string, []string) {
 	return strings.ToUpper(f[0]), f[1:]
 }
 
+// reply writes a response line.
 func (ss *session) reply(code int, msg string) {
 	fmt.Fprintf(ss.w, "%d %s\r\n", code, msg)
 }
@@ -272,8 +283,10 @@ func (ss *session) lines(data []byte) {
 	}
 }
 
+// end ends a multi-line block.
 func (ss *session) end() { ss.w.WriteString(".\r\n") }
 
+// canPost reports whether posting is on (POST still needs a login).
 func (ss *session) canPost() bool { return ss.s.Set.Post }
 
 // mayRead: reading needs a login, unless anyone may (peers always may)
@@ -281,6 +294,8 @@ func (ss *session) mayRead() bool {
 	return !ss.s.Set.ReadUsers || ss.user != nil || ss.peer != nil
 }
 
+// command answers a command other than QUIT.  Those that read need the reader
+// to be let read (mayRead).
 func (ss *session) command(cmd string, args []string) {
 	switch cmd {
 	case "CAPABILITIES":
@@ -346,6 +361,9 @@ func (ss *session) command(cmd string, args []string) {
 	}
 }
 
+// capabilities answers CAPABILITIES: POST if posting is on, IHAVE for a peer,
+// AUTHINFO if not logged in and allowed now, STARTTLS if offered and not yet in
+// TLS.
 func (ss *session) capabilities() {
 	ss.reply(101, "Capability list:")
 	caps := []string{"VERSION 2", "READER", "LIST ACTIVE NEWSGROUPS OVERVIEW.FMT", "OVER", "HDR",
@@ -368,6 +386,9 @@ func (ss *session) capabilities() {
 	ss.end()
 }
 
+// starttls answers STARTTLS and makes the connection TLS.  Anything sent before
+// the handshake hangs up (an injection); after it the session forgets what was
+// said in the clear (AUTHINFO USER, the group).
 func (ss *session) starttls() {
 	switch {
 	case ss.tls:
@@ -400,6 +421,9 @@ func (ss *session) starttls() {
 	ss.name, ss.group, ss.cur = "", nil, 0
 }
 
+// authinfo answers AUTHINFO USER and PASS: a login checked as the BBS's are
+// (throttled, counted against the address unless it is loopback). Not before
+// STARTTLS if TLS is required.
 func (ss *session) authinfo(args []string) {
 	if len(args) < 2 {
 		ss.reply(501, "AUTHINFO USER name, then AUTHINFO PASS password")
@@ -467,6 +491,8 @@ func (ss *session) visible(a *store.Area) bool {
 	return a.ReadReq == ""
 }
 
+// status is a group's posting status in LIST ACTIVE: "y", or "n" if posting is
+// off or it is a sysop's area.
 func status(a *store.Area, post bool) string {
 	if !post || a.SysopOnly {
 		return "n"
@@ -474,6 +500,8 @@ func status(a *store.Area, post bool) string {
 	return "y"
 }
 
+// list answers LIST ACTIVE, NEWSGROUPS and OVERVIEW.FMT, of the groups the
+// reader may see that match the wildmat.
 func (ss *session) list(args []string) {
 	kw := "ACTIVE"
 	if len(args) > 0 {
@@ -513,6 +541,7 @@ func (ss *session) list(args []string) {
 	}
 }
 
+// oneLine is s fit for a field of a line: tabs, line ends and NULs made spaces.
 func oneLine(s string) string {
 	return strings.Map(func(r rune) rune {
 		if r == '\t' || r == '\r' || r == '\n' || r == 0 {
@@ -522,6 +551,8 @@ func oneLine(s string) string {
 	}, s)
 }
 
+// groupCmd answers GROUP, or LISTGROUP (list) with its numbers: the group
+// selected, the current article its first.
 func (ss *session) groupCmd(args []string, list bool) {
 	if len(args) == 0 {
 		if !list || ss.group == nil {
@@ -587,6 +618,8 @@ func parseRange(r string, hi int64) (int64, int64, bool) {
 	return lo, up, true
 }
 
+// nextLast answers NEXT (next) or LAST: the current article moved to the next
+// or previous one of the group, messages that are not articles skipped.
 func (ss *session) nextLast(next bool) {
 	if ss.group == nil {
 		ss.reply(412, "No newsgroup selected")
@@ -655,6 +688,7 @@ func (ss *session) selectArticle(args []string) (*store.Message, int64, bool) {
 	return m, n, true
 }
 
+// article answers ARTICLE, HEAD, BODY and STAT (cmd).
 func (ss *session) article(cmd string, args []string) {
 	m, n, ok := ss.selectArticle(args)
 	if !ok {
@@ -748,6 +782,7 @@ func (ss *session) selectRange(args []string) ([]*store.Message, bool, bool) {
 	return ms, false, true
 }
 
+// over answers OVER: the overview of the articles named.
 func (ss *session) over(args []string) {
 	ms, byID, ok := ss.selectRange(args)
 	if !ok {
@@ -767,6 +802,7 @@ func (ss *session) over(args []string) {
 	ss.end()
 }
 
+// hdr answers HDR: a field (or :bytes, :lines) of the articles named.
 func (ss *session) hdr(args []string) {
 	if len(args) == 0 {
 		ss.reply(501, "HDR field [range|message-id]")
@@ -803,6 +839,8 @@ func (ss *session) hdr(args []string) {
 	ss.end()
 }
 
+// newnews answers NEWNEWS: the Message-IDs of the articles since a time (taken
+// as UTC) in the groups the reader may see that match the wildmat.
 func (ss *session) newnews(args []string) {
 	if len(args) < 3 {
 		ss.reply(501, "NEWNEWS wildmat date time [GMT]")
@@ -872,6 +910,8 @@ func (ss *session) readArticle(max int) ([]byte, error) {
 	}
 }
 
+// post answers POST: an article from a user logged in (in TLS if it is
+// required), posted as theirs.
 func (ss *session) post() {
 	if !ss.canPost() {
 		ss.reply(440, "Posting not permitted")
@@ -905,6 +945,8 @@ func (ss *session) post() {
 	ss.reply(240, "Article received "+m.MessageID)
 }
 
+// ihave answers IHAVE, for peers: an article taken if wanted, as from the peer.
+// One too large is remembered, so as not to be offered again.
 func (ss *session) ihave(args []string) {
 	if ss.peer == nil {
 		ss.reply(502, "IHAVE is for peers")

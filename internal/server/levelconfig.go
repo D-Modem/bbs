@@ -43,6 +43,8 @@ func (c *Config) levelSections(cf *config.File) error {
 	return nil
 }
 
+// level reads a [level N], N 0 to bbs.MaxLevel: its name, time, downloads,
+// ratio, and what it may do (all, unless the section says not).
 func level(sec *config.Section) (bbs.Level, error) {
 	n, err := strconv.Atoi(sec.Name)
 	if err != nil || n < 0 || n > bbs.MaxLevel {

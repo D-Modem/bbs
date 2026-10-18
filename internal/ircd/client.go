@@ -67,6 +67,8 @@ type client struct {
 	once sync.Once
 }
 
+// handle serves a connection until it ends, then forgets it and lets its
+// node go, if it had one.
 func (s *Server) handle(conn net.Conn) {
 	h, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
 	c := &client{s: s, conn: conn, host: h, w: bufio.NewWriter(conn), caps: map[string]bool{},
@@ -87,6 +89,8 @@ func (s *Server) handle(conn net.Conn) {
 	c.serve()
 }
 
+// close ends the connection (once; again does nothing), stopping serve and
+// what waits on done.
 func (c *client) close() {
 	c.once.Do(func() {
 		close(c.done)
@@ -143,6 +147,9 @@ func (c *client) reply(numeric string, params ...string) {
 	c.send(nil, "", numeric, append([]string{nick}, params...)...)
 }
 
+// serve reads the client's lines: registration within registerTimeout,
+// then commands; idle for idleTimeout it is PINGed, and closed if no line
+// comes in pingTimeout. It returns on QUIT, an error, or a refused login.
 func (c *client) serve() {
 	var r ircreader.Reader
 	r.Initialize(c.conn, 512, ircmsg.MaxlenTagsFromClient+maxLine)
@@ -250,6 +257,8 @@ func (c *client) register(m *ircmsg.Message) bool {
 	return c.login()
 }
 
+// cap is CAP: LS (with values from 302 on), LIST, REQ (all of it ACKed or
+// NAKed) and END; LS or REQ before registering hold it until END.
 func (c *client) cap(m *ircmsg.Message) {
 	switch strings.ToUpper(param(m, 0)) {
 	case "LS":
@@ -304,6 +313,7 @@ func (c *client) cap(m *ircmsg.Message) {
 	}
 }
 
+// capNick is the nick CAP replies name: "*" before one is given.
 func (c *client) capNick() string {
 	if c.nick == "" {
 		return "*"
@@ -420,6 +430,8 @@ func (c *client) login() bool {
 	return true
 }
 
+// welcome is what a client is sent once logged in: 001 to 005, LUSERS,
+// the MOTD and its +i mode.
 func (c *client) welcome() {
 	s := c.s
 	c.reply(RPL_WELCOME, fmt.Sprintf("Welcome to %s, %s", s.B.Conf().Name, c.source()))
@@ -434,6 +446,7 @@ func (c *client) welcome() {
 	c.send(nil, "", "MODE", c.nick, "+i")
 }
 
+// lusers is LUSERS: the nodes online, the rooms, and the IRC clients.
 func (c *client) lusers() {
 	nodes := c.s.B.Nodes()
 	c.reply(RPL_LUSERCLIENT, fmt.Sprintf("There are %d users and 0 invisible on 1 server", len(nodes)))
@@ -441,6 +454,7 @@ func (c *client) lusers() {
 	c.reply(RPL_LUSERME, fmt.Sprintf("I have %d clients and 0 servers", c.s.Clients()))
 }
 
+// motd is MOTD: the BBS's message of the day, line by line.
 func (c *client) motd() {
 	text := strings.TrimRight(c.s.B.MOTDText(), "\n")
 	if text == "" {
@@ -454,6 +468,7 @@ func (c *client) motd() {
 	c.reply(RPL_ENDOFMOTD, "End of /MOTD command")
 }
 
+// sorted is s sorted in place.
 func sorted(s []string) []string {
 	slices.Sort(s)
 	return s

@@ -218,6 +218,8 @@ func (s *Server) Handler() (http.Handler, error) {
 	return mux, nil
 }
 
+// staticFiles serves the forum's stylesheets and pictures from f, to be kept
+// by browsers for an hour.
 func staticFiles(f fs.FS) http.Handler {
 	files := http.FileServer(http.FS(f))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -235,6 +237,10 @@ type req struct {
 	secret string
 }
 
+// wrap is h as a handler: it finds the caller's session from the cookie, sets
+// headers that keep the pages out of others' frames and scripts, limits and
+// parses a POST's form and refuses one from a logged-in user without their
+// CSRF token, and turns a panic into a logged 500.
 func (s *Server) wrap(h func(*req)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -304,6 +310,7 @@ func (q *req) canRead(a *store.Area) bool {
 	return q.s.B.CanRead(q.user, a)
 }
 
+// canPost: the user may post in the area (a guest never may).
 func (q *req) canPost(a *store.Area) bool {
 	return q.user != nil && q.s.B.CanPost(q.user, a)
 }

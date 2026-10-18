@@ -284,6 +284,8 @@ func (p *Packet) Write(w io.Writer) error {
 	return z.Close()
 }
 
+// cp437Lines is text as DOS lines: each in CP437 (as cp437 makes it), ended
+// CR LF, the trailing line breaks dropped.
 func cp437Lines(s string) []byte {
 	var out []byte
 	for _, l := range strings.Split(strings.TrimRight(s, "\n"), "\n") {

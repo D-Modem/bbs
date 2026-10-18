@@ -46,6 +46,8 @@ func typed(s string) string {
 	return string(b)
 }
 
+// screensOnly is a prep giving a BBS screens (files, written in
+// top/screens) and nothing else.
 func screensOnly(files map[string]string) func(*bbs.BBS, string) {
 	return func(b *bbs.BBS, top string) {
 		dir := filepath.Join(top, "screens")
@@ -215,6 +217,8 @@ func TestRIP(t *testing.T) {
 	}
 }
 
+// TestTerminalConfig: a listener's petscii and rip, their defaults, and
+// values not auto, yes or no refused.
 func TestTerminalConfig(t *testing.T) {
 	load := func(body string) (*Config, error) {
 		p := filepath.Join(t.TempDir(), "bbs.conf")

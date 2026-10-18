@@ -115,6 +115,8 @@ var (
 
 var roomName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,19}$`)
 
+// hub is the BBS's chat, made on first use with the permanent rooms from the
+// store.
 func (b *BBS) hub() *hub {
 	b.hubOnce.Do(func() {
 		b.chat = &hub{rooms: map[string]*room{}}
@@ -129,6 +131,7 @@ func (b *BBS) hub() *hub {
 	return b.chat
 }
 
+// chat is the node's chat state, made on first use.
 func (n *Node) chat() *chatState {
 	n.chatOnce.Do(func() { n.cs = &chatState{wake: make(chan struct{}, 1)} })
 	return n.cs
@@ -170,6 +173,7 @@ func (n *Node) Room() string {
 	return cs.room
 }
 
+// name is the node's user's name, or "node N" before a login.
 func (n *Node) name() string {
 	if u := n.User(); u != nil {
 		return u.Name
@@ -324,6 +328,7 @@ func (n *Node) enter(name string) []Event {
 	return hist
 }
 
+// membersList is the room's members, in no order.  The hub's lock is held.
 func (r *room) membersList() []*Node {
 	out := make([]*Node, 0, len(r.members))
 	for m := range r.members {
@@ -477,6 +482,7 @@ func (n *Node) Rooms() []RoomInfo {
 	return out
 }
 
+// sortRooms sorts rooms by name.
 func sortRooms(rs []RoomInfo) { sort.Slice(rs, func(i, j int) bool { return rs[i].Name < rs[j].Name }) }
 
 // node finds a node online.
@@ -632,6 +638,9 @@ func (n *Node) Answer(node int) ([]Event, int, error) { return n.answer(node, n.
 // the node is in (an IRC client's).
 func (n *Node) AnswerAlso(node int) ([]Event, int, error) { return n.answer(node, n.JoinAlso) }
 
+// answer answers a page (the longest waiting if node is 0) for Answer and
+// AnswerAlso: it ends the page, joins the sysop to the caller's room by join
+// and tells the caller; it is the room's history and the node.
 func (n *Node) answer(node int, join func(string) ([]Event, error)) ([]Event, int, error) {
 	u := n.User()
 	if u == nil || !u.Sysop {

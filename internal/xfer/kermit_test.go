@@ -59,6 +59,8 @@ func ckermit(t *testing.T, dir string, commands string) (net.Conn, func() error)
 	return c, wait
 }
 
+// TestReceiveKermit: files C-Kermit sends, empty, short and long, and one of
+// runs of prefix and 8-bit characters, come whole and in order.
 func TestReceiveKermit(t *testing.T) {
 	dir := t.TempDir()
 	var names []string
@@ -91,6 +93,8 @@ func TestReceiveKermit(t *testing.T) {
 	}
 }
 
+// TestSendKermit: the files we send C-Kermit, empty, short and long, and one
+// of runs of prefix and 8-bit characters, come whole.
 func TestSendKermit(t *testing.T) {
 	dir := t.TempDir()
 	var out []Outgoing

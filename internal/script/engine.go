@@ -61,6 +61,7 @@ func For(dir string) *Engine {
 	return e.(*Engine)
 }
 
+// path is the script name's file: NAME.js in the directory.
 func (e *Engine) path(name string) string { return filepath.Join(e.Dir, name+".js") }
 
 // Has: the directory has the script.

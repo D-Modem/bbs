@@ -99,6 +99,8 @@ type translator interface {
 	Raw(b []byte) error // bytes as they are
 }
 
+// setTranslator makes x what writes to the line (nil: nothing between),
+// what was written before it flushed first.
 func (t *Term) setTranslator(x translator) {
 	t.Flush()
 	t.xl = x
@@ -169,6 +171,7 @@ type echoConn struct {
 	echo func([]byte)
 }
 
+// Write writes p to the line and gives what was written to echo, if set.
 func (c *echoConn) Write(p []byte) (int, error) {
 	n, err := c.Conn.Write(p)
 	c.mu.Lock()
@@ -369,6 +372,10 @@ var fkeys = map[string]rune{"11": KeyF1, "12": KeyF1 + 1, "13": KeyF1 + 2, "14":
 // keys as KeyUp and the rest, a lone ESC as ESC.
 func (t *Term) EditKey() (rune, error) { return t.read(true) }
 
+// read reads a key for readRune (keys false) or EditKey (true), waiting
+// at most Idle (or to the deadline, if sooner): ErrIdle then.  A LF after
+// a CR is dropped; an escape sequence is dropped, or, for EditKey, the
+// key it is.
 func (t *Term) read(keys bool) (rune, error) {
 	if err := t.Flush(); err != nil {
 		return 0, err
@@ -470,6 +477,9 @@ func (t *Term) notices() {
 	t.Print(cur)
 }
 
+// next is the next character from the line, as the terminal sends it:
+// PETSCII, UTF-8, Latin-1, or ASCII (anything else utf8.RuneError).  While
+// WatchPETSCII, a byte only a Commodore sends is ErrPETSCII.
 func (t *Term) next() (rune, error) {
 	if t.PETSCII {
 		b, err := t.r.ReadByte()
@@ -1053,8 +1063,13 @@ func (t *Term) RIPClear() {
 // reader (what was typed ahead is not lost), writes straight through.
 type port struct{ t *Term }
 
-func (p port) Read(b []byte) (int, error)        { return p.t.r.Read(b) }
-func (p port) Write(b []byte) (int, error)       { return p.t.c.Write(b) }
+// Read reads from the terminal's reader, what was typed ahead first.
+func (p port) Read(b []byte) (int, error) { return p.t.r.Read(b) }
+
+// Write writes b to the line as it is, past any translation.
+func (p port) Write(b []byte) (int, error) { return p.t.c.Write(b) }
+
+// SetReadDeadline sets the line's read deadline.
 func (p port) SetReadDeadline(d time.Time) error { return p.t.c.SetReadDeadline(d) }
 
 // Port is the line for a file transfer; what was printed goes first.

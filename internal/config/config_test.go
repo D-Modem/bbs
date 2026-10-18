@@ -5,6 +5,9 @@ import (
 	"testing"
 )
 
+// TestParse: sections with and without names, values plain and quoted
+// with escapes, a number out of range refused, every value read counted
+// used, and a section not there is nil.
 func TestParse(t *testing.T) {
 	cf, err := Parse(strings.NewReader(`
 ; a comment
@@ -42,6 +45,8 @@ address = :23
 	}
 }
 
+// TestParseErrors: a value outside a section, a bad header, a line without
+// =, a key given twice and a short \x escape are refused.
 func TestParseErrors(t *testing.T) {
 	for _, bad := range []string{
 		"key = value",             // outside a section
@@ -56,6 +61,7 @@ func TestParseErrors(t *testing.T) {
 	}
 }
 
+// TestUnused: a key nothing read (a misspelling) is reported unused.
 func TestUnused(t *testing.T) {
 	cf, _ := Parse(strings.NewReader("[general]\nnmae = x\n"))
 	cf.Get("general", "").String("name", "")

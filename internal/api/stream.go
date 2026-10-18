@@ -30,6 +30,7 @@ var kinds = map[bbs.EventKind]pb.Event_Kind{
 	bbs.Notice: pb.Event_NOTICE, bbs.Mail: pb.Event_MAIL, bbs.Topic: pb.Event_NOTICE,
 }
 
+// pbEvent is e as the API's Event, with its line as a terminal shows it.
 func pbEvent(e bbs.Event) *pb.Event {
 	return &pb.Event{Kind: kinds[e.Kind], Room: e.Room, From: e.From, Node: int32(e.Node),
 		Text: e.Text, Time: timestamppb.New(e.Time), Line: e.String()}
@@ -113,7 +114,10 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) wsJSON(w http.ResponseWriter, r *http.Request)  { s.ws(w, r, false) }
+// wsJSON is the WebSocket in JSON (subprotocol bbs.v1.json).
+func (s *Server) wsJSON(w http.ResponseWriter, r *http.Request) { s.ws(w, r, false) }
+
+// wsProto is the WebSocket in protobuf (subprotocol bbs.v1.proto).
 func (s *Server) wsProto(w http.ResponseWriter, r *http.Request) { s.ws(w, r, true) }
 
 // wsConn is a WebSocket client: its encoding, and one writer at a time.
@@ -123,6 +127,8 @@ type wsConn struct {
 	mu     sync.Mutex
 }
 
+// send writes m in the client's encoding, one writer at a time, giving up
+// after 30 seconds.
 func (wc *wsConn) send(ctx context.Context, m *pb.ServerMessage) error {
 	var b []byte
 	var err error
@@ -143,6 +149,9 @@ func (wc *wsConn) send(ctx context.Context, m *pb.ServerMessage) error {
 	return wc.c.Write(ctx, typ, b)
 }
 
+// read is the client's next message: errBadFrame for a frame of the other
+// encoding, errBadMessage for one that is no ClientMessage, else the
+// connection's error.
 func (wc *wsConn) read(ctx context.Context) (*pb.ClientMessage, error) {
 	typ, b, err := wc.c.Read(ctx)
 	if err != nil {
@@ -171,14 +180,18 @@ var (
 	errBadMessage = errors.New("not a ClientMessage")
 )
 
+// errMsg is an Error answering request id: code as the REST API's codes.
 func errMsg(id uint32, code, msg string) *pb.ServerMessage {
 	return &pb.ServerMessage{Id: id, Body: &pb.ServerMessage_Error{Error: &pb.Error{Code: code, Message: msg}}}
 }
 
+// okMsg is an Ok answering request id, with the room the client is now in
+// ("": unchanged).
 func okMsg(id uint32, room string) *pb.ServerMessage {
 	return &pb.ServerMessage{Id: id, Body: &pb.ServerMessage_Ok{Ok: &pb.Ok{Room: room}}}
 }
 
+// linesMsg is lines of text answering request id.
 func linesMsg(id uint32, ls []string) *pb.ServerMessage {
 	return &pb.ServerMessage{Id: id, Body: &pb.ServerMessage_Lines{Lines: &pb.Lines{Lines: ls}}}
 }
@@ -198,6 +211,11 @@ func codeOf(err error) string {
 	return "bad_request"
 }
 
+// ws is the WebSocket endpoints, in protobuf if binary, else JSON.  The
+// caller is the upgrade's token, else an Auth as the first message (in 10
+// seconds); a token with chat gets a node of its own, then a Welcome, its
+// node's events as they come, and an answer to each request (rate limited
+// by the token).
 func (s *Server) ws(w http.ResponseWriter, r *http.Request, binary bool) {
 	sub := ProtoJSON
 	if binary {

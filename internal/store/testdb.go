@@ -65,6 +65,8 @@ func testDatabase() (string, func(), error) {
 	return "", nil, fmt.Errorf("BBS_TEST_DATABASE: %q is not postgres://, mysql:// or mariadb://", base)
 }
 
+// dropTest runs stmt on the server, as best it can: what drops a test's
+// database after.
 func dropTest(driver, dsn, stmt string) {
 	if d, err := sql.Open(driver, dsn); err == nil {
 		d.Exec(stmt)

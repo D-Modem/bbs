@@ -80,6 +80,9 @@ func (s *Session) offline() error {
 	}
 }
 
+// qwkDownload sends the caller's QWK packet by a transfer protocol; its
+// messages count as read only once it has gone. An empty packet is said, not
+// sent.
 func (s *Session) qwkDownload() error {
 	out, err := s.N.QWKPacket()
 	if err != nil {

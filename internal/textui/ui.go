@@ -52,6 +52,9 @@ func Run(b *bbs.BBS, n *bbs.Node, t *Term, o Options) error {
 	return err
 }
 
+// run is the session from the logon screen: the login, the caller's
+// preferences, then app.Run with Notify's lines shown while keys are
+// awaited.  A logoff is errHangup.
 func (s *session) run() error {
 	t := s.t
 	t.Clear()
@@ -304,6 +307,7 @@ func (s *session) register() (bool, error) {
 	return true, nil
 }
 
+// date is tm as a message's date: "2006-01-02 15:04".
 func date(tm time.Time) string { return tm.Format("2006-01-02 15:04") }
 
 // edit: the line editor.  lines are the start (a quote); nil if the

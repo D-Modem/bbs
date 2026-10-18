@@ -27,6 +27,9 @@ func originals(t *testing.T) map[string][]byte {
 	return m
 }
 
+// TestRead: archives made by the real ARC, ARJ and LHA programs are detected
+// by kind, and each entry unpacks to the original file, its size and date as
+// the header says, with the methods each was packed by.
 func TestRead(t *testing.T) {
 	want := originals(t)
 	for _, c := range []struct {

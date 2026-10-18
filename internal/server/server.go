@@ -80,6 +80,7 @@ func (l *Listener) Unix() bool {
 	return strings.HasPrefix(l.Address, "/") || strings.HasPrefix(l.Address, "unix:")
 }
 
+// path is a unix socket's path, without the "unix:".
 func (l *Listener) path() string { return strings.TrimPrefix(l.Address, "unix:") }
 
 // Server runs the listeners.
@@ -151,6 +152,8 @@ func (s *Server) Run(ctx context.Context) error {
 	return nil
 }
 
+// listen is l's listener: TLS on TCP, plain TCP, or a unix socket (taken
+// from those bound before root was given up, or made now).
 func (s *Server) listen(l *Listener) (net.Listener, error) {
 	if l.CertFile != "" {
 		cert, err := tls.LoadX509KeyPair(l.CertFile, l.KeyFile)
@@ -236,12 +239,15 @@ type unixListener struct {
 	path string
 }
 
+// Close closes the listener and removes its socket.
 func (u *unixListener) Close() error {
 	err := u.UnixListener.Close()
 	os.Remove(u.path)
 	return err
 }
 
+// accept answers ln's connections, each in a goroutine, until ln is
+// closed; other errors are logged and accepting goes on.
 func (s *Server) accept(ln net.Listener, l *Listener) {
 	for {
 		c, err := ln.Accept()
@@ -271,6 +277,8 @@ func host(c net.Conn) string {
 	return a.IP.String()
 }
 
+// track counts c against its address, and reports false (c not counted)
+// when the address has l.MaxPerIP connections already.
 func (s *Server) track(c net.Conn, l *Listener) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -285,6 +293,7 @@ func (s *Server) track(c net.Conn, l *Listener) bool {
 	return true
 }
 
+// untrack is track undone, when c ends.
 func (s *Server) untrack(c net.Conn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -303,11 +312,16 @@ const writeTimeout = 2 * time.Minute
 // reading does not hold a session (and its node) for ever.
 type timedConn struct{ net.Conn }
 
+// Write writes p, giving up after writeTimeout.
 func (c timedConn) Write(p []byte) (int, error) {
 	c.Conn.SetWriteDeadline(time.Now().Add(writeTimeout))
 	return c.Conn.Write(p)
 }
 
+// handle is a call on l, from connecting to hanging up: refused (denied
+// or banned), or turned away with too many from its address or all lines
+// busy; else given a node and run as the listener's kind says.  A panic
+// ends only this call.
 func (s *Server) handle(nc net.Conn, l *Listener) {
 	defer nc.Close()
 	// a bug in a protocol library (go3270 has had panics a client could
@@ -390,6 +404,9 @@ func (s *Server) handle(nc net.Conn, l *Listener) {
 	s.B.Log.Printf("node %d: gone", node.Num)
 }
 
+// callDetails is what the log says of a call besides its address: its
+// rate, caller ID and place, the number dialed and the trusted user; "" if
+// none.
 func callDetails(c *bbs.Caller, p bbs.Place) string {
 	var parts []string
 	if c.Rate != "" {
@@ -445,6 +462,9 @@ func (s *Server) telnet(c net.Conn, l *Listener, node *bbs.Node) error {
 	return s.text(tc, c, l, node, tt)
 }
 
+// tn3270 hands a telnet connection to go3270 and runs the 3270 BBS on it;
+// a client that stops answering during the negotiation is hung up after
+// 30 seconds.
 func (s *Server) tn3270(tc *telnet.Conn, l *Listener, node *bbs.Node) error {
 	raw, err := tc.Handoff3270(2 * time.Second)
 	if err != nil {
@@ -487,6 +507,8 @@ func ansiTerm(tt string) (ansi, known bool) {
 	return false, false
 }
 
+// utf8Term reports whether terminal type tt is a Unix terminal's, which
+// wants UTF-8 (a BBS terminal's "ansi" wants CP437).
 func utf8Term(tt string) bool {
 	tt = strings.ToLower(tt)
 	// BBS terminals that say "ansi" want CP437, not UTF-8
@@ -600,6 +622,7 @@ func (s *Server) text(rw io.ReadWriter, c deadliner, l *Listener, node *bbs.Node
 	return s.run(t, l, node)
 }
 
+// run runs the text BBS on t.
 func (s *Server) run(t *textui.Term, l *Listener, node *bbs.Node) error {
 	return textui.Run(s.B, node, t, textui.Options{CreateTrusted: l.CreateUsers,
 		LogoFile: s.LogoFile})

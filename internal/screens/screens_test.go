@@ -8,6 +8,10 @@ import (
 	"testing"
 )
 
+// TestFind: each terminal gets its own kind of file, else the plain ones; an
+// .ans is CP437 with its SAUCE dropped; a file too big, a name not valid or a
+// path out, or no set, finds nothing; EncodeCP437 puts '?' for what CP437
+// lacks.
 func TestFind(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "welcome.ans"), []byte("\x1b[1;33m\xc9\xcd\xbb Hi @USER@\r\n\x1aSAUCE00 junk"), 0644)
@@ -46,6 +50,9 @@ func TestFind(t *testing.T) {
 	}
 }
 
+// TestExpand: @-codes filled in and padded, left and right and cut short; @CLS@
+// and @PAUSE@ split the text; what is not a code (an address, an unknown code)
+// stays.
 func TestExpand(t *testing.T) {
 	vars := func(c string) (string, bool) {
 		switch c {
@@ -66,6 +73,9 @@ func TestExpand(t *testing.T) {
 	}
 }
 
+// TestSpans: a marked .3270 line's spans, their colors and brightness to each
+// {default}, {normal} and {reset}; a caller's braces are not tags; StripTags
+// drops tags and marks but not unknown tags.
 func TestSpans(t *testing.T) {
 	// a line of a .3270, marked as screenPages marks it
 	line := String("", nil)
@@ -94,6 +104,10 @@ func TestSpans(t *testing.T) {
 	}
 }
 
+// TestTags: ExpandTags splits at the sysop's tags but never at a value's, and
+// unknown tags stay text; Expand leaves tags be; String drops them, Marked
+// keeps them as marks and Unmark drops those; ColorNumber's colors (pink and
+// turquoise among them, not teal).
 func TestTags(t *testing.T) {
 	vars := func(c string) (string, bool) {
 		if c == "USER" {
@@ -133,6 +147,8 @@ func TestTags(t *testing.T) {
 	}
 }
 
+// TestFit: a marked text padded or cut to a width, its marks taking none, a
+// {reset} after the text when it has marks, and the marks past the cut dropped.
 func TestFit(t *testing.T) {
 	for _, c := range []struct {
 		in   string

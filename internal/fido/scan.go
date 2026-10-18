@@ -42,6 +42,7 @@ func (f *Fido) Scan(l *Link) (int, error) {
 	return f.scan(l)
 }
 
+// scan is Scan with the link's lock held: the number of messages packed.
 func (f *Fido) scan(l *Link) (int, error) {
 	st := f.B.Store
 	var msgs []*ftn.Message
@@ -327,6 +328,7 @@ func (f *Fido) writeOutbound(l *Link, msgs []*ftn.Message) error {
 	return os.Rename(tmp, filepath.Join(out, file))
 }
 
+// exists reports whether there is a file (or link) at p.
 func exists(p string) bool {
 	_, err := os.Lstat(p)
 	return err == nil

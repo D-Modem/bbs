@@ -146,6 +146,7 @@ func ebmlChildren(b []byte, start, end int, f func(id uint64, data []byte, at in
 	return nil
 }
 
+// ebmlUint is an EBML unsigned integer element's value (big-endian).
 func ebmlUint(d []byte) uint64 {
 	var v uint64
 	for _, c := range d {
@@ -154,6 +155,7 @@ func ebmlUint(d []byte) uint64 {
 	return v
 }
 
+// ebmlFloat is an EBML float element's value: 4 or 8 bytes, else 0.
 func ebmlFloat(d []byte) float64 {
 	switch len(d) {
 	case 4:
@@ -547,6 +549,7 @@ func (s *Server) prepareFile(b *store.Board, data []byte, side int, bg color.Col
 	return p, nil
 }
 
+// plural is one if n is 1, else many.
 func plural(n int, one, many string) string {
 	if n == 1 {
 		return one

@@ -24,6 +24,7 @@ func webTerm(t *testing.T, e *env) *httptest.Server {
 	return ts
 }
 
+// get is url's response and body, redirects not followed.
 func get(t *testing.T, url string) (*http.Response, string) {
 	t.Helper()
 	c := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}

@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// TestSplit: command lines split into words, quotes keeping spaces in one
+// and an open quote refused; ParseAt takes HH:MM only.
 func TestSplit(t *testing.T) {
 	for in, want := range map[string]string{
 		`/usr/bin/backup --to "/var/backups/my bbs" -v`: `/usr/bin/backup|--to|/var/backups/my bbs|-v`,
@@ -27,6 +29,8 @@ func TestSplit(t *testing.T) {
 	}
 }
 
+// TestNext: a daily event runs next today if its time is still to come,
+// else tomorrow; an every-so-often one counts from the scheduler's start.
 func TestNext(t *testing.T) {
 	now := time.Date(2026, 10, 12, 10, 0, 0, 0, time.Local)
 	s := &Scheduler{started: now}
@@ -41,6 +45,8 @@ func TestNext(t *testing.T) {
 	}
 }
 
+// TestRun: a run's output, who ran it, its exit status and its time limit;
+// an event running already or not there is refused; the status is by name.
 func TestRun(t *testing.T) {
 	s := &Scheduler{Events: []*Event{
 		{Name: "hello", Command: []string{"/bin/sh", "-c", `echo "hi from $BBS_EVENT"`}, Every: time.Hour},

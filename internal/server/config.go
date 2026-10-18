@@ -111,6 +111,9 @@ func Parse(data []byte) (*Config, error) {
 	return load(cf)
 }
 
+// load is the configuration a parsed file says, every section read and
+// checked; with sections but no [listen], an error; with no file at all,
+// the default listeners. Unknown keys are warnings, unknown sections errors.
 func load(cf *config.File) (*Config, error) {
 	c := &Config{Settings: bbs.Defaults(), Database: "bbs.db", Log: "stderr", FilesDir: "files"}
 	if err := c.general(cf.Get("general", "")); err != nil {
@@ -220,6 +223,9 @@ func (c *Config) DataDir() string {
 	return "."
 }
 
+// general reads [general]: the database, log, the BBS's name and texts,
+// user and group to run as, the logos and 3270 graphics, and the limits and
+// timeouts.  Files it names (banner_file, motd_file, logos) are read now.
 func (c *Config) general(g *config.Section) error {
 	s := &c.Settings
 	var err error
@@ -434,6 +440,8 @@ func (c *Config) securitySection(sec *config.Section) error {
 	return nil
 }
 
+// listener reads a [listen NAME]: its type, address and options, refusing
+// those its type cannot have and a tls_cert whose key does not load.
 func listener(sec *config.Section) (*Listener, error) {
 	if sec.Name == "" {
 		return nil, errors.New("a listener needs a name: [listen NAME]")
@@ -558,6 +566,8 @@ func (c *Config) warn(l *Listener) {
 	}
 }
 
+// loopback reports whether addr (host:port) is on localhost or a loopback
+// address.
 func loopback(addr string) bool {
 	h, _, err := net.SplitHostPort(addr)
 	if err != nil {

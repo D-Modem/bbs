@@ -130,6 +130,7 @@ func flagSet(s string) (string, bool) {
 	return b.String(), true
 }
 
+// mergeFlags is the flags of a and b together, as kept (see flagSet).
 func mergeFlags(a, b string) string {
 	s, _ := flagSet(a + b)
 	return s

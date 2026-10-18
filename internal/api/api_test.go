@@ -40,6 +40,8 @@ type site struct {
 	logs *bytes.Buffer
 }
 
+// setup is a BBS (alice, bob and a sysop; an open area and a sysop's; a
+// file area) behind an API server of set, anonymous access allowed.
 func setup(t *testing.T, set Settings) *site {
 	t.Helper()
 	store.BcryptCost = 4
@@ -104,6 +106,7 @@ func (s *site) do(method, path, token string, body any) (int, map[string]any, []
 	return resp.StatusCode, m, a
 }
 
+// login is a session token for name and pw, the test failing without one.
 func (s *site) login(name, pw string) string {
 	s.t.Helper()
 	code, m, _ := s.do("POST", "/api/v1/login", "", map[string]any{"name": name, "password": pw})
@@ -121,6 +124,9 @@ func (s *site) key(name, scopes string) string {
 	return secret
 }
 
+// TestREST: logins, areas and posts (cleaned, limited, checked), mail,
+// scopes (none raised by a key that claims sysop), uploads and downloads,
+// the sysop's endpoints, tokens and logout; no token in the log.
 func TestREST(t *testing.T) {
 	s := setup(t, Settings{})
 	if code, m, _ := s.do("GET", "/api/v1/system", "", nil); code != 200 || m["name"] != "Test BBS" || m["users"] != 3.0 {
@@ -297,6 +303,8 @@ func TestREST(t *testing.T) {
 	}
 }
 
+// TestRateAndOpenAPI: requests past the burst are refused 429, and the
+// OpenAPI document has every route, and only them.
 func TestRateAndOpenAPI(t *testing.T) {
 	s := setup(t, Settings{Rate: 1, Burst: 3})
 	n429 := 0
@@ -337,6 +345,8 @@ type wsClient struct {
 	queue  []*pb.ServerMessage
 }
 
+// ws is a WebSocket to the API, protobuf if binary, else JSON, its token
+// in the Authorization header if header, else sent in an Auth message.
 func (s *site) ws(binary bool, token string, header bool) *wsClient {
 	s.t.Helper()
 	u := "ws" + strings.TrimPrefix(s.ts.URL, "http") + "/api/v1/ws"
@@ -366,6 +376,7 @@ func (s *site) ws(binary bool, token string, header bool) *wsClient {
 	return w
 }
 
+// send sends m with the next request id, which it returns.
 func (w *wsClient) send(m *pb.ClientMessage) uint32 {
 	w.t.Helper()
 	w.id++
@@ -386,6 +397,8 @@ func (w *wsClient) send(m *pb.ClientMessage) uint32 {
 	return w.id
 }
 
+// recv is the next message, the test failing on an error or a frame of
+// the wrong encoding.
 func (w *wsClient) recv() *pb.ServerMessage {
 	w.t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -424,11 +437,13 @@ func (w *wsClient) until(what string, ok func(*pb.ServerMessage) bool) *pb.Serve
 	return nil
 }
 
+// event is the next event of kind (others are dropped).
 func (w *wsClient) event(kind pb.Event_Kind) *pb.Event {
 	w.t.Helper()
 	return w.until(kind.String(), func(m *pb.ServerMessage) bool { return m.GetEvent().GetKind() == kind }).GetEvent()
 }
 
+// reply is the answer to request id (other messages are dropped).
 func (w *wsClient) reply(id uint32) *pb.ServerMessage {
 	w.t.Helper()
 	return w.until("a reply", func(m *pb.ServerMessage) bool {
@@ -436,6 +451,9 @@ func (w *wsClient) reply(id uint32) *pb.ServerMessage {
 	})
 }
 
+// TestWebSockets: JSON and protobuf clients online as web nodes, chatting
+// in a room (cleaned), chat commands (a sysop's refused), a page answered,
+// mail as an event, and bad messages answered bad_request.
 func TestWebSockets(t *testing.T) {
 	s := setup(t, Settings{})
 	alice := s.ws(false, s.login("alice", "alicepass1"), false) // JSON, Auth message
@@ -521,6 +539,8 @@ func TestWebSockets(t *testing.T) {
 	}
 }
 
+// TestWebSocketRefusals: a bad token, a token without chat, a request
+// before Auth, and every node busy are each answered with an error.
 func TestWebSocketRefusals(t *testing.T) {
 	s := setup(t, Settings{})
 	// a bad token
@@ -547,6 +567,8 @@ func TestWebSocketRefusals(t *testing.T) {
 	}
 }
 
+// TestEventsAndNodeMessages: a node message needs the sender's stream; one
+// sent reaches the other's server-sent events as a private event.
 func TestEventsAndNodeMessages(t *testing.T) {
 	s := setup(t, Settings{})
 	alice := s.login("alice", "alicepass1")
@@ -599,6 +621,7 @@ func TestEventsAndNodeMessages(t *testing.T) {
 	}
 }
 
+// TestMetrics: the metrics count users, logins, posts and nodes.
 func TestMetrics(t *testing.T) {
 	s := setup(t, Settings{})
 	s.login("alice", "alicepass1")
@@ -724,6 +747,8 @@ func TestAccess(t *testing.T) {
 	}
 }
 
+// TestBansAndHackLog: a sysop sees the bans and lifts one (the hack log
+// saying so); others may not.
 func TestBansAndHackLog(t *testing.T) {
 	s := setup(t, Settings{})
 	s.b.Guard = &guard.Guard{HackLog: filepath.Join(t.TempDir(), "hack.log"), BanTime: time.Hour}
@@ -748,6 +773,8 @@ func TestBansAndHackLog(t *testing.T) {
 	}
 }
 
+// TestCallersAndAbout: the last callers list a terminal's login, and a
+// user's about is set (cleaned) and shown.
 func TestCallersAndAbout(t *testing.T) {
 	s := setup(t, Settings{})
 	alice := s.login("alice", "alicepass1")
@@ -769,6 +796,8 @@ func TestCallersAndAbout(t *testing.T) {
 	}
 }
 
+// TestEventsAndAvailable: a sysop runs an event and sees how it went, and
+// sets whether pages reach them; an unknown event is 404.
 func TestEventsAndAvailable(t *testing.T) {
 	s := setup(t, Settings{})
 	s.b.Events = &events.Scheduler{Events: []*events.Event{{Name: "hello", Command: []string{"/bin/echo", "hi"}, Every: time.Hour}}}
@@ -793,6 +822,8 @@ func TestEventsAndAvailable(t *testing.T) {
 	}
 }
 
+// TestVotesPollsThreads: an area's group, aliases and limits; posting as an
+// alias, a poll, votes (not on one's own) and answers, and a thread.
 func TestVotesPollsThreads(t *testing.T) {
 	s := setup(t, Settings{})
 	alice, bob, sys := s.login("alice", "alicepass1"), s.login("bob", "bobpass123"), s.login("sysop", "sysoppass1")
@@ -838,6 +869,8 @@ func TestVotesPollsThreads(t *testing.T) {
 	}
 }
 
+// TestQWK: a QWK packet of the new messages, marked read unless ?mark=no,
+// and a REP packet posted (needing post), its bad message reported.
 func TestQWK(t *testing.T) {
 	s := setup(t, Settings{})
 	gen, _ := s.b.Store.AreaByName("General")
@@ -888,6 +921,8 @@ func TestQWK(t *testing.T) {
 	}
 }
 
+// TestQWKNodeAdmin: a sysop makes a user a QWK node; with no QWK networks
+// there are none to list or call.
 func TestQWKNodeAdmin(t *testing.T) {
 	s := setup(t, Settings{})
 	sysop := s.login("sysop", "sysoppass1")

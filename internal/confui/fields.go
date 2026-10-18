@@ -42,6 +42,7 @@ var choices = map[string][]string{
 	"link.packer":        {"zip", "arc", "arj", "lha", "none"},
 }
 
+// init gives http.forum_theme the forum's themes for its choices.
 func init() {
 	var themes []string
 	for _, t := range forum.Themes {
@@ -81,6 +82,7 @@ var labels = map[string]string{
 	"backup.files": "With the files",
 }
 
+// labelOf is a key's label: labels' name for it, or the key itself.
 func labelOf(kind, key string) string {
 	if l, ok := labels[kind+"."+key]; ok {
 		return l
@@ -139,6 +141,8 @@ func (e *Editor) field(s confedit.Section, key string, label ...string) item {
 	return it
 }
 
+// isBool is whether a key is a yes or no: its default and examples are all
+// yes, no or nothing, and one is yes or no.
 func isBool(x *confedit.Key) bool {
 	vals := append([]string{x.Default}, x.Examples...)
 	n := 0
@@ -154,6 +158,7 @@ func isBool(x *confedit.Key) bool {
 	return n > 0
 }
 
+// contains is whether s is one of ss.
 func contains(ss []string, s string) bool {
 	for _, x := range ss {
 		if x == s {
@@ -163,14 +168,17 @@ func contains(ss []string, s string) bool {
 	return false
 }
 
+// heading is an item that is a heading, label, between others.
 func heading(label string) item {
 	return item{Entry: view.Entry{Kind: view.EntryHeading, Label: label}}
 }
 
+// menu is an item that opens another page, value shown beside it.
 func menu(label, value string, open func() error) item {
 	return item{Entry: view.Entry{ID: "menu " + label, Kind: view.EntryMenu, Label: label, Value: value}, open: open}
 }
 
+// action is an item that does do when picked.
 func action(label string, do func() error) item {
 	return item{Entry: view.Entry{ID: "do " + label, Kind: view.EntryAction, Label: label}, do: do}
 }
@@ -214,6 +222,7 @@ func (e *Editor) enabled(s confedit.Section, label string) item {
 	return it
 }
 
+// yesno is b as the file says it: "yes" or "no".
 func yesno(b bool) string {
 	if b {
 		return "yes"
@@ -299,6 +308,9 @@ func (e *Editor) listPage(title, kind, noun string, keep func(confedit.Section) 
 		}}
 }
 
+// addInstance asks for a new section's name, adds [kind NAME] with the keys
+// of with, and opens its page.  A name there already, or a bad one, is said
+// and nothing added; an empty one adds nothing.
 func (e *Editor) addInstance(kind, noun string, with map[string]string) error {
 	v, ok, err := e.UI.Form(&view.Form{Title: "A new " + noun,
 		Intro:  []view.Line{view.L("Its name: one word, [" + kind + " NAME] in the file.")},
@@ -362,6 +374,8 @@ func (e *Editor) instancePage(s confedit.Section, noun string) page {
 		}}
 }
 
+// deleteSection takes s out of the file if the sysop says yes, and is then
+// errClose: its page is gone.
 func (e *Editor) deleteSection(s confedit.Section) error {
 	yes, err := e.UI.Confirm("Delete "+s.String()+"?", false)
 	if err != nil || !yes {

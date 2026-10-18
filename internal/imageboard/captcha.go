@@ -70,6 +70,8 @@ type captchas struct {
 	used map[string]time.Time
 }
 
+// captchaAEAD is the AES-GCM that seals captcha tokens, keyed from the
+// boards' secret.
 func (s *Server) captchaAEAD() cipher.AEAD {
 	k := sha256.Sum256(append([]byte("captcha:"), s.key...))
 	block, _ := aes.NewCipher(k[:])

@@ -183,6 +183,8 @@ func configScreens(path string) {
 	}
 }
 
+// utf8Locale is whether the locale (LC_ALL, then LC_CTYPE, then LANG: the
+// first set) says UTF-8.
 func utf8Locale() bool {
 	for _, v := range []string{"LC_ALL", "LC_CTYPE", "LANG"} {
 		if l := os.Getenv(v); l != "" {
@@ -202,6 +204,8 @@ type tty struct {
 	out      io.Writer
 }
 
+// newTTY is a tty reading r, by a goroutine that runs until r errs (closing
+// in, so that Read is then io.EOF), and writing w.
 func newTTY(r io.Reader, w io.Writer) *tty {
 	t := &tty{in: make(chan []byte, 16), out: w}
 	go func() {
@@ -220,6 +224,8 @@ func newTTY(r io.Reader, w io.Writer) *tty {
 	return t
 }
 
+// Read is what the reading goroutine has, waiting no later than the deadline
+// (os.ErrDeadlineExceeded); io.EOF once the terminal is done.
 func (t *tty) Read(p []byte) (int, error) {
 	if len(t.pending) == 0 {
 		var timeout <-chan time.Time
@@ -247,8 +253,10 @@ func (t *tty) Read(p []byte) (int, error) {
 	return n, nil
 }
 
+// Write writes to the terminal.
 func (t *tty) Write(p []byte) (int, error) { return t.out.Write(p) }
 
+// SetReadDeadline sets when a Read gives up; the zero time is never.
 func (t *tty) SetReadDeadline(d time.Time) error {
 	t.deadline = d
 	return nil

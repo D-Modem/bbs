@@ -20,6 +20,9 @@ const sampleNodelist = ";A fsxNet Nodelist for Friday, October 10, 2026 -- Day n
 	"junk line without enough fields\r\n" +
 	"\x1a"
 
+// TestNodelist: a nodelist's nodes, zones and kinds are read (junk lines
+// skipped); a point is found by its node; binkp hosts come of IBN and INA, with
+// the default port; search is by words or address.
 func TestNodelist(t *testing.T) {
 	l := NewNodelist()
 	if err := l.Read(strings.NewReader(sampleNodelist)); err != nil {

@@ -5,6 +5,9 @@ import (
 	"testing"
 )
 
+// TestQuery: statements made each engine's: PostgreSQL's numbered marks (not
+// in quotes), INSERT OR IGNORE and the upsert each engine's way, and MySQL's
+// table definitions.
 func TestQuery(t *testing.T) {
 	pg, my, lite := dialects[Postgres], dialects[MySQL], dialects[SQLite]
 	q := `SELECT a FROM t WHERE x = ? AND y = '?' AND "z?" = ? LIMIT ?`
@@ -37,6 +40,9 @@ func TestQuery(t *testing.T) {
 	}
 }
 
+// TestAddresses: Describe hides an address's password; MySQL and MariaDB
+// addresses become the driver's settings, a database name wanted; IsFile
+// tells a SQLite file from a server.
 func TestAddresses(t *testing.T) {
 	for addr, want := range map[string]string{
 		"postgres://bbs:secret@db/bbs":          "postgres://bbs:xxxxx@db/bbs",

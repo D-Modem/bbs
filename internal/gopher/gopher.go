@@ -76,6 +76,8 @@ func clean(s string, max int) string {
 	return bbs.Trunc(s, max)
 }
 
+// menu sends a gopher menu: a line for each item, on this server's host and
+// port (info and error lines on error.host), then the ending ".".
 func (s *Server) menu(c io.Writer, items []item) {
 	var b strings.Builder
 	for _, it := range items {
@@ -104,10 +106,14 @@ func text(c io.Writer, lines []string) {
 	c.Write([]byte(b.String()))
 }
 
+// notFound sends a menu of one error line.
 func notFound(s *Server, c io.Writer) {
 	s.menu(c, []item{{'3', "Not here.", ""}})
 }
 
+// handle answers one request: it reads the selector (anything after a tab
+// dropped) and sends what it names, or an error menu for anything not open
+// to gopher.
 func (s *Server) handle(c net.Conn) {
 	sel, err := tcpserv.ReadLine(c, 255)
 	if err != nil {
@@ -154,6 +160,8 @@ func (s *Server) handle(c net.Conn) {
 	}
 }
 
+// root sends the top menu: the system's name and where it is, about and
+// who's online, and the message and file areas where they are shown.
 func (s *Server) root(c io.Writer) {
 	items := []item{{'i', s.B.Conf().Name, ""}}
 	if s.B.Conf().Location != "" {
@@ -171,6 +179,8 @@ func (s *Server) root(c io.Writer) {
 	s.menu(c, items)
 }
 
+// about is what the system is: its name, place, sysop, how many users, and
+// the message of the day.
 func (s *Server) about() []string {
 	out := []string{s.B.Conf().Name}
 	if s.B.Conf().Location != "" {
@@ -189,6 +199,7 @@ func (s *Server) about() []string {
 	return out
 }
 
+// who is the callers on now, a line each under a heading.
 func (s *Server) who() []string {
 	out := []string{fmt.Sprintf("%4s  %-24s %-12s %5s  %s", "Node", "User", "Via", "On", "Doing")}
 	on := 0
@@ -211,6 +222,7 @@ func (s *Server) open(a *store.Area) bool {
 	return s.S.Areas != "" && news.Wildmat(strings.ToLower(s.S.Areas), strings.ToLower(a.Name))
 }
 
+// area is the message area of the id, if gopher shows it (nil: not).
 func (s *Server) area(id int64) *store.Area {
 	if id < 1 {
 		return nil
@@ -222,6 +234,7 @@ func (s *Server) area(id int64) *store.Area {
 	return a
 }
 
+// areas sends the menu of the message areas gopher shows.
 func (s *Server) areas(c io.Writer) {
 	as, _ := s.B.Store.Areas()
 	items := []item{{'i', "Message areas of " + s.B.Conf().Name, ""}, {'i', "", ""}}
@@ -251,6 +264,7 @@ func (s *Server) messages(c io.Writer, a *store.Area, after int64) {
 	s.menu(c, items)
 }
 
+// message sends a message, its headers first, if its area is shown.
 func (s *Server) message(c io.Writer, id int64) {
 	if id < 1 {
 		notFound(s, c)
@@ -268,6 +282,8 @@ func (s *Server) message(c io.Writer, id int64) {
 	text(c, out)
 }
 
+// fileAreas sends the menu of every file area (all of them: download
+// requirements are not looked at).
 func (s *Server) fileAreas(c io.Writer) {
 	if s.B.Files == nil {
 		notFound(s, c)
@@ -294,6 +310,7 @@ func kind(name string) byte {
 	return '9'
 }
 
+// files sends the menu of a file area's files, each typed by its name.
 func (s *Server) files(c io.Writer, id int64) {
 	if s.B.Files == nil || id < 1 {
 		notFound(s, c)
@@ -316,6 +333,8 @@ func (s *Server) files(c io.Writer, id int64) {
 	s.menu(c, items)
 }
 
+// download sends a file's bytes as they are, counting a download if all of
+// it went.
 func (s *Server) download(c io.Writer, id int64) {
 	if s.B.Files == nil || id < 1 {
 		notFound(s, c)

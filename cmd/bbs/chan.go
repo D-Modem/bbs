@@ -31,6 +31,8 @@ func chanCmd(cfg *server.Config, args []string) {
 	}
 }
 
+// chanBoardCmd lists the image boards, or adds, sets a key of, or deletes one
+// (its posts and images with it).
 func chanBoardCmd(cfg *server.Config, args []string) {
 	words, flags := split(args)
 	if len(words) == 0 {
@@ -229,6 +231,9 @@ func setBoard(b *store.Board, key, val string) error {
 	return err
 }
 
+// chanBanCmd lists the image boards' bans, adds one (an address or a range
+// ending in . or :, for 0 (for ever) to 3650 days, on a board or all), or
+// lifts one.
 func chanBanCmd(cfg *server.Config, args []string) {
 	if len(args) == 0 {
 		usage()

@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// nullString is s, or NULL for "" (so that a unique column may be unset in
+// many rows).
 func nullString(s string) any {
 	if s == "" {
 		return nil

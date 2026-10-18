@@ -67,6 +67,7 @@ type Scheduler struct {
 	now     func() time.Time
 }
 
+// clock is the time now (a test's own clock, if it has set one).
 func (s *Scheduler) clock() time.Time {
 	if s.now != nil {
 		return s.now()

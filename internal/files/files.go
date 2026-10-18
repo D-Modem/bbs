@@ -54,6 +54,7 @@ func Open(db *store.Store, dir string, maxSize, quota int64) (*Store, error) {
 		uploading: map[int64]int64{}}, nil
 }
 
+// path is where file id's contents are kept.
 func (s *Store) path(id int64) string {
 	return filepath.Join(s.Dir, strconv.FormatInt(id, 10))
 }
@@ -187,6 +188,8 @@ func (up *Upload) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// finish ends the upload: it is done, and its bytes no longer count as the
+// user's under way.
 func (up *Upload) finish() {
 	up.done = true
 	up.s.mu.Lock()

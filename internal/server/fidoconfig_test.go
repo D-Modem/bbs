@@ -10,6 +10,9 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/archive"
 )
 
+// TestFidoConfig: [fido], [binkp] and [link NAME] sections with their
+// defaults and warnings, and bad addresses, packers, passwords and links
+// refused.
 func TestFidoConfig(t *testing.T) {
 	load := func(body string) (*Config, error) {
 		p := filepath.Join(t.TempDir(), "bbs.conf")

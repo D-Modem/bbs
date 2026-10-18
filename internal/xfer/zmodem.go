@@ -146,6 +146,7 @@ type header struct {
 	p   [4]byte
 }
 
+// posHeader is a header of type typ carrying a file position.
 func posHeader(typ byte, pos int64) header {
 	var h header
 	h.typ = typ
@@ -153,6 +154,7 @@ func posHeader(typ byte, pos int64) header {
 	return h
 }
 
+// pos is the file position the header carries.
 func (h header) pos() int64 { return int64(binary.LittleEndian.Uint32(h.p[:])) }
 
 const hexdigits = "0123456789abcdef"
@@ -413,6 +415,9 @@ type seeker interface {
 	io.Seeker
 }
 
+// sendFile offers a file by ZFILE (its name, size, time and the files left)
+// and sends it from where the receiver asks, going back on a ZRPOS (which
+// needs f.Data to seek); nil when the receiver has it or skips it.
 func (z *zline) sendFile(f Outgoing, left int) error {
 	info := fmt.Sprintf("%d %o 0 0 %d", f.Size, f.ModTime.Unix(), left)
 	meta := append(append([]byte(f.Name), 0), info...)

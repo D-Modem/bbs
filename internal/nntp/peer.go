@@ -47,6 +47,8 @@ type client struct {
 	w *bufio.Writer
 }
 
+// tlsConfig is TLS to the peer: its certificate checked for its host, by
+// CAFile's certificates if it has one, else the system's.
 func (p *Peer) tlsConfig() (*tls.Config, error) {
 	host, _, _ := net.SplitHostPort(p.Address)
 	cfg := &tls.Config{ServerName: host, MinVersion: tls.VersionTLS12}
@@ -132,11 +134,14 @@ func (p *Peer) dial(reader bool) (*client, error) {
 	return cl, nil
 }
 
+// close says QUIT and hangs up.
 func (cl *client) close() {
 	cl.cmd("QUIT")
 	cl.c.Close()
 }
 
+// response reads a response line: its code and the rest.  A line too long or
+// with no number for a code is an error.
 func (cl *client) response() (int, string, error) {
 	cl.c.SetReadDeadline(time.Now().Add(peerTimeout))
 	defer cl.c.SetReadDeadline(time.Time{})
@@ -156,6 +161,7 @@ func (cl *client) response() (int, string, error) {
 	return n, msg, nil
 }
 
+// cmd sends a command line and reads its response.
 func (cl *client) cmd(line string) (int, string, error) {
 	cl.c.SetWriteDeadline(time.Now().Add(peerTimeout))
 	if _, err := cl.w.WriteString(line + "\r\n"); err != nil {

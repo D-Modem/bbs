@@ -29,6 +29,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// init makes passwords cheap to hash, for quick tests.
 func init() { store.BcryptCost = 4 }
 
 type env struct {
@@ -37,6 +38,8 @@ type env struct {
 	log  *bytes.Buffer
 }
 
+// freePort is a local address with a port free just now (it may be taken by
+// the time it is used).
 func freePort(t *testing.T) string {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -63,6 +66,11 @@ func selfSigned(t *testing.T, dir string) (string, string) {
 	return cert, keyf
 }
 
+// start is an FTP server on a new BBS, running until the test ends: alice,
+// bob and a sysop; areas Uploads and Official (the sysop's to upload to);
+// uploads of up to 1 MB; settings changed by tweak, if given, with a
+// certificate made for TLS.  It returns once the server has answered and
+// counted out its probe.
 func start(t *testing.T, tweak func(*Settings)) *env {
 	t.Helper()
 	dir := t.TempDir()
@@ -134,6 +142,8 @@ func start(t *testing.T, tweak func(*Settings)) *env {
 	return &env{addr: set.Address, b: b, log: &logbuf}
 }
 
+// login dials the server and logs in, failing the test if either fails; the
+// connection quits when the test ends.
 func (e *env) login(t *testing.T, user, pass string, opts ...client.DialOption) *client.ServerConn {
 	t.Helper()
 	opts = append(opts, client.DialWithTimeout(5*time.Second))
@@ -148,6 +158,7 @@ func (e *env) login(t *testing.T, user, pass string, opts ...client.DialOption) 
 	return c
 }
 
+// names is a directory's entries' names, comma separated.
 func names(t *testing.T, c *client.ServerConn, dir string) string {
 	t.Helper()
 	list, err := c.List(dir)
@@ -161,6 +172,9 @@ func names(t *testing.T, c *client.ServerConn, dir string) string {
 	return strings.Join(n, ",")
 }
 
+// TestUploadDownload: / lists the areas and /qwk; a file uploaded is listed,
+// downloads as it went up, has its size by a relative path, and is recorded
+// as alice's and downloaded once.
 func TestUploadDownload(t *testing.T) {
 	e := start(t, nil)
 	c := e.login(t, "alice", "alicepass1")
@@ -197,6 +211,10 @@ func TestUploadDownload(t *testing.T) {
 	}
 }
 
+// TestDenied: no overwriting, uploads outside an area or into one not open
+// to the user, bad names, directories made or removed, renames, appends,
+// resumes, paths too deep or out of the areas; nothing of the server's own
+// files; and only a file's uploader deletes it.
 func TestDenied(t *testing.T) {
 	e := start(t, nil)
 	c := e.login(t, "alice", "alicepass1")
@@ -238,6 +256,8 @@ func TestDenied(t *testing.T) {
 	}
 }
 
+// TestBadLogin: a wrong password is refused and logged; anonymous is refused
+// while it is off.
 func TestBadLogin(t *testing.T) {
 	e := start(t, nil)
 	c, err := client.Dial(e.addr, client.DialWithTimeout(5*time.Second))
@@ -258,6 +278,8 @@ func TestBadLogin(t *testing.T) {
 	}
 }
 
+// TestAnonymous: anonymous, when on, downloads but neither uploads nor
+// deletes.
 func TestAnonymous(t *testing.T) {
 	e := start(t, func(s *Settings) { s.Anonymous = true })
 	up := e.login(t, "alice", "alicepass1")
@@ -276,6 +298,8 @@ func TestAnonymous(t *testing.T) {
 	}
 }
 
+// TestTLSRequired: with TLS required a login in the clear is refused, and
+// over explicit TLS one logs in and transfers.
 func TestTLSRequired(t *testing.T) {
 	e := start(t, func(s *Settings) { s.TLS = TLSRequired })
 	// in the clear: refused before the password
@@ -304,6 +328,7 @@ func TestTLSRequired(t *testing.T) {
 	}
 }
 
+// TestTooLarge: an upload over the size limit is refused and not kept.
 func TestTooLarge(t *testing.T) {
 	e := start(t, nil)
 	c := e.login(t, "alice", "alicepass1")
@@ -315,6 +340,8 @@ func TestTooLarge(t *testing.T) {
 	}
 }
 
+// TestPerIPLimit: a second connection from an address at its limit is turned
+// away.
 func TestPerIPLimit(t *testing.T) {
 	e := start(t, func(s *Settings) { s.MaxPerIP = 1 })
 	e.login(t, "alice", "alicepass1")
@@ -328,6 +355,9 @@ func TestPerIPLimit(t *testing.T) {
 	}
 }
 
+// TestQWK: /qwk holds the user's packet, whose messages count as read once
+// it is downloaded; a REP put there posts its replies, and nothing else may
+// be; anonymous callers have no /qwk.
 func TestQWK(t *testing.T) {
 	e := start(t, nil)
 	gen, _ := e.b.Store.CreateArea("General", "", false)

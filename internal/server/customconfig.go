@@ -91,6 +91,7 @@ func (c *Config) customSections(cf *config.File) error {
 	return nil
 }
 
+// stringKeys is the names of the strings [strings] may set, sorted.
 func stringKeys() []string {
 	var out []string
 	for k := range bbs.Strings {
@@ -100,6 +101,8 @@ func stringKeys() []string {
 	return out
 }
 
+// menu reads a [menu NAME] (its name lower-cased): its title, screen,
+// prompt, requirement and items, at least one, no key twice.
 func menu(s *config.Section) (*bbs.Menu, error) {
 	name := strings.ToLower(s.Name)
 	if name == "" {

@@ -14,6 +14,9 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/view"
 )
 
+// maintenanceMenu is Maintenance: disk space, what message areas keep and
+// whether old messages go at the save, the image boards' archive, and
+// backups (one now, those made, the [backup] keys).
 func (e *Editor) maintenanceMenu() page {
 	return page{title: "Maintenance", items: func() []item {
 		out := []item{
@@ -117,6 +120,8 @@ func (e *Editor) retentionPage() page {
 	}}
 }
 
+// areaKeepPage is a message area's keeping: its newest N and its days, set
+// on a's copy (made so at the save).
 func (e *Editor) areaKeepPage(a *store.Area) page {
 	return page{title: "Area " + a.Name, items: func() []item {
 		w := e.db.areasWas[a.ID]
@@ -224,6 +229,8 @@ func du(path string) (int64, int, error) {
 	return size, n, err
 }
 
+// errText is err in a word for the disk space screen: "not there" for a
+// path that is not.
 func errText(err error) string {
 	if os.IsNotExist(err) {
 		return "not there"
@@ -231,6 +238,7 @@ func errText(err error) string {
 	return err.Error()
 }
 
+// bytesText is n bytes in GB, MB or KB to a tenth, or bytes.
 func bytesText(n int64) string {
 	switch {
 	case n >= 1<<30:

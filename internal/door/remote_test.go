@@ -93,6 +93,9 @@ func visit(t *testing.T, d *Door, want string) Result {
 	return Result{}
 }
 
+// TestTelnetDoor: a telnet door's negotiation is answered (terminal type,
+// window size, echo, an unknown option refused), and IACs in the text come
+// through single.
 func TestTelnetDoor(t *testing.T) {
 	answers := make(chan string, 1)
 	addr := listen(t, func(c net.Conn) {
@@ -158,6 +161,9 @@ func rloginServer(t *testing.T, want string) (string, chan string) {
 	return addr, got
 }
 
+// TestRLoginDoor: an RLogin door is sent the caller's name, the server user
+// filled in and the terminal and speed; a server that does not answer with a
+// zero byte refuses the caller.
 func TestRLoginDoor(t *testing.T) {
 	addr, got := rloginServer(t, "\x00Alice Smith\x00guest-7\x00ansi/38400\x00")
 	d := &Door{Name: "rl", Charset: Raw, Remote: &Remote{Kind: KindRLogin, Address: addr, ServerUser: "guest-{userid}"}}
@@ -174,6 +180,8 @@ func TestRLoginDoor(t *testing.T) {
 	}
 }
 
+// TestBBSLinkDoor: BBSLink's token and auth are asked with the hashed codes
+// it wants before its telnet server is joined; a wrong code is refused.
 func TestBBSLinkDoor(t *testing.T) {
 	md5hex := func(s string) string { sum := md5.Sum([]byte(s)); return hex.EncodeToString(sum[:]) }
 	var key string
@@ -256,6 +264,9 @@ func sshTunnel(t *testing.T) (addr, fingerprint string) {
 	return addr, ssh.FingerprintSHA256(signer.PublicKey())
 }
 
+// TestDoorPartyDoor: a DoorParty door is reached by RLogin through an SSH
+// tunnel, the server user tagged with the BBS's tag; a wrong password or host
+// key keeps it closed.
 func TestDoorPartyDoor(t *testing.T) {
 	sshAddr, fp := sshTunnel(t)
 	rl, got := rloginServer(t, "\x00Alice Smith\x00[XB]Alice Smith\x00lord/38400\x00")

@@ -45,8 +45,13 @@ func (s *Server) originPatterns() []string {
 	return nil
 }
 
+// terminalOn says whether the web terminal is served: set, and a way to
+// run it given.
 func (s *Server) terminalOn() bool { return s.Terminal != nil && s.S.Terminal }
 
+// pageHeaders are the terminal page's: a Content-Security-Policy letting
+// it load only its own files and open WebSockets only to its own host, and
+// no framing or referrer.
 func pageHeaders(w http.ResponseWriter, r *http.Request) {
 	h := w.Header()
 	// scripts only from here; xterm.js sets styles of its own
@@ -58,12 +63,15 @@ func pageHeaders(w http.ResponseWriter, r *http.Request) {
 	h.Set("X-Frame-Options", "DENY")
 }
 
+// terminalPage is the web terminal's page, with the BBS's name.
 func (s *Server) terminalPage(w http.ResponseWriter, r *http.Request) {
 	pageHeaders(w, r)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	page.Execute(w, struct{ Name string }{s.B.Conf().Name})
 }
 
+// terminalAsset is one of the page's embedded files (webAssets); 404 for
+// any other.
 func (s *Server) terminalAsset(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("file")
 	typ, ok := webAssets[name]

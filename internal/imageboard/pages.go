@@ -106,11 +106,14 @@ type links struct {
 	boards map[string]bool
 }
 
+// thread is the thread post no of this board is in.
 func (l *links) thread(no int64) (int64, bool) {
 	t, ok := l.local[no]
 	return t, ok
 }
 
+// cross is the thread post no of board dir is in; for no 0, whether the
+// board is there.
 func (l *links) cross(dir string, no int64) (int64, bool) {
 	if no == 0 {
 		return 0, l.boards[dir]
@@ -386,6 +389,9 @@ type formView struct {
 	VideoRule string // what videos may be: "Videos may be up to 2:00 long, without sound."
 }
 
+// form is the post form for board b, replying to op (nil: a new thread):
+// whether the caller may post and why not, the name they used last, a
+// quote asked for, the files taken, and a captcha if they need one.
 func (q *req) form(b *store.Board, op *store.BoardPost) formView {
 	f := formView{Reply: op, MaxFile: q.s.maxFile(b), Capcode: q.staff(b), CanPost: true}
 	if c, err := q.r.Cookie(nameCookie); err == nil {

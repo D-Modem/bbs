@@ -11,8 +11,11 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// init makes bcrypt cheap, for the tests' speed.
 func init() { store.BcryptCost = 4 }
 
+// setup is file storage in a temporary directory with the limits given, a
+// user, a sysop and an area anyone may upload to.
 func setup(t *testing.T, max, quota int64) (*Store, *store.User, *store.User, *store.FileArea) {
 	t.Helper()
 	dir := t.TempDir()
@@ -34,6 +37,8 @@ func setup(t *testing.T, max, quota int64) (*Store, *store.User, *store.User, *s
 	return s, alice, sysop, a
 }
 
+// put uploads data as name, described "a file", aborting the upload if the
+// write fails.
 func put(s *Store, u *store.User, a *store.FileArea, name string, data []byte) (*store.File, error) {
 	up, err := s.Upload(u, a, name, "a file")
 	if err != nil {
@@ -46,6 +51,9 @@ func put(s *Store, u *store.User, a *store.FileArea, name string, data []byte) (
 	return up.Commit()
 }
 
+// TestValidName: plain names pass; empty, hidden, option-like, path, trailing
+// dot or space, control, non-ASCII, shell or Windows characters and over-long
+// names do not.
 func TestValidName(t *testing.T) {
 	for _, ok := range []string{"a", "README.TXT", "game v1.2 (dos).zip", "x_y-z+[1]"} {
 		if msg := ValidName(ok); msg != "" {
@@ -60,6 +68,9 @@ func TestValidName(t *testing.T) {
 	}
 }
 
+// TestUploadAndDelete: a file is kept by its ID, hashed, with nothing left
+// in tmp; a name taken in another case is ErrExists; only its uploader or a
+// sysop deletes it, and its contents go with it.
 func TestUploadAndDelete(t *testing.T) {
 	s, alice, sysop, a := setup(t, 1<<20, 0)
 	f, err := put(s, alice, a, "hello.txt", []byte("hello\n"))
@@ -92,6 +103,9 @@ func TestUploadAndDelete(t *testing.T) {
 	}
 }
 
+// TestLimits: a file past the most size is ErrTooLarge, past the day's quota
+// ErrQuota (and a quota used up refuses an upload at once); sysops have
+// none; a failed upload leaves nothing behind.
 func TestLimits(t *testing.T) {
 	s, alice, sysop, a := setup(t, 10, 15)
 	if _, err := put(s, alice, a, "big", make([]byte, 11)); !errors.Is(err, ErrTooLarge) {
@@ -120,6 +134,8 @@ func TestLimits(t *testing.T) {
 	}
 }
 
+// TestSysopUploadArea: only a sysop uploads to a sysops' area, and a locked
+// user uploads nowhere.
 func TestSysopUploadArea(t *testing.T) {
 	s, alice, sysop, _ := setup(t, 100, 0)
 	a, _ := s.DB.CreateFileArea("Official", "", true)
@@ -136,6 +152,7 @@ func TestSysopUploadArea(t *testing.T) {
 	}
 }
 
+// TestStaleUploadsCleared: Open removes what an upload cut short left in tmp.
 func TestStaleUploadsCleared(t *testing.T) {
 	s, _, _, _ := setup(t, 100, 0)
 	stale := filepath.Join(s.Dir, "tmp", "up-123")

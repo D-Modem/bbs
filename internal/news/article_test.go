@@ -19,6 +19,9 @@ const sample = "Path: a.example!b.example!not-for-mail\r\n" +
 	"Gr=FC=DFe\r\n" +
 	".dot line\r\n"
 
+// TestParse: an article parses, checks, and decodes: encoded words in its From
+// and Subject (a folded line too), quoted-printable Latin-1 text, its Path and
+// Newsgroups; written again it reads back the same.
 func TestParse(t *testing.T) {
 	a, err := Parse([]byte(sample), 1<<20)
 	if err != nil {
@@ -49,6 +52,9 @@ func TestParse(t *testing.T) {
 	}
 }
 
+// TestCheck: an article with no From, a bad Message-ID, Date or group, a
+// control message or another Message-ID than expected is refused, and too many
+// header fields or too many bytes do not parse.
 func TestCheck(t *testing.T) {
 	base := func() *Article { a, _ := Parse([]byte(sample), 1<<20); return a }
 	for what, f := range map[string]func(*Article){
@@ -73,6 +79,8 @@ func TestCheck(t *testing.T) {
 	}
 }
 
+// TestNew: a new local article has a valid Message-ID, checks, and reads back
+// with its poster, subject and text in UTF-8, its Path, References and Date.
 func TestNew(t *testing.T) {
 	id := NewMessageID("bbs.example")
 	if !ValidMessageID(id) {
@@ -99,6 +107,8 @@ func TestNew(t *testing.T) {
 	}
 }
 
+// TestMultipart: a multipart article's text is its first text/plain part,
+// base64 over lines decoded.
 func TestMultipart(t *testing.T) {
 	raw := "From: x@y.z\r\nNewsgroups: a.b\r\nSubject: s\r\nDate: Sat, 10 Oct 2026 12:00:00 +0000\r\n" +
 		"Message-ID: <m@y.z>\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=XX\r\n\r\n" +
@@ -113,6 +123,9 @@ func TestMultipart(t *testing.T) {
 	}
 }
 
+// TestWildmat: wildmats match with *, ? and negation (the last pattern to match
+// decides), a pattern that would backtrack hard does not hang, and group names
+// are checked.
 func TestWildmat(t *testing.T) {
 	cases := []struct {
 		p, s string

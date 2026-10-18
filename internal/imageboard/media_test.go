@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// testFile is the contents of testdata/name.
 func testFile(t *testing.T, name string) []byte {
 	t.Helper()
 	b, err := os.ReadFile(filepath.Join("testdata", name))

@@ -36,6 +36,8 @@ type sessions struct {
 	m  map[string]int64
 }
 
+// Login signs in by the BBS's own password check, keeping a new random
+// secret for the user.
 func (s *sessions) Login(r *http.Request, name, pw string) (string, *store.User, error) {
 	u, err := s.b.Authenticate("chan", "test", name, pw)
 	if err != nil {
@@ -50,6 +52,7 @@ func (s *sessions) Login(r *http.Request, name, pw string) (string, *store.User,
 	return secret, u, nil
 }
 
+// User is the secret's user, nil if it is not kept.
 func (s *sessions) User(secret string) *store.User {
 	s.mu.Lock()
 	id, ok := s.m[secret]
@@ -61,6 +64,7 @@ func (s *sessions) User(secret string) *store.User {
 	return u
 }
 
+// Logout forgets the secret.
 func (s *sessions) Logout(secret string) {
 	s.mu.Lock()
 	delete(s.m, secret)
@@ -76,6 +80,8 @@ type site struct {
 	log *bytes.Buffer
 }
 
+// setup is a site to test on: a BBS with a sysop, a user mia and board b,
+// its image boards served (no captchas, no waits between posts).
 func setup(t *testing.T) *site {
 	t.Helper()
 	store.BcryptCost = 4
@@ -118,6 +124,8 @@ type browser struct {
 	tok string
 }
 
+// browser is a new browser of the site: its own cookies, and redirects not
+// followed.
 func (s *site) browser() *browser {
 	jar, _ := cookiejar.New(nil)
 	return &browser{s: s, c: &http.Client{Jar: jar, CheckRedirect: func(*http.Request, []*http.Request) error {
@@ -142,6 +150,8 @@ func (br *browser) get(path string) (int, string, string) {
 	return resp.StatusCode, resp.Header.Get("Location"), string(b)
 }
 
+// postForm posts a form (with the last page's token if it has none): its
+// status, where it sends on to, and its body.
 func (br *browser) postForm(path string, v url.Values) (int, string, string) {
 	br.s.t.Helper()
 	if v.Get("tok") == "" {
@@ -200,6 +210,8 @@ func pngOf(w, h int, c color.RGBA) []byte {
 	return b.Bytes()
 }
 
+// jpegWithExif is a 40 by 30 JPEG with an APP1 Exif segment that says
+// GPS-SECRET-PLACE.
 func jpegWithExif() []byte {
 	img := image.NewRGBA(image.Rect(0, 0, 40, 30))
 	var b bytes.Buffer
@@ -210,6 +222,10 @@ func jpegWithExif() []byte {
 	return append(append(append([]byte{}, j[:2]...), seg...), j[2:]...)
 }
 
+// TestImageBoard: a board end to end: threads and replies (with images,
+// quotes, sage, flood control, duplicates and EXIF taken out), the
+// pages, files and 4chan JSON, deleting by password, reports, and staff
+// closing, sticking, posting as staff and banning.
 func TestImageBoard(t *testing.T) {
 	s := setup(t)
 	anon := s.browser()
@@ -439,13 +455,17 @@ func TestImageBoard(t *testing.T) {
 	}
 }
 
+// itoa is n in decimal.
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
 
+// otherTok is br's form token, from a fresh load of board b's index.
 func otherTok(br *browser) string {
 	br.get("/chan/b/")
 	return br.tok
 }
 
+// getJSON decodes u's JSON into v, failing the test unless it answers 200
+// as application/json.
 func getJSON(t *testing.T, u string, v any) {
 	t.Helper()
 	resp, err := http.Get(u)

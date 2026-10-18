@@ -121,6 +121,7 @@ type bitReader struct {
 	err bool
 }
 
+// bits is the next n bits as a number; past the end, 0 and r.err set.
 func (r *bitReader) bits(n int) uint64 {
 	var v uint64
 	for ; n > 0; n-- {
@@ -134,6 +135,7 @@ func (r *bitReader) bits(n int) uint64 {
 	return v
 }
 
+// signed is the next n bits as a two's complement number.
 func (r *bitReader) signed(n int) int64 {
 	if n == 0 {
 		return 0
@@ -145,6 +147,7 @@ func (r *bitReader) signed(n int) int64 {
 	return v
 }
 
+// byteOffset is the byte after the bits read (a part byte counted whole).
 func (r *bitReader) byteOffset() int { return (r.pos + 7) / 8 }
 
 // ---- FLV ----
@@ -235,6 +238,7 @@ type amf struct {
 	bad bool
 }
 
+// take is the next n bytes; past the end (or n < 0), nil and r.bad set.
 func (r *amf) take(n int) []byte {
 	if r.bad || n < 0 || r.i+n > len(r.b) {
 		r.bad = true
@@ -245,6 +249,7 @@ func (r *amf) take(n int) []byte {
 	return s
 }
 
+// str is an AMF string: a 16-bit length (32-bit if long) and its bytes.
 func (r *amf) str(long bool) string {
 	n := 2
 	if long {
@@ -419,6 +424,7 @@ type bitWriter struct {
 	n   int
 }
 
+// put writes v's low n bits, most significant first.
 func (b *bitWriter) put(v uint64, n int) {
 	for i := n - 1; i >= 0; i-- {
 		b.cur = b.cur<<1 | byte(v>>i&1)
@@ -429,6 +435,7 @@ func (b *bitWriter) put(v uint64, n int) {
 	}
 }
 
+// flush writes a part byte left, padded with zero bits.
 func (b *bitWriter) flush() {
 	if b.n > 0 {
 		b.w.WriteByte(b.cur << (8 - b.n))
@@ -482,6 +489,9 @@ const flashPage = `<!doctype html>
 </head><body><div id="player"></div></body></html>
 `
 
+// serveFlashPage serves flashPage, framed by our own pages alone, under a
+// CSP that sandboxes it and lets Ruffle's wasm run; not found without
+// [chan] ruffle.
 func (s *Server) serveFlashPage(q *req) {
 	if s.conf().Ruffle == "" {
 		q.notFound()

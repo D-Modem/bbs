@@ -147,6 +147,7 @@ func (f *Fido) Subscribe(l *Link, kind string, on bool, patterns []string) ([]st
 	return out, nil
 }
 
+// kindWord is a kind as its replies call it: "echo" or "file echo".
 func kindWord(kind string) string {
 	if kind == FileEchos {
 		return "file echo"
@@ -258,6 +259,7 @@ func (f *Fido) fixRequest(orig ftn.Addr, from, robot, subject string, lines []st
 	return reply(out)
 }
 
+// fixHelp is the robot's help for a kind, the reply to %HELP.
 func fixHelp(kind string) []string {
 	w := kindWord(kind)
 	return []string{

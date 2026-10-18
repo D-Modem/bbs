@@ -7,6 +7,9 @@ import (
 	"testing"
 )
 
+// TestPermanentRooms: a permanent room is open with no one in it, keeps its
+// topic (set by a sysop only) across a restart, and goes with its last caller
+// once no longer permanent.
 func TestPermanentRooms(t *testing.T) {
 	b, ns := chatBBS(t)
 	alice, sysop := ns["alice"], ns["sysop"]

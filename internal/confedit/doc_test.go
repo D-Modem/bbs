@@ -28,6 +28,7 @@ type = telnet
 address = :2300
 `
 
+// parse is s parsed, or the test failed.
 func parse(t *testing.T, s string) *Doc {
 	t.Helper()
 	d, err := Parse([]byte(s))
@@ -37,6 +38,8 @@ func parse(t *testing.T, s string) *Doc {
 	return d
 }
 
+// TestRoundTrip: a file, and the sample, parsed and written again are what
+// they were, byte for byte.
 func TestRoundTrip(t *testing.T) {
 	d := parse(t, file)
 	if got := string(d.Bytes()); got != file {
@@ -48,6 +51,9 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
+// TestSet: a key there is changed in its place; a new one goes below its
+// commented example, else below the section's last key; a commented-out
+// section is made where it is, a new one at the end; the BBS reads it back.
 func TestSet(t *testing.T) {
 	d := parse(t, file)
 	g := Section{Kind: "general"}
@@ -114,6 +120,9 @@ type = ssh
 	}
 }
 
+// TestUnsetRemoveRename: a key unset is commented out, and set again goes
+// below it; a section renamed, removed (commented out, keys and all) and
+// had back has its old keys as examples; a section is not made twice.
 func TestUnsetRemoveRename(t *testing.T) {
 	d := parse(t, file)
 	g := Section{Kind: "general"}
@@ -158,6 +167,8 @@ func TestUnsetRemoveRename(t *testing.T) {
 	}
 }
 
+// TestQuote: a value quoted reads back as it was, and a plain one is not
+// quoted.
 func TestQuote(t *testing.T) {
 	for _, v := range []string{"", "plain", " spaced ", `"quoted"`, "a\tb\r\n\x1b[1m\x01", `back\slash`, `"half`} {
 		q := Quote(v)
@@ -171,6 +182,8 @@ func TestQuote(t *testing.T) {
 	}
 }
 
+// TestDiff: what changed between two files, in order, and whether each
+// change takes effect at a reload.
 func TestDiff(t *testing.T) {
 	a := parse(t, file)
 	b := parse(t, file)
@@ -191,6 +204,8 @@ func TestDiff(t *testing.T) {
 	}
 }
 
+// TestBadInput: a file with a key given twice, a key with a space, and a
+// section's name with a ] are refused.
 func TestBadInput(t *testing.T) {
 	if _, err := Parse([]byte("[general]\nname = a\nname = b\n")); err == nil {
 		t.Error("parsed a key given twice")
@@ -204,6 +219,9 @@ func TestBadInput(t *testing.T) {
 	}
 }
 
+// TestCatalog: the catalog read from the sample has keys' help, examples and
+// defaults, menu items as the sysop's own keys, named kinds, help for every
+// kind, and which keys are live.
 func TestCatalog(t *testing.T) {
 	c := NewCatalog(bbssec.Sample)
 	k := c.Key("general", "idle_timeout")

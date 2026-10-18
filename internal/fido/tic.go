@@ -312,6 +312,8 @@ func (f *Fido) sendTIC(l *Link, t *ftn.TIC, file string) error {
 	}
 }
 
+// copyFile copies a file to a new one, never over one there; a copy that fails
+// is removed.
 func copyFile(from, to string) error {
 	in, err := os.Open(from)
 	if err != nil {
@@ -406,6 +408,7 @@ func (f *Fido) hatch(l *Link) (int, error) {
 	return n, nil
 }
 
+// isTIC reports whether a file's name is a TIC's (.tic, any case).
 func isTIC(name string) bool { return strings.HasSuffix(strings.ToLower(name), ".tic") }
 
 // ticNames are the files (lower case) the TICs in an inbound name: not

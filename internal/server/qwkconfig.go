@@ -34,6 +34,8 @@ func (c *Config) qwkNets(cf *config.File) error {
 	return nil
 }
 
+// qwkNet reads a [qwknet NAME] (its name lower-cased): the hub's FTP server
+// and account, and its conferences (CONFERENCE = AREA), an area one each.
 func qwkNet(s *config.Section) (*qwknet.Net, error) {
 	name := strings.ToLower(s.Name)
 	if name == "" || strings.ContainsAny(name, " /:") {

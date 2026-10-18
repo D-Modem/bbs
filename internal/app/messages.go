@@ -110,6 +110,9 @@ func (s *Session) areas() error {
 	}
 }
 
+// addArea makes a message area from a sysop's form: its name, description, and
+// whether only the sysop posts. A form left or a blank name adds nothing; one
+// the store refuses is said, not returned.
 func (s *Session) addArea() error {
 	v, ok, err := s.UI.Form(&view.Form{Title: "New area", Submit: "Add", Fields: []view.Field{
 		{Name: "name", Label: "Name", Prompt: "Name of the new area: ", Width: 30},
@@ -622,6 +625,9 @@ func (s *Session) mail() error {
 	}
 }
 
+// readMail reads the inbox from its i'th on, each marked read as shown: next
+// and previous, a reply, and a delete, which goes back to the inbox (as does
+// next at the last).
 func (s *Session) readMail(inbox []*store.Message, i int) error {
 	for {
 		m := inbox[i]

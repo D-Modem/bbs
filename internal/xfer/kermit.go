@@ -25,9 +25,14 @@ const (
 	kInitWait = 60 * time.Second // for the other side to begin
 )
 
+// tochar makes a number 0 to 94 a printable character, as Kermit sends it.
 func tochar(x int) byte { return byte(x + 32) }
+
+// unchar is the number a tochar character stands for.
 func unchar(b byte) int { return int(b) - 32 }
-func ctl(b byte) byte   { return b ^ 64 }
+
+// ctl toggles a control character to its printable form and back.
+func ctl(b byte) byte { return b ^ 64 }
 
 // kparams are a side's Send-Init parameters, and what was agreed.
 type kparams struct {
@@ -45,11 +50,15 @@ type kparams struct {
 var ourParams = kparams{maxl: kAskMaxl, time: 10, npad: 0, padc: 0, eol: 0x0d,
 	qctl: '#', qbin: 'Y', chkt: '3', rept: '~'}
 
+// encode is the parameters as a Send-Init's (or its ACK's) data.
 func (p kparams) encode() []byte {
 	return []byte{tochar(p.maxl), tochar(p.time), tochar(p.npad), ctl(p.padc), tochar(int(p.eol)),
 		p.qctl, p.qbin, p.chkt, p.rept}
 }
 
+// decodeParams are the other side's parameters from its Send-Init (or its
+// ACK), the book's defaults for those it leaves out; a maxl under 10 is
+// not taken, and one over kMaxl is kMaxl.
 func decodeParams(d []byte) kparams {
 	p := kparams{maxl: 80, time: 5, eol: 0x0d, qctl: '#', qbin: 'N', chkt: '1', rept: ' '}
 	get := func(i int) (byte, bool) {
@@ -128,6 +137,8 @@ func (k *kermit) agree(theirs kparams, asSender bool) {
 	k.pqctl = theirs.qctl
 }
 
+// isPrefix reports whether b may be a prefix character: printable, 33 to
+// 62 or 96 to 126.
 func isPrefix(b byte) bool { return (b > 32 && b < 63) || (b > 95 && b < 127) }
 
 // check computes a packet's block check over s.
@@ -167,6 +178,7 @@ func crcTable(b uint16) uint16 {
 	return crc
 }
 
+// checkLen is how many characters a block check of type chkt takes.
 func checkLen(chkt byte) int {
 	switch chkt {
 	case '2':
@@ -366,6 +378,8 @@ func (k *kermit) exchange(typ byte, data []byte, chkt byte) ([]byte, error) {
 	return nil, ErrRetries
 }
 
+// fail tells the other side the transfer is over, with an Error packet
+// saying why.
 func (k *kermit) fail(msg string) {
 	k.sendPacket('E', k.seq, []byte(msg), k.chkt)
 }
@@ -397,8 +411,13 @@ func SendKermit(p Port, files []Outgoing) error {
 	return err
 }
 
+// room is how much data a packet to the other side holds: its longest, less
+// the sequence, type and block check.
 func (k *kermit) room() int { return k.peer.maxl - 2 - checkLen(k.chkt) }
 
+// sendFile sends a file: its name, its size, its data and its end.  A file
+// the receiver refuses by its size, or stops by an X or Z in an ACK, is
+// ended as discarded (Z with D), and that is not an error.
 func (k *kermit) sendFile(f Outgoing) error {
 	name, _ := k.encode([]byte(f.Name), k.room())
 	if _, err := k.exchange('F', name, k.chkt); err != nil {

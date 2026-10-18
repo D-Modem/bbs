@@ -174,6 +174,9 @@ func (s *Server) Init() error {
 	return s.initErr
 }
 
+// init is Init's work, done once: the templates parsed, the directory
+// made, the secret loaded (or made), the static files and the spoiler
+// image readied.
 func (s *Server) init() error {
 	t, err := template.New("").Funcs(funcs).ParseFS(content, "templates/*.html")
 	if err != nil {
@@ -396,6 +399,8 @@ func (q *req) host() string {
 // its mods), or "".
 func (q *req) staff(b *store.Board) string { return StaffOf(q.user, b) }
 
+// isMod says whether name is among b's mods (a list split by commas or
+// spaces, matched without regard to case).
 func isMod(b *store.Board, name string) bool {
 	for _, m := range strings.FieldsFunc(b.Mods, func(r rune) bool { return r == ',' || r == ' ' }) {
 		if strings.EqualFold(m, name) {
@@ -476,6 +481,9 @@ type page struct {
 	GeoCredit, GeoCreditURL string
 }
 
+// render answers status with the template name, made over a page of
+// title, b (nil: no board's) and body; a template that fails is logged
+// and answered 500. It sets the posts' password cookie if there is none.
 func (q *req) render(status int, name, title string, b *store.Board, body any) {
 	q.ensurePass()
 	p := page{Title: title, BBS: q.s.B.Conf().Name, Board: b, User: q.user, Staff: q.staff(b), AnyStaff: q.anyStaff(),
@@ -546,6 +554,7 @@ func safeBack(p string) string {
 	return p
 }
 
+// redirect sends the caller on to "to" (303 See Other).
 func (q *req) redirect(to string) { http.Redirect(q.w, q.r, to, http.StatusSeeOther) }
 
 // fail shows an error, as 4chan's: what is wrong, and the way back.
@@ -553,6 +562,7 @@ func (q *req) fail(status int, msg string) {
 	q.render(status, "error.html", "Error", nil, map[string]any{"Message": msg, "Back": q.r.Referer()})
 }
 
+// notFound is fail's 404.
 func (q *req) notFound() {
 	q.fail(http.StatusNotFound, "There is nothing here: no such board, thread or page.")
 }
@@ -580,6 +590,8 @@ func (s *Server) login(q *req) {
 	q.redirect(back)
 }
 
+// logout signs the user out (the session ended only with the form's
+// token) and clears its cookie either way, then goes to the front page.
 func (s *Server) logout(q *req) {
 	q.r.ParseForm()
 	if q.secret != "" && q.checkToken() {
@@ -639,6 +651,7 @@ func (s *Server) srcPath(dir string, tim int64, ext string) string {
 	return filepath.Join(s.conf().Dir, dir, "src", strconv.FormatInt(tim, 10)+ext)
 }
 
+// thumbPath is where a post's thumbnail is kept.
 func (s *Server) thumbPath(dir string, tim int64) string {
 	return filepath.Join(s.conf().Dir, dir, "thumb", strconv.FormatInt(tim, 10)+"s.jpg")
 }

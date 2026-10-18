@@ -171,6 +171,8 @@ func NewCatalog(sample []byte) *Catalog {
 	return c
 }
 
+// header is the kind of section s is, made Named if s has a name, and given
+// the prose before the header as its help if it has none yet.
 func (c *Catalog) header(s Section, prose []string) *Kind {
 	k := c.kind(s.Kind)
 	if s.Name != "" {
@@ -182,6 +184,7 @@ func (c *Catalog) header(s Section, prose []string) *Kind {
 	return k
 }
 
+// kind is the kind of section name, made (and listed) if it is new.
 func (c *Catalog) kind(name string) *Kind {
 	if k := c.byName[name]; k != nil {
 		return k
@@ -192,6 +195,7 @@ func (c *Catalog) kind(name string) *Kind {
 	return k
 }
 
+// key is the kind's key name, made (and listed) if it is new.
 func (k *Kind) key(name string) *Key {
 	if x := k.byKey[name]; x != nil {
 		return x
@@ -202,6 +206,7 @@ func (k *Kind) key(name string) *Key {
 	return x
 }
 
+// example adds v to the key's examples, unless it is one already.
 func (x *Key) example(v string) {
 	for _, e := range x.Examples {
 		if e == v {
@@ -257,6 +262,7 @@ var liveKeys = map[string]map[string]bool{
 // kinds all of whose keys are live (but chan's dir)
 var liveKinds = set("level", "menu", "strings", "chan", "backup")
 
+// set is the set of ks.
 func set(ks ...string) map[string]bool {
 	m := map[string]bool{}
 	for _, k := range ks {

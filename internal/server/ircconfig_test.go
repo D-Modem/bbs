@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+// TestIRCConfig: [irc] with its defaults and the warning that it is in the
+// clear, none without it, and bad addresses, TLS, service and limits refused.
 func TestIRCConfig(t *testing.T) {
 	load := func(body string) (*Config, error) {
 		p := filepath.Join(t.TempDir(), "bbs.conf")

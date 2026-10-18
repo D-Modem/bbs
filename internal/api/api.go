@@ -127,10 +127,12 @@ type who struct {
 	scopes map[string]bool
 }
 
+// has says whether w's token has scope; nobody (a nil w) has none.
 func (w *who) has(scope string) bool { return w != nil && w.scopes[scope] }
 
 type ctxKey struct{}
 
+// whoOf is the request's caller as wrap found them: nil without a token.
 func whoOf(r *http.Request) *who {
 	w, _ := r.Context().Value(ctxKey{}).(*who)
 	return w
@@ -150,6 +152,7 @@ var codes = map[int]string{
 	http.StatusInternalServerError: "internal", http.StatusMethodNotAllowed: "bad_method",
 }
 
+// writeJSON answers status with v as JSON, its <, > and & left as they are.
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
@@ -158,6 +161,7 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	enc.Encode(v)
 }
 
+// fail answers status with an error's JSON: msg, and the status's code.
 func fail(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, apiError{Error: msg, Code: codes[status]})
 }
@@ -211,6 +215,8 @@ func (s *Server) allow(key string) bool {
 	return true
 }
 
+// hostOf is the request's address without its port (for a trusted proxy's
+// request, whom it is for: see realAddr); RemoteAddr as it is if it has none.
 func hostOf(r *http.Request) string {
 	h, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -266,6 +272,10 @@ type route struct {
 	h     func(http.ResponseWriter, *http.Request)
 }
 
+// wrap is rt's handler behind the API's checks: CORS, the rate limit (by
+// token, else by address), the token, and rt's scope or anonymous access.
+// A bad token is answered 401 after the BBS's FailDelay; a panic is logged
+// and answered 500.
 func (s *Server) wrap(rt route) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -379,6 +389,7 @@ func (s *Server) Handler() http.Handler {
 	return securityHeaders(s.realAddr(mux))
 }
 
+// securityHeaders is h with every answer nosniff and not to be cached.
 func securityHeaders(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -400,6 +411,9 @@ type limitConn struct {
 	once sync.Once
 }
 
+// Accept is the next connection the BBS does not refuse and whose address
+// has fewer than MaxPerIP open (a trusted proxy's are not counted); the
+// rest are closed unanswered.
 func (l *limitListener) Accept() (net.Conn, error) {
 	for {
 		c, err := l.Listener.Accept()
@@ -427,6 +441,7 @@ func (l *limitListener) Accept() (net.Conn, error) {
 	}
 }
 
+// Close closes the connection, counting it off its address's (once).
 func (c *limitConn) Close() error {
 	c.once.Do(func() {
 		c.s.mu.Lock()

@@ -13,6 +13,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/view"
 )
 
+// testPicture is a picture of w by h red pels.
 func testPicture(w, h int) *view.Picture {
 	return &view.Picture{Alt: "test.png", Load: func(maxW, maxH int) (image.Image, error) {
 		img := image.NewRGBA(image.Rect(0, 0, w, h))
@@ -25,6 +26,7 @@ func testPicture(w, h int) *view.Picture {
 	}}
 }
 
+// ansiTerm is an 80x24 ANSI terminal with UTF-8, writing to the bufConn.
 func ansiTerm() (*Term, *bufConn) {
 	c := &bufConn{}
 	t := NewTerm(c)
@@ -32,6 +34,8 @@ func ansiTerm() (*Term, *bufConn) {
 	return t, c
 }
 
+// TestPictureModes: a terminal's pictures by what it is (kitty's, sixel,
+// iTerm2's, blocks, none), and none when off, mono or not ANSI.
 func TestPictureModes(t *testing.T) {
 	for _, c := range []struct {
 		ident string
@@ -69,6 +73,9 @@ func TestPictureModes(t *testing.T) {
 	}
 }
 
+// TestShowPicture: each way a picture is sent, fitted to the rows given:
+// sixel, kitty's PNG in pieces, iTerm2's OSC 1337, half blocks in 256
+// colors; nothing at all where there are no pictures.
 func TestShowPicture(t *testing.T) {
 	// sixel: fitted to the room (cells of 10x20: 79 columns, 4 rows)
 	term, c := ansiTerm()
@@ -131,6 +138,7 @@ func TestShowPicture(t *testing.T) {
 	}
 }
 
+// TestColor256: colors to the nearest of xterm's 256.
 func TestColor256(t *testing.T) {
 	for c, want := range map[color.RGBA]int{
 		{0, 0, 0, 255}: 16, {255, 255, 255, 255}: 231, {255, 0, 0, 255}: 196,

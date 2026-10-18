@@ -10,6 +10,9 @@ import (
 	"time"
 )
 
+// TestAddr: addresses parse and write back (a point of 0 and the domain's case
+// dropped); a domain with a dot, a missing node, zone 0, bad numbers and junk
+// are refused.
 func TestAddr(t *testing.T) {
 	for in, want := range map[string]string{
 		"2:5020/1":            "2:5020/1",
@@ -37,6 +40,9 @@ func TestAddr(t *testing.T) {
 	}
 }
 
+// TestNet2D: SEEN-BY and PATH lists parse (the net carried on, points dropped,
+// junk skipped), and long ones are written in lines short enough that read back
+// the same.
 func TestNet2D(t *testing.T) {
 	got := ParseNet2D("5020/1 2 3 5030/4.1 x 10")
 	want := []Net2D{{5020, 1}, {5020, 2}, {5020, 3}, {5030, 4}, {5030, 10}}
@@ -61,6 +67,9 @@ func TestNet2D(t *testing.T) {
 	}
 }
 
+// TestPacket: a packet's header, echomail and netmail read back as written;
+// CP437 text and both date forms decode; a message too big is skipped and the
+// next read; a packet cut short or not one is an error.
 func TestPacket(t *testing.T) {
 	var b bytes.Buffer
 	h := &Header{Orig: Addr{Zone: 21, Net: 1, Node: 100, Point: 2}, Dest: Addr{Zone: 21, Net: 1, Node: 1},
@@ -128,6 +137,8 @@ func TestPacket(t *testing.T) {
 	}
 }
 
+// TestMSGID: a MSGID becomes a Message-ID and back; a Message-ID from elsewhere
+// gets a MSGID of ours; new MSGIDs differ.
 func TestMSGID(t *testing.T) {
 	a := Addr{Zone: 2, Net: 5020, Node: 1}
 	id := MessageID("2:5020/1@fidonet 1234abcd")
@@ -146,6 +157,8 @@ func TestMSGID(t *testing.T) {
 	}
 }
 
+// TestEncoder: text is written as CP437 (what it lacks as ?), and read by its
+// CHRS, or as UTF-8 or CP437 by the look of it when it has none.
 func TestEncoder(t *testing.T) {
 	if s := (Encoder{}).String("café ☃\x1b"); s != "caf\x82 ??" {
 		t.Fatalf("%q", s)

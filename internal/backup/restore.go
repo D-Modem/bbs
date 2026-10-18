@@ -191,6 +191,9 @@ func aside(p, stamp string, say func(string)) error {
 	return nil
 }
 
+// restoreDB puts the snapshot back as the database at addr: a SQLite file
+// (with its -wal and -shm) set aside and the snapshot copied in its place;
+// any other engine's, copied into, so it must be empty.
 func restoreDB(snap, addr, stamp string, say func(string)) error {
 	if store.IsFile(addr) {
 		p := strings.TrimPrefix(addr, "sqlite:")
@@ -222,6 +225,7 @@ func restoreDB(snap, addr, stamp string, say func(string)) error {
 	return nil
 }
 
+// copyFile copies src to dst, a file that must not be there yet (mode 0600).
 func copyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 
 // What only a text terminal does, for internal/app.
 
+// Kind is app.Text: a text terminal.
 func (s *session) Kind() string { return app.Text }
 
 // TerminalInfo: all there is to say of a text terminal is on the profile.
@@ -141,6 +142,10 @@ func (s *session) TerminalAction(id string) error {
 	return s.savePrefs(id)
 }
 
+// switchTerminal turns what id names on or off for this call: on a
+// Commodore only the width (40 or 80), on a VT52 nothing.  UTF-8 on ends
+// DEC graphics; ANSI off ends RIP; RIP and sixel go on only where the
+// terminal, asked, says it has them (and it is told if not).
 func (s *session) switchTerminal(id string) error {
 	t := s.t
 	if t.PETSCII != (id == "width") || t.VT52 {

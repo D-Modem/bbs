@@ -34,6 +34,7 @@ func startSSH(t *testing.T, tweak func(*bbs.Settings)) (*env, string, string) {
 	return e, addr, hk
 }
 
+// sshDial is an SSH client of addr as user, the host key not checked.
 func sshDial(t *testing.T, addr, user string, auth ...ssh.AuthMethod) (*ssh.Client, error) {
 	t.Helper()
 	return ssh.Dial("tcp", addr, &ssh.ClientConfig{User: user, Auth: auth,
@@ -277,6 +278,9 @@ func TestOpenSSH(t *testing.T) {
 	}
 }
 
+// TestSSHConfig: an ssh listener's defaults (host keys beside the
+// database), host_keys and legacy (a warning), and options not for ssh, or
+// only for it, refused.
 func TestSSHConfig(t *testing.T) {
 	load := func(body string) (*Config, error) {
 		dir := t.TempDir()

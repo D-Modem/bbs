@@ -188,8 +188,10 @@ func (s *Store) Close() error {
 	return err
 }
 
+// now is the time as the database keeps it: Unix seconds.
 func now() int64 { return time.Now().Unix() }
 
+// unix is a time the database kept; 0 is the zero time.
 func unix(t int64) time.Time {
 	if t == 0 {
 		return time.Time{}
@@ -207,6 +209,8 @@ const userCols = `id, name, password, location, sysop, locked, created, last_log
 	level, flags, time_day, time_used, dl_day, dl_count, prefs, downloads, about, alias, signature, qwk_node,
 	(SELECT COUNT(*) FROM files WHERE files.uploader_id = users.id)`
 
+// scanUser is the user in a row of userCols, and their password hash;
+// ErrNotFound if there is none.
 func scanUser(row interface{ Scan(...any) error }) (*User, string, error) {
 	var u User
 	var pw string
@@ -343,6 +347,8 @@ func (s *Store) Users() ([]*User, error) {
 	return out, rows.Err()
 }
 
+// exec1 runs a statement that should change a row: ErrNotFound if it
+// changed none.
 func (s *Store) exec1(q string, args ...any) error {
 	res, err := s.db.Exec(q, args...)
 	if err != nil {
@@ -379,6 +385,7 @@ const areaQuery = `SELECT a.id, a.name, a.description, a.sysop_only, COALESCE(a.
 	(SELECT COALESCE(MAX(m.id), 0) FROM messages m WHERE m.area_id = a.id)
 	FROM areas a`
 
+// scanArea is the area in a row of areaQuery; ErrNotFound if there is none.
 func scanArea(row interface{ Scan(...any) error }) (*Area, error) {
 	var a Area
 	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopOnly, &a.Newsgroup, &a.EchoTag, &a.ReadReq, &a.PostReq, &a.Group, &a.Aliases, &a.MaxMsgs, &a.MaxDays, &a.Messages,
@@ -420,6 +427,8 @@ func (s *Store) AreaByName(name string) (*Area, error) {
 const msgCols = `id, area_id, from_id, from_name, to_name, subject, body, reply_to, created,
 	COALESCE(message_id, ''), origin, COALESCE(ftn_msgid, ''), thread, country`
 
+// scanMessage is the message in a row of msgCols; ErrNotFound if there is
+// none.
 func scanMessage(row interface{ Scan(...any) error }) (*Message, error) {
 	var m Message
 	var created int64
@@ -578,6 +587,8 @@ func (s *Store) NewCount(user, area int64) (int, error) {
 const mailCols = `id, from_id, from_name, to_id, to_name, subject, body, reply_to, created, "read",
 	COALESCE(ftn_msgid, '')`
 
+// scanMail is the private message in a row of mailCols; ErrNotFound if
+// there is none.
 func scanMail(row interface{ Scan(...any) error }) (*Message, error) {
 	var m Message
 	var created int64
@@ -702,6 +713,8 @@ const fileAreaQuery = `SELECT a.id, a.name, a.description, a.sysop_upload, a.dow
 	(SELECT COALESCE(SUM(f.size), 0) FROM files f WHERE f.area_id = a.id)
 	FROM file_areas a`
 
+// scanFileArea is the file area in a row of fileAreaQuery; ErrNotFound if
+// there is none.
 func scanFileArea(row interface{ Scan(...any) error }) (*FileArea, error) {
 	var a FileArea
 	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopUpload, &a.DownloadReq, &a.UploadReq, &a.FileEcho, &a.Files, &a.Bytes)
@@ -742,6 +755,7 @@ func (s *Store) FileAreaByName(name string) (*FileArea, error) {
 const fileCols = `id, area_id, name, description, size, sha256, uploader_id, uploader, created, downloads,
 	COALESCE(long_desc, ''), origin`
 
+// scanFile is the file in a row of fileCols; ErrNotFound if there is none.
 func scanFile(row interface{ Scan(...any) error }) (*File, error) {
 	var f File
 	var created int64
@@ -807,6 +821,7 @@ func inList(ids []int64) (string, []any) {
 	return strings.Join(marks, ", "), args
 }
 
+// fileList is the files a query of fileCols finds.
 func (s *Store) fileList(q string, args ...any) ([]*File, error) {
 	rows, err := s.db.Query(q, args...)
 	if err != nil {

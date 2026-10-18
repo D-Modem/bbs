@@ -68,6 +68,7 @@ type Remote struct {
 	Timeout time.Duration // to connect (default 30s)
 }
 
+// timeout is how long to wait to connect: Timeout, or 30 seconds.
 func (r *Remote) timeout() time.Duration {
 	if r.Timeout > 0 {
 		return r.Timeout
@@ -288,6 +289,7 @@ type tunnel struct {
 	client *ssh.Client
 }
 
+// Close closes the connection and the SSH client under it.
 func (t *tunnel) Close() error {
 	t.Conn.Close()
 	return t.client.Close()
@@ -324,12 +326,16 @@ type telnetClient struct {
 	sb   []byte
 }
 
+// newTelnetClient is c as a telnet client for the caller in (whose size and
+// terminal it tells the server).
 func newTelnetClient(c net.Conn, in *Info) *telnetClient {
 	return &telnetClient{c: c, in: in}
 }
 
+// Close closes the connection.
 func (t *telnetClient) Close() error { return t.c.Close() }
 
+// Write sends p, its IACs doubled; the whole of p, or an error.
 func (t *telnetClient) Write(p []byte) (int, error) {
 	t.wmu.Lock()
 	defer t.wmu.Unlock()
@@ -342,6 +348,8 @@ func (t *telnetClient) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// send writes telnet commands as they are, between Writes; an error is let
+// go (the next Read or Write meets it).
 func (t *telnetClient) send(b ...byte) {
 	t.wmu.Lock()
 	t.c.Write(b)
@@ -357,6 +365,8 @@ const (
 	sSBIAC
 )
 
+// Read is the server's data, telnet commands taken out and answered; it
+// reads on until there is some data or an error.
 func (t *telnetClient) Read(p []byte) (int, error) {
 	for {
 		if cap(t.rbuf) < len(p) {
@@ -439,6 +449,7 @@ func (t *telnetClient) option(cmd, opt byte) {
 	}
 }
 
+// naws tells the server the caller's screen size (80 by 24 if not known).
 func (t *telnetClient) naws() {
 	cols, rows := t.in.Cols, t.in.Rows
 	if cols == 0 {
@@ -497,6 +508,7 @@ type endReader struct {
 	once sync.Once
 }
 
+// Read reads from the reader, calling end, once, at its first error.
 func (e *endReader) Read(p []byte) (int, error) {
 	n, err := e.rc.Read(p)
 	if err != nil {
@@ -505,4 +517,5 @@ func (e *endReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
+// Close closes the reader.
 func (e *endReader) Close() error { return e.rc.Close() }

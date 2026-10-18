@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// login is a caller on modem.sock logged in as name, at the main menu.
 func login(e *env, name, pw string) *dialog {
 	d := e.dial("modem.sock")
 	d.expect("Name (or NEW): ")
@@ -143,6 +144,7 @@ func TestChat3270(t *testing.T) {
 	sysop.expect("<- alice left")
 }
 
+// sysopNode is the sysop's node, 0 if the sysop is not on.
 func sysopNode(e *env) int {
 	for _, n := range e.b.Nodes() {
 		if n.User == "sysop" {

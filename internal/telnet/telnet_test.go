@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// TestIs3270: 3270 terminal types in any case are told, IBM's ASCII ones and
+// others not.
 func TestIs3270(t *testing.T) {
 	for tt, want := range map[string]bool{
 		"IBM-3278-2-E": true, "IBM-3279-4-E": true, "IBM-DYNAMIC": true, "ibm-3277-2": true,
@@ -73,6 +75,8 @@ func client(c net.Conn, ttype string, data chan<- []byte) {
 	}
 }
 
+// TestNegotiate: a telnet client's terminal type comes upper-cased, the
+// window size and binary are agreed, and an IAC written goes doubled.
 func TestNegotiate(t *testing.T) {
 	srv, cli := net.Pipe()
 	data := make(chan []byte, 1)
@@ -102,6 +106,8 @@ func TestNegotiate(t *testing.T) {
 	}
 }
 
+// TestReadStripsCommands: Read takes out commands and subnegotiations, gives
+// an escaped IAC as one, and a CR NUL as a bare CR.
 func TestReadStripsCommands(t *testing.T) {
 	srv, cli := net.Pipe()
 	c := New(srv)
@@ -120,6 +126,8 @@ func TestReadStripsCommands(t *testing.T) {
 	}
 }
 
+// TestProbeRawClient: a client that never answers gives no terminal type,
+// has not spoken telnet, and the probe gives up at its timeout.
 func TestProbeRawClient(t *testing.T) {
 	srv, cli := net.Pipe()
 	go io.Copy(io.Discard, cli) // a client that never answers
@@ -135,6 +143,8 @@ func TestProbeRawClient(t *testing.T) {
 	srv.Close()
 }
 
+// TestHandoff3270: a 3270 client is told, and handing it off turns the
+// terminal type option off again.
 func TestHandoff3270(t *testing.T) {
 	srv, cli := net.Pipe()
 	data := make(chan []byte, 1)
@@ -155,6 +165,7 @@ func TestHandoff3270(t *testing.T) {
 	raw.Close()
 }
 
+// TestBinaryKeepsNUL: in binary, the NUL after a CR is data.
 func TestBinaryKeepsNUL(t *testing.T) {
 	srv, cli := net.Pipe()
 	c := New(srv)

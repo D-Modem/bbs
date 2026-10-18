@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+// TestTopics: a reply's topic is its first message's in the same area;
+// topics listed, paged and counted; read marks only go forward; a topic's
+// first deleted or purged, the next begins it; an older database's topics
+// found.
 func TestTopics(t *testing.T) {
 	s := open(t)
 	u, _ := s.CreateUser("alice", "password1", "", false)

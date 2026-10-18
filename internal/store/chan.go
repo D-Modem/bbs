@@ -114,6 +114,7 @@ const boardCols = `id, dir, title, description, max_file, pages, per_page, bump_
 	default_name, worksafe, locked, login_to_post, text_only, mods, sort, last_no, created, oekaki,
 	login_to_read, captcha, options, poster_ids, flags, file_types, sound, archive`
 
+// scanBoard is the board in a row of boardCols; ErrNotFound if there is none.
 func scanBoard(row interface{ Scan(...any) error }) (*Board, error) {
 	var b Board
 	var created int64
@@ -207,6 +208,8 @@ const postCols = `id, board_id, num, thread, name, trip, capcode, email, subject
 	bumped, sticky, closed, file_name, ext, tim, file_size, w, h, tn_w, tn_h, md5, spoiler, file_deleted, banned, replay, draw_ms, account, poster_id, country, country_name,
 	duration_ms, page_count, archived_on`
 
+// scanPost is the post in a row of postCols, the row's further columns
+// scanned into more; ErrNotFound if there is none.
 func scanPost(row interface{ Scan(...any) error }, more ...any) (*BoardPost, error) {
 	var p BoardPost
 	var created, bumped, archived int64
@@ -225,6 +228,7 @@ func scanPost(row interface{ Scan(...any) error }, more ...any) (*BoardPost, err
 	return &p, err
 }
 
+// posts are the posts a query of postCols finds.
 func (s *Store) posts(q string, args ...any) ([]*BoardPost, error) {
 	rows, err := s.db.Query(q, args...)
 	if err != nil {
@@ -306,6 +310,8 @@ const threadCounts = `,
 	(SELECT COUNT(*) FROM chan_posts r WHERE r.board_id = chan_posts.board_id AND r.thread = chan_posts.num),
 	(SELECT COUNT(*) FROM chan_posts r WHERE r.board_id = chan_posts.board_id AND r.thread = chan_posts.num AND r.ext <> '')`
 
+// threads are the threads a query of postCols and threadCounts finds, with
+// their replies and images counted.
 func (s *Store) threads(q string, args ...any) ([]*BoardPost, error) {
 	rows, err := s.db.Query(q, args...)
 	if err != nil {
@@ -572,6 +578,7 @@ func (s *Store) DeleteBan(id int64) error {
 	return s.exec1(`DELETE FROM chan_bans WHERE id = ?`, id)
 }
 
+// bans are the bans the rest of a query (its WHERE and ORDER) finds.
 func (s *Store) bans(q string, args ...any) ([]*Ban, error) {
 	rows, err := s.db.Query(`SELECT id, ip, board, reason, by_name, post, created, expires FROM chan_bans `+q, args...)
 	if err != nil {

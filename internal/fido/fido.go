@@ -93,7 +93,10 @@ func New(b *bbs.BBS, s Settings) (*Fido, error) {
 	return f, nil
 }
 
-func (f *Fido) inbound(l *Link) string  { return filepath.Join(f.S.Dir, "in", l.Name) }
+// inbound is the directory a link's files come into.
+func (f *Fido) inbound(l *Link) string { return filepath.Join(f.S.Dir, "in", l.Name) }
+
+// outbound is the directory of what waits to be sent to a link.
 func (f *Fido) outbound(l *Link) string { return filepath.Join(f.S.Dir, "out", l.Name) }
 
 // linkLock keeps a link to one session, scan or toss at a time: in this
@@ -104,6 +107,8 @@ type linkLock struct {
 	fh   *os.File
 }
 
+// flock locks the lock file as how says (false: it is held elsewhere). With no
+// lock file to be had it is true: the mutex alone keeps the link.
 func (k *linkLock) flock(how int) bool {
 	fh, err := os.OpenFile(k.path, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {

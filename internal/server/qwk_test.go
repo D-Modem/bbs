@@ -29,6 +29,8 @@ func qwkSetup(t *testing.T, e *env) []byte {
 	return rep.Bytes()
 }
 
+// qwkCheck: packet is the one qwkSetup's message makes, and alice's replies
+// were posted.
 func qwkCheck(t *testing.T, e *env, packet []byte) {
 	t.Helper()
 	p, err := qwk.ReadPacket(packet)
@@ -42,6 +44,8 @@ func qwkCheck(t *testing.T, e *env, packet []byte) {
 	}
 }
 
+// TestQWKByZMODEM: a caller takes a QWK packet and brings the replies back
+// by ZMODEM.
 func TestQWKByZMODEM(t *testing.T) {
 	e := start(t, nil, &Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no"})
 	rep := qwkSetup(t, e)

@@ -39,18 +39,22 @@ type syncBuf struct {
 	b  bytes.Buffer
 }
 
+// Write appends p, under the lock.
 func (s *syncBuf) Write(p []byte) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.b.Write(p)
 }
 
+// String is what was written.
 func (s *syncBuf) String() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.b.String()
 }
 
+// start is a BBS (alice, bob, Carol Ann, and sysop, all password1) with an
+// IRC server listening, stopped when the test ends.
 func start(t *testing.T) *env {
 	t.Helper()
 	store.BcryptCost = 4
@@ -108,6 +112,7 @@ type conn struct {
 	r *bufio.Reader
 }
 
+// dial is a new connection to the server, closed when the test ends.
 func (e *env) dial(t *testing.T) *conn {
 	t.Helper()
 	c, err := net.Dial("tcp", e.addr)
@@ -118,6 +123,7 @@ func (e *env) dial(t *testing.T) *conn {
 	return &conn{t: t, c: c, r: bufio.NewReader(c)}
 }
 
+// send writes each line, CRLF ended.
 func (c *conn) send(lines ...string) {
 	for _, l := range lines {
 		c.c.Write([]byte(l + "\r\n"))
@@ -142,6 +148,8 @@ func (c *conn) expect(want string) string {
 	}
 }
 
+// login registers with PASS name:password1, NICK nick and USER, and reads
+// through the MOTD.
 func (c *conn) login(name, nick string) {
 	c.t.Helper()
 	c.send("PASS "+name+":password1", "NICK "+nick, "USER u 0 * :Someone")
@@ -194,6 +202,8 @@ func waitEvent(t *testing.T, n *bbs.Node, want string) {
 	}
 }
 
+// TestLoginRefused: no PASS, or a wrong one, closes the connection (one
+// failed login logged); a command before registering is 451.
 func TestLoginRefused(t *testing.T) {
 	e := start(t)
 	c := e.dial(t)
@@ -212,6 +222,10 @@ func TestLoginRefused(t *testing.T) {
 	}
 }
 
+// TestChatWithCallers: an IRC client and a BBS caller in a room: CAP and
+// server-time, joins with the room's last lines, messages and actions
+// both ways, private messages, WHO, WHOIS, LIST, refused nicks and rooms,
+// PART, and the node gone with the connection.
 func TestChatWithCallers(t *testing.T) {
 	e := start(t)
 	bob := e.caller(t, "bob")
@@ -293,6 +307,8 @@ func TestChatWithCallers(t *testing.T) {
 	}
 }
 
+// TestNickAndPages: a name with a space gets its nick changed to fit; a
+// sysop joining #sysop-N answers that caller's page.
 func TestNickAndPages(t *testing.T) {
 	e := start(t)
 	c := e.dial(t)
@@ -358,6 +374,7 @@ func TestIrcEventClient(t *testing.T) {
 	}
 }
 
+// TestSASLRefused: SASL with a wrong password does not connect.
 func TestSASLRefused(t *testing.T) {
 	e := start(t)
 	irc := &ircevent.Connection{Server: e.addr, Nick: "alice", User: "alice", UseSASL: true,
@@ -368,6 +385,7 @@ func TestSASLRefused(t *testing.T) {
 	}
 }
 
+// TestNick: a BBS name's nick, its spaces and dots made underscores.
 func TestNick(t *testing.T) {
 	for in, want := range map[string]string{"alice": "alice", "Carol Ann": "Carol_Ann", "J.R. Bob": "J_R__Bob"} {
 		if got := Nick(in); got != want {
@@ -376,6 +394,8 @@ func TestNick(t *testing.T) {
 	}
 }
 
+// TestTLS: a login over TLS, with a certificate made here; a certificate
+// file that is not there is refused.
 func TestTLS(t *testing.T) {
 	dir := t.TempDir()
 	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -417,6 +437,7 @@ func TestTLS(t *testing.T) {
 	}
 }
 
+// TestBadNick: a nick with a space or ! is 432, and registration goes on.
 func TestBadNick(t *testing.T) {
 	e := start(t)
 	c := e.dial(t)

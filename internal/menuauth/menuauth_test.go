@@ -45,6 +45,8 @@ func serve(t *testing.T) string {
 	return sock
 }
 
+// TestCheck: the helper's yes (with how), its no, its refusal (an error),
+// a helper too slow, and no helper at all.
 func TestCheck(t *testing.T) {
 	c := &Client{Socket: serve(t), Timeout: 300 * time.Millisecond}
 	if ok, auth, err := c.Check("alice", "secret"); !ok || auth != "file" || err != nil {

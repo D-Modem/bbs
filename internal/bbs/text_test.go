@@ -5,6 +5,9 @@ import (
 	"testing"
 )
 
+// TestClean: control characters, bidirectional overrides and bad UTF-8 are
+// taken out or replaced, tabs become spaces, ends are trimmed, and the length
+// is cut.
 func TestClean(t *testing.T) {
 	cases := []struct{ in, want string }{
 		{"hello", "hello"},
@@ -28,6 +31,8 @@ func TestClean(t *testing.T) {
 	}
 }
 
+// TestValidName: names are letters first, with a few marks, of a length; not
+// reserved, ASCII only, no double or trailing spaces.
 func TestValidName(t *testing.T) {
 	for _, ok := range []string{"alice", "Bob Smith", "x.y-z_1", "ab"} {
 		if msg := ValidName(ok); msg != "" {
@@ -42,6 +47,8 @@ func TestValidName(t *testing.T) {
 	}
 }
 
+// TestValidPassword: a password is not short, not the name and not longer than
+// bcrypt takes.
 func TestValidPassword(t *testing.T) {
 	if ValidPassword("short", "x") == "" {
 		t.Error("took a short password")
@@ -57,6 +64,8 @@ func TestValidPassword(t *testing.T) {
 	}
 }
 
+// TestWrap: words are wrapped to the width, none lost, and a word too long is
+// cut.
 func TestWrap(t *testing.T) {
 	got := Wrap("the quick brown fox jumps over the lazy dog", 15)
 	for _, l := range got {
@@ -72,6 +81,8 @@ func TestWrap(t *testing.T) {
 	}
 }
 
+// TestCleanBody: a body keeps its indents, loses control characters and
+// trailing blank lines, and is cut to MaxBodyLines.
 func TestCleanBody(t *testing.T) {
 	body := CleanBody([]string{"  indented", "esc\x1b[2Jape", "", "", ""})
 	if body != "  indented\nesc[2Jape" {
@@ -86,12 +97,15 @@ func TestCleanBody(t *testing.T) {
 	}
 }
 
+// TestReplySubject: a reply's subject gets one "Re: ", not two.
 func TestReplySubject(t *testing.T) {
 	if ReplySubject("hello") != "Re: hello" || ReplySubject("RE: hello") != "RE: hello" {
 		t.Error("ReplySubject")
 	}
 }
 
+// TestQuote: a quote is headed by who wrote it, its paragraphs joined and
+// rewrapped behind "> ", old quotes quoted again.
 func TestQuote(t *testing.T) {
 	body := strings.Repeat("word ", 15) + "end\nnext line\n\n> old quote"
 	got := Quote("bob", body, 10)
@@ -103,6 +117,8 @@ func TestQuote(t *testing.T) {
 	}
 }
 
+// TestPrefs: preferences parse (bad ones dropped) and write back in order, and
+// a change refuses unknown names and bad values.
 func TestPrefs(t *testing.T) {
 	p := ParsePrefs("utf8=off width=40 bogus=1 ansi=maybe rip=on")
 	if p.String() != "rip=on utf8=off width=40" {
@@ -125,6 +141,8 @@ func TestPrefs(t *testing.T) {
 	}
 }
 
+// TestWrapBody: a body is wrapped to MaxLineLen with no words lost, a quoted
+// line carried on as a quote.
 func TestWrapBody(t *testing.T) {
 	long := strings.Repeat("word ", 30) + "https://example.org/end"
 	got := WrapBody("short\r\n" + long + "\n> " + long)

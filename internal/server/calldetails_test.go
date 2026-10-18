@@ -6,6 +6,8 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
 )
 
+// TestCallDetails: a call's log line has its rate, caller ID, the number
+// as the world writes it, and where it is from (or what kind of number).
 func TestCallDetails(t *testing.T) {
 	b := bbs.New(bbs.Settings{PhoneCountry: "GB"}, nil, nil)
 	for _, c := range []struct {

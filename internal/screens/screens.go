@@ -113,6 +113,8 @@ func (s *Set) Find(name string, kind Kind) (*Screen, bool) {
 	return nil, false
 }
 
+// readFile is the file at path, read whole, if it is a regular file of MaxSize
+// or less; an error for anything else (a directory, a device, one too big).
 func readFile(path string) ([]byte, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -141,6 +143,8 @@ func stripSAUCE(b []byte) []byte {
 	return b
 }
 
+// decodeCP437 is CP437 as UTF-8: the bytes below 0x80 as ASCII (control codes,
+// not CP437's pictures for them), the rest as CP437's characters.
 func decodeCP437(b []byte) string {
 	var sb strings.Builder
 	for _, c := range b {
@@ -194,6 +198,9 @@ func Expand(text string, vars Vars) []Piece { return expand(text, vars, false) }
 // {clear} and {pause} are pieces as @CLS@ and @PAUSE@ are.
 func ExpandTags(text string, vars Vars) []Piece { return expand(text, vars, true) }
 
+// expand is Expand, and with tags ExpandTags: the @-codes filled in (padded to
+// their widths), and @CLS@, @PAUSE@ and the sysop's text's tags made pieces of
+// their own; the text between is one piece.
 func expand(text string, vars Vars, tags bool) []Piece {
 	var out []Piece
 	var cur strings.Builder

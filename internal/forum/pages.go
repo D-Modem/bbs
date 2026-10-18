@@ -11,6 +11,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// pageNum is the page asked for in the query, 1 if none or not a number.
 func (q *req) pageNum() int {
 	n, _ := strconv.Atoi(q.r.URL.Query().Get("page"))
 	if n < 1 {
@@ -19,6 +20,7 @@ func (q *req) pageNum() int {
 	return n
 }
 
+// id is the path's id, and whether it is one (a number above 0).
 func (q *req) id() (int64, bool) {
 	id, err := strconv.ParseInt(q.r.PathValue("id"), 10, 64)
 	return id, err == nil && id > 0
@@ -87,6 +89,9 @@ type boardStats struct {
 	Newest                 *store.User
 }
 
+// index shows the board's index: the areas the user may read in their
+// groups, each with its counts, last post and whether it has unread, then the
+// board's totals, newest member and who is on.
 func (s *Server) index(q *req) {
 	areas, err := q.areas()
 	if err != nil {
@@ -159,6 +164,9 @@ type topicRow struct {
 	Pages  int
 }
 
+// area shows a forum's topics, a page of them, each marked unread for a
+// member where its last post is past both the area's and the topic's read
+// marks.
 func (s *Server) area(q *req) {
 	a := q.theArea()
 	if a == nil {
@@ -241,6 +249,10 @@ type pollView struct {
 	Voted   bool
 }
 
+// topic shows a page of a topic's posts, with their authors (not one behind
+// an alias), likes, flags and poll, and marks them read for a member; a
+// reply's id goes to it in its topic instead.  With ?quote=, the reply box
+// starts quoting that post of the topic.
 func (s *Server) topic(q *req) {
 	m, a := q.theMessage()
 	if m == nil {
@@ -370,6 +382,8 @@ func signed(u *store.User, body string) []string {
 	return lines
 }
 
+// reply posts a member's answer in a topic, to the post it quotes if that is
+// in the topic (else the topic's first), and goes to it.
 func (s *Server) reply(q *req) {
 	if q.needLogin() {
 		return
@@ -403,6 +417,9 @@ func (s *Server) reply(q *req) {
 	q.redirect(Base + "/post/" + strconv.FormatInt(id, 10))
 }
 
+// newTopic shows the form for a new topic in a forum the member may post in
+// and posts it, with its poll if answers were given; a refused post shows the
+// form again, filled in, with why.
 func (s *Server) newTopic(q *req) {
 	if q.needLogin() {
 		return
@@ -440,6 +457,7 @@ func (s *Server) newTopic(q *req) {
 		{"Start New Topic", ""}}, form)
 }
 
+// like sets or clears a member's like of a post (not their own).
 func (s *Server) like(q *req) {
 	if q.needLogin() {
 		return
@@ -463,6 +481,8 @@ func (s *Server) like(q *req) {
 	q.redirect(Base + "/post/" + strconv.FormatInt(m.ID, 10))
 }
 
+// answer is a member's vote in a topic's poll, for the answer of the index
+// given.
 func (s *Server) answer(q *req) {
 	if q.needLogin() {
 		return
@@ -484,6 +504,8 @@ func (s *Server) answer(q *req) {
 	q.redirect(Base + "/topic/" + strconv.FormatInt(m.ID, 10))
 }
 
+// deletePost deletes a post, if the BBS lets the member (its author or a
+// sysop), and goes back to its topic, or to the forum if it began the topic.
 func (s *Server) deletePost(q *req) {
 	if q.needLogin() {
 		return
@@ -507,6 +529,9 @@ func (s *Server) deletePost(q *req) {
 
 // --- people
 
+// profile shows a member: their recent posts in the areas the caller may
+// read (not those under an alias) and the nodes they are on.  A guest is sent
+// to the login where guests may not read.
 func (s *Server) profile(q *req) {
 	u, err := s.B.Store.UserByName(q.r.PathValue("name"))
 	if err != nil || q.user == nil && !s.opts().Guests {
@@ -540,6 +565,7 @@ func (s *Server) profile(q *req) {
 		"U": u, "Recent": shown, "On": on})
 }
 
+// online shows the BBS's nodes in use, in order.
 func (s *Server) online(q *req) {
 	nodes := s.B.Nodes()
 	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Num < nodes[j].Num })
@@ -551,6 +577,8 @@ type hit struct {
 	Area *store.Area
 }
 
+// search shows the newest 50 posts with the words asked, in the areas the
+// user may read (3 letters or more).
 func (s *Server) search(q *req) {
 	text := strings.TrimSpace(q.r.URL.Query().Get("q"))
 	body := map[string]any{"Q": text}
@@ -590,6 +618,9 @@ func safeBack(back string) string {
 	return back
 }
 
+// login shows the sign-in form and signs in by name and password, or by a
+// sign-in code, then goes back to the forum page asked for; one signed in
+// already goes straight there.
 func (s *Server) login(q *req) {
 	back := safeBack(q.r.FormValue("back"))
 	if q.user != nil {
@@ -617,6 +648,7 @@ func (s *Server) login(q *req) {
 	q.render(http.StatusOK, "login.html", "Sign In", []crumb{{"Sign In", ""}}, form)
 }
 
+// logout ends the session, clears its cookie and goes to the index.
 func (s *Server) logout(q *req) {
 	if q.secret != "" {
 		s.Sessions.Logout(q.secret)
@@ -625,6 +657,8 @@ func (s *Server) logout(q *req) {
 	q.redirect(Base + "/")
 }
 
+// register shows the sign-up form, makes the account as the BBS would
+// (where it takes new users) and signs the new member in.
 func (s *Server) register(q *req) {
 	if !s.B.Conf().NewUsers {
 		q.fail(http.StatusForbidden, "New members are not being taken.")

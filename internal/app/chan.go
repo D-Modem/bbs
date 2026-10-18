@@ -22,6 +22,8 @@ import (
 // board's own limit is the image boards' to say).
 const maxChanUpload = 32 << 20
 
+// hasBoards: the image boards are on and have a board; a store error counts as
+// none.
 func (s *Session) hasBoards() bool {
 	if s.B.ImageBoards == nil {
 		return false

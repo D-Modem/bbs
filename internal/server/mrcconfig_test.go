@@ -9,6 +9,8 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/mrc"
 )
 
+// TestMRCConfig: [mrc] takes the BBS's name and sysop, has a default
+// address, and refuses a bad address, prefix, requirement or tls.
 func TestMRCConfig(t *testing.T) {
 	load := func(body string) (*Config, error) {
 		p := filepath.Join(t.TempDir(), "bbs.conf")

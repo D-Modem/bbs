@@ -6,6 +6,8 @@ import (
 	"unicode/utf8"
 )
 
+// run is what a Writer width columns wide makes of parts, written one at a
+// time, and settled.
 func run(width int, parts ...string) []byte {
 	var buf bytes.Buffer
 	p := NewWriter(&buf, width)
@@ -16,6 +18,10 @@ func run(width int, parts ...string) []byte {
 	return buf.Bytes()
 }
 
+// TestWriter: letters swapped, CR LF as RETURN (split across writes too) and
+// a CR alone back to column 0, colors and reverse, clearing and cursor
+// movement, sequences with no meaning here dropped, box drawing and blocks,
+// look-alikes and "?" for the rest, and runes split across writes.
 func TestWriter(t *testing.T) {
 	for _, c := range []struct {
 		in   []string
@@ -59,6 +65,8 @@ func TestWriter(t *testing.T) {
 	}
 }
 
+// TestWrapAndErase: a full line wraps to column 0, and erasing to the end of
+// a line is spaces and back.
 func TestWrapAndErase(t *testing.T) {
 	// 40 characters wrap: column 0 again, so CR goes nowhere
 	line := bytes.Repeat([]byte("a"), 40)
@@ -75,6 +83,7 @@ func TestWrapAndErase(t *testing.T) {
 	}
 }
 
+// TestDecode: keys to runes, and what Encode writes reads back.
 func TestDecode(t *testing.T) {
 	for b, want := range map[byte]rune{
 		0x41: 'a', 0x5A: 'z', 0xC1: 'A', 0xDA: 'Z', 0x61: 'A', 0x7A: 'Z',
@@ -93,6 +102,8 @@ func TestDecode(t *testing.T) {
 	}
 }
 
+// TestTelltale: a Commodore's own keys are told, and what any terminal sends
+// (XON and XOFF among it) is not.
 func TestTelltale(t *testing.T) {
 	for _, b := range []byte{Del, Up, Right, Left, Clear, 0x85, 0x8C, 0xC1, 0xDA} {
 		if !Telltale(b) {

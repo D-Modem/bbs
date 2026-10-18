@@ -37,6 +37,10 @@ func noMeta(b []byte) []byte {
 	return out
 }
 
+// TestReadFlash: a SWF's size, length and sound, plain and compressed (an
+// LZMA one taken unread), and cut or broken ones refused; an FLV's, with
+// and without its metadata; and flvPlayer a movie of the size asked whose
+// script plays src.
 func TestReadFlash(t *testing.T) {
 	swf := testFile(t, "tiny.swf")
 	for name, b := range map[string][]byte{"FWS": swf, "CWS": cws(swf)} {

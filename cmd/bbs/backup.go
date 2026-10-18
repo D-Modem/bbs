@@ -68,6 +68,7 @@ func backupCmd(cfg *server.Config, path string, args []string) {
 	}
 }
 
+// or is s, or def when s is empty.
 func or(s, def string) string {
 	if s == "" {
 		return def
@@ -75,6 +76,7 @@ func or(s, def string) string {
 	return s
 }
 
+// size is n bytes for people: in GB, MB or KB, to one place.
 func size(n int64) string {
 	switch {
 	case n >= 1<<30:

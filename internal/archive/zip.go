@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+// walkZIP is Walk over a ZIP, by archive/zip; an entry it will not open
+// (not stored or deflated) is ErrMethod, and one that fails as it unpacks
+// (a bad CRC, as archive/zip checks it at the end) ErrChecksum.
 func walkZIP(r io.ReaderAt, size int64, fn func(e Entry, open Opener) bool) error {
 	z, err := zip.NewReader(r, size)
 	if err != nil {

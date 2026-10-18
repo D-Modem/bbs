@@ -15,6 +15,8 @@ import (
 
 type forumSessions struct{ s *Server }
 
+// Login checks name and password as a forum login from the request's
+// address, and starts a browser session for the user.
 func (f forumSessions) Login(r *http.Request, name, password string) (string, *store.User, error) {
 	u, err := f.s.B.Authenticate("forum", "ip:"+hostOf(r), name, password)
 	if err != nil {
@@ -23,6 +25,8 @@ func (f forumSessions) Login(r *http.Request, name, password string) (string, *s
 	return f.session(r, u)
 }
 
+// LoginCode checks a sign-in code as a forum login from the request's
+// address, and starts a browser session for its user.
 func (f forumSessions) LoginCode(r *http.Request, code string) (string, *store.User, error) {
 	u, err := f.s.B.AuthenticateCode("forum", "ip:"+hostOf(r), code)
 	if err != nil {
@@ -46,6 +50,8 @@ func (f forumSessions) session(r *http.Request, u *store.User) (string, *store.U
 	return secret, u, nil
 }
 
+// User is the session's user: nil for a bad, expired or revoked token, or
+// a user locked out, or an API key (not a session).
 func (f forumSessions) User(secret string) *store.User {
 	w, err := f.s.byToken(secret)
 	if err != nil || w == nil || !w.token.Session {
@@ -54,6 +60,7 @@ func (f forumSessions) User(secret string) *store.User {
 	return w.user
 }
 
+// Logout revokes the session; anything else (an API key's secret) is left.
 func (f forumSessions) Logout(secret string) {
 	if w, err := f.s.byToken(secret); err == nil && w != nil && w.token.Session {
 		f.s.B.Store.RevokeToken(w.token.ID, w.user.ID)

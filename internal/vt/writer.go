@@ -147,6 +147,8 @@ type DECWriter struct {
 // NewDECWriter writes to w.
 func NewDECWriter(w io.Writer, latin1 bool) *DECWriter { return &DECWriter{w: w, Latin1: latin1} }
 
+// Write writes b as the VT can take it; a character or escape cut off at
+// b's end is kept for the next Write.  It is len(b) unless w fails.
 func (d *DECWriter) Write(b []byte) (int, error) {
 	d.out = d.out[:0]
 	d.s.feed(b, d.text, func(e []byte) { d.out = append(d.out, e...) })
@@ -158,6 +160,8 @@ func (d *DECWriter) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
+// text is a character for out: in the graphics set if it has it there
+// (G0 switched as need be), as Latin-1 if it may be, else as ascii says.
 func (d *DECWriter) text(r rune) {
 	g, isG := graphics[r]
 	if !isG && !d.Latin1 {
@@ -217,6 +221,9 @@ type VT52Writer struct {
 // NewVT52Writer writes to w.
 func NewVT52Writer(w io.Writer) *VT52Writer { return &VT52Writer{w: w} }
 
+// Write writes b as a VT52 can take it, text as ASCII; a character or
+// escape cut off at b's end is kept for the next Write.  It is len(b)
+// unless w fails.
 func (v *VT52Writer) Write(b []byte) (int, error) {
 	v.out = v.out[:0]
 	v.s.feed(b, func(r rune) { v.out = append(v.out, ascii(r)...) }, v.esc)
@@ -228,6 +235,9 @@ func (v *VT52Writer) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
+// esc is an ANSI escape as a VT52's: ED, EL (to the end of the line only),
+// CUP (within 24 by 80) and the cursor moves (at most 100); anything else
+// dropped.
 func (v *VT52Writer) esc(e []byte) {
 	if len(e) < 3 || e[1] != '[' {
 		return // ESC 7, charsets, DCS (sixel), OSC: nothing on a VT52

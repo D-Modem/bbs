@@ -22,6 +22,8 @@ import (
 // storedMsg is a *.msg file's header and text (FTS-0001's stored message).
 type storedMsg struct{ from, to, subject, text string }
 
+// readMsgDir is the stored messages 1.msg to 99.msg in dir (FTS-0001's *.msg),
+// in order; those not there or too short are skipped.
 func readMsgDir(t *testing.T, dir string) []storedMsg {
 	t.Helper()
 	var out []storedMsg
@@ -55,6 +57,7 @@ func run(t *testing.T, name string, args ...string) (string, error) {
 	return string(out), err
 }
 
+// freePort is a local address with a TCP port free a moment ago.
 func freePort(t *testing.T) string {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

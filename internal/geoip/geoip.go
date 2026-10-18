@@ -215,6 +215,10 @@ type mmdb struct {
 	ipv4Start  uint // the node the IPv4 addresses begin at, in an IPv6 tree
 }
 
+// openMMDB reads a MaxMind DB held whole in b: its metadata, after the
+// last marker, says the search tree's size and record size, which are
+// checked against b. The mmdb keeps b's tree and data sections, and in an
+// IPv6 tree the node IPv4 begins at.
 func openMMDB(b []byte) (*mmdb, error) {
 	at := bytes.LastIndex(b, metaMarker)
 	if at < 0 {
@@ -277,6 +281,9 @@ func (m *mmdb) record(node, bit uint) uint {
 	}
 }
 
+// lookup is ip's record, decoded; nil and no error if the database has
+// none for it (or it is IPv6 in an IPv4 database), an error if the tree
+// or data is broken.
 func (m *mmdb) lookup(ip net.IP) (any, error) {
 	var bits []byte
 	node := uint(0)

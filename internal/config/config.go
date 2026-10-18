@@ -107,6 +107,9 @@ func Parse(r io.Reader) (*File, error) {
 	return cf, nil
 }
 
+// unquote is a value without its quotes, its escapes made the bytes they
+// stand for; an unquoted value is as it is, and an escape it does not
+// know is kept, backslash and all.  A bad \x is an error.
 func unquote(v string) (string, error) {
 	if len(v) < 2 || v[0] != '"' || v[len(v)-1] != '"' {
 		return v, nil

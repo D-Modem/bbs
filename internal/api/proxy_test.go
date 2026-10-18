@@ -10,6 +10,9 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/guard"
 )
 
+// TestClientIP: a trusted proxy's request is for the last hop before the
+// trusted ones, by X-Forwarded-For, Forwarded or X-Real-IP (an address
+// with or without a port); with no headers, no one; a bad range is refused.
 func TestClientIP(t *testing.T) {
 	proxies, err := ParseProxies("127.0.0.1, 10.0.0.0/8 ::1")
 	if err != nil {

@@ -14,6 +14,8 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
 )
 
+// nodelistText is a nodelist of zone 21, net 1: a hub at 1/100 called at
+// hubHostPort, nodes 200 and 300, and 400 down.
 func nodelistText(hubHostPort string) string {
 	return ";A test nodelist\r\n" +
 		"Zone,21,Zone_21,Here,Zone_C,-Unpublished-,300,CM\r\n" +

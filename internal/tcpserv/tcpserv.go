@@ -58,11 +58,14 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	}
 }
 
+// host is the connection's remote address without its port.
 func host(c net.Conn) string {
 	h, _, _ := net.SplitHostPort(c.RemoteAddr().String())
 	return h
 }
 
+// serve answers c with Handle, under the limits and time limit, a panic
+// logged; one refused or over a limit is closed (told Busy, if over).
 func (s *Server) serve(c net.Conn) {
 	defer c.Close()
 	if s.Refuse != nil && s.Refuse(c) {

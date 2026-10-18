@@ -39,6 +39,8 @@ type draft struct {
 	body        []string
 }
 
+// next is the script's next answer, a what's (for the failure); at the end of
+// the script a menu gets G, the log off, and anything else fails the test.
 func (f *fake) next(what string) any {
 	f.t.Helper()
 	if len(f.script) == 0 {
@@ -62,8 +64,14 @@ func get[T any](f *fake, what string) T {
 	return a
 }
 
+// PageSize is 10 rows.
 func (f *fake) PageSize() int { return 10 }
-func (f *fake) Narrow() bool  { return false }
+
+// Narrow is false: a wide screen.
+func (f *fake) Narrow() bool { return false }
+
+// Menu keeps the menu's title (and that it is brief) and answers the script's
+// key.
 func (f *fake) Menu(m *view.Menu) (string, error) {
 	brief := ""
 	if m.Brief {
@@ -72,6 +80,9 @@ func (f *fake) Menu(m *view.Menu) (string, error) {
 	f.shown = append(f.shown, "menu "+m.Title+brief)
 	return get[string](f, "menu"), nil
 }
+
+// Table keeps the title and rows and answers the script's view.Choice, a row
+// picked by its place given that row's number.
 func (f *fake) Table(t *view.Table) (view.Choice, error) {
 	var rows []string
 	for _, r := range t.Rows {
@@ -84,16 +95,23 @@ func (f *fake) Table(t *view.Table) (view.Choice, error) {
 	}
 	return c, nil
 }
+
+// Message keeps the subject, body and sender, and its picture, and answers the
+// script's action.
 func (f *fake) Message(m *view.Message) (string, error) {
 	f.shown = append(f.shown, "message "+m.Subject+": "+m.Body+" | from "+m.From)
 	f.picture(m.Picture)
 	return get[string](f, "message"), nil
 }
+
+// Form keeps the title and answers the script's values; nil is the form left.
 func (f *fake) Form(fm *view.Form) (map[string]string, bool, error) {
 	f.shown = append(f.shown, "form "+fm.Title)
 	v := get[map[string]string](f, "form")
 	return v, v != nil, nil
 }
+
+// Panel keeps the title, lines and picture, and answers the script's action.
 func (f *fake) Panel(p *view.Panel) (string, error) {
 	var ls []string
 	for _, l := range p.Lines {
@@ -103,6 +121,9 @@ func (f *fake) Panel(p *view.Panel) (string, error) {
 	f.picture(p.Picture)
 	return get[string](f, "panel"), nil
 }
+
+// Edit sends the script's draft as the editor would: false, what was wrong
+// said, if the To is refused or the sending fails.
 func (f *fake) Edit(d *view.Draft) (bool, error) {
 	f.shown = append(f.shown, "edit "+d.Title)
 	a := get[draft](f, "edit")
@@ -118,10 +139,14 @@ func (f *fake) Edit(d *view.Draft) (bool, error) {
 	}
 	return true, nil
 }
+
+// Confirm keeps the question and answers the script's yes or no.
 func (f *fake) Confirm(q string, def bool) (bool, error) {
 	f.shown = append(f.shown, "confirm "+q)
 	return get[bool](f, "confirm"), nil
 }
+
+// Say keeps what was said.
 func (f *fake) Say(tn view.Tone, msg string) { f.said = append(f.said, msg) }
 
 // picture loads a picture as a front end would, in 200 by 100 pixels,
@@ -137,6 +162,8 @@ func (f *fake) picture(p *view.Picture) {
 	}
 	f.shown = append(f.shown, fmt.Sprintf("picture %s: %dx%d", p.Alt, img.Bounds().Dx(), img.Bounds().Dy()))
 }
+
+// Show keeps the title and lines.
 func (f *fake) Show(title string, ls []view.Line) error {
 	var out []string
 	for _, l := range ls {
@@ -146,12 +173,25 @@ func (f *fake) Show(title string, ls []view.Line) error {
 	return nil
 }
 
-func (f *fake) Kind() string                          { return Text }
+// Kind is Text: a text terminal.
+func (f *fake) Kind() string { return Text }
+
+// ShowScreen has no display files: none is shown.
 func (f *fake) ShowScreen(string, bool) (bool, error) { return false, nil }
-func (f *fake) Chat(room, note string) error          { return nil }
-func (f *fake) Doors() []*door.Door                   { return nil }
-func (f *fake) OpenDoor(*door.Door) error             { return nil }
-func (f *fake) Transfers() bool                       { return true }
+
+// Chat does nothing.
+func (f *fake) Chat(room, note string) error { return nil }
+
+// Doors is none.
+func (f *fake) Doors() []*door.Door { return nil }
+
+// OpenDoor does nothing.
+func (f *fake) OpenDoor(*door.Door) error { return nil }
+
+// Transfers is true: files go by Download and Upload.
+func (f *fake) Transfers() bool { return true }
+
+// Download counts each file downloaded and says it was sent.
 func (f *fake) Download(fs []FileRef) error {
 	for _, r := range fs {
 		f.b.Downloaded(nil, r.File)
@@ -159,25 +199,47 @@ func (f *fake) Download(fs []FileRef) error {
 	}
 	return nil
 }
-func (f *fake) Upload(*store.FileArea) error                        { return nil }
+
+// Upload brings nothing.
+func (f *fake) Upload(*store.FileArea) error { return nil }
+
+// FileCommand does nothing and says nothing.
 func (f *fake) FileCommand(*store.FileArea, string) (string, error) { return "", nil }
+
+// SendData keeps what was sent, says its name and size, and has it gone.
 func (f *fake) SendData(name string, data []byte) (bool, error) {
 	f.said = append(f.said, fmt.Sprintf("sent %s (%d bytes)", name, len(data)))
 	f.sentData = data
 	return true, nil
 }
+
+// ReceiveData gives the fake's upload, whatever the most.
 func (f *fake) ReceiveData(int64) ([]byte, error) { return f.upload, nil }
+
+// DataCommand does nothing and says nothing.
 func (f *fake) DataCommand(string, func(string) ([]byte, func(), error), func(string, []byte) string) (string, error) {
 	return "", nil
 }
-func (f *fake) Terminal() string               { return "test" }
+
+// Terminal is "test".
+func (f *fake) Terminal() string { return "test" }
+
+// TerminalActions is none.
 func (f *fake) TerminalActions() []view.Action { return nil }
-func (f *fake) TerminalAction(string) error    { return nil }
-func (f *fake) TerminalInfo() error            { return nil }
+
+// TerminalAction does nothing.
+func (f *fake) TerminalAction(string) error { return nil }
+
+// TerminalInfo shows nothing.
+func (f *fake) TerminalInfo() error { return nil }
+
+// Watch keeps the node watched.
 func (f *fake) Watch(n int) error {
 	f.shown = append(f.shown, fmt.Sprintf("watch %d", n))
 	return nil
 }
+
+// Logoff is true: the caller goes.
 func (f *fake) Logoff() (bool, error) { return true, nil }
 
 // setup is a BBS with an area, and nodes for alice and the sysop.
@@ -212,6 +274,9 @@ func setup(t *testing.T) (*bbs.BBS, *bbs.Node, *bbs.Node) {
 	return b, nodes[0], nodes[1]
 }
 
+// run runs n's session with a fake answering from the script, which must end in
+// the log off with nothing of it left; the fake, for what it was shown and
+// said.
 func run(t *testing.T, b *bbs.BBS, n *bbs.Node, script ...any) *fake {
 	t.Helper()
 	f := &fake{t: t, b: b, script: script}
@@ -224,6 +289,7 @@ func run(t *testing.T, b *bbs.BBS, n *bbs.Node, script ...any) *fake {
 	return f
 }
 
+// has fails the test unless one of all (the what, for the failure) holds want.
 func has(t *testing.T, what string, all []string, want string) {
 	t.Helper()
 	for _, s := range all {
@@ -234,6 +300,8 @@ func has(t *testing.T, what string, all []string, want string) {
 	t.Errorf("no %q among the %s: %q", want, what, all)
 }
 
+// TestPostAndRead: a post, and reading on past the last message; the sysop's
+// new scan, a reply, and a number not on the page.
 func TestPostAndRead(t *testing.T) {
 	b, alice, sysop := setup(t)
 	f := run(t, b, alice,
@@ -256,6 +324,9 @@ func TestPostAndRead(t *testing.T) {
 	has(t, "screens", f.shown, "table General: alice|Hello|")
 }
 
+// TestScanToYouFind: an area taken out of the new scan is skipped by it, and
+// stays out; the messages to you, newest first; a search in any case, and one
+// too short.
 func TestScanToYouFind(t *testing.T) {
 	b, alice, sysop := setup(t)
 	other, _ := b.Store.CreateArea("Other", "More talk", false)
@@ -298,6 +369,9 @@ func TestScanToYouFind(t *testing.T) {
 	}
 }
 
+// TestFileBase: new files since the last call, a zip's FILE_ID.DIZ and
+// contents, a search by its words, tagging (a number not there said), and the
+// batch downloaded and counted.
 func TestFileBase(t *testing.T) {
 	b, alice, sysop := setup(t)
 	fs, err := files.Open(b.Store, t.TempDir(), 1<<20, 0)
@@ -355,6 +429,9 @@ func TestFileBase(t *testing.T) {
 	}
 }
 
+// TestUserFeatures: the last callers, feedback to the sysop, the profile's
+// about and expert menus, a user's details and mail to them; the sysop sees
+// more of a user.
 func TestUserFeatures(t *testing.T) {
 	b, alice, sysop := setup(t)
 	// a call recorded by a login
@@ -388,6 +465,9 @@ func TestUserFeatures(t *testing.T) {
 	has(t, "screens", f.shown, "About:Calls from a C64; Access:level 20 (Level 20)")
 }
 
+// TestSysopTools: a user's level (a bad one refused), flags and lock and
+// unlock; the statistics, a ban lifted from the hack log, an event run, a node
+// watched, the sysop made unavailable; alice has no sysop tools.
 func TestSysopTools(t *testing.T) {
 	b, alice, sysop := setup(t)
 	dir := t.TempDir()
@@ -429,6 +509,9 @@ func TestSysopTools(t *testing.T) {
 	}
 }
 
+// TestMessageBase: a post under an alias with a signature, a poll, a reply, the
+// areas by group; the sysop goes from the reply to its original and thread,
+// votes, and answers the poll.
 func TestMessageBase(t *testing.T) {
 	b, alice, sysop := setup(t)
 	gen, _ := b.Store.AreaByName("General")
@@ -478,6 +561,8 @@ func TestMessageBase(t *testing.T) {
 	}
 }
 
+// TestMailAndWho: mail to no one refused and to the sysop sent; a node message
+// from who's online; the sysop reads the mail and deletes it.
 func TestMailAndWho(t *testing.T) {
 	b, alice, sysop := setup(t)
 	f := run(t, b, alice,
@@ -503,6 +588,9 @@ func TestMailAndWho(t *testing.T) {
 	}
 }
 
+// TestProfileAndValidate: a new location, and new passwords that differ; the
+// sysop validates a new user to the validated level (a bad level refused) until
+// no one waits.
 func TestProfileAndValidate(t *testing.T) {
 	b, alice, sysop := setup(t)
 	b.Conf().ValidatedLevel, b.Settings.NewUserLevel = 20, 10
@@ -531,6 +619,8 @@ func TestProfileAndValidate(t *testing.T) {
 	}
 }
 
+// TestOfflineMail: a QWK packet made and sent, nothing new for a second; the
+// replies brought back are posted, and a second time are already in.
 func TestOfflineMail(t *testing.T) {
 	b, alice, sysop := setup(t)
 	gen, _ := b.Store.AreaByName("General")

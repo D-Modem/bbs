@@ -48,6 +48,8 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	return ts.Serve(ctx, ln)
 }
 
+// handle answers one query: who is on (an empty query), a user (a name),
+// or a refusal to forward (user@host); /W is taken and ignored.
 func (s *Server) handle(c net.Conn) {
 	q, err := tcpserv.ReadLine(c, 256)
 	if err != nil {

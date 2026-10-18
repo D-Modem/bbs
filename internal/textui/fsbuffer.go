@@ -16,6 +16,8 @@ type fsBuffer struct {
 	moved bool
 }
 
+// newBuffer is body to edit, its lines wrapped to width, at most max lines;
+// the cursor at the start and nothing to draw again.
 func newBuffer(body []string, width, max int) *fsBuffer {
 	b := &fsBuffer{width: width, max: max, dirty: -1}
 	for _, l := range body {
@@ -54,6 +56,8 @@ func (b *fsBuffer) Text() []string {
 // full: there is no room for another line.
 func (b *fsBuffer) full() bool { return len(b.lines) >= b.max }
 
+// insertLine puts l in as line at, those after it moving down.  It does not
+// look at max: callers see to the room.
 func (b *fsBuffer) insertLine(at int, l []rune) {
 	b.lines = append(b.lines, nil)
 	copy(b.lines[at+1:], b.lines[at:])

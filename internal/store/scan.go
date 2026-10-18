@@ -30,6 +30,7 @@ func (s *Store) SetScan(user, area int64, on bool) error {
 	return err
 }
 
+// messageList is the messages a query of msgCols finds.
 func (s *Store) messageList(q string, args ...any) ([]*Message, error) {
 	rows, err := s.db.Query(q, args...)
 	if err != nil {

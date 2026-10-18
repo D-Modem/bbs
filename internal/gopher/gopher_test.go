@@ -23,6 +23,9 @@ type site struct {
 	file *store.File
 }
 
+// setup is a gopher server on a new BBS, serving until the test ends: areas
+// General and Private with a message each, a file area with a binary file;
+// the message areas shown are those matching areas, file areas if withFiles.
 func setup(t *testing.T, areas string, withFiles bool) *site {
 	t.Helper()
 	store.BcryptCost = 4
@@ -66,6 +69,7 @@ func setup(t *testing.T, areas string, withFiles bool) *site {
 	return s
 }
 
+// get sends a selector and is all that comes back.
 func (s *site) get(t *testing.T, sel string) string {
 	t.Helper()
 	c, err := net.Dial("tcp", s.addr)
@@ -78,6 +82,10 @@ func (s *site) get(t *testing.T, sel string) string {
 	return string(b)
 }
 
+// TestGopher: the root menu, the areas shown (not others), a message with
+// its tabs cleaned and its dots doubled, refusals of what is not shown and of
+// nonsense, a file sent as it is and counted; and with nothing opened, no
+// areas or files at all.
 func TestGopher(t *testing.T) {
 	s := setup(t, "general", true)
 	root := s.get(t, "")

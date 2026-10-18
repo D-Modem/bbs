@@ -16,6 +16,8 @@ type fakeMenu struct {
 	down  bool
 }
 
+// Check notes the user asked for, and is yes for alice and carol with
+// "menupass" (an error if down).
 func (f *fakeMenu) Check(user, pw string) (bool, string, error) {
 	f.asked = append(f.asked, user)
 	if f.down {

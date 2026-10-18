@@ -71,6 +71,7 @@ func (n *Node) Binkp() (string, bool) {
 	return net.JoinHostPort(host, port), true
 }
 
+// hasFlag reports whether the node has a flag, with a value or not.
 func (n *Node) hasFlag(name string) bool {
 	_, ok := n.Flag(name)
 	return ok

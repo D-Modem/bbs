@@ -135,6 +135,10 @@ type page struct {
 	key   func(id string) error // a key of keys
 }
 
+// show draws a page until the sysop goes back from it, doing what is picked
+// or set on it; its title is in the crumbs while it is up.  errSave and
+// errQuit come back from any depth; errClose from what a page does is only
+// back a page (nil).
 func (e *Editor) show(p page) error {
 	e.crumbs = append(e.crumbs, p.title)
 	defer func() { e.crumbs = e.crumbs[:len(e.crumbs)-1] }()
@@ -198,6 +202,8 @@ func (e *Editor) show(p page) error {
 	}
 }
 
+// helpOf shows an item's whole help (F1), wrapped to the screen, and when a
+// change to it takes effect.
 func (e *Editor) helpOf(it item) error {
 	help := it.help
 	if help == "" {
@@ -222,6 +228,8 @@ func (e *Editor) say(tone view.Tone, msg string) {
 	}
 }
 
+// status is the word for a screen's foot: the flash said, once, or else how
+// many changes are not saved ("" for none).
 func (e *Editor) status() string {
 	if e.flash != "" {
 		s := e.flash
@@ -262,6 +270,8 @@ func (e *Editor) checkDoc() {
 	}
 }
 
+// check shows the file as it will be written as the BBS would take it: why
+// it would not start, or that it would, and its warnings.
 func (e *Editor) check() error {
 	if e.Tools.Check == nil {
 		return nil
@@ -288,6 +298,8 @@ func (e *Editor) review() error {
 	return e.UI.Show("Changes not saved", lines)
 }
 
+// changeLines are what saving would do, a line each: the file's changes
+// (those at a restart marked) and then the database's.
 func (e *Editor) changeLines() []view.Line {
 	var lines []view.Line
 	for _, c := range confedit.Diff(e.orig, e.doc) {
@@ -378,6 +390,8 @@ func (e *Editor) save() (bool, error) {
 	return true, e.UI.Show("Saved", lines)
 }
 
+// diffLines are the file's changes ch, a line each, those that wait for a
+// restart marked.
 func (e *Editor) diffLines(ch []confedit.Change) []view.Line {
 	var lines []view.Line
 	for _, c := range ch {
@@ -390,12 +404,14 @@ func (e *Editor) diffLines(ch []confedit.Change) []view.Line {
 	return lines
 }
 
+// log logs by e.Log, if there is one.
 func (e *Editor) log(format string, a ...any) {
 	if e.Log != nil {
 		e.Log(format, a...)
 	}
 }
 
+// who is who edits, for the log: e.Who, or "the console".
 func (e *Editor) who() string {
 	if e.Who == "" {
 		return "the console"
@@ -405,6 +421,7 @@ func (e *Editor) who() string {
 
 // --- words
 
+// width is the columns help is wrapped to: 38 on a narrow screen, 74.
 func (e *Editor) width() int {
 	if e.UI.Narrow() {
 		return 38
@@ -412,6 +429,8 @@ func (e *Editor) width() int {
 	return 74
 }
 
+// firstSentence is s to the end of its first sentence (a full stop and two
+// spaces), for an entry's one line of help; s whole if it has one.
 func firstSentence(s string) string {
 	if i := strings.Index(s, ".  "); i > 0 {
 		return s[:i+1]
@@ -439,6 +458,7 @@ func wrap(text string, width int) []view.Line {
 	return out
 }
 
+// capital is s with its first byte upper case, to make an error a sentence.
 func capital(s string) string {
 	if s == "" {
 		return s

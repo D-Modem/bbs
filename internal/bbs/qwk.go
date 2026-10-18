@@ -135,6 +135,7 @@ type REPResult struct {
 	Errors                     []string // a line for each message refused
 }
 
+// String sums up the result in a line, for the caller.
 func (r *REPResult) String() string {
 	s := fmt.Sprintf("%d posted, %d mailed", r.Posted, r.Mailed)
 	if r.Duplicates > 0 {

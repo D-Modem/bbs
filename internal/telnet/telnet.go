@@ -179,6 +179,8 @@ func (c *Conn) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// send writes b to the connection as it is, one writer at a time, so that
+// answers to the client are not cut into the BBS's output.
 func (c *Conn) send(b []byte) (int, error) {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
@@ -250,6 +252,8 @@ func acceptHim(opt byte) bool {
 	return opt == OptTType || opt == OptNAWS || opt == OptSGA || opt == OptBinary
 }
 
+// acceptUs: we will echo, suppress go-ahead and send binary when the client
+// asks.
 func acceptUs(opt byte) bool {
 	return opt == OptEcho || opt == OptSGA || opt == OptBinary
 }
@@ -313,6 +317,9 @@ func (c *Conn) queue(b ...byte) {
 	}
 }
 
+// subneg takes a finished subnegotiation: the first terminal type given
+// (printable ASCII, 40 characters at most, upper-cased), or a window size
+// (each of its dimensions only if it is a sane one).  c.mu is held.
 func (c *Conn) subneg() {
 	if len(c.sub) == 0 {
 		return
@@ -351,6 +358,8 @@ func (c *Conn) ask(cmd, opt byte) {
 	c.askLocked(cmd, opt)
 }
 
+// askLocked is ask with c.mu held: the request queued, to go at the next
+// flush.
 func (c *Conn) askLocked(cmd, opt byte) {
 	switch cmd {
 	case DO:
@@ -471,4 +480,5 @@ type rawConn struct {
 	r *bufio.Reader
 }
 
+// Read reads what the Conn had buffered, then the connection.
 func (r *rawConn) Read(p []byte) (int, error) { return r.r.Read(p) }

@@ -119,10 +119,12 @@ func four(start, end [16]byte) (uint32, uint32, bool) {
 	return binary.BigEndian.Uint32(s), binary.BigEndian.Uint32(e), true
 }
 
+// split is a 16-byte address as two big-endian halves, high first.
 func split(a [16]byte) [2]uint64 {
 	return [2]uint64{binary.BigEndian.Uint64(a[:8]), binary.BigEndian.Uint64(a[8:])}
 }
 
+// less6 says whether address a is before b.
 func less6(a, b [2]uint64) bool { return a[0] < b[0] || a[0] == b[0] && a[1] < b[1] }
 
 // next6 is the address after a ([^0, ^0]'s: itself, the last).
@@ -136,6 +138,10 @@ func next6(a [2]uint64) [2]uint64 {
 	return [2]uint64{a[0], a[1] + 1}
 }
 
+// build4 sets db's IPv4 starts from rs, sorted by start: an overlapping
+// range is cut to begin after the one before (one wholly inside it is
+// dropped), a gap gets a start of place 0, and so does the address after
+// the last range.
 func (db *csvDB) build4(rs []range4) {
 	sort.SliceStable(rs, func(i, j int) bool { return rs[i].start < rs[j].start })
 	var next uint64 // the address after the last range
@@ -157,6 +163,9 @@ func (db *csvDB) build4(rs []range4) {
 	}
 }
 
+// build6 is build4 for IPv6: db's IPv6 starts from rs, overlaps cut, gaps
+// and the rest after the last range place 0 (none once a range reaches
+// the very last address).
 func (db *csvDB) build6(rs []range6) {
 	sort.SliceStable(rs, func(i, j int) bool { return less6(rs[i].start, rs[j].start) })
 	var next [2]uint64
@@ -183,6 +192,8 @@ func (db *csvDB) build6(rs []range6) {
 	}
 }
 
+// lookup is ip's place: that of the last start at or before it (IPv4 in
+// IPv6 looked up as IPv4); Location{} before the first, or in a gap.
 func (db *csvDB) lookup(ip net.IP) Location {
 	ip = embedded(ip)
 	if v4 := ip.To4(); v4 != nil {

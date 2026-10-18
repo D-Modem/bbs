@@ -79,6 +79,8 @@ func SanitizeName(s string) string {
 	return cut(keep(s, 0x21, 0x7d), 30)
 }
 
+// sanitizeRoom is a room's name as MRC takes it: no pipe codes, ASCII
+// 33-125 (so no spaces), at most 30.
 func sanitizeRoom(s string) string {
 	return cut(keep(pipeCode.ReplaceAllString(s, ""), 0x21, 0x7d), 30)
 }
@@ -86,6 +88,7 @@ func sanitizeRoom(s string) string {
 // sanitizeText is a message's text: ASCII 32-125 (no ~).
 func sanitizeText(s string) string { return keep(s, 0x20, 0x7d) }
 
+// keep is s with only the runes from lo to hi.
 func keep(s string, lo, hi rune) string {
 	return strings.Map(func(r rune) rune {
 		if r < lo || r > hi {
@@ -95,6 +98,7 @@ func keep(s string, lo, hi rune) string {
 	}, s)
 }
 
+// cut is s cut to at most n bytes.
 func cut(s string, n int) string {
 	if len(s) > n {
 		return s[:n]
@@ -159,6 +163,8 @@ func (c *Client) Site() string { return c.site }
 // the MRC room of a carried room, and back
 func (c *Client) mrcRoom(room string) string { return room[len(c.S.Prefix):] }
 
+// localRoom is the room here that carries an MRC room: the prefix and its
+// name, sanitized, in lower case.
 func (c *Client) localRoom(mrcRoom string) string {
 	return c.S.Prefix + strings.ToLower(sanitizeRoom(mrcRoom))
 }
@@ -179,6 +185,9 @@ func (c *Client) send(m Message) bool {
 	return c.sendLocked(m)
 }
 
+// sendLocked is send, with c.mu held: the site filled in, the rooms, names
+// and text sanitized and the line cut to fit. A failed write closes the
+// connection.
 func (c *Client) sendLocked(m Message) bool {
 	if c.conn == nil {
 		return false
@@ -199,6 +208,7 @@ func (c *Client) sendLocked(m Message) bool {
 	return true
 }
 
+// command sends body to the MRC server, from a user in an MRC room.
 func (c *Client) command(from, room, body string) {
 	c.send(Message{FromUser: from, FromRoom: room, ToUser: "SERVER", ToRoom: room, Body: body})
 }
@@ -320,6 +330,8 @@ func (c *Client) Connected() bool {
 	return c.conn != nil
 }
 
+// dial connects to the MRC server, by TLS if the settings say (verified
+// against the address's host unless a TLSConfig is given).
 func (c *Client) dial() (net.Conn, error) {
 	d := &net.Dialer{Timeout: 30 * time.Second}
 	if !c.S.TLS {

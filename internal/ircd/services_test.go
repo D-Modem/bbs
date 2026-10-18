@@ -12,6 +12,10 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// TestBBSServ: the service's HELP, INFO, SET of profile fields and
+// terminal settings, SCAN (by /BS too), KEYS, TOKENS, PASSWD, unknown
+// commands and CTCP; WHOIS and ISON know it; a NOTICE to it is not
+// answered.
 func TestBBSServ(t *testing.T) {
 	e := start(t)
 	gen, _ := e.b.Store.CreateArea("General", "", false)
@@ -122,6 +126,8 @@ func TestBBSServ(t *testing.T) {
 	}
 }
 
+// TestServiceName: a service nick with a space is refused; another name
+// is taken, its IRC command too.
 func TestServiceName(t *testing.T) {
 	e := start(t)
 	if _, err := New(e.b, Settings{Address: "127.0.0.1:0", Service: "bad name"}); err == nil {
@@ -133,6 +139,9 @@ func TestServiceName(t *testing.T) {
 	}
 }
 
+// TestPermanentChannels: the sysop alone makes a room permanent; it is
+// held open by the service, listed, joined with its topic, set by the
+// sysop alone; seen by BBS callers; and let go, it goes.
 func TestPermanentChannels(t *testing.T) {
 	e := start(t)
 	a := e.dial(t)

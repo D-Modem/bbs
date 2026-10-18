@@ -70,8 +70,10 @@ type Refusal struct {
 	Ban    *store.Ban
 }
 
+// Error is the message the poster is shown.
 func (r *Refusal) Error() string { return r.Msg }
 
+// refuse is a Refusal of status, its message formatted.
 func refuse(status int, format string, args ...any) *Refusal {
 	return &Refusal{Status: status, Msg: fmt.Sprintf(format, args...)}
 }

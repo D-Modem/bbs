@@ -50,6 +50,7 @@ type Result struct {
 	Sent, Received, Skipped int
 }
 
+// String is the result as the log says it.
 func (r Result) String() string {
 	return fmt.Sprintf("%d sent, %d received, %d passed over", r.Sent, r.Received, r.Skipped)
 }
@@ -58,6 +59,8 @@ func (r Result) String() string {
 // for hubs that number each conference's messages from 1.
 func (n *Net) key(conf int) string { return fmt.Sprintf("qwk:%s/%d", n.Name, conf) }
 
+// origin is what this network is known by here: the peer whose last message
+// sent is kept, and the origin of messages from it.
 func (n *Net) origin() string { return "qwk:" + n.Name }
 
 // areas are the network's areas here, by conference, and the other way.
@@ -76,6 +79,7 @@ func (n *Net) areas(st *store.Store) (map[int]*store.Area, map[int64]int, error)
 	return byConf, byArea, nil
 }
 
+// dial connects to the hub, by TLS as set, and logs in as the node.
 func (n *Net) dial() (*ftp.ServerConn, error) {
 	opts := []ftp.DialOption{ftp.DialWithTimeout(60 * time.Second)}
 	host, _, _ := strings.Cut(n.Address, ":")
@@ -254,6 +258,7 @@ func (r *Runner) CallNow(name string) error {
 	return errors.Join(errs...)
 }
 
+// call calls a network, after any call under way, and logs what came of it.
 func (r *Runner) call(n *Net) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

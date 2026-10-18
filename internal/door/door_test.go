@@ -11,12 +11,15 @@ import (
 	"time"
 )
 
+// info is a caller on node 3, from a place whose name CP437 has to carry.
 func info() *Info {
 	return &Info{Node: 3, UserID: 7, UserName: "Alice Smith", Location: "Zürich", Logins: 5, Posts: 2,
 		LastLogin: time.Date(2026, 10, 9, 18, 30, 0, 0, time.UTC), ANSI: true, Rows: 24, Cols: 80,
 		Baud: 38400, BBSName: "Test BBS", SysopName: "Sid Sysop", Now: time.Date(2026, 10, 10, 12, 0, 0, 0, time.UTC)}
 }
 
+// TestDropFiles: each drop file is written DOS style (CR LF, CP437), its
+// lines as long as the format's and in their places.
 func TestDropFiles(t *testing.T) {
 	dir := t.TempDir()
 	in := info()
@@ -55,6 +58,8 @@ func TestDropFiles(t *testing.T) {
 	}
 }
 
+// TestSplit: a command line splits at spaces, quotes keeping theirs, and
+// backslashes stay but for \" in double quotes; an unclosed quote is an error.
 func TestSplit(t *testing.T) {
 	got, err := Split(`docker run -v {dir}:/node bbs 'CD \LORD' "LORD.EXE /P\"x\"" C:\DOORS`)
 	want := []string{"docker", "run", "-v", "{dir}:/node", "bbs", `CD \LORD`, `LORD.EXE /P"x"`, `C:\DOORS`}
@@ -91,6 +96,9 @@ func caller(t *testing.T, d *Door, utf8 bool, idle time.Duration) (net.Conn, cha
 	return theirs, done
 }
 
+// TestRun: a door reads its drop file, its CP437 reaches a UTF-8 caller as
+// UTF-8 and the caller's UTF-8 reaches it as CP437, and its exit status is
+// kept.
 func TestRun(t *testing.T) {
 	// it reads its drop file, prints CP437, echoes a line
 	d := script(t, `sed -n 10p DOOR.SYS | tr -d '\r'
@@ -119,6 +127,9 @@ exit 3
 	}
 }
 
+// TestTimeLimitAndHangup: a door is ended by its time limit (though it
+// ignores SIGHUP), by the caller hanging up, and by the caller idle too long,
+// and the result says which.
 func TestTimeLimitAndHangup(t *testing.T) {
 	d := script(t, "trap '' HUP\nsleep 30\n")
 	d.TimeLimit = time.Second
@@ -152,6 +163,8 @@ func TestTimeLimitAndHangup(t *testing.T) {
 	}
 }
 
+// TestSingleAndCleanup: a single-caller door turns a second caller away with
+// ErrBusy, and its cleanup command runs, {node} filled in, when it ends.
 func TestSingleAndCleanup(t *testing.T) {
 	d := script(t, "sleep 1\n")
 	d.Single = true
@@ -170,6 +183,8 @@ func TestSingleAndCleanup(t *testing.T) {
 	}
 }
 
+// TestPTY: a PTY door gets a terminal of the caller's size, and its output
+// reaches the caller as it wrote it.
 func TestPTY(t *testing.T) {
 	d := script(t, `tty; stty size; printf 'x\n'`)
 	d.PTY = true

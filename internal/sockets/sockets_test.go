@@ -53,6 +53,8 @@ func TestInherit(t *testing.T) {
 	}
 }
 
+// TestLookup: the user to run as must be there and not root, and so must
+// the group, if one is named.
 func TestLookup(t *testing.T) {
 	if _, err := Lookup("no-such-user-here", ""); err == nil || !strings.Contains(err.Error(), "no such user") {
 		t.Errorf("%v", err)

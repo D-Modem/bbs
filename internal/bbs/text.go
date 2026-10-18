@@ -93,6 +93,9 @@ func CleanSpaced(s string, max int) string {
 	return b.String()
 }
 
+// safeRune reports whether r may be shown as typed: not a control character,
+// bidirectional override or mark, BOM, interlinear annotation, private use or
+// surrogate.
 func safeRune(r rune) bool {
 	switch {
 	case r < 0x20, r == 0x7f, r >= 0x80 && r < 0xa0:

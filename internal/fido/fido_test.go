@@ -21,6 +21,7 @@ import (
 	"github.com/Neo-Desktop/bbs-sec/internal/store"
 )
 
+// init makes bcrypt cheap, for the tests' users.
 func init() { store.BcryptCost = 4 }
 
 type syncBuf struct {
@@ -28,12 +29,14 @@ type syncBuf struct {
 	b  bytes.Buffer
 }
 
+// Write adds p to the buffer.
 func (s *syncBuf) Write(p []byte) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.b.Write(p)
 }
 
+// String is what has been written.
 func (s *syncBuf) String() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -49,6 +52,8 @@ type system struct {
 	log  *syncBuf
 }
 
+// newSystem is a system at addr with links, answering binkp on a local port;
+// its log is shown if the test fails.
 func newSystem(t *testing.T, addr string, links ...*Link) *system {
 	t.Helper()
 	dir := t.TempDir()
@@ -89,6 +94,7 @@ func newSystem(t *testing.T, addr string, links ...*Link) *system {
 	return &system{f: f, area: area, host: ln.Addr().String(), log: lb}
 }
 
+// node is a node on the system with user logged in, left at the test's end.
 func (s *system) node(t *testing.T, user string) *bbs.Node {
 	n, err := s.f.B.Enter(&bbs.Caller{Via: "test"}, func() {})
 	if err != nil {
@@ -123,6 +129,7 @@ func (s *system) call(t *testing.T, l *Link, other *system) {
 	}
 }
 
+// messages is the messages in the system's area General.
 func (s *system) messages(t *testing.T) []*store.Message {
 	ms, err := s.f.B.Store.Messages(s.area.ID, 0, 100)
 	if err != nil {
@@ -131,6 +138,10 @@ func (s *system) messages(t *testing.T) []*store.Message {
 	return ms
 }
 
+// TestEchomailAndNetmail: echomail goes from node to hub to node with its
+// SEEN-BY and PATH, a reply comes back threaded and nothing goes twice; netmail
+// reaches a user at the next system and is answered, netmail for elsewhere is
+// dropped, and netmail with no route is refused.
 func TestEchomailAndNetmail(t *testing.T) {
 	// hub 21:1/100 with nodes 21:1/200 and 21:1/300; 200 calls the hub,
 	// the hub calls 300
@@ -227,6 +238,7 @@ func TestEchomailAndNetmail(t *testing.T) {
 	}
 }
 
+// mustAddr is an address known to be good (a panic if not).
 func mustAddr(s string) ftn.Addr {
 	a, err := ftn.ParseAddr(s)
 	if err != nil {
@@ -235,6 +247,8 @@ func mustAddr(s string) ftn.Addr {
 	return a
 }
 
+// TestRefusals: a call with a wrong password, from an address not a link, or to
+// a system that is not the link called is refused; the right one is not.
 func TestRefusals(t *testing.T) {
 	hub := newSystem(t, "21:1/100", &Link{Name: "n200", Addr: mustAddr("21:1/200"), Password: "right", Echoes: "*"})
 	ctx := context.Background()
@@ -259,6 +273,10 @@ func TestRefusals(t *testing.T) {
 	}
 }
 
+// TestTossChecks: packets from the wrong address, to the wrong one or with the
+// wrong password, echoes not exchanged, dupes and messages already through us,
+// a bundle that is not one and a bad TIC are not tossed (the bad files kept in
+// bad); escapes are cleaned; a file waits for its TIC.
 func TestTossChecks(t *testing.T) {
 	l := &Link{Name: "hub", Addr: mustAddr("21:1/100"), Password: "x", Echoes: "TEST,OTHER", PktPassword: "PKT"}
 	s := newSystem(t, "21:1/200", l)
