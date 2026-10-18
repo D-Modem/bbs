@@ -41,13 +41,21 @@ func Copy(src, dst *Store, progress func(table string, rows int)) error {
 	return copyTables(src.db.Query, dst, progress)
 }
 
+// Empty reports whether the database is new: no users yet, as Copy needs
+// of the one it copies into.
+func (s *Store) Empty() (bool, error) {
+	var n int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&n); err != nil {
+		return false, err
+	}
+	return n == 0, nil
+}
+
 // copyTables copies every table read by query into dst.
 func copyTables(query func(string, ...any) (*sql.Rows, error), dst *Store, progress func(table string, rows int)) error {
-	var n int
-	if err := dst.db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&n); err != nil {
+	if empty, err := dst.Empty(); err != nil {
 		return err
-	}
-	if n > 0 {
+	} else if !empty {
 		return errors.New("the database to copy into has users already: it must be new")
 	}
 	t, err := dst.db.Begin()

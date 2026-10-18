@@ -51,7 +51,9 @@ puts it back:
   away when all is well);
 - an SQLite database is put in the database's place;
 - a PostgreSQL, MySQL or MariaDB database must be new and empty (made as
-  for `bbs db copy`): the archive's is copied into it;
+  for `bbs db copy`): the archive's is copied into it.  One with users is
+  refused before anything is unpacked or changed: make a new one, point
+  `database` at it, and restore again;
 - what the archive does not have (the files, with `files = no`) is left
   as it is.
 

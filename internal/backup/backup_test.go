@@ -161,3 +161,25 @@ func TestClean(t *testing.T) {
 		}
 	}
 }
+
+// TestEmptyServer: a server's database is restored only into a new, empty
+// one: one with users is refused, saying what to do and that nothing was
+// changed (checked through SQLite, which Open takes the same way).
+func TestEmptyServer(t *testing.T) {
+	dir := t.TempDir()
+	fresh := "sqlite:" + filepath.Join(dir, "new.db")
+	if err := emptyServer(fresh); err != nil {
+		t.Errorf("a new database: %v", err)
+	}
+	used := filepath.Join(dir, "used.db")
+	st, err := store.Open(used)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st.CreateUser("alice", "alicepass1", "", false)
+	st.Close()
+	err = emptyServer("sqlite:" + used)
+	if err == nil || !strings.Contains(err.Error(), "nothing has been changed") || !strings.Contains(err.Error(), "new, empty") {
+		t.Errorf("one with users: %v", err)
+	}
+}

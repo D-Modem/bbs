@@ -49,6 +49,7 @@ func Restore(archive string, to Targets, now time.Time, say func(string)) error 
 		return err
 	}
 	// first: every name in it one that stays where it is put
+	hasDB := false
 	if err := walk(archive, func(h *tar.Header, r io.Reader) error {
 		if !clean(h.Name) {
 			return fmt.Errorf("%s: %q: not a name a backup has", archive, h.Name)
@@ -56,9 +57,17 @@ func Restore(archive string, to Targets, now time.Time, say func(string)) error 
 		if h.Typeflag != tar.TypeReg && h.Typeflag != tar.TypeDir {
 			return fmt.Errorf("%s: %q: not a file or a directory", archive, h.Name)
 		}
+		hasDB = hasDB || h.Name == "database.db"
 		return nil
 	}); err != nil {
 		return err
+	}
+	// a server's database is copied into, so it must be new: said before
+	// anything is unpacked or changed
+	if hasDB && to.Database != "" && !store.IsFile(to.Database) {
+		if err := emptyServer(to.Database); err != nil {
+			return err
+		}
 	}
 	stamp := ".before-restore-" + now.Format("20060102-150405")
 	work, err := os.MkdirTemp("", "bbs-restore-")
@@ -188,6 +197,26 @@ func aside(p, stamp string, say func(string)) error {
 		return err
 	}
 	say(fmt.Sprintf("%s was there: now %s", p, p+stamp))
+	return nil
+}
+
+// emptyServer checks that the database server's database at addr is new and
+// empty, as a restore into it needs: what to do if it is not.
+func emptyServer(addr string) error {
+	db, err := store.Open(addr)
+	if err != nil {
+		return fmt.Errorf("the database: %w", err)
+	}
+	defer db.Close()
+	empty, err := db.Empty()
+	if err != nil {
+		return fmt.Errorf("the database: %w", err)
+	}
+	if !empty {
+		return fmt.Errorf("the database %s has users: a server's database is restored into a new, empty one "+
+			"(made as for bbs db copy). Make one, point bbs.conf's database at it, and restore again; "+
+			"nothing has been changed", store.Describe(addr))
+	}
 	return nil
 }
 
