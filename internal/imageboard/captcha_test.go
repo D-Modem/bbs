@@ -207,6 +207,9 @@ func TestBoardSettings(t *testing.T) {
 			t.Errorf("%s: %d %s", path, code, loc)
 		}
 	}
+	if _, _, body := anon.get("/chan/b/catalog.json"); strings.TrimSpace(body) != `{"error":"forbidden"}` {
+		t.Errorf("the JSON error: %s", body) // its status's, not always "not found"
+	}
 	if code, _, _ := anon.post("b", map[string]string{"resto": "1", "com": "x"}, nil, ""); code != 403 {
 		t.Errorf("a guest posting: %d", code)
 	}

@@ -264,6 +264,8 @@ func TestChatWithCallers(t *testing.T) {
 	waitEvent(t, bob, "Message from alice (node 2): psst")
 	bob.Message(2, "hey you")
 	c.expect(":bob!telnet@node1 PRIVMSG alice :hey you")
+	c.send("PRIVMSG Alice :note to self") // no other node: it comes back
+	c.expect(":alice!irc@node2 PRIVMSG Alice :note to self")
 
 	c.send("PRIVMSG #nowhere :x", "PRIVMSG nobody :x")
 	c.expect(" 404 alice #nowhere ")

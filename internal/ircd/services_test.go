@@ -30,6 +30,7 @@ func TestBBSServ(t *testing.T) {
 
 	c.send("PRIVMSG BBSServ :HELP")
 	c.expect(from + "*** \x02BBSServ HELP\x02 ***")
+	c.expect(from + "\x02BBSServ\x02 is your BBS account") // formatting, not "$b"
 	c.expect(from + "    \x02SET\x02 changes one of your settings.")
 	c.expect("End of BBSServ HELP")
 	c.send("PRIVMSG bbsserv :help set")

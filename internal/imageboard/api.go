@@ -2,7 +2,6 @@ package imageboard
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -130,11 +129,12 @@ func (q *req) json(v any) {
 	json.NewEncoder(q.w).Encode(v)
 }
 
-// jsonFail answers status with a JSON error (always "not found").
+// jsonFail answers status with a JSON error naming it ("not found",
+// "internal server error" ...).
 func (q *req) jsonFail(status int) {
 	q.w.Header().Set("Content-Type", "application/json")
 	q.w.WriteHeader(status)
-	fmt.Fprintln(q.w, `{"error":"not found"}`)
+	json.NewEncoder(q.w).Encode(map[string]string{"error": strings.ToLower(http.StatusText(status))})
 }
 
 // boardsJSON is boards.json: each board and how it is run.

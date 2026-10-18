@@ -156,7 +156,7 @@ func (svc *service) run(c *client, cmd *serviceCommand, name string, params []st
 func (svc *service) helpHandler(c *client, params []string) {
 	svc.notice(c, ircfmt.Unescape(fmt.Sprintf("*** $b%s HELP$b ***", svc.Name)))
 	if len(params) == 0 {
-		lines := append(strings.Split(svc.HelpBanner, "\n"),
+		lines := append(strings.Split(ircfmt.Unescape(svc.HelpBanner), "\n"),
 			"",
 			"For a command's details:",
 			ircfmt.Unescape(fmt.Sprintf("    $b/msg %s HELP <command>$b", svc.Name)),

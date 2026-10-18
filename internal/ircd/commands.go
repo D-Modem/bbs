@@ -467,7 +467,9 @@ func (c *client) privmsg(command, target, text string) {
 		}
 	}
 	switch {
-	case sent && c.caps["echo-message"]:
+	case sent && c.caps["echo-message"], !sent && lastErr == nil:
+		// echoed, or to yourself with no other node: back it comes, as IRC
+		// servers send a message to one's own nick
 		c.send(map[string]string{"time": stamp(time.Now())}, c.source(), command, target, text)
 	case !sent && lastErr != nil && !notice:
 		c.reply(ERR_CANNOTSENDTOCHAN, target, "Cannot send: "+lastErr.Error())
