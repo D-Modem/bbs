@@ -1036,24 +1036,27 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 }
 
 // download: a file's content (Range works), if the user may download it
-// and has downloads left today; counted as a download unless it is asked
-// for by Range.
+// and has downloads left today, counted as a download.  A Range request
+// resuming a download of the file counted in the last day (BBS.Resuming)
+// needs no downloads left and is not counted again; any other is a new
+// download, however little of the file it asks for.
 func (s *Server) download(w http.ResponseWriter, r *http.Request) {
 	f := s.fileByPath(w, r)
 	if f == nil {
 		return
 	}
 	u := whoOf(r).user
+	resume := r.Header.Get("Range") != "" && s.B.Resuming(u, f)
 	if fa, err := s.B.Store.FileArea(f.AreaID); err != nil {
 		fail(w, http.StatusNotFound, "no such file")
 		return
-	} else if r.Header.Get("Range") == "" {
-		if err := s.B.MayDownload(u, fa); err != nil {
-			fail(w, http.StatusForbidden, err.Error())
+	} else if resume {
+		if !s.B.CanDownload(u, fa) {
+			fail(w, http.StatusForbidden, bbs.ErrNotAllowed.Error())
 			return
 		}
-	} else if !s.B.CanDownload(u, fa) {
-		fail(w, http.StatusForbidden, bbs.ErrNotAllowed.Error())
+	} else if err := s.B.MayDownload(u, fa); err != nil {
+		fail(w, http.StatusForbidden, err.Error())
 		return
 	}
 	fh, err := s.B.Files.OpenFile(f)
@@ -1065,7 +1068,7 @@ func (s *Server) download(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", `attachment; filename="`+f.Name+`"`)
 	w.Header().Set("Digest", "sha-256="+f.SHA256)
-	if r.Header.Get("Range") == "" {
+	if !resume {
 		s.B.Downloaded(u, f)
 	}
 	http.ServeContent(w, r, f.Name, f.Created, fh)

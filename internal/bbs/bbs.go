@@ -162,6 +162,9 @@ type BBS struct {
 
 	codesMu sync.Mutex
 	codes   map[string]signInCode // sign-in codes by their hash
+
+	dlMu   sync.Mutex
+	recent map[recentDownload]time.Time // downloads counted, for resuming
 	// Config edits the configuration file, on the sysop's menu (nil: none)
 	Config *ConfigTools
 	// Doors are the door programs (for text callers)

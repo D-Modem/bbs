@@ -283,15 +283,57 @@ func (b *BBS) DownloadsLeft(u *store.User) (int, error) {
 	return left, why
 }
 
-// Downloaded counts a download of f by u (u nil: anonymous, as gopher's).
+// Downloaded counts a download of f by u (u nil: anonymous, as gopher's),
+// and remembers it for a day so that its resumption (Resuming) is not
+// counted again.
 func (b *BBS) Downloaded(u *store.User, f *store.File) {
 	b.Store.CountDownload(f.ID)
 	if u != nil && u.ID != 0 {
 		b.Store.CountUserDownload(u.ID)
 		u.DLCount, u.DLDay = u.DownloadsToday()+1, store.Today()
 		u.Downloads++
+		b.dlMu.Lock()
+		if b.recent == nil {
+			b.recent = map[recentDownload]time.Time{}
+		}
+		now := time.Now()
+		if len(b.recent) >= maxRecentDownloads {
+			for k, t := range b.recent {
+				if now.Sub(t) > resumeWithin {
+					delete(b.recent, k)
+				}
+			}
+		}
+		if len(b.recent) < maxRecentDownloads {
+			b.recent[recentDownload{u.ID, f.ID}] = now
+		}
+		b.dlMu.Unlock()
 	}
 }
+
+// Resuming reports whether u's download of f was counted in the last day:
+// a request for part of it (HTTP Range) then resumes that download, needing
+// neither downloads left nor counting again.  Any other request for part of
+// a file is a new download.
+func (b *BBS) Resuming(u *store.User, f *store.File) bool {
+	if u == nil || u.ID == 0 {
+		return false
+	}
+	b.dlMu.Lock()
+	defer b.dlMu.Unlock()
+	t, ok := b.recent[recentDownload{u.ID, f.ID}]
+	return ok && time.Since(t) <= resumeWithin
+}
+
+// recentDownload is a user's download of a file, for Resuming.
+type recentDownload struct{ user, file int64 }
+
+const (
+	// resumeWithin is how long after a download counts its resumption
+	resumeWithin = 24 * time.Hour
+	// maxRecentDownloads bounds the downloads remembered for resuming
+	maxRecentDownloads = 100000
+)
 
 // CanDoor reports whether u may open door d.
 func (b *BBS) CanDoor(u *store.User, d *door.Door) bool {

@@ -987,3 +987,55 @@ func TestForumSessions(t *testing.T) {
 		t.Errorf("after logout %+v", toks)
 	}
 }
+
+// TestRangeDownloadLimits: a Range request is a download like any other,
+// checked against the day's limit and counted, unless it resumes the
+// user's download of that file counted today, which is neither.
+func TestRangeDownloadLimits(t *testing.T) {
+	s := setup(t, Settings{})
+	alice := s.login("alice", "alicepass1")
+	for _, name := range []string{"one.txt", "two.txt"} {
+		if code, m, _ := s.do("POST", "/api/v1/fileareas/1/files?name="+name, alice, []byte("hello, world\n")); code != 201 {
+			t.Fatalf("upload %s: %d %v", name, code, m)
+		}
+	}
+	conf := *s.b.Conf()
+	one := bbs.AllowAll(0, "One a day")
+	one.Downloads = 1
+	conf.Levels = []bbs.Level{one}
+	s.b.Reconfigure(conf)
+
+	get := func(id int, rng string) int {
+		t.Helper()
+		req, _ := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/files/%d/content", s.ts.URL, id), nil)
+		req.Header.Set("Authorization", "Bearer "+alice)
+		if rng != "" {
+			req.Header.Set("Range", rng)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+	counted := func() int {
+		u, _ := s.b.Store.UserByName("alice")
+		return u.DownloadsToday()
+	}
+	// part of a file, the first time: a download, counted
+	if code := get(1, "bytes=0-"); code != 206 || counted() != 1 {
+		t.Fatalf("first range: %d, %d counted", code, counted())
+	}
+	// the rest of it: a resumption, neither limited nor counted
+	if code := get(1, "bytes=7-"); code != 206 || counted() != 1 {
+		t.Errorf("resume: %d, %d counted", code, counted())
+	}
+	// another file, whole or in part: over the limit
+	for _, rng := range []string{"", "bytes=0-"} {
+		if code := get(2, rng); code != 403 || counted() != 1 {
+			t.Errorf("another file (%q): %d, %d counted", rng, code, counted())
+		}
+	}
+}
