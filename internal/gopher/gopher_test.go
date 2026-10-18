@@ -3,6 +3,7 @@ package gopher
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -157,5 +158,26 @@ func TestCurl(t *testing.T) {
 	out, err = exec.Command("curl", "-sS", "gopher://"+s.addr+"/9/file/1").Output()
 	if err != nil || string(out) != "\x00binary\r\n.\r\n" {
 		t.Errorf("curl binary: %v %q", err, out)
+	}
+}
+
+// TestGopherRestrictedFiles: a file area with a download requirement is not
+// gopher's (gopher has no login): not listed, its files neither listed nor
+// sent nor counted.
+func TestGopherRestrictedFiles(t *testing.T) {
+	s := setup(t, "general", true)
+	if err := s.b.Store.SetFileAreaRequire(s.file.AreaID, "20", ""); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.get(t, "/files"); strings.Contains(got, "Uploads") {
+		t.Errorf("a restricted area listed:\n%s", got)
+	}
+	for _, sel := range []string{fmt.Sprintf("/files/%d", s.file.AreaID), fmt.Sprintf("/file/%d", s.file.ID)} {
+		if got := s.get(t, sel); !strings.HasPrefix(got, "3Not here.") {
+			t.Errorf("%s: %q", sel, got)
+		}
+	}
+	if f, _ := s.b.Store.FileByID(s.file.ID); f.Downloads != 0 {
+		t.Errorf("downloads %d", f.Downloads)
 	}
 }

@@ -292,10 +292,18 @@ func (s *Server) fileAreas(c io.Writer) {
 	fas, _ := s.B.Store.FileAreas()
 	items := []item{{'i', "File areas of " + s.B.Conf().Name, ""}, {'i', "", ""}}
 	for _, fa := range fas {
-		items = append(items, item{'1', fmt.Sprintf("%s (%d)  %s", fa.Name, fa.Files, fa.Description),
-			fmt.Sprintf("/files/%d", fa.ID)})
+		if openFiles(fa) {
+			items = append(items, item{'1', fmt.Sprintf("%s (%d)  %s", fa.Name, fa.Files, fa.Description),
+				fmt.Sprintf("/files/%d", fa.ID)})
+		}
 	}
 	s.menu(c, items)
+}
+
+// openFiles reports whether a file area is gopher's: gopher has no login,
+// so only an area anyone may download from (no download requirement).
+func openFiles(fa *store.FileArea) bool {
+	return bbs.MustRequire(fa.DownloadReq).Allows(nil)
 }
 
 // kind is a file's gopher type, by its name.
@@ -317,7 +325,7 @@ func (s *Server) files(c io.Writer, id int64) {
 		return
 	}
 	fa, err := s.B.Store.FileArea(id)
-	if err != nil {
+	if err != nil || !openFiles(fa) {
 		notFound(s, c)
 		return
 	}
@@ -333,8 +341,8 @@ func (s *Server) files(c io.Writer, id int64) {
 	s.menu(c, items)
 }
 
-// download sends a file's bytes as they are, counting a download if all of
-// it went.
+// download sends a file's bytes as they are, if its area is gopher's,
+// counting a download if all of it went.
 func (s *Server) download(c io.Writer, id int64) {
 	if s.B.Files == nil || id < 1 {
 		notFound(s, c)
@@ -342,6 +350,10 @@ func (s *Server) download(c io.Writer, id int64) {
 	}
 	f, err := s.B.Store.FileByID(id)
 	if err != nil {
+		notFound(s, c)
+		return
+	}
+	if fa, err := s.B.Store.FileArea(f.AreaID); err != nil || !openFiles(fa) {
 		notFound(s, c)
 		return
 	}
