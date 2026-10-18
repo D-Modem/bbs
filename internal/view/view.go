@@ -206,7 +206,8 @@ type UI interface {
 	PageSize() int
 	// Narrow is a screen under 60 columns.
 	Narrow() bool
-	// Menu returns the key chosen, or Back (a 3270's PF3).
+	// Menu returns the key of the item chosen, Back (a 3270's PF3), or ""
+	// for none (a text terminal's Enter).
 	Menu(m *Menu) (string, error)
 	Table(t *Table) (Choice, error)
 	Message(m *Message) (string, error)

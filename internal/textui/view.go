@@ -63,9 +63,6 @@ func keyLabel(a view.Action) string {
 			return string(rs[:i]) + "[" + string(k) + "]" + string(rs[i+1:])
 		}
 	}
-	if len(rs) > 0 && unicode.ToUpper(rs[0]) == k {
-		return "[" + string(k) + "]" + string(rs[1:])
-	}
 	return "[" + string(k) + "] " + a.Label
 }
 
@@ -111,7 +108,8 @@ func (s *session) Narrow() bool { return s.t.Narrow() }
 
 // Menu shows a menu: its intro, the sysop's screen if there is one, else
 // its items (in RIP buttons where it can; in brief, only on ?), and reads
-// a key.  It is the key typed, unchecked; "" for Enter.
+// a key until it is an item's.  It is that item's key; "" for Enter (none
+// chosen: the caller shows its menu again, or goes back if it will).
 func (s *session) Menu(m *view.Menu) (string, error) {
 	t := s.t
 	if len(m.Intro) > 0 {
@@ -147,10 +145,18 @@ func (s *session) Menu(m *view.Menu) (string, error) {
 	if err == nil && brief && k == '?' {
 		k, err = s.menu(m.Title, items, "\n"+prompt, true)
 	}
-	if err != nil || k == '\r' {
-		return "", err
+	for {
+		if err != nil || k == '\r' {
+			return "", err
+		}
+		for _, it := range m.Items {
+			if strings.EqualFold(it.Key, string(k)) {
+				return it.Key, nil
+			}
+		}
+		// not an item's: asked again, as a 3270 does
+		k, err = s.menu(m.Title, items, "\n"+prompt, false)
 	}
-	return string(k), nil
 }
 
 // Table shows a table a page at a time, its columns fitted to the screen,

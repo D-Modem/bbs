@@ -96,4 +96,9 @@ func TestBufferQuoteAndLimit(t *testing.T) {
 	if n := b.InsertLines([]string{"> three"}); n != 0 {
 		t.Errorf("quoted past the limit: %d", n)
 	}
+	// a body longer than the limit is cut to it
+	b = newBuffer([]string{"1", "2", "3", "4", "5", "6"}, 20, 4)
+	if got := b.Text(); len(got) != 4 || got[3] != "4" {
+		t.Errorf("a long body: %q", got)
+	}
 }

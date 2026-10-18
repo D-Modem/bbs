@@ -131,9 +131,10 @@ func startFull(t *testing.T, g ui3270.Graphics, tweak func(*bbs.Settings), prep 
 
 // dialog is a connection to the BBS, read as text.
 type dialog struct {
-	t   *testing.T
-	c   net.Conn
-	got []byte
+	t      *testing.T
+	c      net.Conn
+	got    []byte
+	before []byte // what came before the last expect's want
 }
 
 // dial is a dialog on the unix socket name in the test's directory.
@@ -161,6 +162,7 @@ func (d *dialog) expect(want string) {
 	buf := make([]byte, 4096)
 	for {
 		if i := bytes.Index(d.got, []byte(want)); i >= 0 {
+			d.before = append(d.before[:0], d.got[:i]...)
 			d.got = d.got[i+len(want):]
 			return
 		}
@@ -882,4 +884,18 @@ func TestIndFile(t *testing.T) {
 	if !strings.Contains(string(out), "File not found") {
 		t.Errorf("no not-found message:\n%s", out)
 	}
+}
+
+// TestMenuKeys: on a text terminal a key that is no item's is asked for
+// again, the menu not redrawn; one that is (in either case) is taken.
+func TestMenuKeys(t *testing.T) {
+	e := start(t, nil, &Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no"})
+	d := login(e, "alice", "alicepass1")
+	d.send("Z")
+	d.expect("Command: ")
+	if bytes.Contains(d.before, []byte("Main menu")) {
+		t.Errorf("redrawn for a key that is no item's: %q", d.before)
+	}
+	d.send("l")
+	d.expect("Last callers")
 }

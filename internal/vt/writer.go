@@ -235,9 +235,10 @@ func (v *VT52Writer) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// esc is an ANSI escape as a VT52's: ED, EL (to the end of the line only),
-// CUP (within 24 by 80) and the cursor moves (at most 100); anything else
-// dropped.
+// esc is an ANSI escape as a VT52's: ED (onwards, or all), EL (onwards,
+// or the whole line, the cursor left at its start), CUP (within 24 by 80)
+// and the cursor moves (at most 100); anything else, erasing up to the
+// cursor among it, dropped.
 func (v *VT52Writer) esc(e []byte) {
 	if len(e) < 3 || e[1] != '[' {
 		return // ESC 7, charsets, DCS (sixel), OSC: nothing on a VT52
@@ -262,15 +263,22 @@ func (v *VT52Writer) esc(e []byte) {
 	}
 	switch final {
 	case 'J':
-		if num(0, 0) == 2 {
-			v.out = append(v.out, "\x1bH\x1bJ"...)
-		} else {
+		switch num(0, 0) {
+		case 0:
 			v.out = append(v.out, "\x1bJ"...)
+		case 2, 3:
+			v.out = append(v.out, "\x1bH\x1bJ"...)
 		}
+		// 1 (to the cursor): a VT52 erases only onwards, so nothing
 	case 'K':
-		if num(0, 0) == 0 {
+		switch num(0, 0) {
+		case 0:
 			v.out = append(v.out, "\x1bK"...)
+		case 2:
+			// the whole line: from its start, where the cursor is left
+			v.out = append(v.out, "\r\x1bK"...)
 		}
+		// 1 (to the cursor): nothing, as for J
 	case 'H', 'f':
 		row, col := min(num(0, 1), 24), min(num(1, 1), 80)
 		v.out = append(v.out, 0x1b, 'Y', byte(31+row), byte(31+col))

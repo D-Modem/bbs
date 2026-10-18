@@ -21,6 +21,9 @@ type fsBuffer struct {
 func newBuffer(body []string, width, max int) *fsBuffer {
 	b := &fsBuffer{width: width, max: max, dirty: -1}
 	for _, l := range body {
+		if max > 0 && len(b.lines) >= max {
+			break // the rest past the limit, which nothing could save
+		}
 		b.lines = append(b.lines, []rune(l))
 	}
 	if len(b.lines) == 0 {

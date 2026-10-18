@@ -92,4 +92,11 @@ func TestVT52Writer(t *testing.T) {
 	if buf.String() != want {
 		t.Errorf("%q\nwant %q", buf.String(), want)
 	}
+	// erasing: up to the cursor is beyond a VT52 (not made onwards); the
+	// whole line from its start
+	buf.Reset()
+	v.Write([]byte("a\x1b[1Jb\x1b[Jc\x1b[1Kd\x1b[2Ke\x1b[0K"))
+	if want := "ab\x1bJcd\r\x1bKe\x1bK"; buf.String() != want {
+		t.Errorf("erasing: %q\nwant %q", buf.String(), want)
+	}
 }

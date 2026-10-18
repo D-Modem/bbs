@@ -100,7 +100,7 @@ type translator interface {
 }
 
 // setTranslator makes x what writes to the line (nil: nothing between),
-// what was written before it flushed first.
+// what was written before it flushed first (Flush settles the old one).
 func (t *Term) setTranslator(x translator) {
 	t.Flush()
 	t.xl = x

@@ -320,7 +320,9 @@ func (d *sheetDraw) drawFoot() {
 	}
 	keys := "Enter change  Esc back  F1 help  F9 quit  F10 save+exit"
 	for _, a := range d.sh.Keys {
-		keys = string(a.Key) + " " + a.Label + "  " + keys
+		if a.Key != 0 { // a 3270's PF key alone: nothing to press here
+			keys = string(a.Key) + " " + a.Label + "  " + keys
+		}
 	}
 	w := t.Cols - 1
 	var b strings.Builder
