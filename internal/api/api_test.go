@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -1078,5 +1079,21 @@ func TestPatchAllOrNothing(t *testing.T) {
 	}
 	if u, _ := s.b.Store.UserByName("alice"); u.Location != "Here" {
 		t.Errorf("location %q, though the request was refused", u.Location)
+	}
+}
+
+// TestAttachment: a file's name in Content-Disposition, quoted and escaped
+// as it needs, whatever it is: a browser reads back the name it was.
+func TestAttachment(t *testing.T) {
+	for _, name := range []string{"plain.txt", `say "hi".txt`, `back\slash.zip`, "café.png", "semi;colon.txt",
+		"bad\x01name", "line\r\nInjected: x"} {
+		v := attachment(name)
+		disp, params, err := mime.ParseMediaType(v)
+		if err != nil || disp != "attachment" || params["filename"] != name {
+			t.Errorf("%q: %q read back as %q %v (%v)", name, v, disp, params, err)
+		}
+	}
+	if v := attachment("line\r\nInjected: x"); strings.ContainsAny(v, "\r\n") {
+		t.Errorf("a line break in the header: %q", v)
 	}
 }

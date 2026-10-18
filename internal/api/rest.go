@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"sort"
 	"strconv"
@@ -1075,12 +1076,23 @@ func (s *Server) download(w http.ResponseWriter, r *http.Request) {
 	}
 	defer fh.Close()
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition", `attachment; filename="`+f.Name+`"`)
+	w.Header().Set("Content-Disposition", attachment(f.Name))
 	w.Header().Set("Digest", "sha-256="+f.SHA256)
 	if !resume {
 		s.B.Downloaded(u, f)
 	}
 	http.ServeContent(w, r, f.Name, f.Created, fh)
+}
+
+// attachment is a Content-Disposition header for a file named name, saved
+// rather than shown: the name quoted and escaped as the header needs (a "
+// or a backslash in it), or percent-encoded as RFC 2231 has it (a name not
+// in ASCII, or with control characters), so that no name breaks the header.
+func attachment(name string) string {
+	if v := mime.FormatMediaType("attachment", map[string]string{"filename": name}); v != "" {
+		return v
+	}
+	return "attachment" // FormatMediaType refused it: no name
 }
 
 // upload: the body is the file; ?name= and &description=.
@@ -1138,7 +1150,7 @@ func (s *Server) qwkPacket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", `attachment; filename="`+out.Name+`"`)
+	w.Header().Set("Content-Disposition", attachment(out.Name))
 	w.Header().Set("Content-Length", strconv.Itoa(len(out.Data)))
 	w.Header().Set("X-QWK-Messages", strconv.Itoa(out.Messages))
 	if _, err := w.Write(out.Data); err != nil {
