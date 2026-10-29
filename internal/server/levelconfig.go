@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/config"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/config"
 )
 
 // levelSections reads [level N] and [general]'s new_user_level and

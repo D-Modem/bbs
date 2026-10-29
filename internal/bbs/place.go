@@ -4,8 +4,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
-	"github.com/Neo-Desktop/bbs-sec/internal/phone"
+	"github.com/D-Modem/bbs/internal/geoip"
+	"github.com/D-Modem/bbs/internal/phone"
 )
 
 // Place is where a caller is, as far as is known: from the address, with

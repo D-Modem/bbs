@@ -19,14 +19,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/fido"
-	"github.com/Neo-Desktop/bbs-sec/internal/forum"
-	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
-	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
-	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
-	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/fido"
+	"github.com/D-Modem/bbs/internal/forum"
+	"github.com/D-Modem/bbs/internal/imageboard"
+	"github.com/D-Modem/bbs/internal/nntp"
+	"github.com/D-Modem/bbs/internal/qwknet"
+	"github.com/D-Modem/bbs/internal/sockets"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // Scopes a token may have.

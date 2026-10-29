@@ -13,9 +13,9 @@ import (
 
 	"github.com/racingmars/go3270"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/app"
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/app"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // ErrIdle: the caller pressed nothing for too long.

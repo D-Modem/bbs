@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/mrc"
+	"github.com/D-Modem/bbs/internal/mrc"
 )
 
 // TestMRCConfig: [mrc] takes the BBS's name and sysop, has a default

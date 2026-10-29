@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
+	"github.com/D-Modem/bbs/internal/ui3270"
 )
 
 // TestShared3270: the screens internal/app shares, on a 3270 (s3270): the

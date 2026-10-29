@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // Stats count what the BBS has done since it started (for metrics).

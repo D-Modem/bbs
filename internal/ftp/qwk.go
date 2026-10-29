@@ -11,8 +11,8 @@ import (
 
 	ftpserver "github.com/fclairamb/ftpserverlib"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/qwk"
 )
 
 // /qwk is a user's offline mail: BBSID.QWK, their packet, made as it is

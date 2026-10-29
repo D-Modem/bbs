@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/config"
-	"github.com/Neo-Desktop/bbs-sec/internal/news"
-	"github.com/Neo-Desktop/bbs-sec/internal/nntp"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/config"
+	"github.com/D-Modem/bbs/internal/news"
+	"github.com/D-Modem/bbs/internal/nntp"
 )
 
 // newsSections reads [news], [nntp] and the [peer NAME]s.

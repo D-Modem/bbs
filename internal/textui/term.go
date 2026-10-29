@@ -18,10 +18,10 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/petscii"
-	"github.com/Neo-Desktop/bbs-sec/internal/rip"
-	"github.com/Neo-Desktop/bbs-sec/internal/screens"
-	"github.com/Neo-Desktop/bbs-sec/internal/vt"
+	"github.com/D-Modem/bbs/internal/petscii"
+	"github.com/D-Modem/bbs/internal/rip"
+	"github.com/D-Modem/bbs/internal/screens"
+	"github.com/D-Modem/bbs/internal/vt"
 )
 
 // ErrIdle: the caller typed nothing for too long.

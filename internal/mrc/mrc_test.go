@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // TestParse: a line's fields, and the line made again; a short line

@@ -6,9 +6,9 @@ import (
 	"net"
 	"regexp"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/config"
-	"github.com/Neo-Desktop/bbs-sec/internal/mrc"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/config"
+	"github.com/D-Modem/bbs/internal/mrc"
 )
 
 var roomPrefix = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,9}$`)

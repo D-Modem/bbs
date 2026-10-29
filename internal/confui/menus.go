@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/confedit"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/confedit"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // The menus, by what a sysop looks for.

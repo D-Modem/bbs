@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
+	"github.com/D-Modem/bbs/internal/sockets"
 )
 
 // metrics writes the Prometheus text format.

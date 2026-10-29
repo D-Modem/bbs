@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/imageboard"
+	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // TestImageBoards: on a terminal, a thread started with an image sent by

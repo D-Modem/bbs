@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/confedit"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/confedit"
+	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // data is what the screens change in the database: copies of the

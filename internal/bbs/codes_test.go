@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // TestSignInCodes: a sign-in code signs in its own user only, once, before it

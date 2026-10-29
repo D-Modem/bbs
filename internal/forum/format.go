@@ -13,8 +13,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/geoip"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 var funcs = template.FuncMap{

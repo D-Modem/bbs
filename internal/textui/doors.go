@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/door"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/door"
 )
 
 // Doors are the doors the caller may open.

@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/news"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/news"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // Results of offering an article.

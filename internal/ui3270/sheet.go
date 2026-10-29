@@ -6,8 +6,8 @@ import (
 
 	"github.com/racingmars/go3270"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // Sheet is a sheet as a 3270 screen: the values as fields to type over

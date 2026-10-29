@@ -11,7 +11,7 @@ import (
 
 	"github.com/coder/websocket"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/api"
+	"github.com/D-Modem/bbs/internal/api"
 )
 
 // webTerm is a server with the web terminal page, on e's BBS.

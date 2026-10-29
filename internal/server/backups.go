@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/backup"
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/D-Modem/bbs/internal/backup"
+	"github.com/D-Modem/bbs/internal/bbs"
 )
 
 // Backups makes the BBS's backups ([backup]): the configuration file, the

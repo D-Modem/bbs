@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // Permanent chat rooms: kept open when no one is in them, each with a

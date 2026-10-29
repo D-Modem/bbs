@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	bbssec "github.com/Neo-Desktop/bbs-sec"
-	"github.com/Neo-Desktop/bbs-sec/internal/backup"
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	bbssec "github.com/D-Modem/bbs"
+	"github.com/D-Modem/bbs/internal/backup"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // step is the sysop's doing on a sheet (or a confirm, a form).

@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/files"
-	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/files"
+	"github.com/D-Modem/bbs/internal/ftn"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // ticWait is how long a TIC waits for its file before it goes to bad.

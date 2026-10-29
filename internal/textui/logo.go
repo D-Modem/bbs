@@ -4,8 +4,8 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/logo"
-	"github.com/Neo-Desktop/bbs-sec/internal/sixel"
+	"github.com/D-Modem/bbs/internal/logo"
+	"github.com/D-Modem/bbs/internal/sixel"
 )
 
 // the cell assumed when the terminal does not say

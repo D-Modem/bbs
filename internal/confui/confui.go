@@ -17,10 +17,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	bbssec "github.com/Neo-Desktop/bbs-sec"
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/confedit"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	bbssec "github.com/D-Modem/bbs"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/confedit"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // Editor is the screens, on a front end's UI.

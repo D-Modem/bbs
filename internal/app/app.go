@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/door"
-	"github.com/Neo-Desktop/bbs-sec/internal/screens"
-	"github.com/Neo-Desktop/bbs-sec/internal/script"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/door"
+	"github.com/D-Modem/bbs/internal/screens"
+	"github.com/D-Modem/bbs/internal/script"
+	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // ErrLogoff: the caller logged off.

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // init makes bcrypt cheap, for the tests' speed.

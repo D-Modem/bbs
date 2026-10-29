@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/D-Modem/bbs/internal/bbs"
 )
 
 // The session header, as modemmenu (server.go) and app_dmodem write it:

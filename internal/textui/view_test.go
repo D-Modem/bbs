@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // TestKeyLabel: a key in brackets where it begins a word of its label,

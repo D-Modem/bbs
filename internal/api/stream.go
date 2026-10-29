@@ -14,8 +14,8 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/api/pb"
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/D-Modem/bbs/internal/api/pb"
+	"github.com/D-Modem/bbs/internal/bbs"
 )
 
 // Subprotocols of the WebSocket endpoints.

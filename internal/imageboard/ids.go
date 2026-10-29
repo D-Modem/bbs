@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
+	"github.com/D-Modem/bbs/internal/geoip"
 )
 
 // Poster IDs and country flags, on the boards that have them.

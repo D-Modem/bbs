@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/qwk"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // offline: QWK offline mail, the caller's new messages and mail in a

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/qwk"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // QWK offline mail: a user takes their new messages and mail away in a

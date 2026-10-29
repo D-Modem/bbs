@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/archive"
-	"github.com/Neo-Desktop/bbs-sec/internal/config"
-	"github.com/Neo-Desktop/bbs-sec/internal/fido"
-	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
+	"github.com/D-Modem/bbs/internal/archive"
+	"github.com/D-Modem/bbs/internal/config"
+	"github.com/D-Modem/bbs/internal/fido"
+	"github.com/D-Modem/bbs/internal/ftn"
 )
 
 // BinkpSettings are the [binkp] section's: the mailer that answers.

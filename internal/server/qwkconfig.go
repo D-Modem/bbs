@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/config"
-	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
-	"github.com/Neo-Desktop/bbs-sec/internal/qwknet"
+	"github.com/D-Modem/bbs/internal/config"
+	"github.com/D-Modem/bbs/internal/qwk"
+	"github.com/D-Modem/bbs/internal/qwknet"
 )
 
 // qwkNets reads the [qwknet NAME] sections: QWK networks this BBS is a

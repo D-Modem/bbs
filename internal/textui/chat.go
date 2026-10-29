@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/D-Modem/bbs/internal/bbs"
 )
 
 // notify is the terminal's Notify: what other nodes sent, shown at any

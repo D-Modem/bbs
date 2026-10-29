@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/door"
-	"github.com/Neo-Desktop/bbs-sec/internal/files"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/door"
+	"github.com/D-Modem/bbs/internal/files"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // MaxLevel is the highest access level.

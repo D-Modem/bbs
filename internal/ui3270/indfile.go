@@ -8,8 +8,8 @@ import (
 
 	"github.com/racingmars/go3270"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/files"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/files"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // dftTimeout is how long an emulator may take to answer in a transfer.

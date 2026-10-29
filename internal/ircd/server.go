@@ -20,10 +20,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/ircd/isupport"
-	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
-	"github.com/Neo-Desktop/bbs-sec/internal/tcpserv"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/ircd/isupport"
+	"github.com/D-Modem/bbs/internal/sockets"
+	"github.com/D-Modem/bbs/internal/tcpserv"
 )
 
 // Settings are the [irc] section's.

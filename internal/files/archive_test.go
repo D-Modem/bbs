@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/archive"
+	"github.com/D-Modem/bbs/internal/archive"
 )
 
 // zipOf is a ZIP of those of FILE_ID.DIZ, doom.exe, sub/FILE_ID.DIZ and

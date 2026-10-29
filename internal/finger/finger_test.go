@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // setup is a BBS with alice on node 1 and a locked user, and a finger

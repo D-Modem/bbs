@@ -15,7 +15,7 @@ package bbs.v1;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/Neo-Desktop/bbs-sec/internal/api/pb";
+option go_package = "github.com/D-Modem/bbs/internal/api/pb";
 
 message ClientMessage {
   uint32 id = 1; // chosen by the client, echoed in the answer

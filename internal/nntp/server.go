@@ -14,10 +14,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/news"
-	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/news"
+	"github.com/D-Modem/bbs/internal/sockets"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // TLS modes of the server.

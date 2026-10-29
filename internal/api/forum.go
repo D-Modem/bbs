@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/forum"
-	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/forum"
+	"github.com/D-Modem/bbs/internal/imageboard"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // The web forum's logins are the API's sessions: a browser's cookie holds

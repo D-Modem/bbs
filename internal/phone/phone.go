@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
+	"github.com/D-Modem/bbs/internal/geoip"
 )
 
 // Number is a caller's number, read.

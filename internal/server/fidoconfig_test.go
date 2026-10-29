@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/archive"
+	"github.com/D-Modem/bbs/internal/archive"
 )
 
 // TestFidoConfig: [fido], [binkp] and [link NAME] sections with their

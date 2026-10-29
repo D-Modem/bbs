@@ -5,7 +5,7 @@ there.
 
 Their usual ports are below 1024: run the BBS with
 `AmbientCapabilities=CAP_NET_BIND_SERVICE` (see
-[bbs.service.sample](https://github.com/Neo-Desktop/bbs-sec/blob/HEAD/bbs.service.sample)),
+[bbs.service.sample](https://github.com/D-Modem/bbs/blob/HEAD/bbs.service.sample)),
 or give another port.
 
 ## Finger

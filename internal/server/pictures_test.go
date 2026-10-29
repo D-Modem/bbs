@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
-	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/imageboard"
+	"github.com/D-Modem/bbs/internal/ui3270"
 )
 
 // TestPictures3270: on x3270, which has no vector graphics, an image

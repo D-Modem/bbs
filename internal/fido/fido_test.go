@@ -14,11 +14,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/archive"
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/files"
-	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/archive"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/files"
+	"github.com/D-Modem/bbs/internal/ftn"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // init makes bcrypt cheap, for the tests' users.

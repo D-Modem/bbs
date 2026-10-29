@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
+	"github.com/D-Modem/bbs/internal/ui3270"
 )
 
 // TestVT220: a VT220 on a raw line says what it is: it gets DEC line

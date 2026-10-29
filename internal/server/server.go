@@ -40,11 +40,11 @@ import (
 	"github.com/racingmars/go3270"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
-	"github.com/Neo-Desktop/bbs-sec/internal/telnet"
-	"github.com/Neo-Desktop/bbs-sec/internal/textui"
-	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/sockets"
+	"github.com/D-Modem/bbs/internal/telnet"
+	"github.com/D-Modem/bbs/internal/textui"
+	"github.com/D-Modem/bbs/internal/ui3270"
 )
 
 // Listener is a [listen NAME] section.

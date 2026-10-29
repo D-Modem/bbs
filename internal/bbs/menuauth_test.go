@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // fakeMenu is modemmenu's auth socket: alice's password is "menupass".

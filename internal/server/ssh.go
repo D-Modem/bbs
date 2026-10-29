@@ -21,7 +21,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/D-Modem/bbs/internal/bbs"
 )
 
 // sshNewUser is the SSH user name that needs no password: the caller gets

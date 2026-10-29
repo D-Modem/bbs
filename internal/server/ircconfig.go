@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/config"
-	"github.com/Neo-Desktop/bbs-sec/internal/ircd"
+	"github.com/D-Modem/bbs/internal/config"
+	"github.com/D-Modem/bbs/internal/ircd"
 )
 
 // ircSection reads [irc]: the IRC server for the chat rooms.

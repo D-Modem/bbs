@@ -1,6 +1,6 @@
 package bbs
 
-import "github.com/Neo-Desktop/bbs-sec/internal/backup"
+import "github.com/D-Modem/bbs/internal/backup"
 
 // Conf is the settings in force: those the BBS began with, or the last
 // Reconfigure's.  It is not to be changed: Reconfigure makes another.

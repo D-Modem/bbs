@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
+	"github.com/D-Modem/bbs/internal/geoip"
 )
 
 // TestParse: numbers written as people write them, international or

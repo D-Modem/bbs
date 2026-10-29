@@ -7,7 +7,7 @@
 #
 #   docs/wiki/publish.sh
 #
-# with push access to Neo-Desktop/bbs-sec (SSH or HTTPS credentials).
+# with push access to D-Modem/bbs (SSH or HTTPS credentials).
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)

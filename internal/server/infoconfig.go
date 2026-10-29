@@ -6,9 +6,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/config"
-	"github.com/Neo-Desktop/bbs-sec/internal/finger"
-	"github.com/Neo-Desktop/bbs-sec/internal/gopher"
+	"github.com/D-Modem/bbs/internal/config"
+	"github.com/D-Modem/bbs/internal/finger"
+	"github.com/D-Modem/bbs/internal/gopher"
 )
 
 // infoSections reads [finger] and [gopher].

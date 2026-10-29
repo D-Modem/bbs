@@ -3,8 +3,8 @@ of terminal: a TN3270 client (x3270, c3270, wc3270, Vista, PCOMM) gets
 full 3270 screens with PF keys, through
 [go3270](https://github.com/racingmars/go3270); any other telnet client
 gets a text BBS with ANSI color where the terminal has it.  Modem callers
-come in through the D-Modem suite: [app_dmodem](https://github.com/Neo-Desktop/D-Modem-RE)
-straight from Asterisk, or [modemmenu](https://github.com/Neo-Desktop/PBX-Modem)
+come in through the D-Modem suite: [app_dmodem](https://github.com/D-Modem/D-Modem)
+straight from Asterisk, or [modemmenu](https://github.com/D-Modem/menu)
 after its login.
 
 ```
@@ -127,4 +127,4 @@ What there is:
 | [Security](Security) | what is guarded, and how |
 | [Development](Development) | the source's layout, the tests |
 
-Future work is in [TODO.md](https://github.com/Neo-Desktop/bbs-sec/blob/HEAD/TODO.md).
+Future work is in [TODO.md](https://github.com/D-Modem/bbs/blob/HEAD/TODO.md).

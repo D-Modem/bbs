@@ -9,9 +9,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/imageboard"
+	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // maintenanceMenu is Maintenance: disk space, what message areas keep and
