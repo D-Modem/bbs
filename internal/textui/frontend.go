@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/app"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/app"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // What only a text terminal does, for internal/app.

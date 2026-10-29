@@ -4,9 +4,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/confedit"
-	"github.com/Neo-Desktop/bbs-sec/internal/imageboard"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/confedit"
+	"github.com/D-Modem/bbs/internal/imageboard"
 )
 
 // Reloader puts a running BBS's configuration file in force again: what

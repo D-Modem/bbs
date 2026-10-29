@@ -7,7 +7,7 @@ import (
 	"sort"
 	"testing"
 
-	bbssec "github.com/Neo-Desktop/bbs-sec"
+	bbssec "github.com/D-Modem/bbs"
 )
 
 // TestEveryKeyKnown: each key the loader reads is in the sample (and so

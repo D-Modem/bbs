@@ -6,7 +6,7 @@ bbs -config /etc/bbs/bbs.conf user add sysop -sysop
 bbs -config /etc/bbs/bbs.conf serve
 ```
 
-[bbs.service.sample](https://github.com/Neo-Desktop/bbs-sec/blob/HEAD/bbs.service.sample) runs it under systemd as its own
+[bbs.service.sample](https://github.com/D-Modem/bbs/blob/HEAD/bbs.service.sample) runs it under systemd as its own
 user, with the database in `/var/lib/bbs` and sockets in `/run/bbs`;
 `systemctl reload bbs` puts what may change while callers are on in force
 ([Configuration](Configuration#changing-it-while-callers-are-on)).

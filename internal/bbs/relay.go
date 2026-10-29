@@ -3,7 +3,7 @@ package bbs
 import (
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // Relay links chat rooms to a chat network elsewhere (MRC): it is told

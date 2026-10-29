@@ -9,8 +9,8 @@ import (
 
 	"github.com/dop251/goja"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // UI is what a script draws on: the caller's front end.

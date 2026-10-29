@@ -3,7 +3,7 @@ package bbs
 import (
 	"image"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // ImageBoards are the image boards (internal/imageboard's), as the

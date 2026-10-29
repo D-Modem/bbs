@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // testPicture is a picture of w by h red pels.

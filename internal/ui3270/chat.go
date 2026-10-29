@@ -6,7 +6,7 @@ import (
 
 	"github.com/racingmars/go3270"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/D-Modem/bbs/internal/bbs"
 )
 
 // notice is the next line other nodes sent, for a screen's message line

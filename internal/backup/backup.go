@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // Source is a directory of the BBS's files, or a file of its own (an SSH

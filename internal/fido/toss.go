@@ -10,11 +10,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/archive"
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
-	"github.com/Neo-Desktop/bbs-sec/internal/news"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/archive"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/ftn"
+	"github.com/D-Modem/bbs/internal/news"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // Limits on what is tossed.

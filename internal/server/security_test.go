@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/guard"
-	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/guard"
+	"github.com/D-Modem/bbs/internal/ui3270"
 )
 
 // selfSigned writes a certificate and key for localhost.

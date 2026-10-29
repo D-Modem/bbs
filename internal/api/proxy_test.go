@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/guard"
+	"github.com/D-Modem/bbs/internal/guard"
 )
 
 // TestClientIP: a trusted proxy's request is for the last hop before the

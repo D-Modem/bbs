@@ -10,15 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/door"
-	"github.com/Neo-Desktop/bbs-sec/internal/events"
-	"github.com/Neo-Desktop/bbs-sec/internal/files"
-	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
-	"github.com/Neo-Desktop/bbs-sec/internal/guard"
-	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/door"
+	"github.com/D-Modem/bbs/internal/events"
+	"github.com/D-Modem/bbs/internal/files"
+	"github.com/D-Modem/bbs/internal/ftn"
+	"github.com/D-Modem/bbs/internal/guard"
+	"github.com/D-Modem/bbs/internal/qwk"
+	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // fake is a front end that answers from a script, in order, and keeps

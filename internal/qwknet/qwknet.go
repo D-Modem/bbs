@@ -18,9 +18,9 @@ import (
 
 	"github.com/jlaffaye/ftp"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/qwk"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // Net is a QWK network this BBS is a node of ([qwknet NAME]).

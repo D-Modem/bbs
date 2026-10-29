@@ -1,8 +1,8 @@
 PREFIX ?= /usr/local
 GO ?= go
-# go3270 is replaced by the Neo-Desktop/go3270-sec fork (go.mod): fetch it
+# go3270 is replaced by the D-Modem/go3270 fork (go.mod): fetch it
 # from GitHub directly, not through the public proxy and checksum database
-export GOPRIVATE ?= github.com/Neo-Desktop/*
+export GOPRIVATE ?= github.com/D-Modem/*
 
 all: bbs
 
@@ -26,7 +26,7 @@ doors-image:
 # regenerates internal/api/pb from proto/bbs.proto (needs protoc and
 # protoc-gen-go; the generated code is committed)
 proto:
-	protoc --go_out=. --go_opt=module=github.com/Neo-Desktop/bbs-sec proto/bbs.proto
+	protoc --go_out=. --go_opt=module=github.com/D-Modem/bbs proto/bbs.proto
 
 # regenerates internal/phone's tables from a checkout of Google's
 # libphonenumber (git clone --depth 1 https://github.com/google/libphonenumber)

@@ -25,7 +25,7 @@ import (
 	"github.com/racingmars/go3270"
 	"golang.org/x/image/draw"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // Ways of showing a picture.

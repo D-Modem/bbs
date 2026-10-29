@@ -19,7 +19,7 @@ import (
 
 	"github.com/racingmars/go3270"
 
-	logopkg "github.com/Neo-Desktop/bbs-sec/internal/logo"
+	logopkg "github.com/D-Modem/bbs/internal/logo"
 )
 
 // Graphics are the 3270 graphics settings ([general] tn3270_*).

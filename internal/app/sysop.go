@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/confui"
-	"github.com/Neo-Desktop/bbs-sec/internal/events"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/confui"
+	"github.com/D-Modem/bbs/internal/events"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // The sysop's tools: the nodes (watching, chat, kicking), the users, the

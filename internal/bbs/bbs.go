@@ -6,12 +6,12 @@ package bbs
 import (
 	"errors"
 	"fmt"
-	"github.com/Neo-Desktop/bbs-sec/internal/door"
-	"github.com/Neo-Desktop/bbs-sec/internal/events"
-	"github.com/Neo-Desktop/bbs-sec/internal/ftn"
-	"github.com/Neo-Desktop/bbs-sec/internal/geoip"
-	"github.com/Neo-Desktop/bbs-sec/internal/guard"
-	"github.com/Neo-Desktop/bbs-sec/internal/screens"
+	"github.com/D-Modem/bbs/internal/door"
+	"github.com/D-Modem/bbs/internal/events"
+	"github.com/D-Modem/bbs/internal/ftn"
+	"github.com/D-Modem/bbs/internal/geoip"
+	"github.com/D-Modem/bbs/internal/guard"
+	"github.com/D-Modem/bbs/internal/screens"
 	"log"
 	"net"
 	"os"
@@ -21,8 +21,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/files"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/files"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // Settings are the [general] options.

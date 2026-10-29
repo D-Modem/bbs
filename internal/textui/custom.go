@@ -3,8 +3,8 @@ package textui
 import (
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/screens"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/screens"
 )
 
 // screen shows the sysop's display file of that name, if there is one

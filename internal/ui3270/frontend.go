@@ -6,10 +6,10 @@ import (
 
 	"github.com/racingmars/go3270"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/app"
-	"github.com/Neo-Desktop/bbs-sec/internal/door"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/app"
+	"github.com/D-Modem/bbs/internal/door"
+	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // What only a 3270 does, for internal/app.

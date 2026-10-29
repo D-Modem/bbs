@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/image/draw"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/sixel"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/sixel"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // Pictures (an image board's, view.Picture) on a text terminal, the best

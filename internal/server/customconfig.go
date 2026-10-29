@@ -7,10 +7,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/config"
-	"github.com/Neo-Desktop/bbs-sec/internal/screens"
-	"github.com/Neo-Desktop/bbs-sec/internal/script"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/config"
+	"github.com/D-Modem/bbs/internal/screens"
+	"github.com/D-Modem/bbs/internal/script"
 )
 
 // customSections reads screens_dir, scripts_dir, the [menu NAME]s and

@@ -1655,7 +1655,7 @@ const file_proto_bbs_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05users\x18\x02 \x03(\tR\x05users\".\n" +
 	"\bRoomList\x12\"\n" +
-	"\x05rooms\x18\x01 \x03(\v2\f.bbs.v1.RoomR\x05roomsB0Z.github.com/Neo-Desktop/bbs-sec/internal/api/pbb\x06proto3"
+	"\x05rooms\x18\x01 \x03(\v2\f.bbs.v1.RoomR\x05roomsB(Z&github.com/D-Modem/bbs/internal/api/pbb\x06proto3"
 
 var (
 	file_proto_bbs_proto_rawDescOnce sync.Once

@@ -41,7 +41,7 @@ These are shown by themselves:
 | `goodbye` | at a logoff | the `goodbye` line |
 
 Others are shown by menus: `screen = NAME` on a menu, or a `screen:NAME`
-item.  [screens.sample](https://github.com/Neo-Desktop/bbs-sec/tree/HEAD/screens.sample)
+item.  [screens.sample](https://github.com/D-Modem/bbs/tree/HEAD/screens.sample)
 has a set to start from.
 
 ### @-codes

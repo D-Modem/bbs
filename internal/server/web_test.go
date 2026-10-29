@@ -11,9 +11,9 @@ import (
 	"github.com/coder/websocket"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/api"
-	"github.com/Neo-Desktop/bbs-sec/internal/api/pb"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/api"
+	"github.com/D-Modem/bbs/internal/api/pb"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // webClient is a WebSocket client of the API, in JSON.

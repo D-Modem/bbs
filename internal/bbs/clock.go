@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // minCallTime is the least a call is given, however little of the day is

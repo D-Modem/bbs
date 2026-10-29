@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // chatBBS is a BBS on a new store with alice, bob and a sysop (password

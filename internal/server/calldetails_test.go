@@ -3,7 +3,7 @@ package server
 import (
 	"testing"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
+	"github.com/D-Modem/bbs/internal/bbs"
 )
 
 // TestCallDetails: a call's log line has its rate, caller ID, the number

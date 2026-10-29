@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/door"
+	"github.com/D-Modem/bbs/internal/door"
 )
 
 // TestDoorConfig: program doors' commands (quoted words kept whole), dirs,

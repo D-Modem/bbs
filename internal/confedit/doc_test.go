@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	bbssec "github.com/Neo-Desktop/bbs-sec"
-	"github.com/Neo-Desktop/bbs-sec/internal/config"
+	bbssec "github.com/D-Modem/bbs"
+	"github.com/D-Modem/bbs/internal/config"
 )
 
 const file = `; my BBS

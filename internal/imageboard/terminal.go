@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/image/draw"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // For the terminals: the BBS's screens post with Submit, and show the

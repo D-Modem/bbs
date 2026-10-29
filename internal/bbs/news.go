@@ -3,8 +3,8 @@ package bbs
 import (
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/news"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/news"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // NewsSettings are what articles made here say of the system.

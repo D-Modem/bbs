@@ -1,4 +1,4 @@
-module github.com/Neo-Desktop/bbs-sec
+module github.com/D-Modem/bbs
 
 go 1.24.0
 
@@ -48,4 +48,4 @@ require (
 	modernc.org/token v1.1.0 // indirect
 )
 
-replace github.com/racingmars/go3270 => github.com/Neo-Desktop/go3270-sec v0.9.14-0.20261018223830-6c7224eb64db
+replace github.com/racingmars/go3270 => github.com/D-Modem/go3270 v0.9.14-0.20261018223830-6c7224eb64db

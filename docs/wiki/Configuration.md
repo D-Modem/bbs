@@ -1,4 +1,4 @@
-[bbs.conf.sample](https://github.com/Neo-Desktop/bbs-sec/blob/HEAD/bbs.conf.sample) has every option.  `[general]` is the
+[bbs.conf.sample](https://github.com/D-Modem/bbs/blob/HEAD/bbs.conf.sample) has every option.  `[general]` is the
 system (name, database, log, banner, message of the day, timeouts, limits);
 each `[listen NAME]` is a port or unix socket:
 

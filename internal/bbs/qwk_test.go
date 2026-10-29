@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/qwk"
+	"github.com/D-Modem/bbs/internal/qwk"
 )
 
 // TestQWK: a QWK packet holds the user's mail and the new messages of the areas

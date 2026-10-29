@@ -109,4 +109,4 @@ How each gets in:
   isn't checked: `bbs check` warns, and each call logs the key's
   fingerprint to put there.
 
-**See also:** [Security](Security), [Future work](https://github.com/Neo-Desktop/bbs-sec/blob/HEAD/TODO.md)
+**See also:** [Security](Security), [Future work](https://github.com/D-Modem/bbs/blob/HEAD/TODO.md)

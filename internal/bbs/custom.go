@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/screens"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/screens"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // MenuItem is a key of a sysop's menu and what it does.

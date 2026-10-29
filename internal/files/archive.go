@@ -16,8 +16,8 @@ import (
 
 	"golang.org/x/text/encoding/charmap"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/archive"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/archive"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // ErrNotArchive: the file is not an archive the BBS looks into.

@@ -12,13 +12,13 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/backup"
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/confedit"
-	"github.com/Neo-Desktop/bbs-sec/internal/confui"
-	"github.com/Neo-Desktop/bbs-sec/internal/server"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
-	"github.com/Neo-Desktop/bbs-sec/internal/textui"
+	"github.com/D-Modem/bbs/internal/backup"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/confedit"
+	"github.com/D-Modem/bbs/internal/confui"
+	"github.com/D-Modem/bbs/internal/server"
+	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/textui"
 )
 
 // configCmd edits the configuration file: the screens (on this

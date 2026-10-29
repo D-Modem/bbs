@@ -3,8 +3,8 @@ package textui
 import (
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/rip"
-	"github.com/Neo-Desktop/bbs-sec/internal/screens"
+	"github.com/D-Modem/bbs/internal/rip"
+	"github.com/D-Modem/bbs/internal/screens"
 )
 
 // choice is a menu's item.

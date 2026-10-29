@@ -13,7 +13,7 @@ import (
 
 	"github.com/racingmars/go3270"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // pcommReplies are IBM Personal Communications' query replies (from the

@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/backup"
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/server"
+	"github.com/D-Modem/bbs/internal/backup"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/server"
 )
 
 // backupCmd makes a backup, lists them, or puts one back.

@@ -173,7 +173,7 @@ seconds to keep it open.
 ## WebSockets
 
 Two endpoints speak the same protocol, `bbs.v1`, defined in
-[`proto/bbs.proto`](https://github.com/Neo-Desktop/bbs-sec/blob/HEAD/proto/bbs.proto):
+[`proto/bbs.proto`](https://github.com/D-Modem/bbs/blob/HEAD/proto/bbs.proto):
 
 | endpoint | subprotocol | frames |
 |---|---|---|

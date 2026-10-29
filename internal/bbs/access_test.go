@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/door"
-	"github.com/Neo-Desktop/bbs-sec/internal/guard"
-	"github.com/Neo-Desktop/bbs-sec/internal/store"
+	"github.com/D-Modem/bbs/internal/door"
+	"github.com/D-Modem/bbs/internal/guard"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // TestRequire: requirements read, write back and allow as they say, a locked

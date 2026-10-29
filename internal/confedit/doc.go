@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/config"
+	"github.com/D-Modem/bbs/internal/config"
 )
 
 // Doc is a configuration file, line by line.

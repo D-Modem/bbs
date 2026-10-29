@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/bbs"
-	"github.com/Neo-Desktop/bbs-sec/internal/petscii"
-	"github.com/Neo-Desktop/bbs-sec/internal/screens"
-	"github.com/Neo-Desktop/bbs-sec/internal/ui3270"
+	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/petscii"
+	"github.com/D-Modem/bbs/internal/screens"
+	"github.com/D-Modem/bbs/internal/ui3270"
 )
 
 // pet is text as a Commodore is sent it (no colors).

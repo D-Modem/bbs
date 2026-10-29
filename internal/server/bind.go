@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/sockets"
+	"github.com/D-Modem/bbs/internal/sockets"
 )
 
 // Bind binds every socket the configuration listens on (as root, before

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/door"
+	"github.com/D-Modem/bbs/internal/door"
 )
 
 // TestDosemuDoor: a caller plays a DOS door (testdoor/FOSDOOR.COM, which

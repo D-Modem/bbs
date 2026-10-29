@@ -5,9 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Neo-Desktop/bbs-sec/internal/confedit"
-	"github.com/Neo-Desktop/bbs-sec/internal/forum"
-	"github.com/Neo-Desktop/bbs-sec/internal/view"
+	"github.com/D-Modem/bbs/internal/confedit"
+	"github.com/D-Modem/bbs/internal/forum"
+	"github.com/D-Modem/bbs/internal/view"
 )
 
 // sec is a section by kind and name.
