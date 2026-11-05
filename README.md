@@ -1,11 +1,12 @@
-# bbs: a bulletin board for telnet, TN3270 and modem callers
+# bbs
 
-`bbs` is a bulletin board system in Go.  One telnet port serves both kinds
-of terminal: a TN3270 client (x3270, c3270, wc3270, Vista, PCOMM) gets
-full 3270 screens with PF keys, through
-[go3270](https://github.com/racingmars/go3270); any other telnet client
-gets a text BBS with ANSI color where the terminal has it.  Modem callers
-come in through the D-Modem suite: [app_dmodem](https://github.com/D-Modem/D-Modem)
+A bulletin board system in Go for telnet, SSH, TN3270 and modem callers.
+
+One telnet port serves every kind of terminal: a TN3270 client (x3270,
+c3270, wc3270, Vista, PCOMM) gets full 3270 screens with PF keys, through
+[go3270](https://github.com/D-Modem/go3270); any other client gets a text
+BBS with ANSI colour where the terminal has it. Modem callers come in
+through the D-Modem suite: [app_dmodem](https://github.com/D-Modem/D-Modem)
 straight from Asterisk, or [modemmenu](https://github.com/D-Modem/menu)
 after its login.
 
@@ -26,73 +27,14 @@ Main menu
   [G] Goodbye
 ```
 
-The same caller on a 3270:
+- Message areas, private mail, chat, paging and doors (DOS doors in dosemu2, or Linux programs)
+- File areas with X/Y/ZMODEM, Kermit, IND$FILE and FTP
+- Networks: FidoNet and other FTNs, QWK, NNTP newsgroups, IRC and MRC
+- Terminals: ANSI, VT, PETSCII, RIPscrip, sixel and 3270 graphics
+- On the web: a forum, image boards, a web terminal and an HTTP API
+- SQLite, PostgreSQL, MySQL or MariaDB
 
-```
- D-Modem BBS                                    Main menu                 Node 1
-
-   Welcome, alice.
-
-   ┌───────────────────────────────────────────┐
-   │ M  Message areas                          │
-   │ E  E-mail (1 new)                         │
-   │ W  Who's online                           │
-   │ U  User list                              │
-   │ P  Your profile                           │
-   │ I  System info                            │
-   │ C  Chat                                   │
-   │ S  Page the sysop                         │
-   │ T  Your terminal                          │
-   │ G  Goodbye                                │
-   └───────────────────────────────────────────┘
-
-   Option ===>
-
- Enter=Select  PF3=Back
-```
-
-What there is:
-
-- message areas: read new, list, read by number, post, reply (quoting),
-  reply by mail; areas only the sysop posts in; authors and the sysop
-  delete messages
-- private mail: inbox, read, reply, delete
-- [SSH](https://github.com/D-Modem/bbs/wiki/SSH): logging in by password or key, the text BBS encrypted
-- [Commodore 64s and RIPscrip terminals](https://github.com/D-Modem/bbs/wiki/PETSCII-and-RIP): PETSCII at 40 columns; menus as RIP buttons
-- [VT terminals identified](https://github.com/D-Modem/bbs/wiki/Terminal-Identification) (answerback, DA1, DA2, XTVERSION, VT52): DEC line drawing and Latin-1, bold on monochrome VTs, VT52 escapes
-- who's online (and how each caller came: ssh, telnet, tn3270, rlogin, modem
-  with its rate), the user list, system info
-- the last callers (*L*), feedback to the sysop (*K*, which any caller may
-  send), the user list with each user's details and a line about themselves
-- your profile: where you call from, a line about yourself, expert menus
-  (the prompt alone, `?` for the rest), your password, SSH keys, ANSI and UTF-8
-- [file areas](https://github.com/D-Modem/bbs/wiki/Files-and-FTP): files listed with their size, uploader, downloads and
-  SHA-256, moved by XMODEM, YMODEM, ZMODEM or Kermit on the text BBS, by
-  IND$FILE on a 3270, or by FTP (FTPS); deleted by their uploader or the
-  sysop
-- [newsgroups](https://github.com/D-Modem/bbs/wiki/Newsgroups-and-NNTP): message areas given a newsgroup name are served by NNTP to
-  newsreaders and exchanged with other news servers (INN and the like)
-- [offline mail](https://github.com/D-Modem/bbs/wiki/Offline-Mail): QWK packets of new messages and mail, REP
-  replies brought back (by a transfer protocol, IND$FILE, FTP or the API); QWK networks as a hub or a node
-- [FidoNet](https://github.com/D-Modem/bbs/wiki/FidoNet) (or any FTN network): message areas that are echoes, netmail
-  as private mail, file echoes (TIC), AreaFix and FileFix, nodelists, and a
-  binkp mailer to exchange ZIP, ARC, ARJ or LHA bundles with links
-- [IRC](https://github.com/D-Modem/bbs/wiki/IRC): the chat rooms as IRC channels, built on parts of
-  [ergo](https://github.com/ergochat/ergo); logins by SASL or the server password, TLS
-- [MRC](https://github.com/D-Modem/bbs/wiki/MRC): Multi Relay Chat, the BBSes' chat network, its rooms as chat rooms here
-- [doors](https://github.com/D-Modem/bbs/wiki/Doors): DOS door games in dosemu2 (in Docker), with a FOSSIL on COM1
-  and the usual drop files, or any Linux program, for text callers; doors
-  elsewhere by telnet or RLogin, and the door networks BBSLink and DoorParty
-- [chat](https://github.com/D-Modem/bbs/wiki/Chat-and-Paging): rooms, messages to a node, paging the sysop
-- [finger and gopher](https://github.com/D-Modem/bbs/wiki/Finger-and-Gopher): who is on, and chosen areas in gopherspace
-- [a web forum](https://github.com/D-Modem/bbs/wiki/Web-Forum): the message areas as a bulletin board in the browser, in the manner of Invision Power Board 3, or of IPB 5, 4, 2 or 1, Ikonboard, vBulletin 6 back to 2 or Lite, XenForo 2.3 back to 1, MyBB 1.8 back to 1.2, PunBB 1.4 and 1.2, FluxBB 1.5, YaBB 2.5 back to 1, Simple Machines Forum 3.0 back to 1, or phpBB 3.3 back to 1 (themes)
-- [image boards](https://github.com/D-Modem/bbs/wiki/Image-Boards): anonymous boards of images and replies at /chan/, in the manner of kusaba x and 4chan: bumping, sage, tripcodes (2channel's, and secure ones), greentext and >>quotes, a catalog, oekaki boards to draw on with stroke replay, staff's bans and reports, Yotsuba, Yotsuba B, Futaba, Burichan, Photon and Tomorrow styles, and 4chan's JSON; on the terminals too, with the pictures in sixel, kitty's or iTerm2's graphics, or coloured blocks, and on 3270s in vector graphics (PCOMM, in its 16 colours), programmed symbols (HostExplorer, Quick3270) or graphic escape's blocks (x3270)
-- [a web terminal](https://github.com/D-Modem/bbs/wiki/HTTP-API#the-web-terminal): the BBS in a browser (xterm.js, built in)
-- [an HTTP API](https://github.com/D-Modem/bbs/wiki/HTTP-API): REST, server-sent events, and WebSockets (JSON or protobuf) where web clients chat with terminal callers; Prometheus metrics
-- [customization](https://github.com/D-Modem/bbs/wiki/Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
-- [access levels](https://github.com/D-Modem/bbs/wiki/Access-Levels): levels and flags, areas, doors and menus that require them, time and download limits a day, new users validated by the sysop
-- new users sign themselves up (or not: `new_users = no`)
-- [SQLite, PostgreSQL, MySQL or MariaDB](https://github.com/D-Modem/bbs/wiki/Databases), and `bbs db copy` between them
+The full list is on the [wiki's home page](https://github.com/D-Modem/bbs/wiki/Home).
 
 ## Quick start
 
@@ -108,46 +50,24 @@ bbs -config /etc/bbs/bbs.conf serve
 ```
 
 [bbs.conf.sample](bbs.conf.sample) has every option, and
-[bbs.service.sample](bbs.service.sample) runs it under systemd.  go3270 is
-replaced by the private [go3270-sec](https://github.com/D-Modem/go3270)
-fork: see [Building](https://github.com/D-Modem/bbs/wiki/Building).
+[bbs.service.sample](bbs.service.sample) runs it under systemd.
 
 ## Documentation
 
-The documentation is in the [wiki](https://github.com/D-Modem/bbs/wiki/):
+The documentation is in the [wiki](https://github.com/D-Modem/bbs/wiki/): start with [Building](https://github.com/D-Modem/bbs/wiki/Building),
+[Running](https://github.com/D-Modem/bbs/wiki/Running) and [Configuration](https://github.com/D-Modem/bbs/wiki/Configuration). Its pages are
+kept in [`docs/wiki`](docs/wiki), where they are edited; the
+[Wiki](.github/workflows/wiki.yml) workflow publishes them. Future work is
+in [TODO.md](TODO.md).
 
-| | |
-|---|---|
-| [Building](https://github.com/D-Modem/bbs/wiki/Building) | Go, the go3270-sec fork, make |
-| [Running](https://github.com/D-Modem/bbs/wiki/Running) | first start, systemd, the defaults |
-| [Administration](https://github.com/D-Modem/bbs/wiki/Administration) | the bbs command: users, areas, files, mail exchange |
-| [Databases](https://github.com/D-Modem/bbs/wiki/Databases) | SQLite, PostgreSQL, MySQL, MariaDB; moving between them |
-| [Backups](https://github.com/D-Modem/bbs/wiki/Backups) | the configuration, database and files, daily or now; putting one back |
-| [Configuration](https://github.com/D-Modem/bbs/wiki/Configuration) | bbs.conf: its sections, listeners; the configuration screens, reloading |
-| [Access levels](https://github.com/D-Modem/bbs/wiki/Access-Levels) | levels, flags, what areas, doors and menus require, daily limits, validation |
-| [Customization](https://github.com/D-Modem/bbs/wiki/Customization) | screens (ANSI art, 3270), menus, prompts |
-| [SSH](https://github.com/D-Modem/bbs/wiki/SSH) | the SSH listener, keys, host keys |
-| [Modem callers](https://github.com/D-Modem/bbs/wiki/Modem-Callers) | app_dmodem and modemmenu |
-| [TN3270](https://github.com/D-Modem/bbs/wiki/TN3270) | 3270 terminals, PF keys, 3270 graphics |
-| [Sixel graphics](https://github.com/D-Modem/bbs/wiki/Sixel-Graphics) | the logo on sixel terminals |
-| [PETSCII and RIP](https://github.com/D-Modem/bbs/wiki/PETSCII-and-RIP) | Commodore 64s and 128s; RIPscrip graphics and buttons |
-| [Terminal identification](https://github.com/D-Modem/bbs/wiki/Terminal-Identification) | VT terminals asked what they are: DEC graphics, monochrome, VT52 |
-| [Files and FTP](https://github.com/D-Modem/bbs/wiki/Files-and-FTP) | file areas, the FTP (FTPS) server |
-| [File transfers](https://github.com/D-Modem/bbs/wiki/File-Transfers) | X/Y/ZMODEM, Kermit, IND$FILE |
-| [Doors](https://github.com/D-Modem/bbs/wiki/Doors) | DOS doors in dosemu2 (Docker), Linux doors |
-| [Newsgroups and NNTP](https://github.com/D-Modem/bbs/wiki/Newsgroups-and-NNTP) | the NNTP server, news peers |
-| [FidoNet](https://github.com/D-Modem/bbs/wiki/FidoNet) | echomail, netmail, binkp, file echoes, AreaFix, nodelists |
-| [IRC](https://github.com/D-Modem/bbs/wiki/IRC) | the IRC server: the chat rooms as channels |
-| [MRC](https://github.com/D-Modem/bbs/wiki/MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
-| [Offline mail](https://github.com/D-Modem/bbs/wiki/Offline-Mail) | QWK packets, REP replies, QWK networks |
-| [Chat and paging](https://github.com/D-Modem/bbs/wiki/Chat-and-Paging) | chat rooms, node messages, paging the sysop |
-| [Finger and gopher](https://github.com/D-Modem/bbs/wiki/Finger-and-Gopher) | who is on, and the BBS in gopherspace |
-| [Web forum](https://github.com/D-Modem/bbs/wiki/Web-Forum) | the message areas as a web forum |
-| [Image boards](https://github.com/D-Modem/bbs/wiki/Image-Boards) | anonymous image boards, as kusaba x and 4chan |
-| [HTTP API](https://github.com/D-Modem/bbs/wiki/HTTP-API) | REST, events, WebSockets in JSON and protobuf, tokens, metrics |
-| [Security](https://github.com/D-Modem/bbs/wiki/Security) | what is guarded, and how |
-| [Development](https://github.com/D-Modem/bbs/wiki/Development) | the source's layout, the tests |
+## The D-Modem suite
 
-Its pages are kept in [`docs/wiki`](docs/wiki): edit them there (the
-[Wiki](.github/workflows/wiki.yml) workflow publishes them, or
-`docs/wiki/publish.sh`).  Future work is in [TODO.md](TODO.md).
+| Repository | What it is |
+| --- | --- |
+| [D-Modem](https://github.com/D-Modem/D-Modem) | The open V.92 softmodem: dmodemd, libdmodem and the Asterisk, FreeSWITCH and ARI modules |
+| [app](https://github.com/D-Modem/app) | The D-Modem app for Android and iOS: a dial-up modem on a SIP call |
+| [hardware](https://github.com/D-Modem/hardware) | pico-serial: RP2040 serial adapters and phone-line USB sticks |
+| [menu](https://github.com/D-Modem/menu) | modemmenu: the login and menu dial-up callers reach |
+| [bbs](https://github.com/D-Modem/bbs) | A bulletin board for telnet, SSH, TN3270 and modem callers |
+| [go3270](https://github.com/D-Modem/go3270) | A Go library for 3270 terminal servers, used by bbs |
+| [brand](https://github.com/D-Modem/brand) | Logos, colours, type and the naming guide |
