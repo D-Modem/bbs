@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/racingmars/go3270"
+	"github.com/D-Modem/go3270"
 
 	"github.com/D-Modem/bbs/internal/app"
 	"github.com/D-Modem/bbs/internal/bbs"

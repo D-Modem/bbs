@@ -21,7 +21,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/racingmars/go3270"
+	"github.com/D-Modem/go3270"
 )
 
 // pictureSets are the symbol sets pictures can be loaded into: the
