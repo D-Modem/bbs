@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/racingmars/go3270"
+	"github.com/D-Modem/go3270"
 
 	"github.com/D-Modem/bbs/internal/files"
 	"github.com/D-Modem/bbs/internal/store"

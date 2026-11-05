@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/racingmars/go3270"
+	"github.com/D-Modem/go3270"
 )
 
 // TestCut: an image cut into cells: cells alike are one symbol, an empty cell a

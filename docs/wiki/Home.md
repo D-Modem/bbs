@@ -1,7 +1,7 @@
 `bbs` is a bulletin board system in Go.  One telnet port serves both kinds
 of terminal: a TN3270 client (x3270, c3270, wc3270, Vista, PCOMM) gets
 full 3270 screens with PF keys, through
-[go3270](https://github.com/racingmars/go3270); any other telnet client
+[go3270](https://github.com/D-Modem/go3270); any other telnet client
 gets a text BBS with ANSI color where the terminal has it.  Modem callers
 come in through the D-Modem suite: [app_dmodem](https://github.com/D-Modem/D-Modem)
 straight from Asterisk, or [modemmenu](https://github.com/D-Modem/menu)
@@ -97,7 +97,7 @@ What there is:
 
 | | |
 |---|---|
-| [Building](Building) | Go, the go3270-sec fork, `make` |
+| [Building](Building) | Go, the go3270 fork, `make` |
 | [Running](Running) | first start, systemd, the defaults |
 | [Administration](Administration) | the `bbs` command: users, areas, files, mail exchange |
 | [Databases](Databases) | SQLite, PostgreSQL, MySQL, MariaDB; moving between them |

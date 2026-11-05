@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/racingmars/go3270"
+	"github.com/D-Modem/go3270"
 
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/view"

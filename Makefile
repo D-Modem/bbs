@@ -1,6 +1,6 @@
 PREFIX ?= /usr/local
 GO ?= go
-# go3270 is replaced by the D-Modem/go3270 fork (go.mod): fetch it
+# go3270 is the suite's fork, github.com/D-Modem/go3270 (go.mod): fetch it
 # from GitHub directly, not through the public proxy and checksum database
 export GOPRIVATE ?= github.com/D-Modem/*
 

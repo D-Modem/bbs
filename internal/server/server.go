@@ -37,7 +37,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/racingmars/go3270"
+	"github.com/D-Modem/go3270"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/D-Modem/bbs/internal/bbs"

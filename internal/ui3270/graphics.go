@@ -17,7 +17,7 @@ import (
 	"image/draw"
 	"strings"
 
-	"github.com/racingmars/go3270"
+	"github.com/D-Modem/go3270"
 
 	logopkg "github.com/D-Modem/bbs/internal/logo"
 )

@@ -22,7 +22,7 @@ import (
 	"image/color"
 	"strings"
 
-	"github.com/racingmars/go3270"
+	"github.com/D-Modem/go3270"
 	"golang.org/x/image/draw"
 
 	"github.com/D-Modem/bbs/internal/view"

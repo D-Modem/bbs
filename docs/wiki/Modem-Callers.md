@@ -1,3 +1,5 @@
+Modem callers reach the BBS through the D-Modem suite: [app_dmodem](https://github.com/D-Modem/D-Modem/blob/main/docs/asterisk.md), D-Modem's Asterisk application, straight from the call, or [modemmenu](https://github.com/D-Modem/menu) after its login.
+
 ## Straight from app_dmodem
 
 app_dmodem's `[bbs]` profile hands each call to a TCP server, raw.  The
