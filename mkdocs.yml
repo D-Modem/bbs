@@ -1,0 +1,60 @@
+INHERIT: .site/mkdocs-base.yml
+# The bbs site, https://d-modem.github.io/bbs/: the wiki's pages (docs/wiki,
+# also published to the GitHub wiki), built with brand's shared theme and
+# workflow.  The nav follows docs/wiki/_Sidebar.md.
+site_name: D-Modem bbs
+site_description: A bulletin board system in Go for telnet, SSH, TN3270 and modem callers
+site_url: https://d-modem.github.io/bbs/
+repo_url: https://github.com/D-Modem/bbs
+repo_name: D-Modem/bbs
+edit_uri: edit/main/docs/wiki/
+docs_dir: docs/wiki
+# the wiki's links are to page names (Configuration, SSH#keys): page.html
+# on the site, which GitHub Pages serves for /page
+use_directory_urls: false
+exclude_docs: |
+  _Sidebar.md
+  _Footer.md
+  publish.sh
+extra:
+  repo: bbs
+nav:
+  - Home: index.md
+  - Getting going:
+    - "Building": Building.md
+    - "Running": Running.md
+    - "Administration": Administration.md
+    - "Sysop tools": Sysop-Tools.md
+    - "Configuration": Configuration.md
+    - "Configuration reference": Configuration-Reference.md
+    - "Databases": Databases.md
+    - "Backups": Backups.md
+    - "Customization": Customization.md
+    - "Scripting": Scripting.md
+    - "Access levels": Access-Levels.md
+  - Callers:
+    - "SSH": SSH.md
+    - "Modem callers": Modem-Callers.md
+    - "TN3270": TN3270.md
+    - "Sixel graphics": Sixel-Graphics.md
+    - "PETSCII and RIP": PETSCII-and-RIP.md
+    - "Terminal identification": Terminal-Identification.md
+  - Features:
+    - "Message areas": Message-Areas.md
+    - "Writing messages": Writing-Messages.md
+    - "Offline mail (QWK)": Offline-Mail.md
+    - "Files and FTP": Files-and-FTP.md
+    - "File transfers": File-Transfers.md
+    - "Doors": Doors.md
+    - "Newsgroups and NNTP": Newsgroups-and-NNTP.md
+    - "FidoNet": FidoNet.md
+    - "Chat and paging": Chat-and-Paging.md
+    - "IRC": IRC.md
+    - "MRC": MRC.md
+    - "Finger and gopher": Finger-and-Gopher.md
+    - "Web forum": Web-Forum.md
+    - "Image boards": Image-Boards.md
+    - "HTTP API": HTTP-API.md
+  - More:
+    - "Security": Security.md
+    - "Development": Development.md

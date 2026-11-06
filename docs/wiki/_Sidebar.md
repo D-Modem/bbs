@@ -6,6 +6,7 @@
 - [Administration](Administration)
 - [Sysop tools](Sysop-Tools)
 - [Configuration](Configuration)
+- [Configuration reference](Configuration-Reference)
 - [Databases](Databases)
 - [Backups](Backups)
 - [Customization](Customization)
