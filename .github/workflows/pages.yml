@@ -1,0 +1,29 @@
+# The bbs site, https://d-modem.github.io/bbs/: docs/wiki with brand's shared
+# theme and workflow (brand's docs/sites.md).  A pull request builds it,
+# main deploys it.  The configuration reference is made from
+# bbs.conf.sample, and the build fails if the committed page is not the one
+# it makes (go generate ./internal/confedit).
+name: Pages
+on:
+  push:
+    branches: [main]
+    paths: ['docs/wiki/**', 'mkdocs.yml', 'bbs.conf.sample', 'internal/confedit/**', '.github/workflows/pages.yml']
+  pull_request:
+    paths: ['docs/wiki/**', 'mkdocs.yml', 'bbs.conf.sample', 'internal/confedit/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  site:
+    uses: D-Modem/brand/.github/workflows/site.yml@main
+    with:
+      go-version: "1.24"
+      prepare: |
+        go run ./internal/confedit/refdoc
+        git diff --exit-code docs/wiki/Configuration-Reference.md || { echo "::error::docs/wiki/Configuration-Reference.md is out of date: go generate ./internal/confedit"; exit 1; }
+        cp docs/wiki/Home.md docs/wiki/index.md

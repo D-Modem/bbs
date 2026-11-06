@@ -3,3 +3,7 @@
 *.db-wal
 *.db-shm
 /ruffle/
+# the site (brand's tools/site.sh): its theme, what it builds, and its home page
+/.site/
+/site/
+/docs/wiki/index.md
