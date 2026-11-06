@@ -1,0 +1,74 @@
+# build: on the Go of go.mod's toolchain line, gofmt, go.mod and go.sum
+# tidy, the build, go vet and the tests with the race detector (make test).
+# menu (its authd login client) and go3270 come from GitHub directly
+# (GOPRIVATE, as the Makefile does), at the versions go.mod pins; their
+# own CI builds and tests bbs's main against their changes.
+#
+# A change to docs alone runs nothing: the Markdown, docs/, the site's
+# and the wiki's files (pages.yml and wiki.yml), except
+# docs/wiki/Configuration-Reference.md, which internal/confedit's test
+# checks against bbs.conf.sample.  (paths, not paths-ignore, so that a
+# later one can take a file back.)  A push runs it on main alone (a
+# branch's commits run it as its pull request, not twice), or by hand
+# (workflow_dispatch); a newer push to a pull request cancels its older run.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!**.md'
+      - '!LICENSE'
+      - '!mkdocs.yml'
+      - '!.github/workflows/pages.yml'
+      - '!.github/workflows/wiki.yml'
+      - 'docs/wiki/Configuration-Reference.md'
+  pull_request:
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!**.md'
+      - '!LICENSE'
+      - '!mkdocs.yml'
+      - '!.github/workflows/pages.yml'
+      - '!.github/workflows/wiki.yml'
+      - 'docs/wiki/Configuration-Reference.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GOPRIVATE: github.com/D-Modem/*
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    # (a hung test ends here, not at GitHub's 6 hours)
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: gofmt
+        run: |
+          out=$(gofmt -l .)
+          [ -z "$out" ] || { echo "::error::not gofmt'd (gofmt -w .):"; echo "$out"; exit 1; }
+
+      - name: go.mod and go.sum tidy
+        run: go mod tidy -diff
+
+      - name: Build
+        run: go build ./...
+
+      - name: go vet and the tests (race detector)
+        run: make test
