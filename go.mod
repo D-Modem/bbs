@@ -6,6 +6,7 @@ toolchain go1.24.7
 
 require (
 	github.com/D-Modem/go3270 v0.9.14-0.20261105104944-a6550eb72c38
+	github.com/D-Modem/menu v0.0.0-20261106031303-853189d86fb2
 	github.com/coder/websocket v1.8.13
 	github.com/dop251/goja v0.0.0-20260603125802-cfe4039cb6d7
 	github.com/ergochat/irc-go v0.7.0
