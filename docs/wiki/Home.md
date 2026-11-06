@@ -1,3 +1,5 @@
+<img src="https://raw.githubusercontent.com/D-Modem/bbs/main/.github/banner.png" alt="D-Modem/bbs: A bulletin board for every caller" width="100%">
+
 bbs is a bulletin board system in Go for telnet, SSH, TN3270 and modem
 callers, and part of the [D-Modem suite](https://github.com/D-Modem/D-Modem).
 This is its documentation: how to set it up, how to run it, and how to use
