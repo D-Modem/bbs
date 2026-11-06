@@ -1,5 +1,3 @@
-# IRC
-
 The BBS has an IRC server, and its channels are the [chat rooms](Chat-and-Paging).
 Someone in HexChat, irssi, WeeChat or any other IRC client talks with
 callers on telnet, SSH, 3270s, the web terminal and the API. IRC is
@@ -13,7 +11,7 @@ tls_cert = /etc/bbs/tls.crt
 tls_key = /etc/bbs/tls.key
 ```
 
-| setting | default | |
+| Setting | Default | What it sets |
 |---|---|---|
 | `address` | `:6667` | plain IRC (`none`: TLS only) |
 | `tls_address` | (none) | IRC over TLS, with `tls_cert` and `tls_key` |
@@ -52,7 +50,7 @@ send it node messages, and the sysop can throw it off like any caller.
 (letters, digits and `-`, up to 20) makes a room. One client can be in
 up to 20 at once. Joining shows the room's last 20 lines.
 
-| IRC | the BBS |
+| On IRC | On the BBS |
 |---|---|
 | `PRIVMSG #room :text` | a line in the room |
 | `/me waves` (CTCP ACTION) | `* alice waves` |
@@ -64,7 +62,7 @@ up to 20 at once. Joining shows the room's last 20 lines.
 
 Sysops show as channel operators (`@`), but there's little to operate:
 rooms have no modes, kicks or bans, and only [permanent
-rooms](#permanent-rooms) have topics. Colors and other formatting are
+rooms](#permanent-rooms) have topics. Colours and other formatting are
 stripped from lines going into the rooms.
 
 A sysop is told of a page by a `NOTICE`. Joining `#sysop-N` answers the
@@ -76,7 +74,7 @@ of each line, the history replayed on join included), `echo-message`,
 
 ## Permanent rooms
 
-A room goes when its last caller leaves, unless the sysop makes it
+A room closes when its last caller leaves, unless the sysop makes it
 permanent. BBSServ holds a permanent room open, empty or not and across
 restarts. It sits in the channel as an operator (`@BBSServ` in `NAMES`
 and `WHO`), and `LIST` and BBSServ's `ROOMS` show the room with its
@@ -84,7 +82,7 @@ topic even when no one is in it. Permanent rooms are the BBS's own: on
 the text BBS and 3270s too, `/rooms` lists them with their topics, and
 coming in shows the topic.
 
-| | |
+| Command | What it does |
 |---|---|
 | `/msg BBSServ ROOMS` | the permanent rooms (anyone) |
 | `/msg BBSServ ROOM ADD #room [topic]` | make a room permanent (the sysop) |
@@ -94,7 +92,7 @@ coming in shows the topic.
 | `/topic [text]` | in the BBS's chat: the room's topic; the sysop sets it |
 | `bbs room list`, `add`, `topic`, `del` | the same from the shell |
 
-A topic set is told to those in the room: on IRC as a `TOPIC` from
+When a topic is set, everyone in the room is told: on IRC as a `TOPIC` from
 BBSServ, on the BBS as a line ("sysop set the topic: ..."). Changes made
 with the `bbs` command reach a running BBS at its next start; those made
 through BBSServ apply at once.
@@ -107,7 +105,7 @@ account of whoever asks. Talk to it with `/msg BBSServ COMMAND`, or
 with its own command, `/BS COMMAND` (`/BBSSERV` also works). Its
 answers come as notices.
 
-| command | |
+| Command | What it does |
 |---|---|
 | `HELP [command]` | the commands, or how to use one |
 | `INFO` | your account: level, where you call from, alias, signature, settings, unread mail, keys, tokens, new scan |
@@ -142,3 +140,5 @@ The IRC protocol's parts come from [ergo](https://github.com/ergochat/ergo):
   NickServ and ChanServ run.
 
 Its tests also use irc-go's client (`ircevent`).
+
+**See also:** [Chat and paging](Chat-and-Paging), [MRC](MRC), [Security](Security)

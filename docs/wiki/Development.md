@@ -1,6 +1,10 @@
+This page is for people working on the BBS's code: how the source is laid
+out, how the screens are shared between terminals, and what the tests
+cover.
+
 ## Layout
 
-| | |
+| Path | What it holds |
 |---|---|
 | `cmd/bbs` | the command: serve, check, init, user and area administration |
 | `internal/server` | listeners, session headers, rlogin, SSH, telling 3270s from the rest |
@@ -41,7 +45,7 @@
 | `internal/api` | the HTTP API: REST, server-sent events, WebSockets, metrics, OpenAPI; the web terminal page (`web/`: xterm.js, the page) |
 | `proto` | the WebSocket protocol, `bbs.v1` (`make proto` regenerates `internal/api/pb`) |
 | `internal/tcpserv` | what finger and gopher share: limits, timeouts |
-| `internal/screens` | the sysop's display files: finding them, @-codes, 3270 color tags |
+| `internal/screens` | the sysop's display files: finding them, @-codes, 3270 colour tags |
 | `internal/xfer` | XMODEM, YMODEM, ZMODEM and Kermit, both ways |
 | `internal/logo` | the logo: a PNG, or the name in a pixel font |
 | `internal/bbs` | the BBS itself: nodes, logins, new users, posting, cleaning text |
@@ -51,11 +55,11 @@
 ## Screens
 
 The screens after the login are written once, in `internal/app`, and
-drawn by each front end.  A screen is a description in
-`internal/view`'s terms, handed to the front end, which shows it, waits
-for the caller and says what they chose:
+each front end draws them. A screen is a description in `internal/view`'s
+terms. It is handed to the front end, which shows it, waits for the
+caller, and reports what they chose:
 
-| view | text terminal | 3270 |
+| View | Text terminal | 3270 |
 |---|---|---|
 | `Menu` | `[K] Label` in two columns (one under 60 columns), RIP buttons, the command prompt | a box of keys, `Option ===>` |
 | `Table` | numbered rows a page at a time; `Area number, [N]ew scan, [Q]uit: ` | `S` by a row; PF keys; PF7/PF8 |
@@ -65,22 +69,24 @@ for the caller and says what they chose:
 | `Draft` | `To`, `Subject`, the full-screen editor (ANSI) or the line editor | the editor screen |
 | `Confirm`, `Say`, `Show` | `[Y/n]`, a line, lines and a pause | a Y/N field, the message line, a page |
 
-An action has a key for text terminals and a PF key for 3270s (and a
-short label for the 3270's key line).  What a front end alone can do is
-its `app.Frontend`: the sysop's display files, chat, doors (text), file
-transfers (protocols on text, IND$FILE on a 3270), the terminal's line
-on the profile and what may be switched there, the goodbye.  The logins
-stay with the front ends, since they decide what the terminal is.
+An action has a key for text terminals and a PF key for 3270s (plus a
+short label for the 3270's key line). Whatever only a front end can do is
+in its `app.Frontend`: the sysop's display files, chat, doors (text only),
+file transfers (protocols on text, IND$FILE on a 3270), the terminal line
+in the profile and the settings that can be switched there, and the
+goodbye. Logins stay with the front ends, because they decide what the
+terminal is.
 
-A new screen is a function in `internal/app` building views; a new
-front end implements `app.Frontend`.  `internal/app`'s tests drive the
-screens with a scripted front end, no terminal at all.
+To add a screen, write a function in `internal/app` that builds views. To
+add a front end, implement `app.Frontend`. `internal/app`'s tests drive
+the screens with a scripted front end, with no terminal at all.
 
 ## Tests
 
-With `BBS_TEST_DATABASE` set to a PostgreSQL, MySQL or MariaDB server, every test's
-store is a database of its own there (a schema on PostgreSQL, a database
-on MySQL, dropped after), so the whole suite runs on that engine:
+With `BBS_TEST_DATABASE` set to a PostgreSQL, MySQL or MariaDB server,
+each test gets a database of its own there (a schema on PostgreSQL, a
+database on MySQL, dropped afterwards), so the whole suite runs on that
+engine:
 
 ```
 BBS_TEST_DATABASE='postgres://bbs:PASSWORD@127.0.0.1/bbs?sslmode=disable' go test ./...
@@ -88,9 +94,12 @@ BBS_TEST_DATABASE='mysql://bbs:PASSWORD@127.0.0.1:3306/bbs' go test ./...
 BBS_TEST_DATABASE='mariadb://bbs:PASSWORD@127.0.0.1:3306/bbs' go test ./...
 ```
 
-(the user may `CREATE SCHEMA`, or `CREATE DATABASE`).  The store's own
-tests check what the engines do differently: names in any case, ids,
-upserts, booleans, bytes, long text, cascades, copying from SQLite.
+The user must be allowed to `CREATE SCHEMA` (or `CREATE DATABASE`). The
+store's own tests check the things the engines do differently: names in
+any case, ids, upserts, booleans, bytes, long text, cascades, and copying
+from SQLite.
+
+### What the tests cover
 
 `make test` runs the unit tests (text cleaning, names and passwords, the
 configuration, telnet negotiation and the 3270 handoff) and whole sessions
@@ -115,27 +124,27 @@ articles (parsing, limits, decoding, wildmats), the NNTP server with
 Python's nntplib as a newsreader (login, reading, overview, posting), its
 refusals (posting without a login, AUTHINFO before STARTTLS, forged
 headers, control messages, oversized articles, IHAVE from a stranger), two
-BBSes peered both ways, and IHAVE.  With `BBS_TEST_INN=host:port` it also
-syncs with a running INN.  FidoNet: packets and messages, a hub with two
+BBSes peered both ways, and IHAVE. With `BBS_TEST_INN=host:port` it also
+syncs with a running INN. FidoNet: packets and messages, a hub with two
 nodes exchanging echomail by binkp (SEEN-BY, PATH, threads, forwarding),
 netmail and replies, wrong passwords, unknown addresses and impostors,
 dupes, loops, bad and foreign packets, the echo-newsgroup gateway, and,
 when binkd and CrashMail are installed, a hub run by them: echomail and
-netmail both ways, calling it and called by it.  Doors: the drop files,
+netmail both ways, calling it and called by it. Doors: the drop files,
 the runner (CP437 and UTF-8, time limit, hanging up, idle, single-caller
 doors, a pseudo-terminal), a caller opening a door from the menu, and,
 when the bbs-dosemu2 image is built, a real DOS door talking by FOSSIL in
-it.  Chat: rooms, history, private rooms, flooding, node messages, paging
+it. Chat: rooms, history, private rooms, flooding, node messages, paging
 and answering, the page command (and that it runs no shell); two callers
 chatting and paging on the text BBS; a 3270 (s3270) chatting with a text
-caller and getting a node message on its message line.  Finger and
+caller and getting a node message on its message line. Finger and
 gopher: their answers and refusals, with the finger program and curl as
-clients.  Customization: finding display files by terminal, SAUCE,
-@-codes and widths, color tags; menus and strings in the configuration
+clients. Customization: finding display files by terminal, SAUCE,
+@-codes and widths, colour tags; menus and strings in the configuration
 and what it refuses; a text caller through an ANSI logon (CP437 as it
 is), the strings, a welcome screen, the sysop's menus and submenus, a
 screen with a pause and a goodbye screen; and a 3270 (s3270) through a
-colored logon screen, welcome, the sysop's main menu and a screen.
+coloured logon screen, welcome, the sysop's main menu and a screen.
 The shared screens: `internal/app` driven by a scripted front end
 (posting, reading on and back, a new scan and reply, a number not on the
 page, mail to no one and to the sysop, a node message, deleting, the
@@ -165,10 +174,10 @@ and for a user, posting with refusals caught, a runaway loop stopped and a
 slow caller not, failures told to the sysop alone, a hang-up the script
 cannot catch, exit, the sample poll, the configuration's checks, and the
 sample one-liners on a text terminal and on a 3270 by s3270); the file base (FILE_ID.DIZ in CP437
-with colors, a ZIP's and a tar.gz's listings, new files, finding by the
+with colours, a ZIP's and a tar.gz's listings, new files, finding by the
 DIZ's words, tagging by numbers, a batch of two by YMODEM, ratios and the day's limit together, the API's
 search and listings); MRC (a fake MRC server: the handshake, arrivals, NEWROOM, lines and
-actions both ways, colors taken out, our own lines not shown twice,
+actions both ways, colours taken out, our own lines not shown twice,
 private messages and server answers to one user, PING and IAMHERE,
 !commands and !!, a user in two rooms, LOGOFF, the line dropped and
 those here put back, rooms not MRC's not sent, require; on IRC, an MRC
@@ -204,41 +213,41 @@ The HTTP API: logins, tokens and scopes, every REST endpoint and its
 refusals, rate limits, the OpenAPI document against the routes, server-sent
 events and node messages, both WebSockets (auth by header and by first
 message, chat between them, paging and answering, mail events, bad
-frames, refused origins and tokens) and the metrics.  And a terminal caller and
+frames, refused origins and tokens) and the metrics. And a terminal caller and
 a web caller (the JSON WebSocket) together: chatting in one room both
 ways, `/who`, node messages each way, and the web caller paging the
-sysop, who answers at the terminal.  SSH: logging in by password,
+sysop, who answers at the terminal. SSH: logging in by password,
 keyboard-interactive and key (and not by a wrong one, someone else's, or
 into a locked account), `new` to the BBS's prompt, the pty's terminal
 type and size, refused commands, SFTP and forwarding, a user adding and
 deleting a key in their profile, host keys made and kept (ed25519, RSA,
 ECDSA) and refused when readable, the configuration, legacy ciphers only
 when asked for, and the OpenSSH client logging in by key with a pty.
-PETSCII: the translation (letters, colors, reverse, CR and LF, cursor
+PETSCII: the translation (letters, colours, reverse, CR and LF, cursor
 movement, box drawing, accents, runes split across writes, wrapping) and
 the keys back; a Commodore logging in with DEL editing, its one column
 menus, a .seq screen as it is, the profile's width, no escape ever sent;
-a Commodore found while logging in: by DEL typed in the name, by a shifted letter (and not by UTF-8), by a name in capitals and the DEL question (or not, with a backspace), and no question for a name in lower case.  RIP: MegaNums, the
+a Commodore found while logging in: by DEL typed in the name, by a shifted letter (and not by UTF-8), by a name in capitals and the DEL question (or not, with a backspace), and no question for a name in lower case. RIP: MegaNums, the
 commands and their escaping, the menu scene; a RIP terminal found by its
 answer, given a .rip screen, menus as buttons, the scene cleared on a
 choice and a pause before the next; an ANSI terminal without RIP given
-none of it.  Access levels: requirements read and written back, met and
+none of it. Access levels: requirements read and written back, met and
 not (flags, !flags, sysop, locked users), flag edits; levels found for a
 user; areas hidden and posting refused by level and by flags, mail only to
 the sysop, chat and paging refused, the day's downloads counted and
 limited, doors, validation; the day's time running out (warned, hung up,
 counted); a new user waiting and validated by the sysop on the BBS; the
 API (no user raises their own level, levels and flags seen only by
-sysops and the user, area requirements); the configuration.  Terminal identification: the answers of DEC's terminals and
+sysops and the user, area requirements); the configuration. Terminal identification: the answers of DEC's terminals and
 of emulators (VT100 to VT525, xterm old and new, VTE, tmux, SyncTERM,
 PuTTY, the Linux console, a VT52) read into names, levels, sixel and
 monochrome; DEC Special Graphics and Latin-1 output, escapes passing
 through it; VT52 output; a VT220 given DEC graphics, Latin-1 and bold,
 shown as a VT220; a VT52 given its escapes and its cursor keys ignored;
-a terminal answering nothing left plain.  The web terminal: the page, its
+a terminal answering nothing left plain. The web terminal: the page, its
 headers and files (and no others), WebSockets refused from another
 origin or without the subprotocol, and a caller logging in through it,
-its size taken, shown as a web terminal, logging off.  The web forum:
+its size taken, shown as a web terminal, logging off. The web forum:
 guests reading (and not what needs a level), logging in and out by the
 API's session tokens (and not by an API key), signing up; topics and
 replies, forms refused without their token, posts' HTML escaped and links
@@ -247,10 +256,10 @@ topics and areas, aliases hiding the writer, deleting (the writer's own,
 the sysop's any), news-only areas, search and who's online; in the store,
 topics threaded across areas, read marks, a topic mended when its first
 post or its replies' parent goes, and threads found for messages from
-before.  Every page in each theme, for a guest and a member; choosing a
+before. Every page in each theme, for a guest and a member; choosing a
 theme (a member's form needing its token, an unknown theme refused, no
 going back off the forum), and the forum's own theme until a caller
-chooses.  Updating xterm.js:
+chooses. Updating xterm.js:
 `npm pack @xterm/xterm @xterm/addon-fit @xterm/addon-image`, and copy
 `lib/xterm.js`, `css/xterm.css`, `lib/addon-fit.js`, `lib/addon-image.js`
 and the license into `internal/api/web` (without their source map lines);

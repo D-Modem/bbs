@@ -1,12 +1,18 @@
-- Passwords are bcrypt (cost 12); unknown users take as long to refuse as
-  wrong passwords; failures wait `fail_delay`; `attempts` failures hang
-  up; `throttle_failures` turns away an address or caller ID that keeps
-  failing (or signing up).
+This page lists what the BBS guards against and how, service by service,
+and then the settings for keeping unwanted callers out and for telnet
+over TLS.
+
+## What is guarded, and how
+
+- Passwords are stored with bcrypt (cost 12). Unknown users take as long
+  to refuse as wrong passwords, each failure waits `fail_delay`, and after
+  `attempts` failures the BBS hangs up. `throttle_failures` turns away an
+  address or caller ID that keeps failing (or keeps signing up).
 - Everything users write is cleaned before it is stored and again before
   it is shown: no escape sequences, control characters, C1 controls,
   bidirectional overrides or invalid UTF-8 reach another caller's
-  terminal.  On a 3270 these would become 3270 orders once in EBCDIC; go3270
-  does not filter them itself.
+  terminal. On a 3270 these would become 3270 orders once converted to
+  EBCDIC, and go3270 does not filter them itself.
 - Limits everywhere: name, subject and line lengths, message size, telnet
   subnegotiations, session headers, rlogin fields, 64 KB for a 3270
   screen's answer; timeouts for every step (telnet and TN3270 negotiation,
@@ -26,50 +32,50 @@
   only its own user, only if not locked, and is decided by the key the
   client proved (never one it merely offered); keys are added only with
   the password (on the BBS) or a login's session (the API), not by an
-  API key.  Commands, SFTP, forwarding of any kind and second sessions
-  are refused, and a client has 30 seconds to get to its shell.  A modem line is as private as the phone
-  network.
+  API key. Commands, SFTP, forwarding of any kind and second sessions
+  are refused, and a client has 30 seconds to get to its shell.
+- A modem line is as private as the phone network.
 - News: a reader's article is posted as its user whatever its From says,
   with the BBS's own Message-ID, Date and Path; only the headers a reader
-  may choose (Subject, References, the body) are kept.  `IHAVE` is taken
+  may choose (Subject, References, the body) are kept. `IHAVE` is taken
   only from a peer's `accept_from` addresses, and peers' articles are
   checked (the headers RFC 5536 requires, sizes of the article, its
-  headers and lines) and cleaned before a caller sees them.  `tls =
+  headers and lines) and cleaned before a caller sees them. `tls =
   required` refuses `AUTHINFO` before `STARTTLS`; `no` and `optional` make
-  `bbs check` warn.  Commands, lines and articles are limited, and so are
+  `bbs check` warn. Commands, lines and articles are limited, and so are
   clients at once and from one address.
 - FidoNet: a link is known by its address and its password (CRAM-MD5;
   in the clear only if allowed); a wrong password waits and is refused,
   an address that is not a link is turned away, and a system calling with
-  a link's address but not its password gets nothing.  Packets are tossed
+  a link's address but not its password gets nothing. Packets are tossed
   only from a link's own inbound, only if from its address to ours, with
-  its packet password if it has one.  Received file names are reduced to a
+  its packet password if it has one. Received file names are reduced to a
   safe base name; files, sessions, packets, bundles and messages have size
-  limits.  Netmail's sender is what the message says, as anywhere in
+  limits. Netmail's sender is what the message says, as anywhere in
   FidoNet: it is not proof of who wrote it.
 - Doors: a DOS door runs in a container with no network, as the BBS's
   user, seeing only the doors' directory and its node's; the caller's
-  line is joined to it only through COM1.  Hanging up, the time limit and
-  the idle time stop it.  The drop files carry no password.
+  line is joined to it only through COM1. Hanging up, the time limit and
+  the idle time stop it. The drop files carry no password.
 - Chat: what callers say is cleaned like anything else they write, and
   limited (200 characters a line, 8 lines in 10 seconds); a caller pages
   at most once a minute; a page's private room is the caller's and the
-  sysops' only.  `page_command` runs without a shell, the caller's words
+  sysops' only. `page_command` runs without a shell, the caller's words
   as whole arguments.
 - Finger tells no addresses or caller IDs and forwards nothing; gopher
   shows no message or file area unless the sysop names it (and `bbs
   check` warns when they do), and its selectors are database records, not
-  paths.  Both limit connections at once and from one address, and time
-  out.
+  paths. Both limit connections at once and from one address, and both
+  time out.
 - The HTTP API: TLS by default (`bbs check` warns when it is off on an
   address others reach); tokens of 32 random bytes kept only as hashes,
   never in URLs, limited by scope (`sysop` only for sysops), expiring
   and revocable; rate limits per token and per address; JSON bodies
   limited and strict; one CORS origin at most, and WebSockets only from
-  it and the API's own host.  Metrics are on an address of their own.
+  it and the API's own host. Metrics are on an address of their own.
 - Databases: SQLite's file is made 0600; a server's password is never
   logged (`bbs check` and the log show `xxxxx`); the configuration file
-  holding it should be 0640.  Every query takes its values as parameters.
+  holding it should be 0640. Every query takes its values as parameters.
 - Access levels: checked in the BBS's core, so the text BBS, 3270s, FTP,
   NNTP and the API keep them alike; an area a user may not read is not
   listed, opened, or found by a message's number or Message-ID; no user
@@ -82,7 +88,7 @@
   the HTTP server's TLS, connection and rate limits; the caller logs in
   at the BBS's prompt like any terminal caller.
 - Screens: display files are read only from `screens_dir`, by names of
-  letters, digits, `_` and `-` (no paths), at most 256 KB.  The values of
+  letters, digits, `_` and `-` (no paths), at most 256 KB. The values of
   @-codes are cleaned, so no escape sequence gets into a screen through
   a user's name or location.
 - The log has logins, failures, posts and mail sent (never passwords or
@@ -99,26 +105,26 @@ hack_log = /var/log/bbs/hack.log       ; who tried what
 ban_minutes = 60                       ; a throttled address is banned this long
 ```
 
-- `deny_file` lists addresses and networks, one a line (`192.0.2.7`,
-  `198.51.100.0/24`, `2001:db8::/32`; `#` or `;` begins a comment).  A
+- `deny_file` lists addresses and networks, one per line (`192.0.2.7`,
+  `198.51.100.0/24`, `2001:db8::/32`; `#` or `;` begins a comment). A
   connection from one is closed at once on every service: the terminal
   listeners and SSH, FTP, NNTP, the HTTP API and web terminal, finger,
-  gopher and binkp.  Callers through unix sockets (a modem server, an
-  upstream menu) are never refused.  The file is read again when it
+  gopher and binkp. Callers through unix sockets (a modem server, an
+  upstream menu) are never refused. The file is read again when it
   changes; `bbs check` warns of lines that are not addresses.
 - `ban_minutes`: an address that `throttle_failures` turns away is banned
   outright for that long, from every service (not a caller ID: those are a
-  modem server's callers, and a ban would not stop them).  Bans are kept
+  modem server's callers, and a ban would not stop them). Bans are kept
   in memory; `GET /api/v1/admin/bans` lists them and `DELETE
   /api/v1/admin/bans/{ip}` lifts one.
-- `name_deny_file` has patterns, one a line, in any case, `*` for any run
+- `name_deny_file` has patterns, one per line, in any case, `*` for any run
   of characters (`*sysop*`, `admin*`): no new user, nor an account an
-  upstream menu makes, may take a name that matches.  Names such as
+  upstream menu makes, may take a name that matches. Names such as
   `sysop`, `root` and `new` are refused anyway.
 - The hack log has failed logins (and the names tried), logins to locked
   accounts, throttled and banned addresses, refused connections and
-  refused names, one a line with the time; `GET /api/v1/admin/hacklog`
-  shows its end.  It is opened for each line, so it may be rotated.
+  refused names, one per line with the time; `GET /api/v1/admin/hacklog`
+  shows its end. It is opened for each line, so it may be rotated.
 
 ## Telnet over TLS
 
@@ -130,8 +136,10 @@ tls_cert = /etc/bbs/cert.pem
 tls_key = /etc/bbs/key.pem
 ```
 
-A telnet or raw listener with `tls_cert` and `tls_key` takes TLS (1.2 or
-later) and then telnet (or TN3270) as usual: SyncTERM (TelnetS) and
-`c3270 L:host:992` speak it.  A client has 15 seconds to finish the
+A telnet or raw listener with `tls_cert` and `tls_key` accepts TLS (1.2 or
+later) and then telnet (or TN3270) as usual. SyncTERM (TelnetS) and
+`c3270 L:host:992` both speak it. A client has 15 seconds to finish the
 handshake.
+
+**See also:** [SSH](SSH), [Configuration](Configuration), [Sysop tools](Sysop-Tools)
 

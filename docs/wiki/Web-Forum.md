@@ -1,5 +1,3 @@
-# Web forum
-
 The HTTP API's server also serves the message areas as a web forum, at
 `/forum/` (and `/`, which goes there). It is laid out like the bulletin
 boards of their day: categories of forums, topics, and posts with their
@@ -20,7 +18,7 @@ address = :8443
 ;forum_flags = yes
 ```
 
-| setting | default | |
+| Setting | Default | What it sets |
 |---|---|---|
 | `forum` | `yes` | the forum at `/forum/` (with `no`, `/` goes to the web terminal again) |
 | `forum_guests` | `yes` | those not logged in may read the areas anyone may read (areas with a `read` requirement never) |
@@ -29,7 +27,7 @@ address = :8443
 
 ## The pages
 
-| | |
+| Page | What it shows |
 |---|---|
 | `/forum/` | the board: the areas by their group (the areas' `group`, else *Message Areas*), each with its topics, replies, newest post and whether it has any new; the board's statistics; who is online |
 | `/forum/area/N` | an area's topics, newest activity first, 20 to a page; *Mark this forum read* |
@@ -88,7 +86,7 @@ while flags are shown. Behind a reverse proxy, name it in
 
 ## Themes
 
-| theme | |
+| Theme | What it looks like |
 |---|---|
 | `ipb3` | the default: a board of the early 2010s in the manner of Invision Power Board 3: a dark user bar, a navy header with tabs, rounded blue category bars, posts with their author's column on the left |
 | `phpbb33` | prosilver as phpBB 3.3 kept it: the 3.2 look, its list headings a little taller (3.3 changed little else) |
@@ -106,7 +104,7 @@ while flags are shown. Behind a reverse proxy, name it in
 | `xf2` | xen: a PHP board of 2017-2023 in the manner of XenForo 2's default style: a deep blue head, a lighter blue navigation bar whose chosen tab opens onto a pale row of section links, flat white blocks with blue-tinted heads, forums with comment icons that turn bright blue when unread and *Threads* / *Messages* stacked beside them, a side column with *Members online* and *Forum statistics*, an orange *Post thread* button, posts with the poster in a tinted cell and *Like* and *Reply* beneath, a dark foot |
 | `xf1` | classic: a PHP board of 2010-2017 in the manner of XenForo 1's default style: a deep navy head, tabs opening onto a pale blue row of links, a breadcrumb of arrow-ended crumbs, blue gradient category strips, speech-bubble forum icons with *Discussions* and *Messages* beneath, *Members Online Now*, posts with the poster in a pale box whose arrow points at the message, *Discussion in '…' started by …*, a blue *Post New Thread* pill |
 | `mybb18` | flat: MyBB 1.8's default look over the earlier pages (the mybb16 theme's): a white head with the board's name and linked icons, a black glossy bar with search and welcome over a grey row of the member's links, rounded tables with deep blue heads and black glossy column rows, speech-bubble forum icons, posts with the author in a grey band across the top and their counts at the right, black buttons, a grey two-tier foot |
-| `mybb16` | classic: MyBB 1.4 and 1.6's default look, 1.2's pages and colors (the mybb12 theme's) with each post a table of its own: a pale blue strip with the date and *Post: #1*, the author across the top with picture, title and stars and the counts at the right, quotes in plain boxes |
+| `mybb16` | classic: MyBB 1.4 and 1.6's default look, 1.2's pages and colours (the mybb12 theme's) with each post a table of its own: a pale blue strip with the date and *Post: #1*, the author across the top with picture, title and stars and the counts at the right, quotes in plain boxes |
 | `mybb12` | original: a PHP board of 2005-2008 in the manner of MyBB 1.0 and 1.2's default theme: a white frame on a light grey page, the board's name with a bold menu at the right, a grey *Welcome back* panel, tables in a steel-blue border with blue gradient heads and pale blue column rows over two greys, round forum lamps, *Board Statistics*, posts as rows with the author on the left and the date beneath, dashed quote boxes |
 | `pun14` | oxygen 2: PunBB 1.3 and 1.4's Oxygen, a lighter look over pages of its own: a grey head with the board's name, a blue bar of links and a white welcome strip, each forum list and topic in a box with a blue head and a grey row naming the columns, bevelled square forum icons, posts with a grey *Reply by* strip and the date at the right, the author with picture and counts at the left, *Profile*, *Like* and *Quote* in a row beneath, *Quick reply* at the foot |
 | `flux15` | air: FluxBB 1.4 and 1.5's Air over PunBB 1.2's pages (the pun12 theme's): a white rounded frame on a pale blue page, a slate-blue menu of tabs, teal headings over pale blue column rows, posts in pale blue with the author at the left, quotes in pale yellow boxes, Arial |
@@ -130,7 +128,7 @@ they recall; no code or images are taken from them. `forum_theme` is the
 forum's; anyone (guests too) may choose another at the foot of every page,
 kept in a cookie (`bbs_forum_theme`) for a year. A theme lays out the
 board, topic lists, topics and profiles its own way, and shows the rest
-(posting, searching, signing in) in its colors. A theme may build on another's templates (the phpBB 3.2 and 3.3 themes wear 3.1's, vBulletin 6's wears 5's, SMF 3.0's and 2.1's wear Curve's, XenForo 2.3's wears 2's, MyBB 1.8's wears 1.6's, which wears 1.2's, FluxBB 1.5's wears PunBB 1.2's, and YaBB 2.5's wears 2's, which wears 1's, with stylesheets of their own).
+(posting, searching, signing in) in its colours. A theme may build on another's templates (the phpBB 3.2 and 3.3 themes wear 3.1's, vBulletin 6's wears 5's, SMF 3.0's and 2.1's wear Curve's, XenForo 2.3's wears 2's, MyBB 1.8's wears 1.6's, which wears 1.2's, FluxBB 1.5's wears PunBB 1.2's, and YaBB 2.5's wears 2's, which wears 1's, with stylesheets of their own).
 
 ## Logins
 
@@ -148,7 +146,7 @@ asks *Your profile*, `C` (PF10), for a sign-in code: eight letters and
 digits, `ABCD-EFGH`, good once, for five minutes; a new one ends the last.
 The Sign In page takes the code alone, with no name or password: a
 password typed nowhere on the machine at hand, or for a user whose
-password is modemmenu's.  Anywhere else a password is asked (the web
+password is modemmenu's. Anywhere else a password is asked (the web
 terminal, the image boards, the API, FTP), the code serves once for the
 password, with the user's name.
 

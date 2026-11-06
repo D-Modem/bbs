@@ -1,8 +1,9 @@
-The sysop's own screens and features, in JavaScript.  A script draws the
-same screens as the rest of the BBS (menus, tables, forms, panels,
-messages, the editor), so it works on every terminal: a text terminal in
-ANSI, ASCII or PETSCII, a RIP terminal (whose menus are buttons), and a
-3270.  It acts as its caller, with their access.
+Sysops can add their own screens and features to the BBS in JavaScript.
+A script draws the same kinds of screen as the rest of the BBS (menus,
+tables, forms, panels, messages and the editor), so it works on every
+terminal: a text terminal in ANSI, ASCII or PETSCII, a RIP terminal (where
+menus become buttons), and a 3270. A script acts as its caller, with the
+caller's access.
 
 ```
 ; bbs.conf
@@ -14,24 +15,26 @@ o = script:oneliners One-liners
 p = script:poll Today's poll
 ```
 
-`NAME.js` in `scripts_dir` is the script `script:NAME` runs (names are
-lower case letters, digits, `_` and `-`).  A `logon.js` there runs after
-every login, before the menus.  `bbs check` compiles every script and
-refuses a configuration whose scripts do not compile or whose menus name
-a script that is not there; a script changed while the BBS runs is
-compiled again at its next run.  `scripts.sample` has two to start from:
-one-liners and a poll.
+A menu item `script:NAME` runs `NAME.js` from `scripts_dir` (names are
+lower-case letters, digits, `_` and `-`). A `logon.js` there runs after
+every login, before the menus. `bbs check` compiles every script, and
+refuses a configuration if a script does not compile or a menu names a
+script that does not exist. A script changed while the BBS runs is
+compiled again the next time it runs. `scripts.sample` has two scripts to
+start from: one-liners and a poll.
 
 ## What a script is
 
-[goja](https://github.com/dop251/goja)'s JavaScript: ECMAScript 5.1 and
-much of 6 (`let`, arrow functions, classes, `Map`, template strings), in
-strict mode.  A script has no files, network, processes or timers: only
-the objects below.  It may compute for two seconds between one screen and
-the next (the caller's time at a screen is not counted); past that it is
-stopped and the caller told.  A script that fails is logged and the
-caller told (a sysop is told why); the caller hanging up or going idle
-ends it, whatever it catches.  `exit()` ends it early.
+Scripts run in [goja](https://github.com/dop251/goja), which supports
+ECMAScript 5.1 and much of ECMAScript 6 (`let`, arrow functions, classes,
+`Map`, template strings), in strict mode. A script cannot reach files, the
+network, processes or timers; it has only the objects described below.
+
+A script may compute for up to two seconds between one screen and the
+next (time the caller spends at a screen does not count). Beyond that it
+is stopped and the caller is told. A script that fails is logged and the
+caller is told (a sysop is also told why). If the caller hangs up or goes
+idle, the script ends, whatever it catches. `exit()` ends a script early.
 
 ```js
 // a guestbook in eight lines
@@ -46,7 +49,7 @@ if (k === "S") {
 
 ## ui: the screens
 
-| | returns | |
+| Function | Returns | Notes |
 |---|---|---|
 | `ui.menu({title, intro, items: [{key, label}], prompt, screen})` | the key chosen (upper case), `""`, or `ui.BACK` (a 3270's PF3) | `intro`: lines before the items; `screen`: a display file in their place |
 | `ui.table({title, note, columns: [{title, width, right, wide}], rows, empty, pick, prompt, actions, more, less})` | `{action, row, num, text}` | `rows`: arrays of cells, or `{num, cells, mark, hot}`; `pick` makes rows choosable (`action` is `ui.PICK`, `row` the index, -1 for a number not shown, `num` what was typed); `wide` columns only on screens of 60 columns or more; `more`/`less` say there are pages after and before (`ui.MORE`, `ui.LESS`) |
@@ -60,16 +63,18 @@ if (k === "S") {
 | `ui.screen(name)` | whether there was one | a display file of `screens_dir` |
 | `ui.kind`, `ui.pageSize`, `ui.narrow` | | `"text"` or `"3270"`; rows a table shows; under 60 columns |
 
-Lines are strings (`\n` makes more) or `{label, text, tone, bar}`: a
-label and its value, a tone (`plain`, `dim`, `bright`, `good`, `bad`,
-`warn`), a bar from 0 to 1.  Actions are `{id, label, key, pf, short}`: a
-text terminal's key, a 3270's PF key (an action without one is not on a
-3270), `short` for the 3270's key line.  On a text terminal `Q` (and Enter
-on an empty prompt) goes back; on a 3270, PF3.
+Lines are strings (`\n` starts a new line) or objects
+`{label, text, tone, bar}`, which give a label and its value, a tone
+(`plain`, `dim`, `bright`, `good`, `bad` or `warn`), and a bar from 0 to 1.
+Actions are `{id, label, key, pf, short}`: `key` is the key on a text
+terminal, `pf` is the PF key on a 3270 (an action without one does not
+appear on a 3270), and `short` is its name on the 3270's key line. On a
+text terminal, `Q` (or Enter at an empty prompt) goes back; on a 3270, PF3
+goes back.
 
 ## The BBS
 
-| | |
+| Object | What it gives |
 |---|---|
 | `bbs.name`, `bbs.sysop`, `bbs.location`, `bbs.log(text)` | the system; a line in its log |
 | `user.id`, `.name`, `.location`, `.level`, `.flags`, `.sysop`, `.calls`, `.posts`, `.since`, `.lastCall`, `user.has(require)` | the caller; `has` takes an [access requirement](Access-Levels) such as `"20 A"` (level 20 or more, and flag A) |
@@ -80,8 +85,8 @@ on an empty prompt) goes back; on a 3270, PF3.
 | `data.user.get` ... | the same, for the caller alone (100 names) |
 | `console.log(...)` | the BBS's log |
 
-What a script keeps is in the database (`script_data`), by the script's
-name: a renamed script starts afresh.  A user's data goes with their
-account.
+A script's data is kept in the database (`script_data`) under the
+script's name, so a renamed script starts afresh. A user's data is
+deleted with their account.
 
 **See also:** [Customization](Customization), [Development](Development#screens)
