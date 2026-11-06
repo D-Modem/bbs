@@ -56,6 +56,8 @@ bbs -config /etc/bbs/bbs.conf serve
 
 ## Documentation
 
+The documentation is also a website, [d-modem.github.io/bbs](https://d-modem.github.io/bbs/), with reference pages made from the code.
+
 The documentation is in the [wiki](https://github.com/D-Modem/bbs/wiki/): start with [Building](https://github.com/D-Modem/bbs/wiki/Building),
 [Running](https://github.com/D-Modem/bbs/wiki/Running) and [Configuration](https://github.com/D-Modem/bbs/wiki/Configuration). Its pages are
 kept in [`docs/wiki`](docs/wiki), where they are edited; the
