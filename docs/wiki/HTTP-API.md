@@ -1,6 +1,6 @@
 The BBS has an HTTP API for programs and web front ends: REST for
 accounts, message areas, mail and files; server-sent events; and
-WebSockets for chat, in JSON or protobuf.  A web client is a node like
+WebSockets for chat, in JSON or protobuf. A web client is a node like
 any other: it shows in *Who's online*, chats with terminal callers, gets
 node messages and can page the sysop.
 
@@ -15,10 +15,10 @@ key_file = /etc/bbs/tls/key.pem
 ;metrics = 127.0.0.1:9100
 ```
 
-| setting | default | |
+| Setting | Default | What it sets |
 |---|---|---|
 | `address` | `:8443` | where it listens |
-| `tls` | `yes` | TLS needs `cert_file` and `key_file`.  `tls = no` is for `127.0.0.1` behind a proxy that has TLS; `bbs check` warns about it on any other address |
+| `tls` | `yes` | TLS needs `cert_file` and `key_file`. `tls = no` is for `127.0.0.1` behind a proxy that has TLS; `bbs check` warns about it on any other address |
 | `trusted_proxies` | (none) | reverse proxies in front (addresses or CIDR ranges, by spaces or commas), believed when they say whose a request is: [below](#behind-a-proxy) |
 | `secure_cookies` | as `tls` | the forum's and image boards' login cookies go over HTTPS only; say `yes` when a proxy in front has the TLS |
 | `anonymous` | `yes` | `/system` and `/who` without a token |
@@ -37,9 +37,9 @@ The OpenAPI 3.1 description is at `/api/v1/openapi.json`.
 ## Behind a proxy
 
 The server can sit behind a reverse proxy (nginx, Caddy, HAProxy, a load
-balancer) that has the TLS. Every request then comes from the proxy's
-address, so name it, and the server believes it when it says whose a
-request is:
+balancer) that handles TLS. Every request then comes from the proxy's
+address, so list the proxy in `trusted_proxies`, and the server will
+trust it to say which caller each request is from:
 
 ```ini
 [http]
@@ -60,15 +60,16 @@ location / {
 }
 ```
 
-The caller is the last address in `X-Forwarded-For` (else `Forwarded`'s
-`for=`, else `X-Real-IP`) that is not a trusted proxy: the ones before it
-are whatever the caller sent, and are not believed. That address is then
-the request's everywhere: rate limits, logins and the logs, the forum, the
-web terminal's throttling, the [image boards](Image-Boards)' flood control
-and bans, and the `[security]` deny lists and bans (a refused caller gets
-403). Connections from a trusted proxy are not held to `max_per_ip`: they
-are many callers'. Requests from anywhere else are taken as they come, and
-their forwarding headers ignored.
+The caller's address is the last address in `X-Forwarded-For` (or else
+`Forwarded`'s `for=`, or else `X-Real-IP`) that is not a trusted proxy.
+Any addresses before it are whatever the caller sent, and are not
+trusted. That address is then used for the request everywhere: rate
+limits, logins and the logs, the forum, the web terminal's throttling, the
+[image boards](Image-Boards)' flood control and bans, and the
+`[security]` deny lists and bans (a refused caller gets 403). Connections
+from a trusted proxy are not held to `max_per_ip`, because they carry
+many callers. Requests from anywhere else are taken as they come, and
+their forwarding headers are ignored.
 
 ## Tokens and scopes
 
@@ -79,13 +80,13 @@ Every request but `/login`, `/openapi.json` and (when `anonymous = yes`)
   (and `"scopes"`, to have fewer) returns `{"token": ..., "expires": ...}`.
   `POST /api/v1/logout` ends it.
 - An **API key**, for a program: `bbs token add alice -scope read,post
-  -expires 90 -name "my bot"` prints it once.  `bbs token list [USER]` and
+  -expires 90 -name "my bot"` prints it once. `bbs token list [USER]` and
   `bbs token revoke ID` manage them, and users see and revoke their own at
   `/api/v1/me/tokens`.
 
-Only a hash of a token is kept.  A locked user's tokens stop working.
+Only a hash of a token is kept. A locked user's tokens stop working.
 
-| scope | allows |
+| Scope | Allows |
 |---|---|
 | `read` | the account, users, message areas and messages, last read |
 | `post` | posting |
@@ -96,10 +97,11 @@ Only a hash of a token is kept.  A locked user's tokens stop working.
 
 ## REST
 
-All under `/api/v1`, JSON in and out (but uploads and downloads).
+Every endpoint is under `/api/v1` and takes and returns JSON (except
+uploads and downloads).
 Errors are `{"error": "...", "code": "..."}`.
 
-| | | scope |
+| Request | What it does | Scope |
 |---|---|---|
 | `POST /login`, `POST /logout` | a session token; ending it | (none), any |
 | `GET /system` | the name, sysop, counts, features | anonymous |
@@ -152,12 +154,12 @@ curl -s -H "Authorization: Bearer $TOKEN" https://bbs.example.org:8443/api/v1/ar
 
 ## Streams and nodes
 
-The event stream and each WebSocket take a node, as a caller does
-(`Via` is `web`): it counts against `max_nodes`, shows in *Who's online*,
-and gets the node's events: lines said in its chat room, node messages,
-pages (for sysops), new mail and notices.  The node goes when the
-connection does.  `POST /nodes/{n}/message`, `/page` and answering a
-page are done from the token's open stream (409 without one).  A page
+The event stream and each WebSocket take a node, just as a caller does
+(`Via` is `web`). The node counts against `max_nodes`, shows in *Who's
+online*, and receives the node's events: lines said in its chat room,
+node messages, pages (for sysops), new mail and notices. The node ends
+when the connection does. `POST /nodes/{n}/message`, `/page` and answering a
+page are done from the token's open stream (409 without one). A page
 that reaches no sysop is 503 (`unavailable`), as the WebSocket's Page
 request answers it, and is not left waiting.
 
@@ -175,7 +177,7 @@ seconds to keep it open.
 Two endpoints speak the same protocol, `bbs.v1`, defined in
 [`proto/bbs.proto`](https://github.com/D-Modem/bbs/blob/HEAD/proto/bbs.proto):
 
-| endpoint | subprotocol | frames |
+| Endpoint | Subprotocol | Frames |
 |---|---|---|
 | `/api/v1/ws` | `bbs.v1.json` | text: protobuf's JSON mapping (lowerCamelCase fields, enums by name, RFC 3339 times) |
 | `/api/v1/ws/proto` | `bbs.v1.proto` | binary: protobuf |
@@ -183,13 +185,13 @@ Two endpoints speak the same protocol, `bbs.v1`, defined in
 The client sends `ClientMessage`s with an `id` of its choosing; each is
 answered by `ServerMessage`s with that `id`: `ok` (with `room` when the
 client's room changed), `error` (`code` and `message`), or what was asked
-for.  Events and the welcome come with id 0.
+for. Events and the welcome come with id 0.
 
 A browser cannot set headers on a WebSocket, so unless the upgrade had an
 `Authorization` header the first message must be `auth`, within 10
-seconds.  The token needs the `chat` scope.
+seconds. The token needs the `chat` scope.
 
-| request | answer |
+| Request | Answer |
 |---|---|
 | `auth {token}` | `welcome {bbs, user, node, scopes}` |
 | `join {room}` | `lines` (the room's last lines), then `ok {room}` |
@@ -218,7 +220,7 @@ A session in JSON (`>` from the client):
 ```
 
 Clients of the protobuf endpoint generate code from `proto/bbs.proto`
-(`protoc --go_out=...`, `--python_out=...` and so on).  In JavaScript:
+(`protoc --go_out=...`, `--python_out=...` and so on). In JavaScript:
 
 ```js
 const ws = new WebSocket("wss://bbs.example.org:8443/api/v1/ws", "bbs.v1.json");
@@ -230,7 +232,7 @@ ws.onmessage = (m) => {
 };
 ```
 
-The server pings every 30 seconds.  Frames are at most 16 KB; a frame
+The server pings every 30 seconds. Frames are at most 16 KB; a frame
 that does not read is answered by an error, and the same limits as on a
 terminal apply (200 characters a line, 8 lines in 10 seconds).
 
@@ -239,26 +241,26 @@ terminal apply (200 characters a line, 8 lines in 10 seconds).
 `/terminal` (and `/`, which goes there when the [web forum](Web-Forum) is off) is the BBS in a browser: a page
 with [xterm.js](https://xtermjs.org/) (5.5, MIT licensed, built into the
 `bbs` binary: nothing is loaded from elsewhere) whose terminal is joined
-to the text BBS by a WebSocket, `/terminal/ws`.  The caller is a node like
+to the text BBS by a WebSocket, `/terminal/ws`. The caller is a node like
 a telnet caller (*Who's online* says `web terminal`) and logs in at the
-BBS's own prompt, as on telnet: no token.  They get ANSI color and UTF-8
+BBS's own prompt, as on telnet: no token. They get ANSI colour and UTF-8
 (ANSI art's CP437 shown as Unicode), menus, messages, mail, chat, paging
-and doors; not file transfers (download files by the API or FTP).  Its
+and doors; not file transfers (download files by the API or FTP). Its
 xterm.js has the image addon, so the [image boards](Image-Boards)'
 pictures (sixel) show in it.
 
-| | |
+| Path | What it serves |
 |---|---|
 | `GET /terminal` | the page |
 | `GET /terminal/xterm.js`, `addon-fit.js`, `addon-image.js`, `terminal.js`, `xterm.css`, `terminal.css`, `LICENSE.xterm` | its files |
 | `GET /terminal/ws?cols=&rows=` | the WebSocket, subprotocol `bbs.terminal`: binary frames, the terminal's bytes both ways; the size the page fits its window to (40-255 columns, 10-200 rows), kept for the call |
 
-The page allows scripts only from the BBS itself, no framing, and
-WebSockets only from its own host (and the `cors` origin).  Connections
-count against `max_per_ip` and `rate`, logins against the throttle as a
-terminal's do; behind a proxy on 127.0.0.1, throttling is the proxy's to
-do (the BBS sees every caller as the proxy).  `terminal = no` turns the
-page off.
+The page allows scripts only from the BBS itself, cannot be framed, and
+accepts WebSockets only from its own host (and the `cors` origin).
+Connections count against `max_per_ip` and `rate`, and logins count
+against the throttle as a terminal's do. Behind a proxy on 127.0.0.1
+without `trusted_proxies`, throttling is up to the proxy, because the BBS
+sees every caller as the proxy. `terminal = no` turns the page off.
 
 ## Metrics
 
@@ -273,14 +275,14 @@ text format: `bbs_nodes`, `bbs_nodes_by_via{via}`, `bbs_max_nodes`,
 
 - TLS by default; tokens never go in URLs (only in the `Authorization`
   header or a WebSocket's first message).
-- Tokens are 32 random bytes; only their SHA-256 is stored.  A wrong
+- Tokens are 32 random bytes; only their SHA-256 is stored. A wrong
   token waits as a wrong password does, and failed logins are logged and
   counted like a terminal's.
 - Rate limits per token (per address without one), connections per
   address, JSON bodies at most 64 KB with unknown fields refused,
   uploads limited as on the BBS.
 - No CORS unless one origin is named; WebSockets from origins other than
-  it and the API's own host are refused.  Responses carry `nosniff` and `no-store`.
+  it and the API's own host are refused. Responses carry `nosniff` and `no-store`.
 - What web clients say and post is cleaned as a terminal caller's is.
 
 **See also:** [Chat and paging](Chat-and-Paging), [Security](Security), [Configuration](Configuration)

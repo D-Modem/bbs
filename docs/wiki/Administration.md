@@ -1,6 +1,7 @@
-Everything is done with the `bbs` command, on the configuration the BBS
-runs with (`-config FILE`; without it, the defaults and `bbs.db` here).
-These are safe to run while the BBS is serving.
+This page lists the `bbs` commands a sysop uses day to day. Each command
+works on the configuration the BBS runs with (`-config FILE`; without it,
+the defaults and `bbs.db` in the current directory). All of them are safe
+to run while the BBS is serving callers.
 
 ## Users
 
@@ -42,7 +43,7 @@ bbs sshkey list [USER]
 bbs sshkey del ID
 ```
 
-Users add their own from their profile, or by the API: [SSH](SSH).
+Users can also add their own keys from their profile or through the API: see [SSH](SSH).
 
 ## Message areas
 
@@ -58,13 +59,15 @@ bbs area keep AREA MESSAGES DAYS    # keep the newest MESSAGES, for DAYS (0: no 
 bbs area purge                      # take away what areas keep no more, now
 ```
 
-What an area keeps is enforced hourly while the BBS runs (and by `bbs
-area purge`): beyond its newest `MESSAGES`, and older than `DAYS`,
-messages go, with their votes and polls.
+The BBS applies each area's limits every hour while it runs, and `bbs
+area purge` applies them at once. Messages beyond the newest `MESSAGES`,
+and messages older than `DAYS`, are deleted along with their votes and
+polls.
 
-A sysop also adds areas from the BBS (`+` in the message areas) and
-deletes any message.  Newsgroups: [Newsgroups and NNTP](Newsgroups-and-NNTP);
-echoes: [FidoNet](FidoNet).
+A sysop can also add areas from inside the BBS (`+` in the message areas)
+and delete any message. For newsgroups, see
+[Newsgroups and NNTP](Newsgroups-and-NNTP); for echoes, see
+[FidoNet](FidoNet).
 
 ## File areas
 
@@ -94,6 +97,9 @@ See [Image boards](Image-Boards).
 
 ## Mail exchange
 
+The BBS exchanges mail with its peers on its own schedule. These commands
+do it now.
+
 ```
 bbs news sync [PEER]                # exchange articles with news peers now
 bbs fido poll [LINK]                # call FidoNet links now
@@ -117,10 +123,8 @@ bbs room topic ROOM ["TOPIC"]       # set its topic (none: clear it)
 bbs room del ROOM                   # it goes with its last caller
 ```
 
-See [IRC](IRC#permanent-rooms).  A running BBS takes these at its next
-start; BBSServ's `ROOM` changes it at once.
-
-The server does all of these on its own schedule; these are for now.
+A running BBS picks up these changes at its next start; BBSServ's `ROOM`
+command makes them at once. See [IRC](IRC#permanent-rooms).
 
 ## The rest
 

@@ -1,63 +1,66 @@
-The BBS backs itself up: this configuration file, the database and the
-files, one archive a backup, while callers are on.
+The BBS can back itself up while callers are on. Each backup is one
+archive holding the configuration file, the database and the files. This
+page covers making backups, what is in them, and restoring one.
 
 ```
-bbs -config /etc/bbs/bbs.conf backup                  # one now
-bbs -config /etc/bbs/bbs.conf backup list             # those there are, the newest first
-bbs -config /etc/bbs/bbs.conf backup restore ARCHIVE  # what it would put back, and where
+bbs -config /etc/bbs/bbs.conf backup                  # make one now
+bbs -config /etc/bbs/bbs.conf backup list             # list the backups, newest first
+bbs -config /etc/bbs/bbs.conf backup restore ARCHIVE  # show what it would restore, and where
 bbs -config /etc/bbs/bbs.conf backup restore ARCHIVE -yes
 ```
 
 The [configuration screens](Configuration#editing-it-the-configuration-screens)'
-Maintenance menu has the same: Back up now, the backups made, and
-`[backup]`'s settings.
+Maintenance menu does the same: Back up now, the list of backups, and the
+`[backup]` settings.
 
-## What a backup has
+## What a backup holds
 
-Each is `bbs-YYYYMMDD-HHMMSS.tar.gz` in the backup directory:
+Each backup is `bbs-YYYYMMDD-HHMMSS.tar.gz` in the backup directory:
 
-| in it | |
+| File | What it is |
 |---|---|
 | `MANIFEST` | when it was made, the database's engine, where each thing was |
 | `bbs.conf` | the configuration file the BBS runs by |
-| `database.db` | the database as a SQLite file, whatever its engine, taken whole at one moment: SQLite's by `VACUUM INTO`, a PostgreSQL or MySQL server's copied in one read-only transaction that sees nothing written after it began.  Callers may go on as it is taken |
+| `database.db` | the database as a SQLite file, whatever its engine, taken whole at one moment: SQLite's by `VACUUM INTO`, a PostgreSQL or MySQL server's copied in one read-only transaction that sees nothing written after it began. Callers may go on as it is taken |
 | `key.ssh_host_ed25519_key` ... | the SSH listeners' host keys (always, whatever `files` says): a BBS put back on another machine answers with the keys its callers know |
 | `files/`, `chan/`, `fido/`, `screens/`, `scripts/` | the file areas', image boards', FidoNet's, display files' and scripts' directories (with `files = yes`) |
 
-An archive is written beside its final name and renamed to it when it is
-whole: one there is one made.  Past `keep`, the oldest are taken away.
+An archive is written under a temporary name and renamed when it is
+complete, so any archive in the directory is a whole one. Beyond `keep`
+archives, the oldest are deleted.
 
 ## [backup]
 
-| key | default | |
+| Key | Default | What it sets |
 |---|---|---|
 | `dir` | `backups` beside an SQLite database | where the archives go: better on another disk, or copied off the machine (a server's database has no default: say one) |
 | `at` | none | daily, at this time (`03:30`) |
 | `keep` | `7` | archives kept (0: all) |
 | `files` | `yes` | the files' directories too; `no`: the configuration, the database and the host keys alone |
 
-They take effect at a reload (`systemctl reload bbs`) or when the
+Changes take effect at a reload (`systemctl reload bbs`) or when the
 Configuration screen saves them.
 
-## Putting one back
+## Restoring a backup
 
-`bbs backup restore ARCHIVE` says what the archive has and where each
-thing would go: where *this* system's configuration says (so a backup
-moves to another machine), not where it was.  With the BBS stopped, `-yes`
-puts it back:
+`bbs backup restore ARCHIVE` lists what the archive holds and where each
+part would go. It follows *this* system's configuration rather than where
+things were when the backup was made, so a backup can move to another
+machine. With the BBS stopped, add `-yes` to restore it:
 
-- each file or directory there now is renamed aside first,
-  `NAME.before-restore-YYYYMMDD-HHMMSS`, never written over (take them
-  away when all is well);
+- each file or directory already there is first renamed to
+  `NAME.before-restore-YYYYMMDD-HHMMSS`, never overwritten (delete these
+  once all is well);
 - an SQLite database is put in the database's place;
-- a PostgreSQL, MySQL or MariaDB database must be new and empty (made as
-  for `bbs db copy`): the archive's is copied into it.  One with users is
-  refused before anything is unpacked or changed: make a new one, point
-  `database` at it, and restore again;
-- what the archive does not have (the files, with `files = no`) is left
-  as it is.
+- a PostgreSQL, MySQL or MariaDB database must be new and empty (set up
+  as for `bbs db copy`), and the archive's database is copied into it. If
+  the database already has users, the restore is refused before anything
+  is unpacked or changed: create a new database, point `database` at it,
+  and restore again;
+- anything the archive does not hold (such as the files, with
+  `files = no`) is left as it is.
 
-An archive whose names would climb out of where they go is refused before
-anything is changed.
+An archive with paths that would escape their destination is refused
+before anything is changed.
 
 **See also:** [Databases](Databases), [Configuration](Configuration), [Sysop tools](Sysop-Tools)

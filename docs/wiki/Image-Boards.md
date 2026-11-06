@@ -1,5 +1,3 @@
-# Image boards
-
 The HTTP API's server also serves image boards, at `/chan/`, in the manner
 of kusaba&nbsp;x and of 4chan that it followed (and Futaba before both):
 boards by directory (`/chan/b/`, `/chan/g/`), threads that start with an
@@ -47,7 +45,7 @@ address = :8443
 ;archive_days = 3        ; days a pruned thread stays in its board's archive (0: always)
 ```
 
-| setting | default | |
+| Setting | Default | What it sets |
 |---|---|---|
 | `chan` (in `[http]`) | `yes` | the image boards at `/chan/` |
 | `dir` | `chan` | where images and thumbnails are kept, and the boards' secret (`dir/secret`, made the first time: keep it, or secure tripcodes change) |
@@ -80,7 +78,7 @@ account where there is none: a modem's), limits and pruning.
 
 A post's picture is shown above it, as well as the terminal can:
 
-| terminal | how |
+| Terminal | How |
 |---|---|
 | kitty, Ghostty | kitty's graphics protocol (by what they say they are) |
 | sixel: xterm (`-ti vt340`), foot, mlterm, WezTerm, Windows Terminal, iTerm2, SyncTERM, the [web terminal](HTTP-API#the-web-terminal) | sixel |
@@ -104,7 +102,7 @@ each browser, which keeps it in a cookie). A thread starts with an image
 (unless the board is `text_only`); replies need a comment, an image, or
 both.
 
-| typed | |
+| Typed | Result |
 |---|---|
 | `Name#password` | a tripcode: `Name !WokonZwxw2`. The same as 2channel's and 4chan's: `#tea` is `!WokonZwxw2` here too |
 | `Name##password` | a secure tripcode, `!!...`, made with this site's secret: it cannot be found by trying passwords elsewhere |
@@ -256,7 +254,7 @@ bbs chan ban list
 bbs chan ban del ID
 ```
 
-| board setting | default | |
+| Board setting | Default | What it sets |
 |---|---|---|
 | `title`, `description` | | as the board's banner shows them |
 | `pages`, `per_page` | 10, 10 | threads kept: pages of threads |
@@ -293,7 +291,7 @@ bbs chan board set po files pdf
 What a file is is found from its bytes, never its name, and each is read
 before it is kept:
 
-| | taken | refused |
+| Format | Accepted | Refused |
 |---|---|---|
 | WebM | VP8, VP9 or AV1 video, Vorbis or Opus sound | a Matroska file that is not WebM (browsers do not play it), other codecs, other tracks, two videos in one |
 | MP4 | H.264, AV1 or VP9 video, AAC or Opus sound | HEVC and other codecs browsers do not all play; one still being written (no movie header) |
@@ -333,7 +331,7 @@ bbs chan board set f sound yes
 ruffle = /opt/bbs/ruffle         ; the directory with ruffle.js (some 30 MB, not in the BBS)
 ```
 
-| | read for | |
+| Format | Read for | Notes |
 |---|---|---|
 | SWF (`FWS`, `CWS`, `ZWS`) | its stage's size, frames and rate, sounds | compressed ones are walked as they unpack, nothing kept (a small file that unpacks to much is refused at no cost); an LZMA one (`ZWS`) Ruffle unpacks, so it is taken as 550x400 with sound |
 | FLV | its `onMetaData` (size, length), its tags (sound, the video's codec: Sorenson H.263, Screen, VP6, VP6 alpha, H.264) | without metadata its length is its last tag's time, its size Flash's 320x240 |
@@ -408,7 +406,7 @@ sum of them.
 
 Callers choose one at the top of each page (kept in a cookie):
 
-| style | |
+| Style | What it looks like |
 |---|---|
 | `yotsuba` | 4chan's, on boards not worksafe: cream and maroon |
 | `yotsuba-b` | 4chan's worksafe blue |
@@ -422,7 +420,7 @@ Callers choose one at the top of each page (kept in a cookie):
 The boards can be read as JSON, in the shapes of 4chan's read-only API
 (github.com/4chan/4chan-API), so that its readers read these boards too:
 
-| | |
+| File | What it holds |
 |---|---|
 | `/chan/boards.json` | the boards and how they are run |
 | `/chan/b/threads.json` | each page's threads, when each changed, their replies |

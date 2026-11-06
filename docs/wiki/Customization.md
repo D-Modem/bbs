@@ -1,6 +1,7 @@
-The BBS's look is the sysop's: screens of their own (ANSI art, text, 3270
-screens in color), menus of their own, and the prompts' words.  None of it
-is needed: without it the built-in screens and menus are used.
+The sysop can change how the BBS looks: their own screens (ANSI art, text
+and 3270 screens in colour), their own menus, and the wording of the
+prompts. None of this is required; without it, the BBS uses its built-in
+screens and menus.
 
 ## Screens
 
@@ -11,45 +12,50 @@ Display files go in one directory:
 screens_dir = /etc/bbs/screens
 ```
 
-A screen is a name (lower case letters, digits, `_` and `-`) and one or
-more files for different terminals:
+A screen has a name (lower-case letters, digits, `_` and `-`) and one or
+more files, one for each kind of terminal:
 
-| file | what | shown to |
+| File | What it is | Shown to |
 |---|---|---|
 | `NAME.ans` | ANSI art in CP437, as ANSI editors (PabloDraw, Moebius, TheDraw) save it; a SAUCE record after ^Z is dropped | ANSI terminals |
-| `NAME.asc` | text (UTF-8 or ASCII) with [tags](#tags) for color, a page at a time | any text terminal; 3270s when there is no `.3270` |
+| `NAME.asc` | text (UTF-8 or ASCII) with [tags](#tags) for colour, a page at a time | any text terminal; 3270s when there is no `.3270` |
 | `NAME.txt` | the same as `.asc` | the same |
-| `NAME.3270` | text with color tags (below) | 3270s |
+| `NAME.3270` | text with colour tags (below) | 3270s |
 | `NAME.rip` | RIPscrip (graphics and ANSI) in CP437; its buttons send keys to the menu showing it | [RIP terminals](PETSCII-and-RIP) |
 | `NAME.seq` | PETSCII, as C64 editors save it, sent as it is (no @-codes) | [Commodores](PETSCII-and-RIP) |
 
-An ANSI terminal gets `.ans`, else `.asc`, else `.txt`; a RIP terminal
-`.rip` before those; a plain one `.asc` or `.txt`; a Commodore `.seq`,
-else `.asc` or `.txt` (translated); a 3270 `.3270`, `.asc` or `.txt`.  ANSI art goes to a UTF-8
-terminal as UTF-8, and to any other as the CP437 bytes it is (what
-SyncTERM, NetRunner and DOS terminal programs want).  Files are read
-each time they are shown, so they can be changed while the BBS runs; the
-largest read is 256 KB.
+Each terminal gets the first file it can show:
 
-These are shown by themselves:
+- an ANSI terminal: `.ans`, then `.asc`, then `.txt`
+- a RIP terminal: `.rip`, then the same as ANSI
+- a plain terminal: `.asc` or `.txt`
+- a Commodore: `.seq`, then `.asc` or `.txt` (translated)
+- a 3270: `.3270`, `.asc` or `.txt`
 
-| name | when | in place of |
+ANSI art is sent to a UTF-8 terminal as UTF-8, and to any other terminal
+as its original CP437 bytes, which is what SyncTERM, NetRunner and DOS
+terminal programs expect. Files are read each time they are shown, so you
+can change them while the BBS runs. The largest file read is 256 KB.
+
+The BBS shows these screens by itself:
+
+| Name | When | Replaces |
 |---|---|---|
 | `logon` | when a caller connects, before the name prompt (on a 3270, in the logon screen's upper part) | the system's name, banner and how they came |
 | `newuser` | before a new user's questions | (added) |
 | `welcome` | after the login | the welcome lines (the message of the day still follows) |
 | `goodbye` | at a logoff | the `goodbye` line |
 
-Others are shown by menus: `screen = NAME` on a menu, or a `screen:NAME`
-item.  [screens.sample](https://github.com/D-Modem/bbs/tree/HEAD/screens.sample)
+Menus show the others, with `screen = NAME` on a menu or a `screen:NAME`
+item. [screens.sample](https://github.com/D-Modem/bbs/tree/HEAD/screens.sample)
 has a set to start from.
 
 ### @-codes
 
-Screens, menu titles, labels and prompts, and the strings take codes
-that are filled in when shown:
+Screens, menu titles, labels, prompts and strings can hold codes that are
+filled in when they are shown:
 
-| code | |
+| Code | Filled in with |
 |---|---|
 | `@BBS@` `@SYSOP@` `@LOCATION@` | the system |
 | `@PHONE@` `@ADDRESSES@` `@POSTAL@` | how to reach it: `[general]`'s `phone`, `addresses`, `postal_address` |
@@ -62,17 +68,18 @@ that are filled in when shown:
 | `@CLS@` | clear the screen |
 | `@PAUSE@` | wait for a key (on a 3270, a new page) |
 
-`@CODE:20@` pads (or cuts) the value to 20 characters, `@CODE:-20@`
-aligns it right: art keeps its shape whatever a name's length.  Anything
-else between @s (an e-mail address) is left as it is.  The values are
-cleaned like anything a caller writes: no escape sequences get into art
-through a user's name.
+`@CODE:20@` pads or cuts the value to 20 characters, and `@CODE:-20@`
+aligns it to the right, so art keeps its shape whatever the length of a
+name. Anything else between two @ signs (such as an email address) is left
+as it is. Values are cleaned like anything a caller writes, so no escape
+sequences can get into art through a user's name.
 
 ### Tags
 
-Text screens (`.asc`, `.txt`), the [strings](#strings) and a
-[menu's](#menus) title, labels and prompt take tags in braces: shortcuts
-for ANSI's escape sequences, as `.3270` files have for a 3270's colors.
+Text screens (`.asc`, `.txt`), the [strings](#strings), and a
+[menu's](#menus) title, labels and prompt can hold tags in braces. Tags
+are shortcuts for ANSI escape sequences, like the tags `.3270` files use
+for a 3270's colours.
 
 ```
 {clear}{cyan}{bright}*** @BBS@ ***{reset}
@@ -80,38 +87,43 @@ for ANSI's escape sequences, as `.3270` files have for a 3270's colors.
 {pause}
 ```
 
-| tag | |
+| Tag | What it does |
 |---|---|
 | `{clear}` `{cls}` | clear the screen (as `@CLS@`) |
 | `{pause}` | wait for a key (as `@PAUSE@`; in a string, dropped) |
 | `{home}` `{eol}` | the cursor to the top left; clear to the end of the line |
-| `{black}` `{red}` `{green}` `{yellow}` `{blue}` `{magenta}` `{cyan}` `{white}` | the color of the letters (`{pink}` and `{turquoise}`, the 3270's names, are magenta and cyan) |
-| `{on black}` ... `{on white}` | the color behind them |
+| `{black}` `{red}` `{green}` `{yellow}` `{blue}` `{magenta}` `{cyan}` `{white}` | the colour of the letters (`{pink}` and `{turquoise}`, the 3270's names, are magenta and cyan) |
+| `{on black}` ... `{on white}` | the colour behind them |
 | `{bright}` `{bold}` / `{normal}` | bright, or not |
 | `{blink}` `{underline}` `{reverse}` | |
 | `{default}` `{reset}` | plain again |
 
-Each terminal gets what it can show: an ANSI terminal the escape
-sequences; one without color (`Mono`) bright, underline and the like but
-no colors; a Commodore its colors (no backgrounds, blink or underline);
-a VT52 the clears and the cursor's moves; a plain terminal nothing (a
-`{clear}` a new line).  A screen ends plain whatever its last color.  On
-a 3270 a text screen's colors are its colors (each change taking a
-column, below) and the other tags are dropped; a menu's labels show
-their colors the same way, its title and prompt plain.  Where tags
-cannot be shown at all (a RIP terminal's buttons, a menu's title in
-Who's online) they are dropped too.  A menu's label keeps to its column
-whatever its tags, and ends plain.  In a text screen a line holding only
-a `{clear}` or a `{pause}` (or `@CLS@`, `@PAUSE@`) leaves no blank line
-behind.
+Each terminal gets what it can show:
 
-Only the sysop's text has tags: a caller who calls themselves `{red}bob`
-is shown as `{red}bob`.  ANSI art (`.ans`) keeps its braces as they are:
-it has its own escape sequences.
+- an ANSI terminal gets the escape sequences;
+- a terminal without colour (`Mono`) gets bright, underline and the like,
+  but no colours;
+- a Commodore gets its own colours (but no backgrounds, blink or
+  underline);
+- a VT52 gets the clears and cursor moves;
+- a plain terminal gets nothing (a `{clear}` becomes a new line).
+
+A screen always ends plain, whatever its last colour. On a 3270, a text
+screen keeps its colours (each change takes a column, as explained below)
+and the other tags are dropped. A menu's labels show their colours the
+same way, while its title and prompt are plain. Where tags cannot be shown
+at all (on a RIP terminal's buttons, or a menu's title in Who's online),
+they are dropped too. A menu label stays in its column whatever its tags,
+and ends plain. In a text screen, a line holding only `{clear}` or
+`{pause}` (or `@CLS@` or `@PAUSE@`) leaves no blank line behind.
+
+Tags work only in the sysop's text: a caller who names themselves
+`{red}bob` is shown as `{red}bob`. ANSI art (`.ans`) keeps its braces
+as they are, because it has its own escape sequences.
 
 ### 3270 screens
 
-A `.3270` file is lines of text with tags that change the color for the
+A `.3270` file is lines of text with tags that change the colour for the
 rest of the line:
 
 ```
@@ -119,17 +131,17 @@ rest of the line:
 {blue}A bulletin board, by telnet, modem and TN3270.{default} plain again
 ```
 
-`{blue}` `{red}` `{pink}` `{green}` `{turquoise}` `{yellow}` `{white}`
-`{default}`, and `{bright}` / `{normal}` (and `{clear}` and `{pause}` for a
-new page; the text terminals' names, `{magenta}`, `{cyan}`, `{reset}`, are
-taken too).  On a 3270 each change of color takes a blank column (an
-attribute byte, as 3270 fields work).
+The tags are `{blue}` `{red}` `{pink}` `{green}` `{turquoise}` `{yellow}`
+`{white}` `{default}`, `{bright}` and `{normal}`, plus `{clear}` and
+`{pause}` for a new page. The text terminals' names (`{magenta}`, `{cyan}`,
+`{reset}`) work too. On a 3270, each change of colour takes up a blank
+column, because that is where the 3270 keeps the field's attribute byte.
 
 ## Menus
 
-`[menu NAME]` sections make menus; `[menu main]` takes the place of the
-built-in main menu, on text terminals and 3270s alike, and the others are
-reached from it (and from each other).
+Each `[menu NAME]` section makes a menu. `[menu main]` replaces the
+built-in main menu on text terminals and 3270s alike, and the other menus
+are reached from it and from each other.
 
 ```
 [menu main]
@@ -151,10 +163,10 @@ u = users User list
 z = back Back
 ```
 
-Each item is `KEY = ACTION Label`: one character (not `;` or `#`, which
-begin comments), then what it does:
+Each item is `KEY = ACTION Label`. The key is one character (not `;` or
+`#`, which begin comments), and the action is what the item does:
 
-| action | |
+| Action | What it does |
 |---|---|
 | `areas` `mail` `who` `users` `profile` `info` `files` `boards` `doors` `chat` `page` `callers` `feedback` `qwk` `sysop` | the built-in parts (`callers`: the last callers; `feedback`: mail to the sysop; `qwk`: [offline mail](Offline-Mail); `boards`: the [image boards](Image-Boards); `sysop`: the [sysop tools](Sysop-Tools), for sysops) |
 | `terminal` | a 3270's terminal details |
@@ -166,14 +178,14 @@ begin comments), then what it does:
 | `area:NAME` | straight into a message area |
 | `script:NAME` | run a script of `scripts_dir` ([Scripting](Scripting)) |
 
-With `screen =`, a text terminal sees the screen (which shows the keys
-itself), and a 3270 the screen's `.3270` (or `.asc`, `.txt`) version if
-it has one, else the list of items in a box: a menu drawn as ANSI art
-alone still works on a 3270.  On a 3270 the key is typed in the option field;
-PF3 goes back (on the main menu, logs off if a `logoff` item is there).
-Doors are for text terminals: on a 3270, a door item says so.  `bbs
-check` refuses a menu that names a menu, door or screen that is not
-there, and lists the menus it read.
+With `screen =`, a text terminal sees the screen, which shows the keys
+itself. A 3270 sees the screen's `.3270` (or `.asc` or `.txt`) version if
+there is one, or otherwise the list of items in a box, so a menu drawn
+only as ANSI art still works on a 3270. On a 3270 the caller types the key
+in the option field, and PF3 goes back (on the main menu, it logs off if
+there is a `logoff` item). Doors are for text terminals only; on a 3270, a
+door item says so. `bbs check` refuses a menu that names a menu, door or
+screen that does not exist, and lists the menus it read.
 
 ## Strings
 
@@ -188,9 +200,9 @@ logoff_confirm = "Leaving so soon, @USER@?"
 welcome = "Hi @USER@, @NEWMAIL@ new letters."
 ```
 
-Each takes @-codes and [tags](#tags); quote a value to keep spaces at its
-end.  `welcome` is the 3270 main menu's greeting too (shown without its
-tags, on both kinds of terminal).
+Each string can hold @-codes and [tags](#tags). Put a value in quotes to
+keep spaces at its end. `welcome` is also the greeting on the 3270 main
+menu (shown there without its tags).
 
 ```
 command_prompt = "{yellow}@USER@{default} @ {cyan}@BBS@{default} > "

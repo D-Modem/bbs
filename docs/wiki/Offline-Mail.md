@@ -1,5 +1,3 @@
-# Offline mail (QWK)
-
 Callers can read and answer their messages offline with a QWK reader
 (MultiMail, OLX, SLMR, Blue Wave's QWK mode, Synchronet's own...). The
 BBS packs a caller's new messages into a **packet**. The caller reads it
@@ -60,7 +58,7 @@ A REP is at most 16 MB and 1000 messages.
 
 ## Getting it
 
-| how | the packet | the REP |
+| Where | The packet | The REP |
 |---|---|---|
 | text BBS: *O* on the main menu | *D*ownload, by XMODEM, YMODEM, ZMODEM or Kermit | *U*pload, likewise |
 | 3270: *O* on the main menu | `IND$FILE GET BBSID.QWK` from the emulator's file transfer, typed on the screen's command line | `IND$FILE PUT BBSID.REP` |
@@ -130,3 +128,5 @@ by [FTP](Files-and-FTP) (`/qwk`). What its REP brings is posted under the
 names of the node's writers, not the account's. Its access is still
 checked on each area. Its packet leaves out what came from the node
 itself. The areas a node gets are those of its account's new scan.
+
+**See also:** [Message areas](Message-Areas), [Files and FTP](Files-and-FTP), [File transfers](File-Transfers)

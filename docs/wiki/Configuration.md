@@ -1,24 +1,38 @@
-[bbs.conf.sample](https://github.com/D-Modem/bbs/blob/HEAD/bbs.conf.sample) has every option, and the [Configuration reference](Configuration-Reference) lists them all, section by section.  `[general]` is the
-system (name, database, log, banner, message of the day, timeouts, limits);
-each `[listen NAME]` is a port or unix socket:
+The BBS reads its settings from one file, `bbs.conf`. This page explains
+how the file is laid out, how to edit it in the configuration screens, and
+which settings can change while callers are on.
+[bbs.conf.sample](https://github.com/D-Modem/bbs/blob/HEAD/bbs.conf.sample)
+has every option with comments, and the
+[Configuration reference](Configuration-Reference) lists them all, section
+by section.
 
-| `type` | what comes in |
+## Listeners
+
+`[general]` holds the system-wide settings (name, database, log, banner,
+message of the day, timeouts and limits). Each `[listen NAME]` section is a
+port or unix socket that callers come in on, and its `type` says what kind
+of caller to expect:
+
+| `type` | What comes in |
 |---|---|
 | `telnet` | a telnet client; with `tn3270 = yes` (the default) 3270s get 3270 screens |
 | `raw` | bytes as they come: app_dmodem's `mode = tcp`, a modemmenu `tcp` or `unix` item |
 | `rlogin` | RFC 1282, as modemmenu's `rlogin` items speak it |
 | `ssh` | SSH: the text BBS, logged in by password or key ([SSH](SSH)) |
 
-`address` is `host:port`, or a path for a unix socket (`socket_mode`,
-`socket_group`).  Any listener may read a session header first (`header =
-yes`), and with `trust_user = yes` take the caller as logged in already: see
-[Modem callers](Modem-Callers) (not `ssh`, which logs its callers in itself).  `petscii` and `rip` say whether
-its callers may be Commodores or RIPscrip terminals: [PETSCII and RIP](PETSCII-and-RIP); `vt`
-whether terminals are asked what they are: [Terminal identification](Terminal-Identification).
+`address` is `host:port`, or a path for a unix socket (with
+`socket_mode` and `socket_group`). Any listener except `ssh` can read a
+session header first (`header = yes`), and with `trust_user = yes` it
+treats the caller as already logged in; see
+[Modem callers](Modem-Callers). (An `ssh` listener logs its callers in
+itself.) `petscii` and `rip` say whether callers may be Commodores or
+RIPscrip terminals (see [PETSCII and RIP](PETSCII-and-RIP)), and `vt` says
+whether terminals are asked what they are (see
+[Terminal identification](Terminal-Identification)).
 
 ## The sections
 
-| section | what | page |
+| Section | What it sets | Page |
 |---|---|---|
 | `[general]` | the system: name, sysop, database, log, banner, message of the day, logo, new users, limits, timeouts, file areas' directory and limits | here, [Security](Security) |
 | `[listen NAME]` | a port or socket callers come in on | here, [Modem callers](Modem-Callers), [TN3270](TN3270) |
@@ -41,19 +55,20 @@ whether terminals are asked what they are: [Terminal identification](Terminal-Id
 | `page_command` (in `[general]`) | telling the sysop of a page when they are not on | [Chat and paging](Chat-and-Paging) |
 | `geoip`, `geoip_credit`, `phone_country` (in `[general]`) | where callers are: a country database for addresses, the home country of caller IDs | [Modem callers](Modem-Callers#where-callers-are), [Web forum](Web-Forum#flags) |
 
-`bbs check` reads the file and says what it found, with a warning for
-anything risky (a password that may cross in the clear, a socket that
-trusts whoever connects, a link without a password).
+`bbs check` reads the file and reports what it found. It warns about
+anything risky, such as a password that may cross the network in the
+clear, a socket that trusts whoever connects, or a link without a
+password.
 
 ## Editing it: the configuration screens
 
-`bbs -config /etc/bbs/bbs.conf config` is full-screen menus on your
-terminal for the file and the accounts, the BBS running or not.  The same
-menus are on the [sysop's tools](Sysop-Tools) (`F`, Configuration): full
-screen on ANSI terminals, with PF keys on a 3270, and numbered lines on a
-terminal with neither.
+`bbs -config /etc/bbs/bbs.conf config` opens full-screen menus on your
+terminal for editing the file and the accounts, whether or not the BBS is
+running. The same menus are in the [sysop tools](Sysop-Tools) (`F`,
+Configuration). They are full screen on ANSI terminals, use PF keys on a
+3270, and become numbered lines on a terminal with neither.
 
-| menu | what is in it |
+| Menu | What is in it |
 |---|---|
 | Board configuration | the BBS's name, the sysop's, the location, postal address, dial-in numbers and internet addresses; the banner, message of the day, goodbye, logo; menus and prompts |
 | System configuration | the user and group it runs as; the database and log; where files are kept and how large they may be; deny lists, the hack log, bans; scheduled events; every section of the file as it is |
@@ -62,12 +77,12 @@ terminal with neither.
 | Users and groups | the accounts (level, flags, sysop, locked, a new password; new ones; deleted ones) and the access levels |
 | Maintenance | disk space; what message areas keep, old messages taken out; the image boards' archive; backups: one now, those made, `[backup]` ([Backups](Backups)) |
 
-System passwords (PAM, LDAP) are modemmenu's to check: it logs callers in
-and hands them to the BBS ([Modem callers](Modem-Callers)).
-Running as a user of its own (System configuration's Run as user) is in
-[Running](Running#running-as-a-user-of-its-own).
+System passwords (PAM, LDAP) are checked by modemmenu, which logs callers
+in and hands them to the BBS (see [Modem callers](Modem-Callers)). Running
+the BBS as a user of its own (System configuration's Run as user) is
+covered in [Running](Running#running-as-a-user-of-its-own).
 
-| key | |
+| Key | What it does |
 |---|---|
 | arrows, PgUp, PgDn, Home, End | move (a letter goes to the next line beginning with it) |
 | Enter | open a menu, change a value (typed on the foot line, Enter to keep it), do an action |
@@ -78,41 +93,45 @@ Running as a user of its own (System configuration's Run as user) is in
 | F10 | save and exit |
 | `A`, `D` | add one (a listener, a door, a user ...), delete it |
 
-On a 3270, `S` by a menu opens it, values are typed over and sent with
-Enter, PF1 is help, PF3 back, PF9 and PF10 as F9 and F10.  On a terminal
-without ANSI, a number opens or changes a line, `S` saves and exits, `X`
-leaves without saving.
+On a 3270, type `S` beside a menu to open it, type over values and send
+them with Enter; PF1 is help, PF3 goes back, and PF9 and PF10 work like F9
+and F10. On a terminal without ANSI, type a line's number to open or change
+it, `S` to save and exit, or `X` to leave without saving.
 
-Nothing changes until you save: a changed line is marked `*` and the
-foot counts what is not saved.  The main menu's Review changes lists it
-all, and Check the configuration reads the file as the BBS would.  On
-saving, the file is checked first (it is not saved if the BBS would not
-start with it, or if someone changed it since it was read), written whole
-with its permissions and owner kept and the last one as `bbs.conf.bak`,
-every comment kept where it was (a new key goes below the sample's
-commented example of it); then the accounts' and areas' changes are made.
-On the sysop's menu, what may change while callers are on is put in force
-at once, and the screen says what waits for a restart.  With no file, the
-screens offer to begin it from the sample.
+Nothing changes until you save. A changed line is marked `*`, and the
+bottom line counts the unsaved changes. The main menu's Review changes
+lists them all, and Check the configuration reads the file as the BBS
+would.
 
-A key at a time, for scripts:
+When you save, the file is checked first. It is not saved if the BBS would
+not start with it, or if someone else changed it since it was read. It is
+then written whole, keeping its permissions and owner, with the previous
+version kept as `bbs.conf.bak`. Every comment stays where it was, and a new
+key goes below the sample's commented example of it. After that, the
+changes to accounts and areas are made. From the sysop's menu, settings
+that can change while callers are on take effect at once, and the screen
+says which ones wait for a restart. If there is no file yet, the screens
+offer to start one from the sample.
+
+Scripts can read and change one key at a time:
 
     bbs -config /etc/bbs/bbs.conf config get general name
     bbs -config /etc/bbs/bbs.conf config get "listen telnet"
     bbs -config /etc/bbs/bbs.conf config set "listen ssh" address :2222
     bbs -config /etc/bbs/bbs.conf config unset general motd
 
-each checked as the BBS would read it before it is written, and what
-changed printed with when it takes effect.
+Each change is checked as the BBS would read it before it is written,
+and the command prints what changed and when it takes effect.
 
 ## Changing it while callers are on
 
-`systemctl reload bbs` (`ExecReload` in bbs.service.sample: SIGHUP) reads
-the file again.  A file the BBS would not start with changes nothing (the
-log says why).  Otherwise these take effect at once, and the log lists the
-rest, which wait for a restart:
+`systemctl reload bbs` (`ExecReload` in bbs.service.sample, which sends
+SIGHUP) makes the BBS read the file again. If the BBS would not start with
+the new file, nothing changes and the log says why. Otherwise the keys
+below take effect at once, and the log lists the other changes, which wait
+for a restart:
 
-| section | live keys |
+| Section | Keys that change at once |
 |---|---|
 | `[general]` | `name`, `sysop`, `location`, `postal_address`, `phone`, `addresses`, `banner`, `banner_file`, `motd`, `motd_file`, `goodbye`, `new_users`, `max_nodes`, `attempts`, `fail_delay`, `login_timeout`, `idle_timeout`, `throttle_failures`, `throttle_time`, `page_command`, `qwk_id`, `geoip`, `geoip_credit`, `geoip_credit_url`, `phone_country`, `new_user_level`, `validated_level` |
 | `[level N]` | all, and levels added or taken out |
@@ -121,15 +140,19 @@ rest, which wait for a restart:
 | `[chan]` | all but `dir` |
 | `[http]` | `forum_guests`, `forum_theme`, `forum_flags` |
 
-Listeners, servers (FTP, NNTP, IRC, the HTTP API ...), networks, doors, the
-database and the log are made when the BBS starts, so they wait for a
-restart; so does what a caller's session took when it began (its idle
-timeout).  The sysop's Configuration screen puts the file in force itself
-when it writes it, and says which changes took effect and which wait.
-bbs.service.sample's `ProtectSystem=strict` keeps the service from writing
-/etc: give it `ReadWritePaths=/etc/bbs` (and the bbs user the file) for the
-screen on the BBS to write; `bbs config` as root works either way.  Mind that a file the BBS may write is one any sysop may give
-commands to run (doors, events, `page_command`): leave it read-only where
-sysops are not all trusted as much as root.
+Listeners, servers (FTP, NNTP, IRC, the HTTP API and so on), networks,
+doors, the database and the log are set up when the BBS starts, so changes
+to them wait for a restart. So do settings a caller's session took when it
+began, such as its idle timeout. The sysop's Configuration screen applies
+the file itself when it writes it, and says which changes took effect and
+which wait.
+
+bbs.service.sample's `ProtectSystem=strict` stops the service from writing
+to /etc. For the Configuration screen inside the BBS to save, give the
+service `ReadWritePaths=/etc/bbs` and give the bbs user the file. `bbs
+config` run as root works either way. Be aware that if the BBS can write
+its configuration, any sysop can make it run commands (doors, events,
+`page_command`). Keep the file read-only if not every sysop is trusted as
+much as root.
 
 **See also:** [Modem callers](Modem-Callers), [TN3270](TN3270), [Security](Security), [Sysop tools](Sysop-Tools)

@@ -1,5 +1,3 @@
-# MRC (Multi Relay Chat)
-
 [Multi Relay Chat](https://wiki.mysticbbs.com/doku.php?id=mrc) is a chat
 network of BBSes: Mystic, Synchronet, ENiGMA½ and others share its rooms.
 The BBS joins it as its own MRC connector, with one connection to the MRC
@@ -18,12 +16,12 @@ web = https://bbs.example.org/
 telnet = bbs.example.org:23
 ```
 
-| setting | default | |
+| Setting | Default | What it sets |
 |---|---|---|
 | `address` | `mrc.bottomlessabyss.net:5000` | the MRC server (5001 with TLS) |
 | `tls` | `no` | TLS to it |
 | `prefix` | `mrc-` | what begins MRC's rooms here |
-| `system_name` | the BBS's name | the BBS as MRC shows it (Mystic's `\|NN` colors allowed) |
+| `system_name` | the BBS's name | the BBS as MRC shows it (Mystic's `\|NN` colour codes allowed) |
 | `web`, `telnet`, `ssh`, `sysop`, `description` | (the sysop's name, the BBS's) | what MRC's `INFO` tells of the BBS |
 | `require` | (anyone who may chat) | who may go into MRC's rooms ([access levels](Access-Levels)) |
 
@@ -34,7 +32,7 @@ telnet = bbs.example.org:23
   leave when they go.
 - Lines said there go to MRC as `<name> text`, and `/me` as an action.
   Lines from other systems show as `carol@Far_BBS: text` (on IRC, from
-  `carol_Far_BBS!mrc@far_bbs`). MRC's colors are taken out.
+  `carol_Far_BBS!mrc@far_bbs`). MRC's colour codes are removed.
 - `!COMMAND` is a command for the MRC server, not a line for the room:
   `!motd`, `!list` (its rooms), `!chatters`, `!bbses`, `!info N`
   and the rest (the server says which it does not know). Its answers come to whoever asked. `!!text`
@@ -53,7 +51,7 @@ that it is listed even when no one here is in it.
 
 ## The protocol
 
-As Synchronet's `mrc-connector.js` and `mrc-session.js` speak it:
+The BBS speaks MRC's protocol as Synchronet's `mrc-connector.js` and `mrc-session.js` do:
 
 - the handshake `SYSTEM~BBSSEC/os_arch/1.3.5`, then the server's hello;
 - lines of `FromUser~FromSite~FromRoom~ToUser~MsgExt~ToRoom~Body~`;
@@ -61,3 +59,5 @@ As Synchronet's `mrc-connector.js` and `mrc-session.js` speak it:
 - `IMALIVE` in answer to the server's `PING`;
 - `IAMHERE` for each user, `NEWROOM:old:new` to move, `LOGOFF` to go;
 - names without spaces (underscores), at most 30 characters.
+
+**See also:** [Chat and paging](Chat-and-Paging), [IRC](IRC)

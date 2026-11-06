@@ -1,9 +1,13 @@
-`bbs` is a bulletin board system in Go.  One telnet port serves both kinds
-of terminal: a TN3270 client (x3270, c3270, wc3270, Vista, PCOMM) gets
-full 3270 screens with PF keys, through
-[go3270](https://github.com/D-Modem/go3270); any other telnet client
-gets a text BBS with ANSI color where the terminal has it.  Modem callers
-come in through the D-Modem suite: [app_dmodem](https://github.com/D-Modem/D-Modem)
+bbs is a bulletin board system in Go for telnet, SSH, TN3270 and modem
+callers, and part of the [D-Modem suite](https://github.com/D-Modem/D-Modem).
+This is its documentation: how to set it up, how to run it, and how to use
+everything it does.
+
+One telnet port serves every kind of terminal. A TN3270 client (x3270,
+c3270, wc3270, Vista, PCOMM) gets full 3270 screens with PF keys, through
+[go3270](https://github.com/D-Modem/go3270). Any other client gets a text
+BBS with ANSI colour where the terminal has it. Modem callers come in
+through the D-Modem suite: [app_dmodem](https://github.com/D-Modem/D-Modem)
 straight from Asterisk, or [modemmenu](https://github.com/D-Modem/menu)
 after its login.
 
@@ -24,107 +28,120 @@ Main menu
   [G] Goodbye
 ```
 
-The same caller on a 3270:
+## Start here
 
-```
- D-Modem BBS                                    Main menu                 Node 1
+| If you want to | Read |
+|---|---|
+| Try it out in a few minutes | [Building](Building), then [Running](Running) |
+| Set up a board for real | [Running](Running), [Configuration](Configuration), [Databases](Databases), [Backups](Backups) |
+| Look after a running board | [Administration](Administration), [Sysop tools](Sysop-Tools), [Access levels](Access-Levels) |
+| Make it look like your own | [Customization](Customization), [Scripting](Scripting) |
+| Take calls by modem | [Modem callers](Modem-Callers) |
+| Join FidoNet, QWK networks or Usenet | [FidoNet](FidoNet), [Offline mail](Offline-Mail#qwk-networks), [Newsgroups and NNTP](Newsgroups-and-NNTP) |
+| Put the board on the web | [Web forum](Web-Forum), [Image boards](Image-Boards), [HTTP API](HTTP-API) |
+| Work on the code | [Development](Development) |
 
-   Welcome, alice.
+Every setting is listed in the [Configuration reference](Configuration-Reference),
+which is generated from `bbs.conf.sample`.
 
-   ┌───────────────────────────────────────────┐
-   │ M  Message areas                          │
-   │ E  E-mail (1 new)                         │
-   │ W  Who's online                           │
-   │ U  User list                              │
-   │ P  Your profile                           │
-   │ I  System info                            │
-   │ C  Chat                                   │
-   │ S  Page the sysop                         │
-   │ T  Your terminal                          │
-   │ G  Goodbye                                │
-   └───────────────────────────────────────────┘
+## What it does
 
-   Option ===>
+**For callers**
 
- Enter=Select  PF3=Back
-```
+- [Message areas](Message-Areas) with new scans, searching, threads, votes
+  and polls, written in a [full-screen editor](Writing-Messages)
+- Private mail, chat rooms, node messages and [paging the sysop](Chat-and-Paging)
+- Who's online (with how each caller came in), the user list, the last
+  callers, feedback to the sysop, and a profile of their own
+- [File areas](Files-and-FTP) with X/Y/ZMODEM, Kermit and IND$FILE
+  [transfers](File-Transfers), and an FTP (FTPS) server
+- [Offline mail](Offline-Mail): QWK packets of new messages, and REP packets
+  of replies
+- [Doors](Doors): DOS door games in dosemu2, Linux programs, and door
+  networks such as BBSLink and DoorParty
 
-What there is:
+**Terminals**
 
-- [message areas](Message-Areas): a new scan of the areas you choose, messages to you, finding
-  messages by their words, read by number, post, reply (quoting
-  from a window in the [full-screen editor](Writing-Messages)),
-  reply by mail; areas only the sysop posts in; authors and the sysop
-  delete messages
-- private mail: inbox, read, reply, delete
-- [offline mail](Offline-Mail): QWK packets of new messages and mail, REP packets of replies
-  brought back (by a transfer protocol, IND$FILE, FTP or the API); QWK networks as a hub or a node
-- [SSH](SSH): logging in by password or key, the text BBS encrypted
-- [Commodore 64s and RIPscrip terminals](PETSCII-and-RIP): PETSCII at 40 columns; menus as RIP buttons
-- [VT terminals identified](Terminal-Identification) (answerback, DA1, DA2, XTVERSION, VT52): DEC line drawing and Latin-1, bold on monochrome VTs, VT52 escapes
-- who's online (and how each caller came: ssh, telnet, tn3270, rlogin, modem
-  with its rate), the user list, system info
-- the last callers (*L*), feedback to the sysop (*K*, which any caller may
-  send), the user list with each user's details and a line about themselves
-- your profile: where you call from, a line about yourself, expert menus
-  (the prompt alone, `?` for the rest), your password, SSH keys, ANSI and UTF-8
-- [file areas](Files-and-FTP): files listed with their size, uploader, downloads and
-  SHA-256, moved by XMODEM, YMODEM, ZMODEM or Kermit on the text BBS, by
-  IND$FILE on a 3270 ([file transfers](File-Transfers)), or by FTP (FTPS); deleted by their uploader or the
-  sysop
-- [newsgroups](Newsgroups-and-NNTP): message areas given a newsgroup name are served by NNTP to
-  newsreaders and exchanged with other news servers (INN and the like)
-- [FidoNet](FidoNet) (or any FTN network): message areas that are echoes, netmail
-  as private mail, file echoes (TIC), AreaFix and FileFix, nodelists, and a
-  binkp mailer to exchange ZIP, ARC, ARJ or LHA bundles with links
-- [doors](Doors): DOS door games in dosemu2 (in Docker), with a FOSSIL on COM1
-  and the usual drop files, or any Linux program, for text callers; doors
-  elsewhere by telnet or RLogin, and the door networks BBSLink and DoorParty
-- [chat](Chat-and-Paging): rooms, messages to a node, paging the sysop; the rooms are
-  [IRC](IRC) channels too, for IRC clients, and [MRC](MRC)'s rooms join the
-  BBSes' Multi Relay Chat
-- [finger and gopher](Finger-and-Gopher): who is on, and chosen areas in gopherspace
-- [a web forum](Web-Forum): the message areas as a bulletin board in the browser, in the manner of Invision Power Board 3, or of IPB 5, 4, 2 or 1, Ikonboard, vBulletin 6 back to 2 or Lite, XenForo 2.3 back to 1, MyBB 1.8 back to 1.2, PunBB 1.4 and 1.2, FluxBB 1.5, YaBB 2.5 back to 1, Simple Machines Forum 3.0 back to 1, or phpBB 3.3 back to 1 (themes)
-- [image boards](Image-Boards): anonymous boards of images and replies at /chan/, in the manner of kusaba x and 4chan: bumping, sage, tripcodes (2channel's, and secure ones), greentext and >>quotes, a catalog, oekaki boards to draw on with stroke replay, staff's bans and reports, Yotsuba, Yotsuba B, Futaba, Burichan, Photon and Tomorrow styles, and 4chan's JSON; on the terminals too, with the pictures in sixel, kitty's or iTerm2's graphics, or coloured blocks
-- [a web terminal](HTTP-API#the-web-terminal): the BBS in a browser (xterm.js, built in)
-- [an HTTP API](HTTP-API): REST, server-sent events, and WebSockets (JSON or protobuf) where web clients chat with terminal callers; Prometheus metrics
-- [customization](Customization): ANSI art and 3270 screens, menus of the sysop's, @-codes, the prompts' words
-- [access levels](Access-Levels): levels and flags, areas, doors and menus that require them, time and download limits a day, new users validated by the sysop
-- new users sign themselves up (or not: `new_users = no`)
-- [SQLite, PostgreSQL, MySQL or MariaDB](Databases), and `bbs db copy` between them
+- [TN3270](TN3270) screens with PF keys, and 3270 graphics where the
+  emulator has them
+- [SSH](SSH), with passwords or keys
+- [Commodore 64s in PETSCII and RIPscrip terminals](PETSCII-and-RIP)
+- [VT terminals](Terminal-Identification), with DEC line drawing, monochrome
+  and VT52 support
+- [Sixel graphics](Sixel-Graphics) for the logo and pictures
 
-## The pages
+**Networks**
 
-| | |
+- [FidoNet](FidoNet) and other FTN networks: echomail, netmail, file
+  echoes, AreaFix and a built-in binkp mailer
+- [Newsgroups](Newsgroups-and-NNTP) served by NNTP and exchanged with other
+  news servers
+- [IRC](IRC), where the chat rooms are channels, and [MRC](MRC), the chat
+  network shared with other BBSes
+- [Finger and gopher](Finger-and-Gopher)
+
+**On the web**
+
+- [A web forum](Web-Forum) of the message areas, in the style of classic
+  forum software (Invision Power Board, vBulletin, phpBB and many more)
+- [Image boards](Image-Boards) in the style of kusaba x and 4chan, also
+  shown on the terminals
+- [A web terminal](HTTP-API#the-web-terminal) and an [HTTP API](HTTP-API)
+  with REST, server-sent events and WebSockets
+
+**For the sysop**
+
+- New users who sign themselves up (or not, with `new_users = no`), and
+  [access levels](Access-Levels) with flags, daily limits and validation
+- [Customization](Customization) with ANSI art, 3270 screens, menus and
+  prompts, and [scripting](Scripting) in JavaScript
+- [SQLite, PostgreSQL, MySQL or MariaDB](Databases), with `bbs db copy`
+  between them
+- [Backups](Backups) while callers are on, and [security](Security)
+  settings to keep callers out
+
+## All pages
+
+| Page | What it covers |
 |---|---|
 | [Building](Building) | Go, the go3270 fork, `make` |
-| [Running](Running) | first start, systemd, the defaults |
+| [Running](Running) | the first start, systemd, running as its own user |
 | [Administration](Administration) | the `bbs` command: users, areas, files, mail exchange |
-| [Databases](Databases) | SQLite, PostgreSQL, MySQL, MariaDB; moving between them |
-| [Configuration](Configuration) | `bbs.conf`: its sections, listeners |
-| [Access levels](Access-Levels) | levels, flags, what areas, doors and menus require, daily limits, validation |
+| [Sysop tools](Sysop-Tools) | the sysop's menu inside the BBS, and scheduled events |
+| [Configuration](Configuration) | `bbs.conf`: its sections, listeners and configuration screens |
+| [Configuration reference](Configuration-Reference) | every section and key |
+| [Databases](Databases) | SQLite, PostgreSQL, MySQL and MariaDB, and moving between them |
+| [Backups](Backups) | making backups, and restoring them |
 | [Customization](Customization) | screens (ANSI art, 3270), menus, prompts |
 | [Scripting](Scripting) | the sysop's own screens in JavaScript, on every terminal |
+| [Access levels](Access-Levels) | levels, flags, requirements, daily limits, validation |
 | [SSH](SSH) | the SSH listener, keys, host keys |
-| [Modem callers](Modem-Callers) | app_dmodem and modemmenu |
+| [Modem callers](Modem-Callers) | app_dmodem and modemmenu, and where callers are |
 | [TN3270](TN3270) | 3270 terminals, PF keys, 3270 graphics |
-| [Sixel graphics](Sixel-Graphics) | the logo on sixel terminals |
+| [Sixel graphics](Sixel-Graphics) | the logo and pictures on sixel terminals |
 | [PETSCII and RIP](PETSCII-and-RIP) | Commodore 64s and 128s; RIPscrip graphics and buttons |
-| [Terminal identification](Terminal-Identification) | VT terminals asked what they are: DEC graphics, monochrome, VT52 |
+| [Terminal identification](Terminal-Identification) | how VT terminals are recognised: DEC graphics, monochrome, VT52 |
+| [Message areas](Message-Areas) | reading, new scans, searching, votes and polls |
+| [Writing messages](Writing-Messages) | the full-screen editor, the line editor, the 3270 editor |
+| [Offline mail](Offline-Mail) | QWK packets, REP replies, QWK networks |
 | [Files and FTP](Files-and-FTP) | file areas, the FTP (FTPS) server |
 | [File transfers](File-Transfers) | X/Y/ZMODEM, Kermit, IND$FILE |
-| [Offline mail](Offline-Mail) | QWK packets, REP replies, QWK networks |
-| [Doors](Doors) | DOS doors in dosemu2 (Docker), Linux doors |
+| [Doors](Doors) | DOS doors in dosemu2 (Docker), Linux doors, doors on other systems |
 | [Newsgroups and NNTP](Newsgroups-and-NNTP) | the NNTP server, news peers |
 | [FidoNet](FidoNet) | echomail, netmail, binkp, file echoes, AreaFix, nodelists |
 | [Chat and paging](Chat-and-Paging) | chat rooms, node messages, paging the sysop |
-| [IRC](IRC) | the IRC server: the chat rooms as channels |
+| [IRC](IRC) | the IRC server, with the chat rooms as channels |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
 | [Web forum](Web-Forum) | the message areas as a web forum |
-| [Image boards](Image-Boards) | anonymous image boards, as kusaba x and 4chan |
+| [Image boards](Image-Boards) | anonymous image boards, in the style of kusaba x and 4chan |
 | [HTTP API](HTTP-API) | REST, events, WebSockets in JSON and protobuf, tokens, metrics |
 | [Security](Security) | what is guarded, and how |
-| [Development](Development) | the source's layout, the tests |
+| [Development](Development) | the source's layout, the shared screens, the tests |
 
-Future work is in [TODO.md](https://github.com/D-Modem/bbs/blob/HEAD/TODO.md).
+## More
+
+- The wiki is also a website: [d-modem.github.io/bbs](https://d-modem.github.io/bbs/).
+- Planned work is in [TODO.md](https://github.com/D-Modem/bbs/blob/HEAD/TODO.md).
+- The other parts of the suite are listed in the
+  [README](https://github.com/D-Modem/bbs#the-d-modem-suite).
