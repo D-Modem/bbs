@@ -68,7 +68,6 @@ import (
 	"github.com/D-Modem/bbs/internal/gopher"
 	"github.com/D-Modem/bbs/internal/imageboard"
 	"github.com/D-Modem/bbs/internal/ircd"
-	"github.com/D-Modem/bbs/internal/menuauth"
 	"github.com/D-Modem/bbs/internal/mrc"
 	"github.com/D-Modem/bbs/internal/news"
 	"github.com/D-Modem/bbs/internal/nntp"
@@ -77,6 +76,7 @@ import (
 	"github.com/D-Modem/bbs/internal/server"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/menu/authd"
 )
 
 // usage prints the commands and exits 2.
@@ -403,7 +403,7 @@ func serve(cfg *server.Config, path string) int {
 	b.Screens, b.Menus, b.Text, b.ScriptsDir = cfg.Screens, cfg.Menus, cfg.Text, cfg.ScriptsDir
 	b.Guard = cfg.Guard
 	if m := cfg.MenuAuth; m != nil {
-		b.MenuAuth = &menuauth.Client{Socket: m.Socket, Timeout: m.Timeout}
+		b.MenuAuth = &authd.Client{Socket: m.Socket, Timeout: m.Timeout}
 		b.MenuAuthCreate = m.Create
 	}
 	if len(cfg.Events) > 0 {
