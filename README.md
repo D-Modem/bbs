@@ -1,3 +1,5 @@
+<img src=".github/banner.png" alt="D-Modem/bbs: A bulletin board for every caller" width="100%">
+
 # bbs
 
 A bulletin board system in Go for telnet, SSH, TN3270 and modem callers.
