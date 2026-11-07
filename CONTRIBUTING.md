@@ -36,3 +36,10 @@ does it):
 
 It says that you agree to the above for that commit.  A contribution
 without it cannot be merged.
+
+A check on each pull request looks for that line, with the commit
+author's email, on every commit.  If it's missing, `git rebase --signoff
+main` (or `git commit --amend -s` for the last commit) adds it; then
+force-push.  Pull requests from the D-Modem Authors themselves (the
+repository's owner and the D-Modem organization's members) are not
+checked.
