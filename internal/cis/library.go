@@ -514,45 +514,54 @@ func (s *session) download(lib *store.FileArea, arg string) error {
 	}
 	defer in.Close()
 	s.node.Doing("CompuServe: downloading " + f.Name)
-	binary := !textFile(f.Name)
+	if err := s.send(proto, xfer.Outgoing{Name: f.Name, Size: f.Size, ModTime: f.Created, Data: in}, !textFile(f.Name)); err != nil {
+		return nil
+	}
+	s.b.Downloaded(s.user, f)
+	s.b.Log.Printf("node %d: %s downloaded %q by %s (%d bytes)", s.node.Num, s.user.Name, f.Name, proto, f.Size)
+	return nil
+}
+
+// send sends a file by a protocol of chooseProtocol's, and says how it
+// went: an error is the transfer's, already told and logged.
+func (s *session) send(proto string, o xfer.Outgoing, binary bool) error {
 	p := port{s}
+	var err error
 	switch proto {
 	case "B", "QB":
 		k := xfer.NewBLink(p)
 		if err = k.Start(xfer.HostParams); err == nil {
-			_, err = k.SendFile(strings.ToUpper(f.Name), binary, in)
+			_, err = k.SendFile(strings.ToUpper(o.Name), binary, o.Data)
 		}
 		if errors.Is(err, xfer.ErrTimeout) && !k.Plus {
 			s.out("\nYour terminal does not support the B protocol.\n")
 		}
 	case "XMODEM":
 		s.out("Starting XMODEM transfer\n\nPlease initiate XMODEM transfer\nand press <CR> when the transfer\nis complete.\n")
-		err = xfer.SendXMODEM(p, xfer.Outgoing{Name: f.Name, Size: f.Size, ModTime: f.Created, Data: in}, false)
+		err = xfer.SendXMODEM(p, o, false)
 		s.waitCR()
 	case "KERMIT":
 		s.out("Starting KERMIT transfer\n\nPlease initiate KERMIT transfer\nand press <CR> when the transfer\nis complete.\n")
-		err = xfer.SendKermit(p, []xfer.Outgoing{{Name: f.Name, Size: f.Size, ModTime: f.Created, Data: in}})
+		err = xfer.SendKermit(p, []xfer.Outgoing{o})
 		s.waitCR()
 	case "CAPTURE":
 		if binary {
 			s.out("Only ASCII files can be captured.\n")
-			return nil
+			return errors.New("binary capture")
 		}
 		s.line.Write([]byte{0x12}) // DC2: capture on
 		var b []byte
-		if b, err = io.ReadAll(io.LimitReader(in, 4<<20)); err == nil {
+		if b, err = io.ReadAll(io.LimitReader(o.Data, 4<<20)); err == nil {
 			s.out(strings.ReplaceAll(string(b), "\r\n", "\n"))
 		}
 		s.line.Write([]byte{0x14}) // DC4: capture off
 		s.out("\n")
 	}
 	if err != nil {
-		s.b.Log.Printf("node %d: CompuServe: %s download of %s failed: %v", s.node.Num, proto, f.Name, err)
+		s.b.Log.Printf("node %d: CompuServe: %s download of %s failed: %v", s.node.Num, proto, o.Name, err)
 		s.out("\nTransfer aborted.\n")
-		return nil
+		return err
 	}
-	s.b.Downloaded(s.user, f)
-	s.b.Log.Printf("node %d: %s downloaded %q by %s (%d bytes)", s.node.Num, s.user.Name, f.Name, proto, f.Size)
 	if proto != "B" && proto != "QB" {
 		s.out("Transfer complete.\n")
 	}

@@ -60,8 +60,12 @@
  downloads and uploads by the CompuServe B and B Plus protocols,
  XMODEM and Kermit.
 
- On their way, in this order: CompuServe Mail, the CB Simulator, and
- the CompuServe Information Manager (CIM) graphical service.
+ CompuServe Mail (GO MAIL) is the BBS's private mail, in menu,
+ prompt or command mode (SET), with downloads and uploads of mail by
+ the B protocols.  Send to a name, a User ID, or a FidoNet address.
+
+ On their way, in this order: the CB Simulator, and the CompuServe
+ Information Manager (CIM) graphical service.
 
 :RATES CHARGES BILLING NEWBIL
 =CompuServe
@@ -131,10 +135,9 @@
  3 CB Simulator > CB
  4 Member Directory > DIRECTORY
 
-:MAIL EASY EASYPLEX
+:MAIL EASY EASYPLEX MAILRATES
 =CompuServe Mail
- CompuServe Mail is on its way.  Until then, read and send your mail
- on the BBS itself.
+ (Going here enters CompuServe Mail, on the BBS's private mail.)
 
 :FORUMS SIGS
 =CompuServe
