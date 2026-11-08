@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -147,11 +148,28 @@ func (c *lineConn) Read(p []byte) (int, error) {
 		c.first = c.first[n:]
 		return n, nil
 	}
-	return c.tty.Read(p)
+	n, err := c.tty.Read(p)
+	return n, closedErr(err)
 }
 
 // Write writes to the terminal.
-func (c *lineConn) Write(p []byte) (int, error) { return c.tty.Write(p) }
+func (c *lineConn) Write(p []byte) (int, error) {
+	n, err := c.tty.Write(p)
+	return n, closedErr(err)
+}
+
+// closedErr is err, as a connection's once the line is closed (hung up
+// or given back): net.ErrClosed, which ends a call without a word in the
+// log; a terminal hung up reads EIO, the end of the call too.
+func closedErr(err error) error {
+	if errors.Is(err, os.ErrClosed) {
+		return net.ErrClosed
+	}
+	if errors.Is(err, syscall.EIO) {
+		return io.EOF
+	}
+	return err
+}
 
 // Close gives the line back: the terminal's flags restored, our copy of
 // it closed, and the connection closed.

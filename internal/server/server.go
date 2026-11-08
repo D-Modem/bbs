@@ -429,7 +429,7 @@ func (s *Server) handle(nc net.Conn, l *Listener) {
 	default:
 		err = s.text(c, c, l, node, "")
 	}
-	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) {
+	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) && !errors.Is(err, os.ErrClosed) {
 		s.B.Log.Printf("node %d: %v", node.Num, err)
 	}
 	s.B.Log.Printf("node %d: gone", node.Num)
