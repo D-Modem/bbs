@@ -252,6 +252,14 @@ func (ss *session) rewatch() {
 			watch[u.ID] = sn
 		}
 	}
+	// and the friends list, however the client keeps its list
+	if fs, err := ss.s.B.Store.Friends(ss.u.ID); err == nil {
+		for _, f := range fs {
+			if _, ok := watch[f.ID]; !ok {
+				watch[f.ID] = ss.friendName(f, "")
+			}
+		}
+	}
 	ss.mu.Lock()
 	var added []int64
 	for id := range watch {
@@ -278,22 +286,62 @@ func (ss *session) buddy(h snacHeader, r *rd) {
 		t.addU16(0x0004, 160)
 		ss.snac(0x0003, 0x0003, h.req, t.bytes())
 	case 0x0004, 0x0005:
+		var sns []string
 		ss.mu.Lock()
 		for r.left() > 0 {
 			sn := r.str8()
 			if r.bad || sn == "" {
 				break
 			}
+			sns = append(sns, sn)
 			if h.sub == 0x0004 {
 				ss.listed[ident(sn)] = sn
 			} else {
 				delete(ss.listed, ident(sn))
 			}
 		}
+		ssi := ss.bagSent
 		ss.mu.Unlock()
+		if !ssi {
+			// a client that keeps its own list: that list is the friends list
+			ss.listFriends(sns, h.sub == 0x0004)
+		}
 		ss.do(ss.rewatch)
 	default:
 		ss.fail(0x0003, h.req, 0x0008)
+	}
+}
+
+// listFriends puts the BBS users of a client's own buddy list on the
+// friends list (add), or takes them off.
+func (ss *session) listFriends(sns []string, add bool) {
+	st := ss.s.B.Store
+	changed := false
+	for _, sn := range sns {
+		u := ss.s.resolve(sn)
+		if u == nil || u.ID == ss.u.ID {
+			continue
+		}
+		ok, err := st.IsFriend(ss.u.ID, u.ID)
+		switch {
+		case err != nil:
+			ss.s.B.Log.Printf("node %d: the friends list: %v", ss.n.Num, err)
+			return
+		case add && !ok:
+			err = st.PutFriend(ss.u.ID, store.Friend{ID: u.ID})
+		case !add && ok:
+			err = st.RemoveFriend(ss.u.ID, u.ID)
+		default:
+			continue
+		}
+		if err != nil {
+			ss.s.B.Log.Printf("node %d: the friends list: %v", ss.n.Num, err)
+			return
+		}
+		changed = true
+	}
+	if changed {
+		ss.s.B.FriendsChanged(ss.u.ID)
 	}
 }
 

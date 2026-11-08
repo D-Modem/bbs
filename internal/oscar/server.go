@@ -68,6 +68,7 @@ type Server struct {
 	sessions map[*session]bool
 	byNode   map[int]*session
 	cookies  map[string]*cookie
+	bagMu    sync.Mutex // placing friends in buddy lists
 }
 
 // New checks the settings and makes the server.
@@ -107,6 +108,8 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	s.B.Store.SetKeepOSCAR(true)
 	stop := s.B.WatchPresence(s.presence)
 	defer stop()
+	stopFriends := s.B.WatchFriends(s.friendsChanged)
+	defer stopFriends()
 	ts := &tcpserv.Server{Name: "oscar", MaxClients: s.S.MaxClients, MaxPerIP: s.S.MaxPerIP, Log: s.B.Log,
 		Handle: s.handle,
 		Refuse: func(c net.Conn) bool { return s.B.Refuse("oscar", c.RemoteAddr()) }}
