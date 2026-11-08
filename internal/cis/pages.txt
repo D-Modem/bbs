@@ -56,9 +56,12 @@
  areas, a forum for each group of them, with the forum command
  language (REA, SCA, BRO, POST, OPT).
 
- On their way, in this order: forum libraries with the CompuServe B
- and B Plus protocols, CompuServe Mail, the CB Simulator, and the
- CompuServe Information Manager (CIM) graphical service.
+ Each forum's libraries (LIB) are the BBS's file areas, with
+ downloads and uploads by the CompuServe B and B Plus protocols,
+ XMODEM and Kermit.
+
+ On their way, in this order: CompuServe Mail, the CB Simulator, and
+ the CompuServe Information Manager (CIM) graphical service.
 
 :RATES CHARGES BILLING NEWBIL
 =CompuServe

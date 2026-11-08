@@ -9,6 +9,11 @@ import (
 // The message base's depth: areas' groups, aliases and how long messages
 // are kept; threads; votes and polls; users' aliases and signatures.
 
+// SetFileAreaGroup puts a file area in a group ("": none).
+func (s *Store) SetFileAreaGroup(id int64, group string) error {
+	return s.exec1(`UPDATE file_areas SET grp = ? WHERE id = ?`, group, id)
+}
+
 // SetAreaGroup puts an area in a group ("": none).
 func (s *Store) SetAreaGroup(id int64, group string) error {
 	return s.exec1(`UPDATE areas SET grp = ? WHERE id = ?`, group, id)

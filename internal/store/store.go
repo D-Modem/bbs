@@ -671,6 +671,7 @@ type FileArea struct {
 	DownloadReq string // the access requirement to download ("": anyone)
 	UploadReq   string // and to upload
 	FileEcho    string // its FidoNet file echo's tag ("": not one)
+	Group       string // the group it is listed under ("": none): a CompuServe forum's libraries
 	Files       int
 	Bytes       int64
 }
@@ -717,7 +718,7 @@ func (s *Store) DeleteFileArea(id int64) error {
 	return s.exec1(`DELETE FROM file_areas WHERE id = ?`, id)
 }
 
-const fileAreaQuery = `SELECT a.id, a.name, a.description, a.sysop_upload, a.download_req, a.upload_req, COALESCE(a.fileecho, ''),
+const fileAreaQuery = `SELECT a.id, a.name, a.description, a.sysop_upload, a.download_req, a.upload_req, COALESCE(a.fileecho, ''), a.grp,
 	(SELECT COUNT(*) FROM files f WHERE f.area_id = a.id),
 	(SELECT COALESCE(SUM(f.size), 0) FROM files f WHERE f.area_id = a.id)
 	FROM file_areas a`
@@ -726,7 +727,7 @@ const fileAreaQuery = `SELECT a.id, a.name, a.description, a.sysop_upload, a.dow
 // there is none.
 func scanFileArea(row interface{ Scan(...any) error }) (*FileArea, error) {
 	var a FileArea
-	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopUpload, &a.DownloadReq, &a.UploadReq, &a.FileEcho, &a.Files, &a.Bytes)
+	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopUpload, &a.DownloadReq, &a.UploadReq, &a.FileEcho, &a.Group, &a.Files, &a.Bytes)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
