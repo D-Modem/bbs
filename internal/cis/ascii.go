@@ -78,7 +78,7 @@ func (s *session) command(c string) error {
 			s.out(verb + " is not a choice !\n")
 			return nil
 		}
-		s.goTo(s.pages.Get(s.page.Items[n-1].Target))
+		return s.goWord(s.page.Items[n-1].Target)
 	case verb == "T" || verb == "TOP":
 		s.goTo(s.pages.Get("TOP"))
 	case verb == "M" || verb == "MENU":
@@ -109,12 +109,11 @@ func (s *session) command(c string) error {
 			s.out("GO where?  Type GO and a GO word or page ID.\n")
 			return nil
 		}
-		p := s.pages.Get(arg)
-		if p == nil {
+		if !s.known(arg) {
 			s.out(strings.ToUpper(arg) + " is unrecognized !\n")
 			return nil
 		}
-		s.goTo(p)
+		return s.goWord(arg)
 	case verb == "FIND":
 		s.find(arg)
 	case verb == "SET":
@@ -127,9 +126,8 @@ func (s *session) command(c string) error {
 		return errRelog
 	default:
 		// a GO word alone takes you there too
-		if p := s.pages.Get(c); p != nil {
-			s.goTo(p)
-			return nil
+		if s.known(c) {
+			return s.goWord(c)
 		}
 		s.out(strings.ToUpper(c) + " is unrecognized !\n")
 	}
@@ -148,10 +146,29 @@ func isNumber(s string) bool {
 	return true
 }
 
+// known reports whether a GO word is a page's or a forum's.
+func (s *session) known(word string) bool {
+	return s.pages.Get(word) != nil || s.forum(word) != nil
+}
+
+// goWord goes to a page or into a forum.
+func (s *session) goWord(word string) error {
+	if f := s.forum(word); f != nil && s.pages.Get(word) == nil {
+		return s.enterForum(f)
+	}
+	s.goTo(s.pages.Get(word))
+	return nil
+}
+
 // goTo shows a page and remembers it for B and M.
 func (s *session) goTo(p *Page) {
 	if p == nil {
 		return
+	}
+	if p.ID == "FORUMS" {
+		// made afresh each time it is gone to: the forums there are now
+		s.fpage = s.forumsPage()
+		p = s.fpage
 	}
 	if p.Menu() {
 		s.menus = append(s.menus, p)
@@ -161,6 +178,12 @@ func (s *session) goTo(p *Page) {
 
 // show shows a page.
 func (s *session) show(p *Page) {
+	if p.ID == "FORUMS" {
+		if s.fpage == nil {
+			s.fpage = s.forumsPage()
+		}
+		p = s.fpage
+	}
 	s.page = p
 	s.more = nil
 	if len(s.stack) == 0 || s.stack[len(s.stack)-1] != p {

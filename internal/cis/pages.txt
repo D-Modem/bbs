@@ -51,12 +51,13 @@
  log on with your BBS name or your User ID (shown at logon) and your
  BBS password.
 
- Here now: the menus and articles, GO words and FIND, and the
- terminal settings of SET.
+ Here now: the menus and articles, GO words and FIND, the terminal
+ settings of SET, and the forums (GO FORUMS): the BBS's message
+ areas, a forum for each group of them, with the forum command
+ language (REA, SCA, BRO, POST, OPT).
 
- On their way, in this order: forums (the BBS's message areas, with
- the forum command language), libraries and the CompuServe B and
- B Plus protocols, CompuServe Mail, the CB Simulator, and the
+ On their way, in this order: forum libraries with the CompuServe B
+ and B Plus protocols, CompuServe Mail, the CB Simulator, and the
  CompuServe Information Manager (CIM) graphical service.
 
 :RATES CHARGES BILLING NEWBIL
@@ -134,9 +135,7 @@
 
 :FORUMS SIGS
 =CompuServe
- Forums are on their way: each of the BBS's message areas is to be a
- forum section, with the forum command language (REA, SCA, BRO,
- LIB...).  Until then, read and post on the BBS itself.
+ (This menu is made from the BBS's message areas when shown.)
 
 :CB CB-1 CHAT
 =CB Simulator

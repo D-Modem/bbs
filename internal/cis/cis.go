@@ -64,6 +64,7 @@ type session struct {
 	more    []string
 	firstGo string // /GO:word at the User ID
 	byName  bool   // logged on with a BBS name, not a User ID
+	fpage   *Page  // the FORUMS menu, as last made
 	pushed  []byte // input put back
 	cr      bool   // the last input byte was a CR (drop a LF or NUL after it)
 }

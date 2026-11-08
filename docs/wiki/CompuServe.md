@@ -67,11 +67,48 @@ with their identification, which shows in who's online. CIM clients
 
 Commands chain with `;`, as in `SET BRI ON;GO RATES`.
 
+## Forums
+
+`GO FORUMS` lists the forums. Each forum is a group of the BBS's message
+areas, and each area in it is a section (S0, S1, ...). Areas in no group
+make up a forum named after the BBS. A group with more than 18 areas is
+split into several forums, because CompuServe's forums had at most 18
+sections. A forum's GO word is its name in capitals, letters and digits
+only (`Amiga Tech` is `GO AMIGATECH`). Message numbers are the BBS's own,
+so they rise across the forum with gaps.
+
+The forum works in command mode, at `Forum !`, which is the mode TAPCIS
+and the other offline readers need:
+
+| Command | Does |
+|---|---|
+| `REA [NEW\|ALL\|WAI\|REV\|THR] [FROM:x] [TO:x] [SUB:x] [SEC:n,n] [DAYS:n] [STA:n] [n]` | read (NEW by default); `Read action !` after each: `RE` reply, `RER` reread, `P` parent, CR next |
+| `SCA ...` / `SCA QUI ...` | the headers, or one line each |
+| `BRO ...` | a header at a time, read on CR |
+| `POST [SEC:n] [TO:x] [SUB:x]` | write a message (EDIT: `/EX` then `S` to store, or `/POST`) |
+| `DES` / `NEW` | the sections; the new messages in each |
+| `OPT;TYP N` | read nonstop (`TYP P` pauses again); the rest of OPT is taken |
+| `MES` / `M` | the `Messages !` prompt and back |
+| `EXIT`, `M`, `T`, `GO x`, `OFF` | leave the forum |
+
+Headers follow forum software 4's:
+
+```
+#: 2 S1/Software
+    08-Nov-26  11:30:05
+Sb: #1-Kickstart 1.3
+Fm: sysop 72000,2
+To: alice 72000,1
+```
+
+Membership (JOIN), the libraries and conferencing are not there yet.
+
 ## What is there and what is coming
 
 | Done | Coming, in order |
 |---|---|
-| The logon, `ESC I`, the menus and articles (`internal/cis/pages.txt`), GO, FIND, SET | Forums on the message areas, with the forum command language |
+| The logon, `ESC I`, the menus and articles (`internal/cis/pages.txt`), GO, FIND, SET | Forum JOIN and member options |
+| Forums on the message areas, with the forum command language | |
 | The CompuServe B, Quick B and B Plus protocols (`internal/xfer/cisb.go`) | Libraries on the file areas, with B+ downloads |
 | | CompuServe Mail, the CB Simulator, then CIM's HMI service |
 
