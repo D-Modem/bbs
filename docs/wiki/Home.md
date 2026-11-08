@@ -78,7 +78,8 @@ which is generated from `bbs.conf.sample`.
   echoes, AreaFix and a built-in binkp mailer
 - [Newsgroups](Newsgroups-and-NNTP) served by NNTP and exchanged with other
   news servers
-- [IRC](IRC), where the chat rooms are channels, and [MRC](MRC), the chat
+- [IRC](IRC), where the chat rooms are channels, [AIM and ICQ](AIM-and-ICQ)
+  for AIM and ICQ clients on the same chat, and [MRC](MRC), the chat
   network shared with other BBSes
 - [Finger and gopher](Finger-and-Gopher)
 
@@ -133,6 +134,7 @@ which is generated from `bbs.conf.sample`.
 | [FidoNet](FidoNet) | echomail, netmail, binkp, file echoes, AreaFix, nodelists |
 | [Chat and paging](Chat-and-Paging) | chat rooms, node messages, paging the sysop |
 | [IRC](IRC) | the IRC server, with the chat rooms as channels |
+| [AIM and ICQ](AIM-and-ICQ) | the OSCAR server: AIM and ICQ clients, buddies, IMs and chat rooms |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
 | [Web forum](Web-Forum) | the message areas as a web forum |

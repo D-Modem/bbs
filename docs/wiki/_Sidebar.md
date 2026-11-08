@@ -33,6 +33,7 @@
 - [FidoNet](FidoNet)
 - [Chat and paging](Chat-and-Paging)
 - [IRC](IRC)
+- [AIM and ICQ](AIM-and-ICQ)
 - [MRC](MRC)
 - [Finger and gopher](Finger-and-Gopher)
 - [Web forum](Web-Forum)

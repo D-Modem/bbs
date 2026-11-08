@@ -120,3 +120,10 @@ func (b *BBS) AuthenticateCode(who, source, code string) (*store.User, error) {
 		return nil, store.ErrNotFound
 	})
 }
+
+// AuthenticateBy is a login checked some other way than by a password in
+// the clear (an AIM client's MD5 digest): throttled, logged and refused
+// as a password is; check gives store.ErrNotFound for a wrong one.
+func (b *BBS) AuthenticateBy(who, source, name string, check func() (*store.User, error)) (*store.User, error) {
+	return b.authenticate(who, source, name, check)
+}
