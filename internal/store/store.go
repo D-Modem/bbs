@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -114,6 +115,8 @@ type Store struct {
 	// a hash to check against for unknown users, so that they take as
 	// long as known ones
 	dummy []byte
+	// keepOSCAR: passwords set or checked keep their AIM digests (oscar.go)
+	keepOSCAR atomic.Bool
 }
 
 // Open opens (and makes, if need be) the database at addr: a file's path
@@ -248,6 +251,9 @@ func (s *Store) CreateUser(name, password, location string, sysop bool) (*User, 
 		}
 		return nil, err
 	}
+	if password != "" {
+		s.KeepOSCARKeys(id, password)
+	}
 	return s.UserByID(id)
 }
 
@@ -278,6 +284,7 @@ func (s *Store) CheckPassword(name, pw string) (*User, error) {
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(pw)) != nil {
 		return nil, ErrNotFound
 	}
+	s.KeepOSCARKeys(u.ID, pw) // best effort: the login stands without them
 	return u, nil
 }
 
@@ -287,7 +294,10 @@ func (s *Store) SetPassword(id int64, pw string) error {
 	if err != nil {
 		return err
 	}
-	return s.exec1(`UPDATE users SET password = ? WHERE id = ?`, h, id)
+	if err := s.exec1(`UPDATE users SET password = ? WHERE id = ?`, h, id); err != nil {
+		return err
+	}
+	return s.KeepOSCARKeys(id, pw)
 }
 
 // SetLocation changes a user's location.

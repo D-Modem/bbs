@@ -227,6 +227,22 @@ CREATE TABLE IF NOT EXISTS ssh_keys (
 	created     {int} NOT NULL,
 	last_used   {int} NOT NULL DEFAULT 0
 )`, `
+CREATE TABLE IF NOT EXISTS oscar_keys (
+	user_id  {int} NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+	auth_key {str} NOT NULL,
+	weak     {blob} NOT NULL,
+	strong   {blob} NOT NULL,
+	bound    {str} NOT NULL
+)`, `
+CREATE TABLE IF NOT EXISTS feedbag (
+	user_id  {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	group_id {int} NOT NULL,
+	item_id  {int} NOT NULL,
+	class_id {int} NOT NULL,
+	name     {str} NOT NULL,
+	attrs    {blob},
+	PRIMARY KEY (user_id, group_id, item_id)
+)`, `
 CREATE TABLE IF NOT EXISTS chan_boards (
 	id            {id},
 	dir           {name} NOT NULL UNIQUE,

@@ -72,6 +72,7 @@ import (
 	"github.com/D-Modem/bbs/internal/mrc"
 	"github.com/D-Modem/bbs/internal/news"
 	"github.com/D-Modem/bbs/internal/nntp"
+	"github.com/D-Modem/bbs/internal/oscar"
 	"github.com/D-Modem/bbs/internal/qwknet"
 	"github.com/D-Modem/bbs/internal/script"
 	"github.com/D-Modem/bbs/internal/server"
@@ -262,6 +263,9 @@ func main() {
 		if i := cfg.IRC; i != nil {
 			fmt.Printf("irc: %q, TLS %q\n", i.Address, i.TLSAddress)
 		}
+		if o := cfg.OSCAR; o != nil {
+			fmt.Printf("oscar: %q, reconnect at %q, ICQ numbers from %d\n", o.Address, o.Host, o.UINBase)
+		}
 		if cfg.Finger != nil {
 			fmt.Printf("finger: %s (online %v, users %v)\n", cfg.Finger.Address, cfg.Finger.Online, cfg.Finger.Users)
 		}
@@ -450,6 +454,19 @@ func serve(cfg *server.Config, path string) int {
 		}
 		go func() {
 			if err := is.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
+	if cfg.OSCAR != nil {
+		osrv, err := oscar.New(b, *cfg.OSCAR)
+		if err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+		go func() {
+			if err := osrv.Run(ctx); err != nil {
 				lg.Printf("%v", err)
 				stop()
 			}

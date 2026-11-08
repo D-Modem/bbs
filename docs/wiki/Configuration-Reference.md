@@ -31,6 +31,7 @@ the file is laid out.
 | [`[qwknet NAME]`](#qwknet-name) | QWK networks this BBS is a node of (DOVE-Net and the like), one section each. |
 | [`[door NAME]`](#door-name) | A door: a program callers play, or another system's doors. |
 | [`[irc]`](#irc) | IRC: the chat rooms as channels (#main ...), for IRC clients. |
+| [`[oscar]`](#oscar) | AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC. |
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
 | [`[gopher]`](#gopher) | gopher: about the system, who is on, and what areas the sysop opens: no login, so anyone sees them. |
@@ -431,6 +432,20 @@ IRC: the chat rooms as channels (#main ...), for IRC clients.  Users log in with
 | `max_clients` |  |  | IRC over TLS (and address = none for TLS only) Examples: `64`. |
 | `max_per_ip` |  |  | IRC over TLS (and address = none for TLS only) Examples: `4`. |
 | `service` |  |  | the services bot's nick: /msg BBSServ HELP (your account's settings) Examples: `BBSServ`. |
+
+
+## `[oscar]`
+
+AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC.  Users sign on with their BBS names (or ICQ numbers: uin_base plus the account's number) and passwords; buddies are the BBS's users, online by any route; an IM is a private message (a PRIVMSG on IRC), a chat room a room (an IRC channel).  The port is AOL's 5190, which AOL's own clients will share. See docs/wiki/AIM-and-ICQ.md.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:5190`. |
+| `host` |  |  | where clients are sent to reconnect, host:port (default: the address each one came to; set it behind NAT) Examples: `aim.example.org:5190`. |
+| `max_clients` |  |  | where clients are sent to reconnect, host:port (default: the address each one came to; set it behind NAT) Examples: `256`. |
+| `max_per_ip` |  |  | each client opens a few connections: sign-on, the BOS, chat rooms. Examples: `16`. |
+| `uin_base` |  |  | an account's ICQ number is this plus its number. Examples: `100000`. |
+| `system` |  |  | the screen name the BBS's notices come from. Examples: `OnlineHost`. |
 
 
 ## `[mrc]`
