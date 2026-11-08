@@ -634,6 +634,25 @@ address = 127.0.0.1:2513
 ; the services bot's nick: /msg BBSServ HELP (your account's settings)
 ;service = BBSServ
 
+; AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC.  Users
+; sign on with their BBS names (or ICQ numbers: uin_base plus the account's
+; number) and passwords; buddies are the BBS's users, online by any route;
+; an IM is a private message (a PRIVMSG on IRC), a chat room a room (an IRC
+; channel).  The port is AOL's 5190, which AOL's own clients will share.
+; See docs/wiki/AIM-and-ICQ.md
+;[oscar]
+;address = :5190
+; where clients are sent to reconnect, host:port (default: the address
+; each one came to; set it behind NAT)
+;host = aim.example.org:5190
+;max_clients = 256
+; each client opens a few connections: sign-on, the BOS, chat rooms
+;max_per_ip = 16
+; an account's ICQ number is this plus its number
+;uin_base = 100000
+; the screen name the BBS's notices come from
+;system = OnlineHost
+
 ; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
 ; beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike.
 ; See docs/wiki/MRC.md

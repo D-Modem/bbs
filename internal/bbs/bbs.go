@@ -192,6 +192,9 @@ type BBS struct {
 	relay    Relay // a chat network's rooms (MRC)
 	geoMu    sync.Mutex
 	geo      *geoip.File
+	presMu   sync.Mutex
+	presence map[int]func(name string, online bool) // WatchPresence's
+	presNext int
 }
 
 // New makes the BBS of the settings and store.
@@ -247,7 +250,12 @@ func (n *Node) Leave() {
 	n.leaveChat()
 	n.b.mu.Lock()
 	delete(n.b.nodes, n.Num)
+	u := n.user
+	gone := u != nil && n.b.onlineLocked(u.ID) == 0
 	n.b.mu.Unlock()
+	if gone {
+		n.b.tellPresence(u.Name, false)
+	}
 }
 
 // User is the node's user, nil before the login.
@@ -260,8 +268,60 @@ func (n *Node) User() *store.User {
 // SetUser records the login.
 func (n *Node) SetUser(u *store.User) {
 	n.b.mu.Lock()
+	was := n.user
 	n.user = u
+	came := u != nil && (was == nil || was.ID != u.ID) && n.b.onlineLocked(u.ID) == 1
+	gone := was != nil && (u == nil || was.ID != u.ID) && n.b.onlineLocked(was.ID) == 0
 	n.b.mu.Unlock()
+	if gone {
+		n.b.tellPresence(was.Name, false)
+	}
+	if came {
+		n.b.tellPresence(u.Name, true)
+	}
+}
+
+// onlineLocked is how many nodes the user is on.  b.mu is held.
+func (b *BBS) onlineLocked(id int64) int {
+	k := 0
+	for _, o := range b.nodes {
+		if o.user != nil && o.user.ID == id {
+			k++
+		}
+	}
+	return k
+}
+
+// WatchPresence has fn told when a user comes online (on their first
+// node) and goes (off their last), until the returned func is called.
+// fn must not block, nor call back into the node it is told of.
+func (b *BBS) WatchPresence(fn func(name string, online bool)) (stop func()) {
+	b.presMu.Lock()
+	defer b.presMu.Unlock()
+	if b.presence == nil {
+		b.presence = map[int]func(string, bool){}
+	}
+	b.presNext++
+	id := b.presNext
+	b.presence[id] = fn
+	return func() {
+		b.presMu.Lock()
+		delete(b.presence, id)
+		b.presMu.Unlock()
+	}
+}
+
+// tellPresence tells the watchers.
+func (b *BBS) tellPresence(name string, online bool) {
+	b.presMu.Lock()
+	fns := make([]func(string, bool), 0, len(b.presence))
+	for _, fn := range b.presence {
+		fns = append(fns, fn)
+	}
+	b.presMu.Unlock()
+	for _, fn := range fns {
+		fn(name, online)
+	}
 }
 
 // SetTerminal records how the caller came after all (a telnet caller that
@@ -560,6 +620,7 @@ func (b *BBS) menuLogin(who, name, pw string) (*store.User, error) {
 		b.Log.Printf("%s: new external user %s (modemmenu, %s)", who, u.Name, backend)
 	}
 	b.Log.Printf("%s: %s's password by modemmenu (%s)", who, u.Name, backend)
+	b.Store.KeepOSCARKeys(u.ID, pw) // for AIM's digest logins, if kept
 	return u, nil
 }
 
