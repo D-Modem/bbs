@@ -16,7 +16,7 @@ func (s *session) ascii() error {
 	switch p := s.pages.Get(s.firstGo); {
 	case s.firstGo == "" || !s.known(s.firstGo):
 		s.show(top)
-	case p != nil && p.ID != "MAIL":
+	case p != nil && p.ID != "MAIL" && p.ID != "CB":
 		s.show(p)
 	default:
 		// /GO:word to a forum or Mail: in it first, TOP when it is left
@@ -165,6 +165,9 @@ func (s *session) goWord(word string) error {
 	p := s.pages.Get(word)
 	if p != nil && p.ID == "MAIL" {
 		return s.enterMail()
+	}
+	if p != nil && p.ID == "CB" {
+		return s.enterCB()
 	}
 	s.goTo(p)
 	return nil

@@ -137,7 +137,7 @@ Server rule:
   | 4 | 4 | 2 (256-byte blocks) | 0 (checksum) | 0 | **1** |
 
   This is consistent with [R]: windows can exceed 1, and **TL=1 must be set for HMI**. E's own field labels differ; trust Ranshaw's order and check on the wire.
-- E recommends BS = 8 (1024-byte blocks).
+- E recommends BS = 8 (1024-byte blocks), and this server sends that (§4a).
 - Sequence counters are separate per direction. That matches [R]'s rule for the Transport Layer, as opposed to Classic B's single shared counter.
 - **Quirk:** WinCIM drops the first host message after B+ setup, so E sends the first ack twice.
 - `HMIMaxTime` in CIS.INI defaults to 120 s. Send a keepalive or ack before then.
@@ -188,6 +188,24 @@ This matters for the design: **HMI and ASCII share one page/menu tree.** HMI jus
 - E counts about 190 `StartMessage` call sites in the client, so the catalogue is far from complete.
 
 ---
+
+## 4a. What this server does (as built, milestone 7) [RE, E; tested against a fake CIM only]
+
+Code: `internal/cis/slp.go`, `internal/cis/hmi.go`, `internal/xfer/cisbtl.go`. Test: `TestCompuServeCIM` in `internal/server`. None of it has met a real WinCIM yet; that is milestone 9.
+
+- **Secure Login.** `+<id>` at `User ID:` starts it. The host sends a random 64 to 512-byte challenge. It checks UR against the account's kept K and answers `HR:`, or `No.` on failure. K is kept (bound to the password hash, like the OSCAR keys) whenever the user logs on with a password, or sets one, while a `compuserve` listener runs. A user with no kept K logs on once with a password (WinCIM: `DisableSecureLogin=ON` in CIS.INI, or any terminal), and is logged as such.
+- **After the login:** `ESC I`, the banner (which has `CompuServe` in it), `ESC [ > 0 q`, then `ESC [ > n ; n p` with mode 3 if offered (then 2, 1, 6, 8, 10). A parameter line whose sum is wrong gets NAK and the `p` again, up to three times. A good one gets ACK.
+- **Transport Layer:** ENQ (up to 5 times) until `DLE + + DLE 0`. Then the host's `+` packet `04 04 08 00 00 01` (BS 8, 1 KB blocks, as E recommends, and TL=1). The counters are separate per direction. Messages over 1023 bytes go as `M` packets and a final `L`. An `F` packet ends the session.
+- **HMI:**
+  - `0x20` gets `0x21`. The date is in standard DOS format; E's own packing differs, so check it on the wire.
+  - `0x24` and `0x25` give a menu as `0x27`, with item kind 0 and no title or extra blocks. An article goes as `0x28`, and its text is fetched with `0x29`/`0x2A`: 700-byte `0x04` pieces, then `0x2B`. Every line starts with a space and lines are joined with CR LF.
+  - `0x34` returns the rest of the items, 15 at a time.
+  - `0x22` (Find) returns `0x23`: up to 12 pairs of (title, page name) from the page tree's FIND.
+  - `0x0D` gets empty `0x0E` records.
+  - `0x07` hangs up.
+  - Everything else gets an ack on stream 1.
+  - The first message after the Transport Layer starts is sent twice, 300 ms apart. Every answer waits 120 ms first, as E's does.
+- **Page names:** `CIS:<ID>` and `HOM:<word>` both resolve through the ASCII service's page tree (`pages.txt`, IDs and GO words). Aliases: `NEWPAGE` → `NEW`, `CONTENTS` → `TOP`, `MAILHMI` → `MAIL`. Pages go out as `CIS:<ID>`, numbered with a 24-bit hash of the ID. `CIS:FORUMS` is the forum list. A forum, `MAIL` and `CB` are, for now, articles that say to use a terminal (milestone 8). An unknown name gets an article saying so, never nothing.
 
 ## 5. Reverse-engineering plan for the gaps
 

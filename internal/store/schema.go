@@ -259,6 +259,11 @@ CREATE TABLE IF NOT EXISTS ssh_keys (
 	created     {int} NOT NULL,
 	last_used   {int} NOT NULL DEFAULT 0
 )`, `
+CREATE TABLE IF NOT EXISTS cis_keys (
+	user_id  {int} NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+	k        {blob} NOT NULL,
+	bound    {str} NOT NULL
+)`, `
 CREATE TABLE IF NOT EXISTS oscar_keys (
 	user_id  {int} NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
 	auth_key {str} NOT NULL,

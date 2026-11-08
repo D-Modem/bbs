@@ -64,8 +64,11 @@
  prompt or command mode (SET), with downloads and uploads of mail by
  the B protocols.  Send to a name, a User ID, or a FidoNet address.
 
- On their way, in this order: the CB Simulator, and the CompuServe
- Information Manager (CIM) graphical service.
+ The CB Simulator (GO CB) is on the BBS's chat rooms: channel 1 is
+ the room cb-1, and so on to 36.  /HELP there lists its commands.
+
+ On its way: the CompuServe Information Manager (CIM) graphical
+ service.
 
 :RATES CHARGES BILLING NEWBIL
 =CompuServe
@@ -143,9 +146,9 @@
 =CompuServe
  (This menu is made from the BBS's message areas when shown.)
 
-:CB CB-1 CHAT
+:CB CB-1 CHAT CBS
 =CB Simulator
- The CB Simulator is on its way, on the BBS's chat rooms.
+ (Going here enters the CB Simulator, on the BBS's chat rooms.)
 
 :DIRECTORY
 =CompuServe

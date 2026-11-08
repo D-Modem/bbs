@@ -626,7 +626,19 @@ func (b *BBS) menuLogin(who, name, pw string) (*store.User, error) {
 	}
 	b.Log.Printf("%s: %s's password by modemmenu (%s)", who, u.Name, backend)
 	b.Store.KeepOSCARKeys(u.ID, pw) // for AIM's digest logins, if kept
+	b.Store.KeepCISKey(u.ID, pw)    // and CompuServe's
 	return u, nil
+}
+
+// LoginWith logs in the account check vouches for (how, for the log),
+// throttled, delayed and counted as a password login is: check returns
+// store.ErrNotFound for a failure.  CompuServe's Secure Login is one.
+func (n *Node) LoginWith(name, how string, check func() (*store.User, error)) (*store.User, error) {
+	u, err := n.b.authenticate(fmt.Sprintf("node %d", n.Num), n.Caller.Source, name, check)
+	if err != nil {
+		return nil, err
+	}
+	return n.loggedIn(u, how)
 }
 
 // LoginTrusted logs in a user an upstream menu vouched for (Caller's

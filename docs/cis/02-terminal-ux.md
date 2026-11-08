@@ -688,6 +688,8 @@ In that format, `s` means scrambled and `Tlk` means in a `/TALK`.
   - a 1985 magazine quotes CB as `(Old Man) Does anyone know what time it is?`;
   - **the CB format is unresolved** — choose `(ch,Handle)` for consistency with forums [I].
 
+**As built** [I]: `(Handle) text` for the tuned channel (the 1985 quote), `(ch,Handle) text` for a monitored one, `** Handle tuned in to channel n **` and `** Handle left channel n **` for comings and goings, `(Talk job,Handle) text` in a `/TALK`. The entry asks `What's your handle?` and `What channel (1-36)?`; `/TUN` answers `(Tuned to channel n, k others here)`.
+
 ---
 
 ## 7. Billing (for display only)
