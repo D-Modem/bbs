@@ -2,6 +2,31 @@
 
 Ideas not yet started, with what is known of them.
 
+## An AOL front end
+
+*Status: started; the FDO91 layer (`internal/aol/fdo`) is done.*
+
+For AOL 3.0 and 4.0 for Windows, the real clients, over TCP (port 5190, the
+client's `AmericaOnline.aol.com`) and by modem.
+
+- **FDO91** (done): atom streams read and written, all eight encoding
+  styles and large atoms; a compiler from FDO91 source that matches
+  Ada32.dll byte for byte on AtomForge's corpus (1,889 forms, 74,369
+  single atoms, 44 live captures); a decompiler whose text compiles back
+  to the same bytes.
+- **P3**, next: the link layer (`5A`, CRC-16, sequence numbers 0x10-0x7F,
+  ACK/NAK, heartbeats, a window of 16), INIT from the client and the
+  host's `SD`; a P3 INIT sniffed on the telnet port hands the caller over.
+- **Tokens**: `Dd` sign-on (the form's two `de_data`) to the BBS's login,
+  then chat (`Aa`), IMs (`iS`), mail (`m4`, MIP), keywords (`k1`/`f1`) to
+  areas, `pE` sign-off; each answered with forms compiled from source.
+- **Modem callers**: the client's CCL script expects a network's prompts
+  (SprintNet, Tymnet) before P3; emulate one, or ship a CCL that dials
+  straight in.
+- **To decide**: AOL 4.0's RSA handshake (revival servers turn it off in
+  the client); which client forms (32-xxxx) are in its own database and
+  which the host must send.
+
 ## Doors for 3270 callers: an ANSI to 3270 layer
 
 *Status: being thought about; other ways to solve it may win.*
