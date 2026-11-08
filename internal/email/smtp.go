@@ -95,9 +95,10 @@ func smtpErr(code int, enh smtp.EnhancedCode, msg string) *smtp.SMTPError {
 }
 
 var (
-	errTLSFirst = smtpErr(530, smtp.EnhancedCode{5, 7, 0}, "Use STARTTLS first")
-	errNoRelay  = smtpErr(550, smtp.EnhancedCode{5, 7, 1}, "Mail for elsewhere is not taken here")
-	errNoUser   = smtpErr(550, smtp.EnhancedCode{5, 1, 1}, "No such user here")
+	errTLSFirst  = smtpErr(530, smtp.EnhancedCode{5, 7, 0}, "Use STARTTLS first")
+	errAuthFirst = smtpErr(530, smtp.EnhancedCode{5, 7, 0}, "Authentication required")
+	errNoRelay   = smtpErr(550, smtp.EnhancedCode{5, 7, 1}, "Mail for elsewhere is not taken here")
+	errNoUser    = smtpErr(550, smtp.EnhancedCode{5, 1, 1}, "No such user here")
 )
 
 // tls reports whether the session is in TLS.
@@ -147,7 +148,7 @@ func (ss *smtpSession) Mail(from string, opts *smtp.MailOptions) error {
 			if !ss.tls() && ss.x.set.TLS == TLSRequired {
 				return errTLSFirst
 			}
-			return smtp.ErrAuthRequired
+			return errAuthFirst
 		}
 		if from != "" && !strings.EqualFold(from, ss.x.svc.Address(ss.user)) {
 			return smtpErr(553, smtp.EnhancedCode{5, 7, 1}, "Send from your own address, "+ss.x.svc.Address(ss.user))

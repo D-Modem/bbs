@@ -472,6 +472,77 @@ address = 127.0.0.1:2513
 ; the addresses it may send us articles from (IHAVE)
 ;accept_from = news.example.net
 
+; E-mail.  Each user is name@domain (bbs mail address NAME shows it), and
+; their BBS mail is their e-mail: Inbox, Sent, Drafts, Starred, Unread,
+; All Mail and Trash, in any mail program, over POP3 and IMAP.  Without
+; this section the BBS has no e-mail
+;[mail]
+;domain = example.org
+; this host's name, said in SMTP's greeting and Received lines
+;hostname = mail.example.org
+; how mail for elsewhere goes: direct (to each domain's MX, port 25),
+; smarthost (through [smarthost]) or none (only mail here)
+;outbound = direct
+; the largest message taken; recipients in one; days in the trash before
+; mail is gone (0: until emptied); days the queue keeps trying
+;max_message = 10M
+;max_recipients = 50
+;trash_days = 30
+;queue_days = 5
+; who gets postmaster@, abuse@ and bounces' notes (default: the sysop)
+;postmaster = sysop
+; DKIM: bbs mail dkim /etc/bbs/dkim.pem makes the key and prints its DNS
+; record (selector._domainkey.domain)
+;dkim_key_file = /etc/bbs/dkim.pem
+;dkim_selector = bbs
+; the certificate for the mail servers (each can name its own)
+;cert_file = /etc/bbs/cert.pem
+;key_file = /etc/bbs/key.pem
+
+; An outgoing mail server to send through, instead of straight to each
+; domain's MX: your provider's, or a relay such as Postfix.  tls: starttls,
+; implicit (port 465) or no.  insecure = yes: its certificate unchecked
+;[smarthost]
+;address = smtp.example.net:587
+;tls = starttls
+;username = bbs@example.org
+;password = secret
+;insecure = no
+
+; The mail servers: each runs only with its section.  tls: no, optional
+; (STARTTLS offered), required (STARTTLS before a login) or implicit (TLS
+; from the first byte: POP3S 995, IMAPS 993, SMTPS 465).  Each takes
+; address, tls, cert_file, key_file, max_clients, max_per_ip and
+; idle_timeout, as [nntp] does.  POP3: mail programs fetch the inbox
+;[pop3]
+;address = :1110
+;tls = required
+
+; IMAP: mail programs read and file mail in the folders.  Its IDLE wants a
+; long idle_timeout
+;[imap]
+;address = :1143
+;tls = required
+;idle_timeout = 1800
+
+; mail submission: users send mail, logged in (port 587 or 465)
+;[smtp]
+;address = :1587
+;tls = required
+
+; mail from the internet: on port 25, named by the domain's MX record.
+; checks = yes: SPF, DKIM and DMARC checked; mail is refused that fails
+; a DMARC reject policy, or (no DMARC) fails SPF and is not signed
+;[mx]
+;address = :25
+;tls = optional
+;checks = yes
+
+; LMTP, for a mail server in front (Postfix's virtual_transport) to hand
+; mail in: a unix socket's path or host:port
+;[lmtp]
+;address = /run/bbs/lmtp.sock
+
 ; FidoNet (or another FTN network).  bbs area echo General FSX_GEN makes an
 ; area an echo; mail to Name@zone:net/node is netmail.  Without this section
 ; the BBS is not on FidoNet

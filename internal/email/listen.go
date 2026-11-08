@@ -164,6 +164,11 @@ func (c *counted) Close() error {
 	return c.Conn.Close()
 }
 
-// remoteOf is the address a connection (perhaps TLS, perhaps counted)
-// comes from.
-func remoteOf(c net.Conn) net.Addr { return c.RemoteAddr() }
+// Addr is where a server listens.
+func (x *POP3Server) Addr() net.Addr { return x.ln.Addr() }
+
+// Addr is where a server listens.
+func (x *IMAPServer) Addr() net.Addr { return x.ln.Addr() }
+
+// Addr is where a server listens.
+func (x *SMTPServer) Addr() net.Addr { return x.ln.Addr() }

@@ -25,6 +25,13 @@ the file is laid out.
 | [`[news]`](#news) | Newsgroups: a message area with a newsgroup name (bbs area newsgroup General bbs.general) is a newsgroup, served by NNTP to newsreaders and kept in step with peer news servers. |
 | [`[nntp]`](#nntp) | The NNTP server. |
 | [`[peer NAME]`](#peer-name) | A peer news server, one section each. |
+| [`[mail]`](#mail) | E-mail. |
+| [`[smarthost]`](#smarthost) | An outgoing mail server to send through, instead of straight to each domain's MX: your provider's, or a relay such as Postfix. |
+| [`[pop3]`](#pop3) | The mail servers: each runs only with its section. |
+| [`[imap]`](#imap) | IMAP: mail programs read and file mail in the folders. |
+| [`[smtp]`](#smtp) | mail submission: users send mail, logged in (port 587 or 465) |
+| [`[mx]`](#mx) | mail from the internet: on port 25, named by the domain's MX record. |
+| [`[lmtp]`](#lmtp) | LMTP, for a mail server in front (Postfix's virtual_transport) to hand mail in: a unix socket's path or host:port. |
 | [`[fido]`](#fido) | FidoNet (or another FTN network). |
 | [`[binkp]`](#binkp) | binkp: answer the links' calls. |
 | [`[link NAME]`](#link-name) | A system we exchange mail with, one section each. |
@@ -311,6 +318,90 @@ There may be any number of these, each with its own NAME.
 | `max_per_run` |  |  | See the section above. Examples: `1000`. |
 | `initial` |  |  | on first contact, how many of each group's latest articles to fetch. Examples: `100`. |
 | `accept_from` |  |  | the addresses it may send us articles from (IHAVE) Examples: `news.example.net`. |
+
+
+## `[mail]`
+
+E-mail.  Each user is name@domain (bbs mail address NAME shows it), and their BBS mail is their e-mail: Inbox, Sent, Drafts, Starred, Unread, All Mail and Trash, in any mail program, over POP3 and IMAP.  Without this section the BBS has no e-mail.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `domain` |  |  | See the section above. Examples: `example.org`. |
+| `hostname` |  |  | this host's name, said in SMTP's greeting and Received lines. Examples: `mail.example.org`. |
+| `outbound` |  |  | how mail for elsewhere goes: direct (to each domain's MX, port 25), smarthost (through [smarthost]) or none (only mail here) Examples: `direct`. |
+| `max_message` |  |  | the largest message taken; recipients in one; days in the trash before mail is gone (0: until emptied); days the queue keeps trying. Examples: `10M`. |
+| `max_recipients` |  |  | the largest message taken; recipients in one; days in the trash before mail is gone (0: until emptied); days the queue keeps trying. Examples: `50`. |
+| `trash_days` |  |  | the largest message taken; recipients in one; days in the trash before mail is gone (0: until emptied); days the queue keeps trying. Examples: `30`. |
+| `queue_days` |  |  | the largest message taken; recipients in one; days in the trash before mail is gone (0: until emptied); days the queue keeps trying. Examples: `5`. |
+| `postmaster` |  |  | who gets postmaster@, abuse@ and bounces' notes (default: the sysop) Examples: `sysop`. |
+| `dkim_key_file` |  |  | DKIM: bbs mail dkim /etc/bbs/dkim.pem makes the key and prints its DNS record (selector._domainkey.domain) Examples: `/etc/bbs/dkim.pem`. |
+| `dkim_selector` |  |  | DKIM: bbs mail dkim /etc/bbs/dkim.pem makes the key and prints its DNS record (selector._domainkey.domain) Examples: `bbs`. |
+| `cert_file` |  |  | the certificate for the mail servers (each can name its own) Examples: `/etc/bbs/cert.pem`. |
+| `key_file` |  |  | the certificate for the mail servers (each can name its own) Examples: `/etc/bbs/key.pem`. |
+
+
+## `[smarthost]`
+
+An outgoing mail server to send through, instead of straight to each domain's MX: your provider's, or a relay such as Postfix.  tls: starttls, implicit (port 465) or no.  insecure = yes: its certificate unchecked.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `smtp.example.net:587`. |
+| `tls` |  |  | See the section above. Examples: `starttls`. |
+| `username` |  |  | See the section above. Examples: `bbs@example.org`. |
+| `password` |  |  | See the section above. Examples: `secret`. |
+| `insecure` |  |  | See the section above. Examples: `no`. |
+
+
+## `[pop3]`
+
+The mail servers: each runs only with its section.  tls: no, optional (STARTTLS offered), required (STARTTLS before a login) or implicit (TLS from the first byte: POP3S 995, IMAPS 993, SMTPS 465).  Each takes address, tls, cert_file, key_file, max_clients, max_per_ip and idle_timeout, as [nntp] does.  POP3: mail programs fetch the inbox.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:1110`. |
+| `tls` |  |  | See the section above. Examples: `required`. |
+
+
+## `[imap]`
+
+IMAP: mail programs read and file mail in the folders.  Its IDLE wants a long idle_timeout.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:1143`. |
+| `tls` |  |  | See the section above. Examples: `required`. |
+| `idle_timeout` |  |  | See the section above. Examples: `1800`. |
+
+
+## `[smtp]`
+
+mail submission: users send mail, logged in (port 587 or 465)
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:1587`. |
+| `tls` |  |  | See the section above. Examples: `required`. |
+
+
+## `[mx]`
+
+mail from the internet: on port 25, named by the domain's MX record. checks = yes: SPF, DKIM and DMARC checked; mail is refused that fails a DMARC reject policy, or (no DMARC) fails SPF and is not signed.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:25`. |
+| `tls` |  |  | See the section above. Examples: `optional`. |
+| `checks` |  |  | See the section above. Examples: `yes`. |
+
+
+## `[lmtp]`
+
+LMTP, for a mail server in front (Postfix's virtual_transport) to hand mail in: a unix socket's path or host:port.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `/run/bbs/lmtp.sock`. |
 
 
 ## `[fido]`
