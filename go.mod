@@ -5,10 +5,16 @@ go 1.24.0
 toolchain go1.24.7
 
 require (
+	blitiri.com.ar/go/spf v1.5.1
 	github.com/D-Modem/go3270 v0.9.14-0.20261105104944-a6550eb72c38
 	github.com/D-Modem/menu v0.0.0-20261106031303-853189d86fb2
 	github.com/coder/websocket v1.8.13
 	github.com/dop251/goja v0.0.0-20260603125802-cfe4039cb6d7
+	github.com/emersion/go-imap/v2 v2.0.0-beta.8
+	github.com/emersion/go-message v0.18.2
+	github.com/emersion/go-msgauth v0.7.0
+	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
+	github.com/emersion/go-smtp v0.25.1
 	github.com/ergochat/irc-go v0.7.0
 	github.com/fclairamb/ftpserverlib v0.30.0
 	github.com/go-sql-driver/mysql v1.8.1
@@ -25,15 +31,9 @@ require (
 )
 
 require (
-	blitiri.com.ar/go/spf v1.5.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/dlclark/regexp2 v1.11.4 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/emersion/go-imap/v2 v2.0.0-beta.8 // indirect
-	github.com/emersion/go-message v0.18.2 // indirect
-	github.com/emersion/go-msgauth v0.7.0 // indirect
-	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6 // indirect
-	github.com/emersion/go-smtp v0.25.1 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/google/pprof v0.0.0-20240409012703-83162a5b38cd // indirect
 	github.com/google/uuid v1.6.0 // indirect
