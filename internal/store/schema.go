@@ -146,7 +146,39 @@ CREATE TABLE IF NOT EXISTS mail (
 	reply_to  {int} NOT NULL DEFAULT 0,
 	created   {int} NOT NULL,
 	"read"    {bool} NOT NULL DEFAULT FALSE,
-	ftn_msgid {key}
+	ftn_msgid {key},
+	raw        {blob},
+	message_id {key},
+	from_addr  {str} NOT NULL DEFAULT '',
+	to_addr    {str} NOT NULL DEFAULT ''
+)`, `
+CREATE TABLE IF NOT EXISTS mailbox (
+	id      {id},
+	user_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	mail_id {int} NOT NULL REFERENCES mail(id) ON DELETE CASCADE,
+	role    {int} NOT NULL,
+	"read"  {bool} NOT NULL DEFAULT FALSE,
+	starred {bool} NOT NULL DEFAULT FALSE,
+	deleted {int} NOT NULL DEFAULT 0,
+	flags   {str} NOT NULL DEFAULT '',
+	created {int} NOT NULL
+)`, `
+CREATE TABLE IF NOT EXISTS mail_uids (
+	id      {id},
+	user_id {int} NOT NULL,
+	folder  {int} NOT NULL,
+	box_id  {int} NOT NULL REFERENCES mailbox(id) ON DELETE CASCADE
+)`, `
+CREATE TABLE IF NOT EXISTS mail_queue (
+	id         {id},
+	mail_id    {int} NOT NULL REFERENCES mail(id) ON DELETE CASCADE,
+	user_id    {int} NOT NULL DEFAULT 0,
+	sender     {str} NOT NULL,
+	rcpt       {str} NOT NULL,
+	attempts   {int} NOT NULL DEFAULT 0,
+	next_try   {int} NOT NULL,
+	last_error {str} NOT NULL DEFAULT '',
+	created    {int} NOT NULL
 )`, `
 CREATE TABLE IF NOT EXISTS file_areas (
 	id           {id},
@@ -342,6 +374,13 @@ var indexes = []struct {
 	{"messages_area", "messages", "area_id, id", false},
 	{"messages_reply", "messages", "reply_to", false},
 	{"mail_to", "mail", "to_id, id", false},
+	{"mail_message_id", "mail", "message_id", false},
+	{"mailbox_user", "mailbox", "user_id, role, id", false},
+	{"mailbox_mail", "mailbox", "mail_id", false},
+	{"mail_uids_folder", "mail_uids", "user_id, folder, id", false},
+	{"mail_uids_box", "mail_uids", "box_id, folder", true},
+	{"mail_queue_next", "mail_queue", "next_try", false},
+	{"mail_queue_mail", "mail_queue", "mail_id", false},
 	{"files_uploader", "files", "uploader_id, created", false},
 	{"areas_newsgroup", "areas", "newsgroup", true},
 	{"messages_message_id", "messages", "message_id", true},
@@ -417,6 +456,10 @@ var added = []struct{ table, column, decl string }{
 	{"chan_posts", "page_count", "{int} NOT NULL DEFAULT 0"},
 	{"chan_boards", "archive", "{bool} NOT NULL DEFAULT TRUE"},
 	{"chan_posts", "archived_on", "{int} NOT NULL DEFAULT 0"},
+	{"mail", "raw", "{blob}"},
+	{"mail", "message_id", "{key}"},
+	{"mail", "from_addr", "{str} NOT NULL DEFAULT ''"},
+	{"mail", "to_addr", "{str} NOT NULL DEFAULT ''"},
 }
 
 // migrate makes the schema, or brings an older database up to it.
@@ -426,6 +469,11 @@ func migrate(x *db) error {
 		if _, err := x.Exec(`CREATE COLLATION IF NOT EXISTS nocase (provider = icu, locale = 'und-u-ks-level2', deterministic = false)`); err != nil {
 			return fmt.Errorf("the nocase collation: %w", err)
 		}
+	}
+	// the mailboxes are new: each mail there is put in its recipient's
+	hadBoxes, err := x.hasColumn("mailbox", "id")
+	if err != nil {
+		return err
 	}
 	for _, t := range tables {
 		if _, err := x.Exec(x.d.ddl(t)); err != nil {
@@ -448,6 +496,11 @@ func migrate(x *db) error {
 	if threads {
 		if err := findThreads(x); err != nil {
 			return fmt.Errorf("finding the threads: %w", err)
+		}
+	}
+	if !hadBoxes {
+		if err := fillMailboxes(x); err != nil {
+			return fmt.Errorf("the mailboxes: %w", err)
 		}
 	}
 	for _, i := range indexes {

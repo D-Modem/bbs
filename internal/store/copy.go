@@ -11,7 +11,7 @@ import (
 )
 
 // copyOrder is the tables in an order their references allow.
-var copyOrder = []string{"users", "areas", "messages", "votes", "poll_answers", "poll_votes", "lastread", "scan_off", "mail", "file_areas", "files",
+var copyOrder = []string{"users", "areas", "messages", "votes", "poll_answers", "poll_votes", "lastread", "scan_off", "mail", "mailbox", "mail_uids", "mail_queue", "file_areas", "files",
 	"history", "peer_groups", "peer_push", "netmail_out", "api_tokens", "ssh_keys", "script_data", "calls", "qwk_seen", "qwk_msgs", "chat_rooms", "topic_read", "fido_subs",
 	"chan_boards", "chan_posts", "chan_bans", "chan_reports", "oscar_keys", "feedbag"}
 
