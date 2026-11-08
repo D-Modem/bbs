@@ -41,6 +41,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/cis"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/telnet"
 	"github.com/D-Modem/bbs/internal/textui"
@@ -69,6 +70,10 @@ type Listener struct {
 	SocketGroup   string
 	HostKeys      []string // ssh: the host keys' files
 	Legacy        bool     // ssh: offer old algorithms too (CBC ciphers, DH group 1)
+	// Frontend is what callers get: "" the BBS, "compuserve" the
+	// CompuServe Information Service (internal/cis)
+	Frontend string
+	Connect  string // compuserve: the CONNECT line's rate ("": no line)
 	// TLS: telnet or raw over TLS (telnets, port 992), with this
 	// certificate and key
 	CertFile, KeyFile string
@@ -391,10 +396,12 @@ func (s *Server) handle(nc net.Conn, l *Listener) {
 	defer node.Leave()
 	s.B.Log.Printf("node %d: %s on [listen %s]%s", node.Num, remote, l.Name, callDetails(caller, node.Place()))
 
-	switch l.Kind {
-	case "telnet":
+	switch {
+	case l.Frontend == "compuserve":
+		err = s.compuserve(c, l, node)
+	case l.Kind == "telnet":
 		err = s.telnet(c, l, node)
-	case "rlogin":
+	case l.Kind == "rlogin":
 		err = s.rlogin(c, l, node)
 	default:
 		err = s.text(c, c, l, node, "")
@@ -461,6 +468,22 @@ func (s *Server) telnet(c net.Conn, l *Listener, node *bbs.Node) error {
 		return err
 	}
 	return s.text(tc, c, l, node, tt)
+}
+
+// compuserve runs the CompuServe service on a call: over telnet, in
+// binary both ways and without the BBS's terminal probes (CompuServe's
+// terminals take ENQ and ESC [ > 0 q for their own protocols).
+func (s *Server) compuserve(c net.Conn, l *Listener, node *bbs.Node) error {
+	opt := cis.Options{Connect: l.Connect}
+	if l.Kind != "telnet" {
+		return cis.Run(s.B, node, c, opt)
+	}
+	tc := telnet.New(c)
+	if err := tc.StartNVT(true, 2*time.Second); err != nil {
+		return err
+	}
+	node.SetTerminal(node.Caller.Via, tc.TermType())
+	return cis.Run(s.B, node, tc, opt)
 }
 
 // tn3270 hands a telnet connection to go3270 and runs the 3270 BBS on it;

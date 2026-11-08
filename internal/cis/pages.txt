@@ -1,0 +1,192 @@
+# The CompuServe service's pages.  See ParsePages in pages.go for the form.
+# Page IDs follow CompuServe's own (TOP, CIS-162, RATES...); GO words are
+# aliases.  Services not built yet lead to a page that says so.
+
+:TOP CIS MAIN
+ 1 Member Assistance (FREE) > MEMBER
+ 2 Find a Topic (FREE) > FIND
+ 3 Communications/Bulletin Bds. > COMMUNICATIONS
+ 4 News/Weather/Sports > NEWS
+ 5 Travel > TRAVEL
+ 6 The Electronic MALL/Shopping > MALL
+ 7 Money Matters/Markets > MONEY
+ 8 Entertainment/Games > GAMES
+ 9 Home/Health/Family > HOME
+10 Reference/Education > REFERENCE
+11 Computers/Technology > COMPUTERS
+12 Business/Other Interests > BUSINESS
+
+:MEMBER FREE BASIC MEMBERASSIST
+ 1 Command Summary > CIS-162
+ 2 What's New > NEW
+ 3 Rates and Billing > RATES
+ 4 Terminal Settings > DEFAULT
+ 5 Sign-up and User IDs > LGN-1
+ 6 About This Service > ABOUT
+ 7 Source Code for This Service > SOURCE
+
+:CIS-162 HELP COMMANDS ?
+=CompuServe
+ T - TOP menu page
+ M - previous MENU
+ H or ? - HELP
+ GO word or GO page - GO directly to a service
+ FIND topic - FIND all references to topic
+ OFF or BYE - sign off
+ LOG - sign off and log on again
+ R - RESEND a page
+ F - FORWARD a page
+ B - BACK a page
+ N - display NEXT menu item
+ P - display PREVIOUS menu item
+ SET option - SET terminal option
+   SET BRIEF ON|OFF, SET PAGED ON|OFF, SET WIDTH n, SET LINES n
+
+ Commands may be chained with ";" (GO RATES;T).
+ ^C abandons a line or a display, ^U erases a line, ^V retypes it.
+
+:NEW WHATSNEW
+=What's New
+ This CompuServe service runs on this BBS, sharing its users.  You
+ log on with your BBS name or your User ID (shown at logon) and your
+ BBS password.
+
+ Here now: the menus and articles, GO words and FIND, and the
+ terminal settings of SET.
+
+ On their way, in this order: forums (the BBS's message areas, with
+ the forum command language), libraries and the CompuServe B and
+ B Plus protocols, CompuServe Mail, the CB Simulator, and the
+ CompuServe Information Manager (CIM) graphical service.
+
+:RATES CHARGES BILLING NEWBIL
+=CompuServe
+ RATES
+
+ Connect time on this service is free, at every baud rate, prime
+ time and non-prime alike.  Prime time is 8:00 a.m. to 7:00 p.m.
+ on weekdays; a "P" after the time at logon says you are in it.
+
+ There is no membership support fee.
+
+:DEFAULT TERMINAL PROFILE
+=TERMINAL SETTINGS
+ Your settings for this session are set with the SET command:
+
+   SET BRIEF ON     brief "!" prompts (expert mode)
+   SET BRIEF OFF    full prompts ("Enter choice !")
+   SET PAGED ON     stop at each screen ("Press <CR> for more !")
+   SET PAGED OFF    no stops (for offline readers)
+   SET WIDTH n      the screen's width (40 to 132)
+   SET LINES n      lines per screen, when paged
+
+ Permanent settings are not kept yet: each logon starts with BRIEF
+ OFF, PAGED OFF and WIDTH 80.
+
+:LGN-1 SIGNUP JOIN PASSWORD
+=CompuServe
+ USER IDS
+
+ Your User ID is your BBS account number written the CompuServe way,
+ as two numbers with a comma between: account 1 is 72000,1.  It is
+ shown at logon.  You may also type your BBS name at "User ID:".
+
+ To sign up, call the BBS itself and make an account there; the same
+ name and password let you in here.  Change your password on the
+ BBS.
+
+:ABOUT
+=CompuServe
+ ABOUT THIS SERVICE
+
+ This is a recreation of the CompuServe Information Service as a
+ terminal caller of the 1980s and 1990s saw it, running on this BBS.
+ It is not affiliated with CompuServe.  The prompts and the shape of
+ the menus follow the period's, so that old terminal programs and
+ offline readers (TAPCIS, AutoSIG, OzCIS) can find their way.
+
+:SOURCE AGPL
+=CompuServe
+ SOURCE CODE
+
+ This service is free software under the GNU Affero General Public
+ License, version 3.  Its source code, and the BBS's, is at
+
+   https://github.com/D-Modem/bbs
+
+:FIND
+=CompuServe
+ FIND
+
+ Type FIND and a topic (FIND MAIL, FIND FORUM) to list every page
+ that mentions it, with the page ID to GO to.
+
+:COMMUNICATIONS COMMUNICATE
+ 1 CompuServe Mail > MAIL
+ 2 Forums (Special Interest Groups) > FORUMS
+ 3 CB Simulator > CB
+ 4 Member Directory > DIRECTORY
+
+:MAIL EASY EASYPLEX
+=CompuServe Mail
+ CompuServe Mail is on its way.  Until then, read and send your mail
+ on the BBS itself.
+
+:FORUMS SIGS
+=CompuServe
+ Forums are on their way: each of the BBS's message areas is to be a
+ forum section, with the forum command language (REA, SCA, BRO,
+ LIB...).  Until then, read and post on the BBS itself.
+
+:CB CB-1 CHAT
+=CB Simulator
+ The CB Simulator is on its way, on the BBS's chat rooms.
+
+:DIRECTORY
+=CompuServe
+ The member directory is on its way.
+
+:NEWS WEA WEATHER SPORTS
+ 1 Weather > WEATHER-SOON
+ 2 News > NEWS-SOON
+
+:WEATHER-SOON
+=Weather
+ Weather reports are not offered yet.
+
+:NEWS-SOON
+=News
+ News services are not offered yet.
+
+:TRAVEL
+=Travel
+ Travel services are not offered yet.
+
+:MALL
+=The Electronic MALL
+ The Electronic MALL is closed.  No shopping is offered here.
+
+:MONEY QUO
+=Money Matters
+ Market quotes are not offered yet.
+
+:GAMES GAM-1
+=Entertainment/Games
+ Games are not offered yet.  The BBS's doors may have some.
+
+:HOME
+=Home/Health/Family
+ There is nothing here yet.
+
+:REFERENCE
+=Reference/Education
+ There is nothing here yet.
+
+:COMPUTERS
+=Computers/Technology
+ 1 Computer Forums > FORUMS
+ 2 Source Code for This Service > SOURCE
+
+:BUSINESS
+=Business/Other Interests
+ There is nothing here yet.

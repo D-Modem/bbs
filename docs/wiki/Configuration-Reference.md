@@ -94,7 +94,7 @@ There may be any number of these, each with its own NAME.
 | key | default | live | what it does |
 |---|---|---|---|
 | `type` | `telnet` |  | a telnet server; with tn3270 = yes (the default), a client that says it is a 3270 (IBM-3278-2-E, IBM-DYNAMIC) gets the 3270 screens raw the caller's bytes as they come, no protocol: app_dmodem's mode = tcp, modemmenu tcp/unix items rlogin RFC 1282, as modemmenu's rlogin items speak it ssh SSH: passwords or users' keys (host_keys, legacy) Examples: `telnet`, `raw`, `ssh`, `rlogin`. |
-| `address` | `host:port` |  | or a unix socket's path (/run/bbs/bbs.sock) Examples: `:2300`, `:992`, `127.0.0.1:2323`, `:2222`, `127.0.0.1:2513`, `/run/bbs/menu.sock`. |
+| `address` | `host:port` |  | or a unix socket's path (/run/bbs/bbs.sock) Examples: `:2300`, `:992`, `127.0.0.1:2323`, `:2324`, `:2222`, `127.0.0.1:2513`, `/run/bbs/menu.sock`. |
 | `via` | `...` |  | how its callers came, in who's online (telnet, modem, rlogin by type) |
 | `ansi` | `auto` |  | the terminal's ANSI color: auto asks the terminal (or believes its terminal type), yes, no. |
 | `utf8` | `auto` |  | UTF-8 both ways: auto by the terminal type (xterm and friends yes; "ansi" BBS terminals no), yes, no. |
@@ -109,6 +109,8 @@ There may be any number of these, each with its own NAME.
 | `create_users` | `no` |  | yes, with trust_user: a user unknown here gets an account (with no password of its own) Examples: `yes`. |
 | `socket_mode` | `0660` |  | a unix socket's permissions. |
 | `socket_group` | `...` |  | and its group. Examples: `asterisk`. |
+| `frontend` | `bbs` |  | what callers get: the BBS, or compuserve: the CompuServe Information Service (telnet and raw listeners; no 3270). See the wiki's CompuServe. Examples: `compuserve`. |
+| `connect` | `9600` |  | compuserve: the CONNECT line before Host Name: (telnet: 9600; raw: none, the modem says its own) |
 | `tn3270` |  |  | See the section above. Examples: `yes`. |
 | `tls_cert` |  |  | See the section above. Examples: `/etc/bbs/cert.pem`. |
 | `tls_key` |  |  | See the section above. Examples: `/etc/bbs/key.pem`. |

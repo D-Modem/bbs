@@ -153,6 +153,11 @@ throttle_time = 600
 ;                        account (with no password of its own)
 ;   socket_mode = 0660   a unix socket's permissions
 ;   socket_group = ...   and its group
+;   frontend = bbs       what callers get: the BBS, or compuserve: the
+;                        CompuServe Information Service (telnet and raw
+;                        listeners; no 3270).  See the wiki's CompuServe
+;   connect = 9600       compuserve: the CONNECT line before Host Name:
+;                        (telnet: 9600; raw: none, the modem says its own)
 
 ; keeping callers out: a file of addresses and networks refused, one of
 ; names no new user may take (* wildcards), the hack log, and how long an
@@ -207,6 +212,13 @@ max_per_ip = 4
 [listen modem]
 type = raw
 address = 127.0.0.1:2323
+
+; the CompuServe Information Service, on the BBS's users: Host Name: CIS,
+; then a User ID (shown at logon) or BBS name and the BBS password
+;[listen cis]
+;type = telnet
+;address = :2324
+;frontend = compuserve
 
 ; SSH: the text BBS, encrypted.  Users log in with their BBS password or
 ; a key (bbs sshkey add, or their profile); "new" gets the BBS's prompt
