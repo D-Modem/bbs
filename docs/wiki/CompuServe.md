@@ -3,8 +3,8 @@
 A listener with `frontend = compuserve` serves a recreation of the
 CompuServe Information Service instead of the BBS's menus. It runs on the
 BBS's own users, and it aims to work with the real CompuServe software:
-terminal programs, offline readers (TAPCIS, AutoSIG, OzCIS) and, later,
-the CompuServe Information Manager (WinCIM, DOSCIM, MacCIM). Their
+terminal programs, offline readers (TAPCIS, AutoSIG, OzCIS) and the
+CompuServe Information Manager (WinCIM, DOSCIM, MacCIM). Their
 scripts look for the period's exact prompts, so the service keeps them.
 
 ```ini
@@ -41,9 +41,51 @@ Password:
   addresses get CompuServe's `?LOG` codes.
 
 After the logon the host sends `ESC I`. Terminals that know it answer
-with their identification, which shows in who's online. CIM clients
-(`AP` in their reply) are told `?LOG CAI` for now, because the graphical
-(HMI) service is not built yet.
+with their identification, which shows in who's online. A CIM client
+(`AP` in its reply) gets the graphical service instead; see below.
+
+## CIM (WinCIM)
+
+CIM clients speak HMI, a binary protocol inside B Plus packets. The
+service follows what 24high/CompuServe-Emulator recovered from WinCIM
+3.0.2: the Secure Login, the terminal-mode trade after it, the B Plus
+Transport Layer, and the HMI messages for pages. In WinCIM you can:
+
+- browse the main menu, the menus and articles of `pages.txt`, What's New
+  and the Table of Contents, and use Find;
+- read the forums: the forum list, a forum's sections and libraries, a
+  section's messages (newest first) and each message, which then counts
+  as read;
+- see a library's files (downloads still need a terminal program);
+- read your mail with **Get Mail**: the mailbox, newest first, unread
+  letters marked `*`. A letter read is marked read.
+
+Sending mail, posting to forums, downloads and the CB are not in CIM yet.
+WinCIM sends mail and forum messages through transactions of its own,
+which nobody has recovered yet. Use a terminal program for those for now.
+
+Point WinCIM at the listener over TCP. In CIS.INI, the connector's
+`CommType=WINSOCK`, `WinsockCommType=Local` and `HostIPAddress` set
+this. CompuServe's own port for that was 4144:
+
+```ini
+[listen wincim]
+type = raw
+address = :4144
+frontend = compuserve
+connect = 9600
+```
+
+**Secure Login.** CIM logs on with the Secure Login Protocol (`+` before
+the User ID), which never sends the password. The host checks it against
+a key it keeps from the password. That key is kept only while a
+`compuserve` listener runs, the next time the user logs on with their
+password or sets one. Until then a Secure Login fails with `No.`, and the
+log says why. Log on once from a terminal, or set
+`DisableSecureLogin=ON` in CIS.INI for one plain login.
+
+None of this has met a real WinCIM yet; that is the next round of
+testing.
 
 ## Commands
 
@@ -135,6 +177,79 @@ BPLUS.ZIP/binary          08-Nov-26 8700         Accesses: 1
     Keywords: BPLUS PROTOCOL
 ```
 
+## Mail
+
+`GO MAIL` (or `EASY`, `EASYPLEX`) enters CompuServe Mail. It is the BBS's
+private mail: what is sent here arrives in the BBS's mailbox, and the
+other way round. A message is *pending* until it is read. Read messages
+stay in the mailbox, as if saved, until they are deleted.
+
+Mail starts in menu mode, as CompuServe's did. `SET` opens the Options
+Menu, where option 2 changes the mode to PROMPT or COMMAND, and the
+answer to `Make changes permanent for future Mail sessions ? (Y or N) !`
+keeps it with the account. TAPCIS's setup script (`PARAMS.SCR`, run by
+Alt-P) does exactly this, then `set edit noline` and `set page off`, which
+are kept too. In command mode the prompt is `Mail!`.
+
+| Command | Does |
+|---|---|
+| `READ [n\|ALL\|SAVED]` | read the pending messages (or the saved ones); `Action!` after each: CR next, `DELETE`, `SAVE`, `REREAD`, `REPLY`, `FORWARD [address]`, `DOWNLOAD [/PROTO:x]` |
+| `SCAN [ALL\|SAVED]` | one line each: ` 1 alice/Testing` |
+| `COMPOSE [address]` | write (EDIT, ending with `/EX`), then `Send to (Name or User ID):`, `Subject:` and `Send? (Y or N)!` |
+| `UPLOAD [/PRO:B] [/TYP:ASCII\|LATIN1]` | a message's text by a protocol, then the same questions (TAPCIS's `UPL/PRO:B/TYP:ASCII MAIL%.TMP`) |
+| `DOWNLOAD [n\|ALL\|SAVED] [/PROTO:x]` | messages as one text file, by a protocol |
+| `DELETE n` | delete a message |
+| `ADDRESS` | the address book, and `NAME` for your Mail name (both for this session only) |
+| `SET`, `SET MODE x`, `SET EDIT x`, `SET PAGE x`, `MODE` | the options |
+| `EXIT`, `T`, `GO x`, `OFF` | leave Mail |
+
+Addresses take CompuServe's forms: a BBS name, a User ID (`72000,1`), a
+name and an ID (`Sysop 72000,2`, `Sysop [72000,2]`), or a name and a
+network address after `>`. `INTERNET:72000.1@compuserve.com` is a member
+here. Other Internet addresses, FAX, POSTAL, MCIMAIL, X.400 and MHS are
+refused, with a message saying so. A FidoNet address (`Bob@1:234/5`) goes
+out as netmail when the BBS is on FidoNet. An address ending in `;` asks
+for another, and a `/R` (return receipt) is accepted but not acted on.
+
+A message reads like this:
+
+```
+Date:  08-Nov-26 12:40 UTC
+From:  alice [72000,1]
+Subj:  Testing
+
+Hello from Mail.
+```
+
+## CB Simulator
+
+`GO CB` enters the CB Simulator. Its channels are the BBS's chat rooms
+`cb-1` to `cb-36`, so callers in the BBS's own chat, or on IRC, can join a
+channel too. A CB caller picks a handle, which can't be another member's
+name, and a channel. After that, whatever they type is said on that
+channel. A line from the tuned channel shows as `(Handle) text`, and a
+line from a monitored channel shows as `(17,Handle) text`. Others see
+the handle, and the BBS's other chat programs see the caller's name.
+
+| Command | Does |
+|---|---|
+| `/TUN n` | tune to channel n (1-36) |
+| `/MON 1,4`, `/UNM 1,4` | listen to other channels too, or stop |
+| `/STA` | how many are on each channel |
+| `/UST [n]` | who is on CB: job, User ID, channel (`17s` scrambled, `Tlk` talking), node, handle |
+| `/WHO` | the User ID of the last talker |
+| `/HAN name` | change your handle |
+| `/SCR key`, `/SMC key`, `/XCL key`, `/UNS` | scramble what you send and unscramble what you get, one of the two, or neither |
+| `/SQU handle` | squelch a handle (again to unsquelch) |
+| `/TALK job` | talk with one caller alone (`/EXIT` back to the channel) |
+| `/ROLL [3D6]` | roll dice for the channel |
+| `/TIM`, `/JOB`, `/HELP` | the time, your job number (the BBS node), the commands |
+| `/EXI`, `/OFF` | leave CB, or log off |
+
+Scrambling works the way CompuServe's did. Everything you send goes out
+permuted by the key, and everything you receive is unpermuted with it,
+so only callers using the same key read each other.
+
 ## What is there and what is coming
 
 | Done | Coming, in order |
@@ -143,7 +258,10 @@ BPLUS.ZIP/binary          08-Nov-26 8700         Accesses: 1
 | Forums on the message areas, with the forum command language | |
 | The CompuServe B, Quick B and B Plus protocols (`internal/xfer/cisb.go`) | B Plus resume (Tr) and file information (TI) |
 | Libraries on the file areas, with B+ downloads and uploads | |
-| | CompuServe Mail, the CB Simulator, then CIM's HMI service |
+| CompuServe Mail on the BBS's private mail | A kept address book, binary mail |
+| The CB Simulator on the chat rooms | Forum conferences (CO) |
+| CIM: Secure Login, the B Plus Transport Layer, HMI pages, menus, articles and Find | |
+| CIM: reading forums and Mail, library lists | CIM: sending mail, posting, downloads, CB |
 
 The research behind all this, with sources, is in
 [docs/cis](https://github.com/D-Modem/bbs/tree/main/docs/cis).

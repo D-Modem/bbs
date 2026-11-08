@@ -16,6 +16,7 @@ Tags: **[V]** verbatim from a capture or period document (blank-line runs and AN
 | S6–S8 | 1993–94 Mac captures (logon, Mail, forum JOIN, RATES, BILLING, command summary). Discmaster item 19202 (`King.img`, `Alexander.img`). |
 | S9 | 1995 Navigator session. Discmaster item 20868. |
 | S10 | TAPCIS 5.3 (1990): manual TAPDOC.1–10, PARAMS.SCR, CIS.SCR, TYMNET.SCR, SPRINT24.SCR, strings in TAPCIS.EXE. <https://discmaster.textfiles.com/browse/14533/Megaware%20Volume%201.iso/communic/tapcis> |
+| S19 | TAPCIS 5.42 (1994): PARAMS.SCR (5.4, 12/10/91), FRONTEND.SCR, TAPCIS.HLP, strings in TAPCIS.EXE. <https://archive.org/details/TAP542_ZIP> |
 | S11 | *Forum Software Version 4D Complete Command Listing*, May 1989. <https://discmaster.textfiles.com/view/17620/archives.tar/archives/compuserve-file-archive/02%20Help%20%26%20Utilities/CMDLST.TXT> |
 | S12 | IBM PC SIG help text, Nov 1983. <https://discmaster.textfiles.com/view/10621/The%20PC-SIG%20Library%20on%20CD%20ROM%20-%20Ninth%20Edition.iso/001_100/DISK0099/DISK0099.ZIP/CS-IBM.SIG> |
 | S13 | Conference/CB help, 1982–84. <https://discmaster.textfiles.com/view/6428/C.A.R.R.S.%20CD-ROM%20(1990).ISO/020a/symp_6.zip/CONFER.HLP> |
@@ -569,6 +570,48 @@ Enter choice or <CR> for more !
 - Error: `% Invalid command`.
 - Mode menu: `Mail  Mode Menu 1 MENU 2 PROMPT 3 COMMAND`, followed by `Make changes permanent for future Mail sessions ? (Y or N)`.
 - Settings: `set edit noline`, `set page off`.
+
+**TAPCIS 5.42's Mail setup, verbatim from PARAMS.SCR** [V, S19]. Each line TAPCIS sends waits for `!`:
+
+```
+S go mail          (the Mail Main Menu or "Mail!"; "No messages pending")
+S no               ("% Invalid command": an answer to "first visit in 30 days?")
+S set edit noline
+S set page off
+S set retain YES   (RETAIN: UNDELETE within 24 hours)
+S set              Mail  Options Menu
+                   [ ] Represents Current Setting
+                       (yes/no options toggle)
+                    1 EDITOR uses line numbers [NO]
+                    2 MODE of operation is [MENU]
+                      (MENU, PROMPT, COMMAND)
+                    3 Output is PAGED [NO]
+S 2                Mail  Mode Menu
+                    1 MENU  - (Novice User)
+                      List of choices in menu form.
+                    2 PROMPT - (Intermediate User)
+                      Brief list of commands.
+                    3 COMMAND - (Expert User)
+                      One word prompt.
+S 3                (the Options Menu again, MODE [COMMAND])
+S <CR>             Make changes permanent for
+                   future Mail sessions ? (Y or N)
+S Y
+S ADD              (the Address Book)
+S NAME             Enter a period to erase any information,  or <CR> to leave it unchanged.
+                   Typing "CANCEL" cancels all changes made and leaves editing mode.
+                   Your CompuServe Mail name
+                     Old: Harold Bender
+                     New: (TAPCIS sends the name)
+                   Do you want to enter your return address? (Y or N) !
+S ^C
+```
+
+The script's comments show the Address Book menu as `1 INSERT an entry 2 CHANGE an entry 3 DELETE an entry 4 LIST Address Book 5 Enter/Change your NAME`, and say that NOLINE and PAGE OFF "are essential settings for TAPCIS".
+
+**What TAPCIS.EXE waits for and sends in Mail** [V, S19, strings only, so the order is inferred]: it waits for `lex!` or `ail!` (EasyPlex! and Mail!), `ID):` (`Send to (Name or User ID):`), `ect:` (`Subject:`), `N)!` / `N)?`, `Action!` and `on!`. It reads with `read all` and `REA WAI`, matches `ate:`, `rom:` and `ubj:` in headers, downloads binary items with `dow/pro:b`, deletes with `DEL`, and sends with `Compose` and `/EX`, or with `UPL/PRO:B/TYP:ASCII MAIL%.TMP` (`/TYP:LATIN1` with its /LATIN1 option; "Be patient after UPL after Send? Y answer"). Addresses take `>INTERNET:`, `>FAX`, `>POSTAL`, `>X400`, `>MCIMAIL:`, `>MHS:` and `>TLX:`, a trailing `/R` for a return receipt, and `;` for another address.
+
+**The service's choices where the sources are silent** [I]: the send confirmation is `Send? (Y or N)!`, the result is `Message sent to Name [ppn]`, and the read prompt in command mode is `Action!`.
 - Return receipts cost a $0.25 surcharge [P].
 
 **Address forms:**
@@ -644,6 +687,8 @@ In that format, `s` means scrambled and `Tlk` means in a `/TALK`.
   - forum conferences use `(room,name) text` [V];
   - a 1985 magazine quotes CB as `(Old Man) Does anyone know what time it is?`;
   - **the CB format is unresolved** — choose `(ch,Handle)` for consistency with forums [I].
+
+**As built** [I]: `(Handle) text` for the tuned channel (the 1985 quote), `(ch,Handle) text` for a monitored one, `** Handle tuned in to channel n **` and `** Handle left channel n **` for comings and goings, `(Talk job,Handle) text` in a `/TALK`. The entry asks `What's your handle?` and `What channel (1-36)?`; `/TUN` answers `(Tuned to channel n, k others here)`.
 
 ---
 

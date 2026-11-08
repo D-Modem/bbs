@@ -227,6 +227,11 @@ CREATE TABLE IF NOT EXISTS ssh_keys (
 	created     {int} NOT NULL,
 	last_used   {int} NOT NULL DEFAULT 0
 )`, `
+CREATE TABLE IF NOT EXISTS cis_keys (
+	user_id  {int} NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+	k        {blob} NOT NULL,
+	bound    {str} NOT NULL
+)`, `
 CREATE TABLE IF NOT EXISTS oscar_keys (
 	user_id  {int} NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
 	auth_key {str} NOT NULL,
@@ -242,6 +247,33 @@ CREATE TABLE IF NOT EXISTS feedbag (
 	name     {str} NOT NULL,
 	attrs    {blob},
 	PRIMARY KEY (user_id, group_id, item_id)
+)`, `
+CREATE TABLE IF NOT EXISTS chats (
+	id        {id},
+	from_id   {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	from_name {str} NOT NULL,
+	to_id     {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	to_name   {str} NOT NULL,
+	body      {text} NOT NULL,
+	created   {int} NOT NULL,
+	delivered {bool} NOT NULL DEFAULT FALSE
+)`, `
+CREATE TABLE IF NOT EXISTS friends (
+	user_id   {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	friend_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	grp       {str} NOT NULL DEFAULT '',
+	alias     {str} NOT NULL DEFAULT '',
+	added     {int} NOT NULL,
+	PRIMARY KEY (user_id, friend_id)
+)`, `
+CREATE TABLE IF NOT EXISTS oscar_buddies (
+	user_id   {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	friend_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	sn        {str} NOT NULL,
+	group_id  {int} NOT NULL,
+	item_id   {int} NOT NULL,
+	attrs     {blob},
+	PRIMARY KEY (user_id, friend_id)
 )`, `
 CREATE TABLE IF NOT EXISTS chan_boards (
 	id            {id},
@@ -360,6 +392,8 @@ var indexes = []struct {
 	{"chan_posts_md5", "chan_posts", "board_id, md5", false},
 	{"chan_posts_ip", "chan_posts", "ip, created", false},
 	{"chan_reports_post", "chan_reports", "board_id, num", false},
+	{"chats_to", "chats", "to_id, delivered", false},
+	{"chats_pair", "chats", "from_id, to_id, id", false},
 }
 
 // added are the columns added since the first schema: an older database

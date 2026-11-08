@@ -1,5 +1,6 @@
 Callers on different nodes can talk to each other in three ways: in chat
-rooms, by sending a message to one node, and by paging the sysop.
+rooms, by private messages, and by paging the sysop. Each user also keeps
+a [friends list](#friends).
 
 ## Chat rooms
 
@@ -16,7 +17,10 @@ last caller leaves, unless the sysop has made it
 | `/who` | who is in this room |
 | `/rooms` | the rooms in use, and who is in them |
 | `/join ROOM` | go to another room (letters, digits and `-`, up to 20) |
-| `/msg NODE TEXT` | a line to one node, wherever its caller is |
+| `/msg WHO TEXT` | a private message to a user (or to a node, by its number), [kept](#private-messages) if they are away |
+| `/history [WHO]` | those you have talked with, or your last lines with one |
+| `/friends` | your [friends list](#friends), and who on it is on |
+| `/friend WHO`, `/unfriend WHO` | put a user on your friends list, or take them off |
 | `/topic [TEXT]` | the room's topic; the sysop sets a [permanent room](IRC#permanent-rooms)'s |
 | `/quit` | leave the chat |
 | `/help` | these |
@@ -35,13 +39,30 @@ with other BBSes. The rooms are also channels on the BBS's [IRC](IRC)
 server (`#main` and the rest), with IRC clients in them alongside the
 callers.
 
-## Messages to a node
+## Private messages
 
 On the text BBS, *Who's online* ends by offering to send a line to a
-node, and `/msg NODE TEXT` does the same from chat (on a 3270 too). The
-line reaches the caller wherever they are: on the text BBS, at whatever
-prompt they are at; on a 3270, on the message line of their next screen
-(with `(+N)` when more are waiting).
+node, and `/msg WHO TEXT` sends one from chat (on a 3270 too), to a user
+by name or to a node by its number. The line reaches the caller
+wherever they are: on the text BBS, at whatever prompt they are at; on a
+3270, on the message line of their next screen (with `(+N)` when more
+are waiting); on [IRC](IRC) as a `PRIVMSG`; on [AIM or ICQ](AIM-and-ICQ)
+as an IM.
+
+Private messages are kept, however they were sent: the BBS's chat, IRC,
+AIM or ICQ. A message to a user who isn't on is kept for them, and they
+get it when they next log in, with the time it was sent (an ICQ client
+gets them as its offline messages). `/history WHO` (on IRC, `/msg
+BBSServ HISTORY nick`) shows your last lines with someone. Only the two
+users in a conversation can read it back.
+
+## Friends
+
+Every user has one friends list, of BBS users. It is the same list
+everywhere: `/friends` in chat, `FRIENDS` to BBSServ on IRC, and the
+buddy list on [AIM and ICQ](AIM-and-ICQ#buddies). A friend added on one
+shows on the others; an AIM client that is on gets them at once, in
+their group (`Friends` if they have none).
 
 ## Paging the sysop
 

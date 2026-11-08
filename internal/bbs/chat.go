@@ -35,6 +35,10 @@ type Event struct {
 	Node int
 	Text string
 	Time time.Time
+	Kept bool // a private message kept while its caller was away
+	// the CB handle the sender goes by ("": none; From is still the
+	// user's name, for those that do not show handles)
+	Handle string
 }
 
 // String is the event as a line for the caller.
@@ -49,6 +53,9 @@ func (e Event) String() string {
 	case Left:
 		return "<- " + e.From + " left"
 	case Private:
+		if e.Kept {
+			return fmt.Sprintf("Message from %s (%s, while you were away): %s", e.From, e.Time.Format("Jan 2 15:04"), e.Text)
+		}
 		return fmt.Sprintf("Message from %s (node %d): %s", e.From, e.Node, e.Text)
 	case Mail:
 		return "New mail from " + e.From + ": " + e.Text
@@ -86,6 +93,7 @@ type chatState struct {
 	also    map[string]bool // rooms an IRC client is in besides (JoinAlso)
 	busy    bool            // a sysop not to be paged
 	sent    []time.Time
+	handle  string    // a CompuServe CB handle ("": none)
 	paging  string    // why this caller pages the sysop ("": not)
 	pagedAt time.Time // when
 }
@@ -171,6 +179,23 @@ func (n *Node) Room() string {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 	return cs.room
+}
+
+// SetHandle sets the handle the node goes by in chat (a CompuServe CB
+// handle; "": none).  Events still carry the user's name.
+func (n *Node) SetHandle(h string) {
+	cs := n.chat()
+	cs.mu.Lock()
+	cs.handle = h
+	cs.mu.Unlock()
+}
+
+// Handle is the node's chat handle ("": none).
+func (n *Node) Handle() string {
+	cs := n.chat()
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	return cs.handle
 }
 
 // name is the node's user's name, or "node N" before a login.
@@ -287,7 +312,7 @@ func (b *BBS) RoomMembers(name string) []RoomMember {
 		b.mu.Lock()
 		via := m.Caller.Via
 		b.mu.Unlock()
-		out = append(out, RoomMember{Name: m.name(), Node: m.Num, Via: via})
+		out = append(out, RoomMember{Name: m.name(), Node: m.Num, Via: via, Handle: m.Handle()})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Node < out[j].Node })
 	return out
@@ -295,9 +320,10 @@ func (b *BBS) RoomMembers(name string) []RoomMember {
 
 // RoomMember is one in a room.
 type RoomMember struct {
-	Name string
-	Node int
-	Via  string
+	Name   string
+	Node   int
+	Via    string
+	Handle string // a CB handle ("": none)
 }
 
 // enter puts the node in a room's members, tells the others, and gives
@@ -318,7 +344,7 @@ func (n *Node) enter(name string) []Event {
 	}
 	hist = append(hist, r.history...)
 	h.mu.Unlock()
-	e := Event{Kind: Joined, Room: name, From: n.name(), Node: n.Num, Time: time.Now()}
+	e := Event{Kind: Joined, Room: name, From: n.name(), Node: n.Num, Time: time.Now(), Handle: n.Handle()}
 	for _, o := range others {
 		o.deliver(e)
 	}
@@ -363,7 +389,7 @@ func (n *Node) exit(name string) {
 		}
 	}
 	h.mu.Unlock()
-	e := Event{Kind: Left, Room: name, From: n.name(), Node: n.Num, Time: time.Now()}
+	e := Event{Kind: Left, Room: name, From: n.name(), Node: n.Num, Time: time.Now(), Handle: n.Handle()}
 	for _, o := range others {
 		o.deliver(e)
 	}
@@ -425,7 +451,7 @@ func (n *Node) SayIn(name, text string, emote bool) error {
 	if n.flood() {
 		return ErrFlood
 	}
-	e := Event{Kind: Said, Room: name, From: n.name(), Node: n.Num, Text: text, Time: time.Now()}
+	e := Event{Kind: Said, Room: name, From: n.name(), Node: n.Num, Text: text, Time: time.Now(), Handle: n.Handle()}
 	if emote {
 		e.Kind = Emoted
 	}
@@ -505,7 +531,7 @@ func (n *Node) Message(to int, text string) error {
 	if n.flood() {
 		return ErrFlood
 	}
-	o.deliver(Event{Kind: Private, From: n.name(), Node: n.Num, Text: text, Time: time.Now()})
+	o.deliver(Event{Kind: Private, From: n.name(), Node: n.Num, Text: text, Time: time.Now(), Handle: n.Handle()})
 	n.b.Log.Printf("node %d: %s sent a message to node %d", n.Num, n.name(), to)
 	return nil
 }

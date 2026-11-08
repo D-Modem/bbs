@@ -6,8 +6,9 @@
 // match these strings, so they keep the period's wording.
 //
 // Users are the BBS's: a User ID is the account's number written as a
-// CompuServe ID (PPN), or its name.  The GUI service (CIM's HMI, over B
-// Plus) is not here yet: a CIM client is told "?LOG CAI".
+// CompuServe ID (PPN), or its name.  A CIM client (one whose ESC I answer
+// has AP) gets the GUI service instead: HMI over the B Plus Transport
+// Layer (hmi.go).
 package cis
 
 import (
@@ -65,6 +66,7 @@ type session struct {
 	firstGo string // /GO:word at the User ID
 	byName  bool   // logged on with a BBS name, not a User ID
 	fpage   *Page  // the FORUMS menu, as last made
+	mail    *mailState
 	pushed  []byte // input put back
 	cr      bool   // the last input byte was a CR (drop a LF or NUL after it)
 }
@@ -101,10 +103,7 @@ func (s *session) run() error {
 			return err
 		}
 		if s.caps.AP() {
-			// a CIM client: its HMI service is to come
-			s.b.Log.Printf("node %d: CompuServe: %s is a CIM client (%s); HMI not yet served", s.node.Num, u.Name, s.caps.Raw)
-			s.out("\n?LOG CAI\n")
-			return errHangup
+			return s.hmi() // a CIM client
 		}
 		err = s.ascii()
 		if !errors.Is(err, errRelog) {
