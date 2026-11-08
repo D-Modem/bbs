@@ -32,6 +32,7 @@ the file is laid out.
 | [`[door NAME]`](#door-name) | A door: a program callers play, or another system's doors. |
 | [`[irc]`](#irc) | IRC: the chat rooms as channels (#main ...), for IRC clients. |
 | [`[oscar]`](#oscar) | AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC. |
+| [`[msn]`](#msn) | MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (MSNP2 to 7), beside IRC and AIM. |
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
 | [`[gopher]`](#gopher) | gopher: about the system, who is on, and what areas the sysop opens: no login, so anyone sees them. |
@@ -447,6 +448,21 @@ AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC.  Users sign o
 | `max_per_ip` |  |  | each client opens a few connections: sign-on, the BOS, chat rooms. Examples: `16`. |
 | `uin_base` |  |  | an account's ICQ number is this plus its number. Examples: `100000`. |
 | `system` |  |  | the screen name the BBS's notices come from. Examples: `OnlineHost`. |
+
+
+## `[msn]`
+
+MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (MSNP2 to 7), beside IRC and AIM.  Users sign in as name@domain with their BBS passwords; contacts are their friends list; an IM is a private message (a PRIVMSG on IRC), kept for one away.  The clients must be pointed at this host (see the wiki page). See docs/wiki/MSN-Messenger.md.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:1863`. |
+| `host` |  |  | where clients are sent for conversations, host:port (default: the address each one came to; set it behind NAT) Examples: `msn.example.org:1863`. |
+| `domain` |  |  | handles are name@domain (default bbs.invalid); clients may sign in with any domain, as MSN 1.0's @hotmail.com. Examples: `msn.example.org`. |
+| `max_clients` |  |  | handles are name@domain (default bbs.invalid); clients may sign in with any domain, as MSN 1.0's @hotmail.com. Examples: `256`. |
+| `max_per_ip` |  |  | each conversation is a connection of its own. Examples: `16`. |
+| `system` |  |  | the name the BBS's notices come from. Examples: `BBS`. |
+| `site` |  |  | a web address the clients' links (inbox, profiles) open. Examples: `https://bbs.example.org/`. |
 
 
 ## `[mrc]`

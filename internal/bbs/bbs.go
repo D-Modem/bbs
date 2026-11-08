@@ -624,6 +624,7 @@ func (b *BBS) menuLogin(who, name, pw string) (*store.User, error) {
 	b.Log.Printf("%s: %s's password by modemmenu (%s)", who, u.Name, backend)
 	b.Store.KeepOSCARKeys(u.ID, pw) // for AIM's digest logins, if kept
 	b.Store.KeepCISKey(u.ID, pw)    // and CompuServe's
+	b.Store.KeepMSNKey(u.ID, pw)    // and MSN's
 	return u, nil
 }
 

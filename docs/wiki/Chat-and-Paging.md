@@ -21,6 +21,7 @@ last caller leaves, unless the sysop has made it
 | `/history [WHO]` | those you have talked with, or your last lines with one |
 | `/friends` | your [friends list](#friends), and who on it is on |
 | `/friend WHO`, `/unfriend WHO` | put a user on your friends list, or take them off |
+| `/block WHO`, `/unblock WHO` | refuse a user's private messages, or take them again ([blocking](#blocking)) |
 | `/topic [TEXT]` | the room's topic; the sysop sets a [permanent room](IRC#permanent-rooms)'s |
 | `/quit` | leave the chat |
 | `/help` | these |
@@ -47,10 +48,10 @@ by name or to a node by its number. The line reaches the caller
 wherever they are: on the text BBS, at whatever prompt they are at; on a
 3270, on the message line of their next screen (with `(+N)` when more
 are waiting); on [IRC](IRC) as a `PRIVMSG`; on [AIM or ICQ](AIM-and-ICQ)
-as an IM.
+or [MSN](MSN-Messenger) as an IM.
 
 Private messages are kept, however they were sent: the BBS's chat, IRC,
-AIM or ICQ. A message to a user who isn't on is kept for them, and they
+AIM, ICQ or MSN. A message to a user who isn't on is kept for them, and they
 get it when they next log in, with the time it was sent (an ICQ client
 gets them as its offline messages). `/history WHO` (on IRC, `/msg
 BBSServ HISTORY nick`) shows your last lines with someone. Only the two
@@ -60,9 +61,18 @@ users in a conversation can read it back.
 
 Every user has one friends list, of BBS users. It is the same list
 everywhere: `/friends` in chat, `FRIENDS` to BBSServ on IRC, and the
-buddy list on [AIM and ICQ](AIM-and-ICQ#buddies). A friend added on one
-shows on the others; an AIM client that is on gets them at once, in
-their group (`Friends` if they have none).
+buddy list on [AIM and ICQ](AIM-and-ICQ#buddies), the contact list on
+[MSN](MSN-Messenger#contacts). A friend added on one shows on the others;
+an AIM or MSN client that is on gets them at once, in their group
+(`Friends` on AIM if they have none).
+
+## Blocking
+
+Every user also has one blocked list. `/block WHO` puts a user on it
+(and `/unblock WHO` takes them off), as does MSN's "Block". A blocked
+user's private messages are refused, however they send them (chat, IRC,
+AIM, MSN) and whether or not you are on, and MSN shows you offline to
+them.
 
 ## Paging the sysop
 

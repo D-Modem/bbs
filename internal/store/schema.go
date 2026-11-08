@@ -258,6 +258,18 @@ CREATE TABLE IF NOT EXISTS chats (
 	created   {int} NOT NULL,
 	delivered {bool} NOT NULL DEFAULT FALSE
 )`, `
+CREATE TABLE IF NOT EXISTS msn_keys (
+	user_id  {int} NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+	salt     {str} NOT NULL,
+	digest   {str} NOT NULL,
+	bound    {str} NOT NULL
+)`, `
+CREATE TABLE IF NOT EXISTS blocks (
+	user_id    {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	blocked_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	added      {int} NOT NULL,
+	PRIMARY KEY (user_id, blocked_id)
+)`, `
 CREATE TABLE IF NOT EXISTS friends (
 	user_id   {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	friend_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
