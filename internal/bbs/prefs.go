@@ -22,6 +22,11 @@ var prefValues = map[string][]string{
 	"width":    {"40", "80"},     // a Commodore's columns
 	"editor":   {"full", "line"}, // the full-screen editor, or the line editor
 	"expert":   {"on", "off"},    // menus as their prompt alone (? for the rest)
+
+	// CompuServe Mail's options (SET at "Mail!"), kept when the caller says
+	"cis-mailmode": {"menu", "prompt", "command"},
+	"cis-mailedit": {"line", "noline"},
+	"cis-mailpage": {"on", "off"},
 }
 
 // PrefKeys are the settings' names, sorted.

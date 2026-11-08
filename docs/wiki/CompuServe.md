@@ -135,6 +135,50 @@ BPLUS.ZIP/binary          08-Nov-26 8700         Accesses: 1
     Keywords: BPLUS PROTOCOL
 ```
 
+## Mail
+
+`GO MAIL` (or `EASY`, `EASYPLEX`) enters CompuServe Mail. It is the BBS's
+private mail: what is sent here arrives in the BBS's mailbox, and the
+other way round. A message is *pending* until it is read. Read messages
+stay in the mailbox, as if saved, until they are deleted.
+
+Mail starts in menu mode, as CompuServe's did. `SET` opens the Options
+Menu, where option 2 changes the mode to PROMPT or COMMAND, and the
+answer to `Make changes permanent for future Mail sessions ? (Y or N) !`
+keeps it with the account. TAPCIS's setup script (`PARAMS.SCR`, run by
+Alt-P) does exactly this, then `set edit noline` and `set page off`, which
+are kept too. In command mode the prompt is `Mail!`.
+
+| Command | Does |
+|---|---|
+| `READ [n\|ALL\|SAVED]` | read the pending messages (or the saved ones); `Action!` after each: CR next, `DELETE`, `SAVE`, `REREAD`, `REPLY`, `FORWARD [address]`, `DOWNLOAD [/PROTO:x]` |
+| `SCAN [ALL\|SAVED]` | one line each: ` 1 alice/Testing` |
+| `COMPOSE [address]` | write (EDIT, ending with `/EX`), then `Send to (Name or User ID):`, `Subject:` and `Send? (Y or N)!` |
+| `UPLOAD [/PRO:B] [/TYP:ASCII\|LATIN1]` | a message's text by a protocol, then the same questions (TAPCIS's `UPL/PRO:B/TYP:ASCII MAIL%.TMP`) |
+| `DOWNLOAD [n\|ALL\|SAVED] [/PROTO:x]` | messages as one text file, by a protocol |
+| `DELETE n` | delete a message |
+| `ADDRESS` | the address book, and `NAME` for your Mail name (both for this session only) |
+| `SET`, `SET MODE x`, `SET EDIT x`, `SET PAGE x`, `MODE` | the options |
+| `EXIT`, `T`, `GO x`, `OFF` | leave Mail |
+
+Addresses take CompuServe's forms: a BBS name, a User ID (`72000,1`), a
+name and an ID (`Sysop 72000,2`, `Sysop [72000,2]`), or a name and a
+network address after `>`. `INTERNET:72000.1@compuserve.com` is a member
+here. Other Internet addresses, FAX, POSTAL, MCIMAIL, X.400 and MHS are
+refused, with a message saying so. A FidoNet address (`Bob@1:234/5`) goes
+out as netmail when the BBS is on FidoNet. An address ending in `;` asks
+for another, and a `/R` (return receipt) is accepted but not acted on.
+
+A message reads like this:
+
+```
+Date:  08-Nov-26 12:40 UTC
+From:  alice [72000,1]
+Subj:  Testing
+
+Hello from Mail.
+```
+
 ## What is there and what is coming
 
 | Done | Coming, in order |
@@ -143,7 +187,8 @@ BPLUS.ZIP/binary          08-Nov-26 8700         Accesses: 1
 | Forums on the message areas, with the forum command language | |
 | The CompuServe B, Quick B and B Plus protocols (`internal/xfer/cisb.go`) | B Plus resume (Tr) and file information (TI) |
 | Libraries on the file areas, with B+ downloads and uploads | |
-| | CompuServe Mail, the CB Simulator, then CIM's HMI service |
+| CompuServe Mail on the BBS's private mail | A kept address book, binary mail |
+| | The CB Simulator, then CIM's HMI service |
 
 The research behind all this, with sources, is in
 [docs/cis](https://github.com/D-Modem/bbs/tree/main/docs/cis).
