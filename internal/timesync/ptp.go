@@ -25,14 +25,14 @@ const (
 
 // PTPSettings are the [ptp] section's.
 type PTPSettings struct {
-	Address   string // the address bound ("": all), on ports 319 and 320
-	Interface string // multicast's, and hardware timestamps' ("": no multicast)
-	Master    bool   // a grandmaster ([ptp]); else only a client of ptp servers
-	Multicast bool   // sends announcements and syncs to the group on Interface
-	Unicast   bool   // grants unicast transmission to clients that ask
-	Domain    uint8
-	Priority1 uint8
-	Priority2 uint8
+	Address     string // the address bound ("": all), on ports 319 and 320
+	Interface   string // multicast's, and hardware timestamps' ("": no multicast)
+	Master      bool   // a grandmaster ([ptp]); else only a client of ptp servers
+	Multicast   bool   // sends announcements and syncs to the group on Interface
+	Unicast     bool   // grants unicast transmission to clients that ask
+	Domain      uint8
+	Priority1   uint8
+	Priority2   uint8
 	SyncLog     int8 // multicast syncs every 2^SyncLog seconds
 	AnnounceLog int8
 	MinLog      int8 // the shortest interval granted unicast clients (2^MinLog s)
@@ -71,7 +71,7 @@ type PTP struct {
 	wmu sync.Mutex // an event packet's write and the reading of its stamp
 
 	mu      sync.Mutex
-	grants  map[string]*grant      // unicast clients, by address
+	grants  map[string]*grant       // unicast clients, by address
 	clients map[string]*ptpUpstream // servers followed, by address
 	seq     [2]uint16               // announce and sync sequence numbers: one count for all
 	// (multicast and every unicast client), so one that gets both never
@@ -562,15 +562,15 @@ type ptpUpstream struct {
 	host string
 	ip   net.IP
 
-	mu       sync.Mutex
-	ann      *ptp.Announce
-	granted  time.Time // the sync grant's end
-	syncs    map[uint16]time.Time // a Sync's arrival, by sequence, till its Follow_Up
-	t1, t2   time.Time // the last sync's: when it went (TAI) and came
-	reqSeq   uint16
-	reqs     map[uint16]time.Time // a Delay_Req's sending, by sequence
-	sigSeq   uint16
-	samples  []Sample
+	mu      sync.Mutex
+	ann     *ptp.Announce
+	granted time.Time            // the sync grant's end
+	syncs   map[uint16]time.Time // a Sync's arrival, by sequence, till its Follow_Up
+	t1, t2  time.Time            // the last sync's: when it went (TAI) and came
+	reqSeq  uint16
+	reqs    map[uint16]time.Time // a Delay_Req's sending, by sequence
+	sigSeq  uint16
+	samples []Sample
 }
 
 // run asks for unicast transmission and keeps asking before it runs out.

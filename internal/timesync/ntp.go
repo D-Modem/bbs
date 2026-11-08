@@ -47,10 +47,10 @@ const precision = -20
 // NTS-KE server's keys.
 type NTPServer struct {
 	Clock  *Clock
-	Keys   ntske.Keystore      // nil: NTS-secured requests answered as plain ones
-	Refuse func(net.IP) bool   // nil: none refused
-	Rate   float64             // requests a second an address may make (0: no limit)
-	Burst  int                 // and at once
+	Keys   ntske.Keystore       // nil: NTS-secured requests answered as plain ones
+	Refuse func(net.IP) bool    // nil: none refused
+	Rate   float64              // requests a second an address may make (0: no limit)
+	Burst  int                  // and at once
 	Log    func(string, ...any) // nil: none
 
 	lim limiter

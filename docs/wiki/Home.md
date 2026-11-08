@@ -82,6 +82,7 @@ which is generated from `bbs.conf.sample`.
   for AIM and ICQ clients on the same chat, and [MRC](MRC), the chat
   network shared with other BBSes
 - [Finger and gopher](Finger-and-Gopher)
+- [Time](Time): NTP, NTS and PTP, followed and served
 
 **On the web**
 
@@ -137,6 +138,7 @@ which is generated from `bbs.conf.sample`.
 | [AIM and ICQ](AIM-and-ICQ) | the OSCAR server: AIM and ICQ clients, buddies, IMs and chat rooms |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
+| [Time](Time) | NTP, NTS and PTP: the clock following time servers, and serving time |
 | [Web forum](Web-Forum) | the message areas as a web forum |
 | [Image boards](Image-Boards) | anonymous image boards, in the style of kusaba x and 4chan |
 | [HTTP API](HTTP-API) | REST, events, WebSockets in JSON and protobuf, tokens, metrics |

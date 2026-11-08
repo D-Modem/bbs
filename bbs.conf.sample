@@ -687,6 +687,71 @@ address = 127.0.0.1:2513
 ; file areas listed and downloadable
 ;files = no
 
+; Time.  The BBS's clock can follow time servers, and the BBS can be a
+; time server itself: NTP, NTS (NTP made secure with TLS keys) and PTP.
+; With no servers it tells of the system clock (kept by chrony, ntpd ...).
+;[time]
+; servers followed: KIND HOST, by commas.  ntp HOST[:PORT], nts HOST[:PORT]
+; (its NTS-KE port, 4460 if none), ptp HOST (unicast; ports 319 and 320)
+;servers = nts time.cloudflare.com, nts nts.netnod.se, ntp pool.ntp.org
+; seconds between asking them (16 at least)
+;poll = 64
+; set the system clock (Linux; root, or CAP_SYS_TIME kept: with [general]
+; user, systemd's AmbientCapabilities=CAP_SYS_TIME).  No: the BBS keeps
+; the offset and serves corrected time, leaving the system clock alone
+;set_clock = no
+; with no servers: the stratum told (0: 3 while the kernel says the clock
+; is synchronised, else unsynchronised), and stratum 1's reference (GPS, PPS)
+;stratum = 0
+;refid = GPS
+; a PEM file NTS-KE servers' certificates are checked against ("": the system's)
+;root_cas = /etc/bbs/nts-ca.pem
+; TAI - UTC, in seconds, for PTP (37 since 2017)
+;utc_offset = 37
+
+; an NTP server (UDP).  Port 123 needs CAP_NET_BIND_SERVICE
+;[ntp]
+;address = :123
+; requests a second an address may make (0: no limit), and at once
+;rate = 2
+;burst = 16
+
+; an NTS-KE server (RFC 8915): TLS 1.3, its clients' keys and cookies for
+; [ntp], which then answers NTS-secured requests too.  The certificate is
+; read again when its file changes (a renewal)
+;[nts]
+;address = :4460
+;tls_cert = /etc/bbs/cert.pem
+;tls_key = /etc/bbs/key.pem
+; the NTP server clients are told to use ("": this one)
+;ntp_host = time.example.org
+;max_clients = 64
+;max_per_ip = 8
+
+; a PTP grandmaster (IEEE 1588, UDP ports 319 and 320, as root): two-step,
+; end to end.  Multicast to 224.0.1.129 on interface, and unicast to the
+; clients that ask (linuxptp's unicast_master_table, ptp4u's clients)
+;[ptp]
+; the address bound ("": all)
+;address =
+; multicast's interface, and hardware timestamps' ("": no multicast)
+;interface = eth0
+;multicast = yes
+;unicast = yes
+;domain = 0
+;priority1 = 128
+;priority2 = 128
+; intervals, as powers of two seconds: multicast syncs (0: 1 s) and
+; announcements (1: 2 s); the shortest a unicast client is granted (-4: 1/16 s)
+;log_sync_interval = 0
+;log_announce_interval = 1
+;log_min_interval = -4
+; unicast clients at once
+;max_clients = 256
+; software (the kernel's stamps) or hardware (the network card's: its
+; clock kept on the system's, phc2sys -s CLOCK_REALTIME -c eth0 -O 0)
+;timestamping = software
+
 ; Menus of the sysop's.  [menu main] takes the place of the built-in main
 ; menu (on 3270s too); others are reached from it.  Each item is
 ; KEY = ACTION Label: one character (not ; or #), then what it does:

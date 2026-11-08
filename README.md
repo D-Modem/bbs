@@ -34,13 +34,14 @@ Main menu
 - Networks: FidoNet and other FTNs, QWK, NNTP newsgroups, IRC, AIM and ICQ, and MRC
 - Terminals: ANSI, VT, PETSCII, RIPscrip, sixel and 3270 graphics
 - On the web: a forum, image boards, a web terminal and an HTTP API
+- Time: follows NTP, NTS and PTP servers, and serves all three
 - SQLite, PostgreSQL, MySQL or MariaDB
 
 The full list is on the [wiki's home page](https://github.com/D-Modem/bbs/wiki/Home).
 
 ## Quick start
 
-Go 1.24 or later:
+Go 1.26 or later:
 
 ```
 make                                    # or: go build ./cmd/bbs

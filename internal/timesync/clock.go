@@ -58,7 +58,7 @@ type Local struct {
 // servers it follows measure, or the system's set by it.
 type Clock struct {
 	Local    Local
-	SetClock bool                  // sets the system clock (else corrects its own reading)
+	SetClock bool                 // sets the system clock (else corrects its own reading)
 	Log      func(string, ...any) // nil: none
 
 	mu       sync.Mutex
@@ -115,6 +115,11 @@ func (c *Clock) local() Ref {
 		Updated: time.Now().Truncate(time.Minute), TimeSrc: SourceInternal, RefID: refASCII("LOCL")}
 	if c.Local.Stratum > 0 {
 		r.Synced, r.Stratum = true, uint8(c.Local.Stratum)
+		if !k.synced {
+			// the kernel's error bound is its unsynchronised 16 s: the
+			// sysop says better
+			r.RootDisp = time.Millisecond
+		}
 		if r.Stratum == 1 && c.Local.RefID != "" {
 			r.RefID = refASCII(c.Local.RefID)
 			r.TimeSrc = SourceOther

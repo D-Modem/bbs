@@ -36,6 +36,7 @@
 - [AIM and ICQ](AIM-and-ICQ)
 - [MRC](MRC)
 - [Finger and gopher](Finger-and-Gopher)
+- [Time: NTP, NTS and PTP](Time)
 - [Web forum](Web-Forum)
 - [Image boards](Image-Boards)
 - [HTTP API](HTTP-API)

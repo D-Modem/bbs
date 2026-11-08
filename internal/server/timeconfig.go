@@ -150,9 +150,9 @@ func (c *Config) timeSections(cf *config.File) error {
 				return err
 			}
 			ints := []struct {
-				key      string
+				key         string
 				def, lo, hi int
-				set      func(int)
+				set         func(int)
 			}{
 				{"domain", 0, 0, 239, func(v int) { p.Domain = uint8(v) }},
 				{"priority1", 128, 0, 255, func(v int) { p.Priority1 = uint8(v) }},
