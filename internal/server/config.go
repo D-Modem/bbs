@@ -498,6 +498,12 @@ func listener(sec *config.Section) (*Listener, error) {
 	if l.HeaderTimeout, err = sec.Seconds("header_timeout", 10, 1, 300); err != nil {
 		return nil, err
 	}
+	if l.Handoff, err = sec.Bool("handoff", false); err != nil {
+		return nil, err
+	}
+	if l.Handoff && (!l.Unix() || !l.Header || l.Kind != "raw") {
+		return nil, errors.New("handoff: needs type = raw on a unix socket, and header = yes")
+	}
 	if l.TrustUser, err = sec.Bool("trust_user", false); err != nil {
 		return nil, err
 	}

@@ -401,7 +401,12 @@ func TestAIMToIRC(t *testing.T) {
 
 	// Carol Ann, on IRC: she arrives, and IMs go both ways
 	carol := ircLogin(t, e.ircAddr, "Carol Ann")
-	if sn, info := alice.arrival(); sn != "CarolAnn" && sn != "Carol Ann" {
+	// (bob's arrival can come again first, as his session settles)
+	sn, info := alice.arrival()
+	for i := 0; sn == "bob" && i < 3; i++ {
+		sn, info = alice.arrival()
+	}
+	if sn != "CarolAnn" && sn != "Carol Ann" {
 		t.Errorf("carol arrival %q %v", sn, info)
 	}
 	alice.sendIM("Carol Ann", "<HTML>hi &amp; welcome</HTML>", false)

@@ -203,6 +203,9 @@ func main() {
 			if l.Header {
 				extra += ", header"
 			}
+			if l.Handoff {
+				extra += ", handoff"
+			}
 			if l.TrustUser {
 				extra += ", trust_user"
 			}
