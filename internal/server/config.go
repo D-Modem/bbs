@@ -28,6 +28,7 @@ import (
 	"github.com/D-Modem/bbs/internal/logo"
 	"github.com/D-Modem/bbs/internal/mrc"
 	"github.com/D-Modem/bbs/internal/nntp"
+	"github.com/D-Modem/bbs/internal/oscar"
 	"github.com/D-Modem/bbs/internal/phone"
 	"github.com/D-Modem/bbs/internal/qwk"
 	"github.com/D-Modem/bbs/internal/qwknet"
@@ -59,6 +60,7 @@ type Config struct {
 	Doors      []*door.Door
 	Finger     *finger.Settings // nil: no finger server
 	IRC        *ircd.Settings   // nil: no IRC server
+	OSCAR      *oscar.Settings  // nil: no AIM/ICQ server
 	MRC        *mrc.Settings    // nil: not on Multi Relay Chat
 	Screens    *screens.Set     // nil: no screens of the sysop's
 	ScriptsDir string           // "": no scripts
@@ -134,6 +136,9 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.ircSection(cf); err != nil {
 		return nil, err
 	}
+	if err := c.oscarSection(cf); err != nil {
+		return nil, err
+	}
 	if err := c.mrcSection(cf); err != nil {
 		return nil, err
 	}
@@ -203,7 +208,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "mrc", "menu", "strings", "http", "level", "chan":
+		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "oscar", "mrc", "menu", "strings", "http", "level", "chan":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}

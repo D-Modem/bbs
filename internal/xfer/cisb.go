@@ -209,6 +209,9 @@ type BLink struct {
 	// ahead is a packet read while waiting for an ACK: the other side's
 	// next, which ACKs ours by implication
 	ahead *BPacket
+	// unacked is a packet sent whose only ACK is the other side's next
+	// packet (TU): a NAK or silence while waiting for that resends it
+	unacked []byte
 }
 
 // NewBLink is a B link on p, as Classic B with every control byte quoted.
@@ -257,6 +260,14 @@ func (k *BLink) applyParams() {
 	var hi [4]byte
 	copy(hi[:], k.Params.Q[4:])
 	k.setQuote(k.Params.Q[:4], hi)
+}
+
+// Rest is what the link has read past the end of the protocol: the
+// other side's text after it, for a terminal going back to terminal mode.
+func (k *BLink) Rest() []byte {
+	b := append([]byte(nil), k.l.buf[k.l.r:k.l.w]...)
+	k.l.r = k.l.w
+	return b
 }
 
 // BlockSize is how much data a packet may carry.
@@ -536,6 +547,12 @@ func (k *BLink) readCM(cm byte) (BPacket, error) {
 		}
 		if errs++; errs >= 4*k.maxErrors() {
 			return BPacket{}, ErrRetries
+		}
+		if k.unacked != nil && (err != nil || ev.kind == evNAK) {
+			if err := k.l.write(k.unacked); err != nil {
+				return BPacket{}, err
+			}
+			continue
 		}
 		if err := k.l.write([]byte{bNAK}); err != nil {
 			return BPacket{}, err
@@ -835,7 +852,18 @@ func (k *BLink) SendFile(name string, binary bool, r io.Reader) (int64, error) {
 	if err != nil {
 		return n, err
 	}
-	return n, k.SendPacket('T', []byte{'C'})
+	return n, k.close()
+}
+
+// close sends TC.  Every data packet has been ACKed by then; if only the
+// TC's ACK is lost, the other side has the file and has left protocol
+// mode, so no answer is not a failure.
+func (k *BLink) close() error {
+	err := k.SendPacket('T', []byte{'C'})
+	if errors.Is(err, ErrRetries) || errors.Is(err, ErrTimeout) {
+		return nil
+	}
+	return err
 }
 
 // ReceiveFile is a host's upload: TU (binary or ASCII) names the file to
@@ -851,9 +879,12 @@ func (k *BLink) ReceiveFile(name string, binary bool, w io.Writer, max int64) (i
 		return 0, err
 	}
 	k.seq = s
+	k.unacked = k.last
+	defer func() { k.unacked = nil }()
 	var total int64
 	for {
 		p, err := k.ReadPacket()
+		k.unacked = nil
 		if err != nil {
 			return total, err
 		}
@@ -938,7 +969,7 @@ func (k *BLink) Terminal(open func(name string, binary bool) (io.Writer, error),
 		if _, err := k.sendWindow('N', r); err != nil {
 			return err
 		}
-		return k.SendPacket('T', []byte{'C'})
+		return k.close()
 	}
 	k.ack(p.Seq)
 	return ErrProtocol

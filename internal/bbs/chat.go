@@ -691,3 +691,13 @@ func (n *Node) leaveChat() {
 	}
 	n.endPage()
 }
+
+// Throttle counts a line the node sends some other way (an AIM client's
+// IM to another, given straight to it) against its flood limit:
+// ErrFlood if it has sent too much lately.
+func (n *Node) Throttle() error {
+	if n.flood() {
+		return ErrFlood
+	}
+	return nil
+}

@@ -32,6 +32,7 @@
 //	bbs [-config FILE] filearea add NAME [DESCRIPTION] [-sysop-upload]
 //	bbs [-config FILE] filearea del|list [NAME]
 //	bbs [-config FILE] filearea echo AREA TAG|-
+//	bbs [-config FILE] filearea group AREA GROUP|-
 //	bbs [-config FILE] file add AREA PATH [DESCRIPTION] [-as NAME]
 //	bbs [-config FILE] file list AREA
 //	bbs [-config FILE] file del AREA NAME
@@ -71,6 +72,7 @@ import (
 	"github.com/D-Modem/bbs/internal/mrc"
 	"github.com/D-Modem/bbs/internal/news"
 	"github.com/D-Modem/bbs/internal/nntp"
+	"github.com/D-Modem/bbs/internal/oscar"
 	"github.com/D-Modem/bbs/internal/qwknet"
 	"github.com/D-Modem/bbs/internal/script"
 	"github.com/D-Modem/bbs/internal/server"
@@ -136,6 +138,8 @@ func usage() {
   bbs [-config FILE] filearea del NAME
   bbs [-config FILE] filearea list
   bbs [-config FILE] filearea echo AREA TAG|-       make it a FidoNet file echo (- : not)
+  bbs [-config FILE] filearea group AREA GROUP|-    list it under a group: the libraries of that
+                                                  group's CompuServe forum (- : none)
   bbs [-config FILE] filearea require AREA DOWNLOAD UPLOAD
   bbs [-config FILE] file add AREA PATH [DESCRIPTION]   (as the first sysop)
   bbs [-config FILE] file list AREA
@@ -258,6 +262,9 @@ func main() {
 		}
 		if i := cfg.IRC; i != nil {
 			fmt.Printf("irc: %q, TLS %q\n", i.Address, i.TLSAddress)
+		}
+		if o := cfg.OSCAR; o != nil {
+			fmt.Printf("oscar: %q, reconnect at %q, ICQ numbers from %d\n", o.Address, o.Host, o.UINBase)
 		}
 		if cfg.Finger != nil {
 			fmt.Printf("finger: %s (online %v, users %v)\n", cfg.Finger.Address, cfg.Finger.Online, cfg.Finger.Users)
@@ -447,6 +454,19 @@ func serve(cfg *server.Config, path string) int {
 		}
 		go func() {
 			if err := is.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
+	if cfg.OSCAR != nil {
+		osrv, err := oscar.New(b, *cfg.OSCAR)
+		if err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+		go func() {
+			if err := osrv.Run(ctx); err != nil {
 				lg.Printf("%v", err)
 				stop()
 			}
@@ -985,8 +1005,27 @@ func fileAreaCmd(cfg *server.Config, args []string) {
 			if a.FileEcho != "" {
 				only += " (file echo " + a.FileEcho + ")"
 			}
+			if a.Group != "" {
+				only += " (group " + a.Group + ")"
+			}
 			fmt.Printf("%-20s %5d files %10s  %s%s\n", a.Name, a.Files, files.Size(a.Bytes), a.Description, only)
 		}
+	case "group":
+		if len(words) != 3 {
+			usage()
+		}
+		a, err := st.FileAreaByName(words[1])
+		if err != nil {
+			fatal(fmt.Errorf("%s: %w", words[1], err))
+		}
+		g := bbs.Clean(words[2], 30)
+		if g == "-" {
+			g = ""
+		}
+		if err := st.SetFileAreaGroup(a.ID, g); err != nil {
+			fatal(err)
+		}
+		fmt.Printf("%s: group %q\n", a.Name, g)
 	case "echo":
 		if len(words) != 3 {
 			usage()

@@ -162,10 +162,14 @@ func TestBTransfers(t *testing.T) {
 			if err := <-done; err != nil {
 				t.Fatal("terminal:", err)
 			}
-			if gotName != "TEST.BIN" || !gotBin || !bytes.Equal(got.Bytes(), data) {
+			// an 8-bit checksum misses about one corrupted packet in 256
+			// (a byte turned into DLE or ETX upsets the framing too), so
+			// on a noisy line only the CRCs promise the data
+			exact := c.noise == 0 || c.params != nil && c.params.CM != CheckSum
+			if gotName != "TEST.BIN" || !gotBin || exact && !bytes.Equal(got.Bytes(), data) {
 				t.Errorf("download: %q %v %d bytes, equal %v", gotName, gotBin, got.Len(), bytes.Equal(got.Bytes(), data))
 			}
-			if !bytes.Equal(up.Bytes(), data[:3333]) {
+			if exact && !bytes.Equal(up.Bytes(), data[:3333]) {
 				t.Errorf("upload: %d bytes", up.Len())
 			}
 		})
