@@ -20,6 +20,7 @@
 - [Sixel graphics](Sixel-Graphics)
 - [PETSCII and RIP](PETSCII-and-RIP)
 - [Terminal identification](Terminal-Identification)
+- [CompuServe](CompuServe)
 
 **Features**
 - [Message areas](Message-Areas)

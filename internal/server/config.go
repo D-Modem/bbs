@@ -532,6 +532,24 @@ func listener(sec *config.Section) (*Listener, error) {
 	if l.MaxPerIP, err = sec.Int("max_per_ip", 4, 0, 1000); err != nil {
 		return nil, err
 	}
+	switch l.Frontend = strings.ToLower(sec.String("frontend", "bbs")); l.Frontend {
+	case "bbs":
+		l.Frontend = ""
+	case "compuserve":
+		if l.Kind != "telnet" && l.Kind != "raw" {
+			return nil, errors.New("frontend: compuserve is for telnet and raw listeners")
+		}
+		if sec.Has("tn3270") && l.TN3270 {
+			return nil, errors.New("tn3270: not with frontend = compuserve")
+		}
+		l.TN3270 = false
+	default:
+		return nil, fmt.Errorf("frontend: %q is not bbs or compuserve", l.Frontend)
+	}
+	l.Connect = sec.String("connect", map[bool]string{true: "9600", false: ""}[l.Kind == "telnet"])
+	if sec.Has("connect") && l.Frontend == "" {
+		return nil, errors.New("connect: only for frontend = compuserve")
+	}
 	mode := sec.String("socket_mode", "0660")
 	m, err := strconv.ParseUint(mode, 8, 32)
 	if err != nil || m > 0777 {
