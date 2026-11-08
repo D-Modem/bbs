@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/D-Modem/bbs/internal/sockets"
 )
@@ -79,6 +80,11 @@ func Bind(cfg *Config) ([]sockets.Socket, error) {
 	}
 	if cfg.NNTP != nil {
 		addrs = append(addrs, cfg.NNTP.Address)
+	}
+	for _, ms := range cfg.MailServers {
+		if !strings.HasPrefix(ms.Set.Address, "/") {
+			addrs = append(addrs, ms.Set.Address)
+		}
 	}
 	if i := cfg.IRC; i != nil {
 		addrs = append(addrs, i.Address, i.TLSAddress)
