@@ -151,14 +151,6 @@ func (s *session) login() (*store.User, error) {
 			try--
 			continue
 		}
-		s.out("Password: ")
-		pw, err := s.input(false, s.b.Conf().LoginTimeout)
-		if errors.Is(err, errAbort) {
-			continue
-		}
-		if err != nil {
-			return nil, s.loginErr(err)
-		}
 		name := id.ID
 		s.byName = true
 		if n, ok := ParsePPN(id.ID); ok {
@@ -166,13 +158,29 @@ func (s *session) login() (*store.User, error) {
 				name, s.byName = u.Name, false
 			}
 		}
-		u, err := s.node.Login(name, pw)
+		var u *store.User
+		if id.Secure {
+			u, err = s.secureLogin(name)
+		} else {
+			s.out("Password: ")
+			var pw string
+			pw, err = s.input(false, s.b.Conf().LoginTimeout)
+			if errors.Is(err, errAbort) {
+				continue
+			}
+			if err != nil {
+				return nil, s.loginErr(err)
+			}
+			u, err = s.node.Login(name, pw)
+		}
 		switch {
 		case err == nil:
 			if id.Go != "" {
 				s.firstGo = id.Go
 			}
 			return u, nil
+		case errors.Is(err, bbs.ErrBadLogin) && id.Secure:
+			s.out("No.\n") // CIM's script says "Incorrect User ID or password"
 		case errors.Is(err, bbs.ErrBadLogin):
 			s.out("\n?? LOGINE - Invalid entry - try again\n")
 		case errors.Is(err, bbs.ErrLocked):

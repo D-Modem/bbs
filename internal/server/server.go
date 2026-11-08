@@ -118,6 +118,10 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}
 	for _, l := range s.Listeners {
+		if l.Frontend == "compuserve" {
+			// CIM's Secure Login needs a key made from each password
+			s.B.Store.SetKeepCIS(true)
+		}
 		if l.Kind == "ssh" {
 			if err := s.sshSetup(l); err != nil {
 				closeAll()

@@ -3,8 +3,8 @@
 A listener with `frontend = compuserve` serves a recreation of the
 CompuServe Information Service instead of the BBS's menus. It runs on the
 BBS's own users, and it aims to work with the real CompuServe software:
-terminal programs, offline readers (TAPCIS, AutoSIG, OzCIS) and, later,
-the CompuServe Information Manager (WinCIM, DOSCIM, MacCIM). Their
+terminal programs, offline readers (TAPCIS, AutoSIG, OzCIS) and the
+CompuServe Information Manager (WinCIM, DOSCIM, MacCIM). Their
 scripts look for the period's exact prompts, so the service keeps them.
 
 ```ini
@@ -41,9 +41,41 @@ Password:
   addresses get CompuServe's `?LOG` codes.
 
 After the logon the host sends `ESC I`. Terminals that know it answer
-with their identification, which shows in who's online. CIM clients
-(`AP` in their reply) are told `?LOG CAI` for now, because the graphical
-(HMI) service is not built yet.
+with their identification, which shows in who's online. A CIM client
+(`AP` in its reply) gets the graphical service instead; see below.
+
+## CIM (WinCIM)
+
+CIM clients speak HMI, a binary protocol inside B Plus packets. The
+service follows what 24high/CompuServe-Emulator recovered from WinCIM
+3.0.2: the Secure Login, the terminal-mode trade after it, the B Plus
+Transport Layer, and the HMI messages for pages. WinCIM can show the main
+menu, the menus and articles of `pages.txt`, What's New and the Table of
+Contents, and use Find. Forums, Mail and the CB are not in CIM yet; their
+pages say to use a terminal program for now.
+
+Point WinCIM at the listener over TCP. In CIS.INI, the connector's
+`CommType=WINSOCK`, `WinsockCommType=Local` and `HostIPAddress` set
+this. CompuServe's own port for that was 4144:
+
+```ini
+[listen wincim]
+type = raw
+address = :4144
+frontend = compuserve
+connect = 9600
+```
+
+**Secure Login.** CIM logs on with the Secure Login Protocol (`+` before
+the User ID), which never sends the password. The host checks it against
+a key it keeps from the password. That key is kept only while a
+`compuserve` listener runs, the next time the user logs on with their
+password or sets one. Until then a Secure Login fails with `No.`, and the
+log says why. Log on once from a terminal, or set
+`DisableSecureLogin=ON` in CIS.INI for one plain login.
+
+None of this has met a real WinCIM yet; that is the next round of
+testing.
 
 ## Commands
 
@@ -218,7 +250,7 @@ so only callers using the same key read each other.
 | Libraries on the file areas, with B+ downloads and uploads | |
 | CompuServe Mail on the BBS's private mail | A kept address book, binary mail |
 | The CB Simulator on the chat rooms | Forum conferences (CO) |
-| | CIM's HMI service |
+| CIM: Secure Login, the B Plus Transport Layer, HMI pages, menus, articles and Find | Forums, Mail, libraries and CB in CIM |
 
 The research behind all this, with sources, is in
 [docs/cis](https://github.com/D-Modem/bbs/tree/main/docs/cis).
