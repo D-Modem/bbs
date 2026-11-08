@@ -49,14 +49,22 @@ could sign on by AIM as that user, as with any AIM server.
 
 ## Buddies
 
-The buddy list holds BBS names (or ICQ numbers). A buddy is online while
-they are on the BBS by any route, and shown away when they are away on
-AIM or IRC. Their profile is the one their AIM client set, or for someone
-not on AIM their line about themselves, their location and what they are
-doing on which node. The list itself is kept on the server (AIM 5's and
-ICQ 2001's "server-stored" list) or by the client (older ones); both work.
-Permit and deny lists, "allow only buddies" and ICQ's invisible status
-hide the user and refuse their IMs, from AIM users and others alike.
+The buddy list is the user's [friends list](Chat-and-Paging#friends):
+the same list the BBS's chat and IRC show, so a buddy is always a BBS
+user (by name, or ICQ number). Adding anyone else is refused. A friend
+added by IRC or the BBS comes to an AIM client that is on at once, in
+their group (`Friends` if they have none); one added or removed on AIM
+is on or off the list everywhere. Groups and aliases are kept with the
+friends list; the list's other items (permit and deny entries,
+preferences) as the client sent them. A client that keeps its own list
+(AIM 3 and 4) has its buddies put on the friends list as it sends them.
+
+A buddy is online while they are on the BBS by any route, and shown away
+when they are away on AIM or IRC. Their profile is the one their AIM
+client set, or for someone not on AIM their line about themselves, their
+location and what they are doing on which node. Permit and deny lists,
+"allow only buddies" and ICQ's invisible status hide the user and refuse
+their IMs, from AIM users and others alike.
 
 ## IMs
 
@@ -64,9 +72,12 @@ An IM to a BBS user reaches every node they are on: an AIM or ICQ client
 gets it as an IM (from AIM to AIM with its fonts and colours), an IRC client
 as a `PRIVMSG`, a caller on a terminal as a message line. What they send
 back comes as an IM from them. Typing notices, file transfers and direct
-connections pass between AIM clients. An IM to someone not online is
-refused as AIM refused them ("not logged on"); there are no offline
-messages. The BBS's notices (new mail, a page for the sysop) come as IMs
+connections pass between AIM clients. IMs are [kept](Chat-and-Paging#private-messages).
+An IM to a BBS user who isn't on is kept for them, and the sender told so
+(once) by `OnlineHost`; they get it when they next sign on: on AIM as an
+IM marked with when it was sent, on ICQ as an offline message, on IRC or
+a terminal as a message line. An IM to a name that is no BBS user's is
+refused ("not logged on"). The BBS's notices (new mail, a page for the sysop) come as IMs
 from `OnlineHost`.
 
 ## Chat rooms

@@ -35,6 +35,7 @@ type Event struct {
 	Node int
 	Text string
 	Time time.Time
+	Kept bool // a private message kept while its caller was away
 }
 
 // String is the event as a line for the caller.
@@ -49,6 +50,9 @@ func (e Event) String() string {
 	case Left:
 		return "<- " + e.From + " left"
 	case Private:
+		if e.Kept {
+			return fmt.Sprintf("Message from %s (%s, while you were away): %s", e.From, e.Time.Format("Jan 2 15:04"), e.Text)
+		}
 		return fmt.Sprintf("Message from %s (node %d): %s", e.From, e.Node, e.Text)
 	case Mail:
 		return "New mail from " + e.From + ": " + e.Text

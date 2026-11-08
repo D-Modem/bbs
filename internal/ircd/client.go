@@ -427,6 +427,7 @@ func (c *client) login() bool {
 		c.send(nil, asked+"!irc@"+c.s.S.ServerName, "NICK", c.nick)
 	}
 	c.welcome()
+	n.DeliverKept() // messages kept while they were away, with their times
 	return true
 }
 

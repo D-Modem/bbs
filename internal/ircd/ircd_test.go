@@ -464,3 +464,64 @@ func TestRelayedLines(t *testing.T) {
 	e.b.RelayEvent(bbs.Event{Kind: bbs.Notice, Room: "mrc-lobby", Text: "- dave has arrived."})
 	c.expect(":irc.test NOTICE #mrc-lobby :- dave has arrived.")
 }
+
+// TestKeptMessages: a PRIVMSG to a user not on is kept (301 says so), and
+// given them when they come, by IRC (its time as server-time) or the
+// terminal; a terminal's /msg by name, and the conversation read back.
+func TestKeptMessages(t *testing.T) {
+	e := start(t)
+	a := e.dial(t)
+	a.login("alice", "alice")
+	a.send("PRIVMSG bob :are you there?")
+	if l := a.expect(" 301 "); !strings.Contains(l, "bob") {
+		t.Errorf("301 %q", l)
+	}
+	a.send("PRIVMSG nobody :hello")
+	a.expect(" 401 ")
+
+	// bob comes on a terminal, then talks back by /msg and his name
+	bob := e.caller(t, "bob")
+	bob.DeliverKept()
+	waitEvent(t, bob, "Message from alice")
+	if out, _, err := bob.ChatCommand("/msg alice yes, here"); err != nil || len(out) != 1 || out[0] != "Sent to alice." {
+		t.Errorf("/msg %q %v", out, err)
+	}
+	a.expect("PRIVMSG alice :yes, here")
+	if out, _, _ := bob.ChatCommand("/history alice"); len(out) != 3 || !strings.HasSuffix(out[1], "<alice> are you there?") {
+		t.Errorf("/history %q", out)
+	}
+
+	// Carol Ann, on IRC later: a line kept for her has its time
+	a.send("PRIVMSG Carol_Ann :for later")
+	a.expect(" 301 ")
+	c := e.dial(t)
+	c.send("CAP REQ :server-time", "CAP END")
+	c.login("Carol Ann", "Carol_Ann")
+	if l := c.expect("PRIVMSG Carol_Ann :for later"); !strings.HasPrefix(l, "@time=") {
+		t.Errorf("kept line %q", l)
+	}
+}
+
+// TestFriends: BBSServ FRIENDS adds, lists (who is on) and removes; the
+// terminal's /friends shows the same list.
+func TestFriends(t *testing.T) {
+	e := start(t)
+	a := e.dial(t)
+	a.login("alice", "alice")
+	a.send("PRIVMSG BBSServ :FRIENDS ADD bob")
+	a.expect("bob is on your friends list")
+	a.send("PRIVMSG BBSServ :FRIENDS ADD nobody")
+	a.expect("There is no user of that name")
+	e.caller(t, "bob")
+	a.send("PRIVMSG BBSServ :FRIENDS")
+	a.expect("bob  on (telnet)")
+	n := e.caller(t, "alice")
+	if out, _, _ := n.ChatCommand("/friends"); len(out) != 2 || !strings.Contains(out[1], "bob") {
+		t.Errorf("/friends %q", out)
+	}
+	a.send("PRIVMSG BBSServ :FRIENDS DEL bob")
+	a.expect("bob is off your friends list")
+	if out, _, _ := n.ChatCommand("/friends"); out[0] != "Your friends list is empty." {
+		t.Errorf("/friends after %q", out)
+	}
+}
