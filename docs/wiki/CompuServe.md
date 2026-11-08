@@ -179,6 +179,35 @@ Subj:  Testing
 Hello from Mail.
 ```
 
+## CB Simulator
+
+`GO CB` enters the CB Simulator. Its channels are the BBS's chat rooms
+`cb-1` to `cb-36`, so callers in the BBS's own chat, or on IRC, can join a
+channel too. A CB caller picks a handle, which can't be another member's
+name, and a channel. After that, whatever they type is said on that
+channel. A line from the tuned channel shows as `(Handle) text`, and a
+line from a monitored channel shows as `(17,Handle) text`. Others see
+the handle, and the BBS's other chat programs see the caller's name.
+
+| Command | Does |
+|---|---|
+| `/TUN n` | tune to channel n (1-36) |
+| `/MON 1,4`, `/UNM 1,4` | listen to other channels too, or stop |
+| `/STA` | how many are on each channel |
+| `/UST [n]` | who is on CB: job, User ID, channel (`17s` scrambled, `Tlk` talking), node, handle |
+| `/WHO` | the User ID of the last talker |
+| `/HAN name` | change your handle |
+| `/SCR key`, `/SMC key`, `/XCL key`, `/UNS` | scramble what you send and unscramble what you get, one of the two, or neither |
+| `/SQU handle` | squelch a handle (again to unsquelch) |
+| `/TALK job` | talk with one caller alone (`/EXIT` back to the channel) |
+| `/ROLL [3D6]` | roll dice for the channel |
+| `/TIM`, `/JOB`, `/HELP` | the time, your job number (the BBS node), the commands |
+| `/EXI`, `/OFF` | leave CB, or log off |
+
+Scrambling works the way CompuServe's did. Everything you send goes out
+permuted by the key, and everything you receive is unpermuted with it,
+so only callers using the same key read each other.
+
 ## What is there and what is coming
 
 | Done | Coming, in order |
@@ -188,7 +217,8 @@ Hello from Mail.
 | The CompuServe B, Quick B and B Plus protocols (`internal/xfer/cisb.go`) | B Plus resume (Tr) and file information (TI) |
 | Libraries on the file areas, with B+ downloads and uploads | |
 | CompuServe Mail on the BBS's private mail | A kept address book, binary mail |
-| | The CB Simulator, then CIM's HMI service |
+| The CB Simulator on the chat rooms | Forum conferences (CO) |
+| | CIM's HMI service |
 
 The research behind all this, with sources, is in
 [docs/cis](https://github.com/D-Modem/bbs/tree/main/docs/cis).
