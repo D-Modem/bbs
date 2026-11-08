@@ -75,6 +75,7 @@ and delete any message. For newsgroups, see
 bbs filearea list
 bbs filearea add NAME "DESCRIPTION" [-sysop-upload]
 bbs filearea del NAME
+bbs filearea group NAME GROUP|-          # a CompuServe forum's library (- : none)
 bbs file add AREA PATH ["DESCRIPTION"]   # as the first sysop
 bbs file list AREA
 bbs file del AREA NAME

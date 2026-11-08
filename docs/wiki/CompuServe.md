@@ -101,7 +101,39 @@ Fm: sysop 72000,2
 To: alice 72000,1
 ```
 
-Membership (JOIN), the libraries and conferencing are not there yet.
+Membership (JOIN) and conferencing are not there yet.
+
+## Libraries
+
+A forum's libraries are the file areas in its group, numbered from 0 like
+its sections. File areas in no group are the libraries of the forum named
+after the BBS. Put a file area in a group with
+`bbs filearea group AREA GROUP`.
+
+`LIB n` from `Forum !` opens a library, at `LIB !`:
+
+| Command | Does |
+|---|---|
+| `DIR [name] [/DES] [KEY:x] [AGE:n]` | the files, newest first; with `/DES` or a name, their title, keywords and description |
+| `BRO ...` | a file at a time, with a disposition menu |
+| `SCA [/DES] ...` | a line or two each (`NAME/Bin  Bytes: n`) |
+| `DOW name [/PROTO:B\|QB\|XMODEM\|KERMIT\|CAPTURE]` | download; without `/PROTO:`, CompuServe's protocol menu |
+| `UPL name [/PROTO:...] [/TYPE:ASC\|BIN]` | upload, then the title, keywords and description (465 characters at most) |
+| `LIB n`, `M` | another library; back to the forum |
+
+The B and Quick B choices run the B Plus engine. The host sends ENQ, and
+the terminal's answer decides between Classic B, Quick B and B Plus.
+XMODEM and Kermit print CompuServe's start message and wait for a CR when
+the transfer is complete. Downloads count against the BBS's daily limits
+and ratios, the same as on the BBS itself. Entries look like this:
+
+```
+[72000,2]
+BPLUS.ZIP/binary          08-Nov-26 8700         Accesses: 1
+
+    Title   : B Plus for everyone
+    Keywords: BPLUS PROTOCOL
+```
 
 ## What is there and what is coming
 
@@ -109,7 +141,8 @@ Membership (JOIN), the libraries and conferencing are not there yet.
 |---|---|
 | The logon, `ESC I`, the menus and articles (`internal/cis/pages.txt`), GO, FIND, SET | Forum JOIN and member options |
 | Forums on the message areas, with the forum command language | |
-| The CompuServe B, Quick B and B Plus protocols (`internal/xfer/cisb.go`) | Libraries on the file areas, with B+ downloads |
+| The CompuServe B, Quick B and B Plus protocols (`internal/xfer/cisb.go`) | B Plus resume (Tr) and file information (TI) |
+| Libraries on the file areas, with B+ downloads and uploads | |
 | | CompuServe Mail, the CB Simulator, then CIM's HMI service |
 
 The research behind all this, with sources, is in
