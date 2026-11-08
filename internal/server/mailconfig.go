@@ -173,6 +173,15 @@ func mailServer(s *config.Section, kind, addr, tls, certFile, keyFile string) (*
 		if ms.Checks, err = s.Bool("checks", true); err != nil {
 			return nil, err
 		}
+		for _, l := range strings.Split(s.String("dnsbl", ""), ",") {
+			if l = strings.ToLower(strings.Trim(strings.TrimSpace(l), ".")); l == "" {
+				continue
+			}
+			if !news.ValidMessageID("<x@"+l+">") || !strings.Contains(l, ".") {
+				return nil, fmt.Errorf("dnsbl: %q is not a domain, like zen.spamhaus.org", l)
+			}
+			set.DNSBL = append(set.DNSBL, l)
+		}
 	}
 	return ms, nil
 }

@@ -393,6 +393,7 @@ mail from the internet: on port 25, named by the domain's MX record. checks = ye
 | `address` |  |  | See the section above. Examples: `:25`. |
 | `tls` |  |  | See the section above. Examples: `optional`. |
 | `checks` |  |  | See the section above. Examples: `yes`. |
+| `dnsbl` |  |  | DNS blocklists the sending address is looked up in (none by default). A listed sender is refused at MAIL FROM (554, with the list's reason); a list that does not answer refuses no one. Spamhaus refuses queries through public resolvers (8.8.8.8, 1.1.1.1) and wants a paid feed for heavy or commercial use: run a resolver of your own (unbound) for it. Examples: `zen.spamhaus.org, bl.spamcop.net`. |
 
 
 ## `[lmtp]`

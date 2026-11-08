@@ -31,6 +31,7 @@ type fakeDNS struct {
 	mu  sync.Mutex
 	txt map[string][]string
 	mx  map[string][]*net.MX
+	bl  map[string]string // DNSBL query names listed: their address
 }
 
 func (d *fakeDNS) LookupTXT(ctx context.Context, name string) ([]string, error) {
@@ -52,6 +53,14 @@ func (d *fakeDNS) LookupMX(ctx context.Context, name string) ([]*net.MX, error) 
 }
 
 func (d *fakeDNS) LookupIPAddr(ctx context.Context, host string) ([]net.IPAddr, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if a, ok := d.bl[host]; ok {
+		return []net.IPAddr{{IP: net.ParseIP(a)}}, nil
+	}
+	if strings.HasSuffix(host, ".bl.test") {
+		return nil, &net.DNSError{Err: "no such host", Name: host, IsNotFound: true}
+	}
 	return []net.IPAddr{{IP: net.ParseIP("127.0.0.1")}}, nil
 }
 
@@ -96,6 +105,9 @@ func newSite(t *testing.T, domain string, dns *fakeDNS, users []string, kinds ..
 	var wg sync.WaitGroup
 	for _, k := range kinds {
 		set := ServerSettings{Address: "127.0.0.1:0", TLS: TLSNo, MaxClients: 10, MaxPerIP: 10, IdleTimeout: time.Minute}
+		if k == MX {
+			set.DNSBL = []string{"bl.test"}
+		}
 		var run func(context.Context) error
 		var addr net.Addr
 		switch k {

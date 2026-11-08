@@ -32,6 +32,7 @@ type ServerSettings struct {
 	MaxClients  int
 	MaxPerIP    int
 	IdleTimeout time.Duration
+	DNSBL       []string // [mx]: DNS blocklists the sending IP is looked up in
 }
 
 // tlsConfig is a server's certificate, if TLS is on.

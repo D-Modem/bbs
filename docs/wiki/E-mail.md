@@ -132,6 +132,41 @@ checks SPF, DKIM and DMARC, and adds an `Authentication-Results` header. A
 mail is refused when it fails a DMARC policy of `p=reject`, or, for a domain
 with no DMARC record, when SPF fails and no signature of that domain holds.
 
+### Spam: DNS blocklists
+
+A DNSBL is a list of addresses known to send spam, asked by DNS. `[mx]
+dnsbl` names the lists to ask; none are asked unless it is set:
+
+```
+[mx]
+address = :25
+dnsbl = zen.spamhaus.org, bl.spamcop.net
+```
+
+The connecting address is looked up in every list at once, at the first
+`MAIL FROM`. If any list has it, the mail is refused with `554 5.7.1` and
+the list's reason (its TXT record, often a link where the sender can ask to
+be taken off), and the refusal is logged. A list that does not answer in
+ten seconds, or answers with an error, refuses no one: mail is not lost
+because a list is down. Addresses on this machine and private networks are
+never looked up, and nor are users sending through `[smtp]`, who log in:
+a user on a listed home connection can still send.
+
+Spamhaus answers nothing useful to queries through public resolvers
+(8.8.8.8, 1.1.1.1, a cloud provider's): the BBS logs `refused the query`
+when that happens. Run a resolver of your own (unbound, or the system's
+with no forwarders) on the mail host, and see Spamhaus's terms: heavy or
+commercial use needs their paid feed. Lists to consider: `zen.spamhaus.org`
+(Spamhaus SBL, XBL and PBL in one), `bl.spamcop.net`, `b.barracudacentral.org`
+(free, after registering the resolver's address with them).
+
+DNSBLs only look at the sending address. SPF, DKIM and DMARC (above) check
+that mail claiming a domain comes from it. Together they keep out most
+spam; for content filtering (SpamAssassin, rspamd) put Postfix in front
+and hand mail in by LMTP, below.
+
+### LMTP
+
 If another mail server already takes the domain's mail (Postfix, with its
 own spam filtering), it can hand mail to the BBS by LMTP instead:
 

@@ -241,7 +241,11 @@ func main() {
 			}
 			fmt.Printf("mail: @%s, host %s, out %s, %s\n", m.Domain, m.Hostname, out, dk)
 			for _, ms := range cfg.MailServers {
-				fmt.Printf("%s: %s, tls %s\n", ms.Kind, ms.Set.Address, ms.Set.TLS)
+				fmt.Printf("%s: %s, tls %s", ms.Kind, ms.Set.Address, ms.Set.TLS)
+				if len(ms.Set.DNSBL) > 0 {
+					fmt.Printf(", dnsbl %s", strings.Join(ms.Set.DNSBL, ", "))
+				}
+				fmt.Println()
 			}
 		}
 		if f := cfg.Fido; f != nil {

@@ -88,6 +88,7 @@ type smtpSession struct {
 	from  string
 	rcpts []string
 	local []*store.User
+	bl    bool // the blocklists asked
 }
 
 func smtpErr(code int, enh smtp.EnhancedCode, msg string) *smtp.SMTPError {
@@ -152,6 +153,18 @@ func (ss *smtpSession) Mail(from string, opts *smtp.MailOptions) error {
 		}
 		if from != "" && !strings.EqualFold(from, ss.x.svc.Address(ss.user)) {
 			return smtpErr(553, smtp.EnhancedCode{5, 7, 1}, "Send from your own address, "+ss.x.svc.Address(ss.user))
+		}
+	}
+	if ss.x.kind == MX && len(ss.x.set.DNSBL) > 0 && !ss.bl {
+		ss.bl = true
+		ip := net.ParseIP(hostOf(ss.c.Conn().RemoteAddr()))
+		if list, why := ss.x.svc.listedBy(ip, ss.x.set.DNSBL); list != "" {
+			ss.x.svc.B.Log.Printf("%s: refused: %s is listed by %s %s", ss.who, ip, list, why)
+			msg := fmt.Sprintf("%s is listed by %s", ip, list)
+			if why != "" {
+				msg += ": " + printable(why)
+			}
+			return smtpErr(554, smtp.EnhancedCode{5, 7, 1}, msg)
 		}
 	}
 	ss.from = from
