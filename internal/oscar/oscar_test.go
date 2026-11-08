@@ -402,14 +402,13 @@ func TestAIMToIRC(t *testing.T) {
 
 	// Carol Ann, on IRC: she arrives, and IMs go both ways
 	carol := ircLogin(t, e.ircAddr, "Carol Ann")
-	for i := 0; ; i++ { // (bob's state may be told again first)
-		sn, _ := alice.arrival()
-		if sn == "CarolAnn" || sn == "Carol Ann" {
-			break
-		}
-		if sn != "bob" || i > 3 {
-			t.Fatalf("carol arrival %q", sn)
-		}
+	// (bob's arrival can come again first, as his session settles)
+	sn, info := alice.arrival()
+	for i := 0; sn == "bob" && i < 3; i++ {
+		sn, info = alice.arrival()
+	}
+	if sn != "CarolAnn" && sn != "Carol Ann" {
+		t.Errorf("carol arrival %q %v", sn, info)
 	}
 	alice.sendIM("Carol Ann", "<HTML>hi &amp; welcome</HTML>", false)
 	if l := carol.expect(" PRIVMSG Carol_Ann "); !strings.Contains(l, ":alice!") || !strings.HasSuffix(strings.TrimSpace(l), ":hi & welcome") {

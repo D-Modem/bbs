@@ -12,13 +12,19 @@ var errRelog = errors.New("cis: LOG")
 // ascii is the terminal service, from the banner to the logoff.
 func (s *session) ascii() error {
 	s.banner()
-	first := s.pages.Get("TOP")
-	if s.firstGo != "" {
-		if p := s.pages.Get(s.firstGo); p != nil {
-			first = p
+	top := s.pages.Get("TOP")
+	switch p := s.pages.Get(s.firstGo); {
+	case s.firstGo == "" || !s.known(s.firstGo):
+		s.show(top)
+	case p != nil && p.ID != "MAIL" && p.ID != "CB":
+		s.show(p)
+	default:
+		// /GO:word to a forum or Mail: in it first, TOP when it is left
+		s.page, s.stack, s.menus = top, []*Page{top}, []*Page{top}
+		if err := s.goWord(s.firstGo); err != nil {
+			return err
 		}
 	}
-	s.show(first)
 	for {
 		line, err := s.prompt(s.promptFor())
 		if errors.Is(err, errAbort) {
@@ -156,7 +162,14 @@ func (s *session) goWord(word string) error {
 	if f := s.forum(word); f != nil && s.pages.Get(word) == nil {
 		return s.enterForum(f)
 	}
-	s.goTo(s.pages.Get(word))
+	p := s.pages.Get(word)
+	if p != nil && p.ID == "MAIL" {
+		return s.enterMail()
+	}
+	if p != nil && p.ID == "CB" {
+		return s.enterCB()
+	}
+	s.goTo(p)
 	return nil
 }
 

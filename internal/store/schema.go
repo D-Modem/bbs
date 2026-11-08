@@ -155,7 +155,8 @@ CREATE TABLE IF NOT EXISTS file_areas (
 	sysop_upload {bool} NOT NULL DEFAULT FALSE,
 	download_req {str} NOT NULL DEFAULT '',
 	upload_req   {str} NOT NULL DEFAULT '',
-	fileecho     {key}
+	fileecho     {key},
+	grp          {str} NOT NULL DEFAULT ''
 )`, `
 CREATE TABLE IF NOT EXISTS files (
 	id          {id},
@@ -225,6 +226,11 @@ CREATE TABLE IF NOT EXISTS ssh_keys (
 	comment     {str} NOT NULL DEFAULT '',
 	created     {int} NOT NULL,
 	last_used   {int} NOT NULL DEFAULT 0
+)`, `
+CREATE TABLE IF NOT EXISTS cis_keys (
+	user_id  {int} NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+	k        {blob} NOT NULL,
+	bound    {str} NOT NULL
 )`, `
 CREATE TABLE IF NOT EXISTS oscar_keys (
 	user_id  {int} NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -418,6 +424,7 @@ var added = []struct{ table, column, decl string }{
 	{"users", "alias", "{str} NOT NULL DEFAULT ''"},
 	{"users", "signature", "{str} NOT NULL DEFAULT ''"},
 	{"areas", "grp", "{str} NOT NULL DEFAULT ''"},
+	{"file_areas", "grp", "{str} NOT NULL DEFAULT ''"},
 	{"areas", "aliases", "{bool} NOT NULL DEFAULT FALSE"},
 	{"areas", "max_msgs", "{int} NOT NULL DEFAULT 0"},
 	{"areas", "max_days", "{int} NOT NULL DEFAULT 0"},

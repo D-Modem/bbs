@@ -56,9 +56,19 @@
  areas, a forum for each group of them, with the forum command
  language (REA, SCA, BRO, POST, OPT).
 
- On their way, in this order: forum libraries with the CompuServe B
- and B Plus protocols, CompuServe Mail, the CB Simulator, and the
- CompuServe Information Manager (CIM) graphical service.
+ Each forum's libraries (LIB) are the BBS's file areas, with
+ downloads and uploads by the CompuServe B and B Plus protocols,
+ XMODEM and Kermit.
+
+ CompuServe Mail (GO MAIL) is the BBS's private mail, in menu,
+ prompt or command mode (SET), with downloads and uploads of mail by
+ the B protocols.  Send to a name, a User ID, or a FidoNet address.
+
+ The CB Simulator (GO CB) is on the BBS's chat rooms: channel 1 is
+ the room cb-1, and so on to 36.  /HELP there lists its commands.
+
+ On its way: the CompuServe Information Manager (CIM) graphical
+ service.
 
 :RATES CHARGES BILLING NEWBIL
 =CompuServe
@@ -128,18 +138,17 @@
  3 CB Simulator > CB
  4 Member Directory > DIRECTORY
 
-:MAIL EASY EASYPLEX
+:MAIL EASY EASYPLEX MAILRATES
 =CompuServe Mail
- CompuServe Mail is on its way.  Until then, read and send your mail
- on the BBS itself.
+ (Going here enters CompuServe Mail, on the BBS's private mail.)
 
 :FORUMS SIGS
 =CompuServe
  (This menu is made from the BBS's message areas when shown.)
 
-:CB CB-1 CHAT
+:CB CB-1 CHAT CBS
 =CB Simulator
- The CB Simulator is on its way, on the BBS's chat rooms.
+ (Going here enters the CB Simulator, on the BBS's chat rooms.)
 
 :DIRECTORY
 =CompuServe

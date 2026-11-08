@@ -18,6 +18,7 @@ type Forum struct {
 	Go       string // its GO word
 	Name     string // "Amiga Tech Forum"
 	Sections []*store.Area
+	Libs     []*store.FileArea // its libraries: the file areas of its group
 }
 
 // maxSections is how many sections a forum has at most.
@@ -43,6 +44,21 @@ func (s *session) forums() ([]*Forum, error) {
 		}
 		byGroup[g] = append(byGroup[g], a)
 	}
+	libs := map[string][]*store.FileArea{}
+	if s.b.Files != nil {
+		fas, err := s.b.Store.FileAreas()
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range fas {
+			if _, ok := byGroup[a.Group]; !ok {
+				if _, ok := libs[a.Group]; !ok {
+					groups = append(groups, a.Group)
+				}
+			}
+			libs[a.Group] = append(libs[a.Group], a)
+		}
+	}
 	var out []*Forum
 	used := map[string]bool{}
 	for _, g := range groups {
@@ -50,13 +66,13 @@ func (s *session) forums() ([]*Forum, error) {
 		if name == "" {
 			name = s.b.Conf().Name
 		}
-		as := byGroup[g]
-		for part := 0; len(as) > 0; part++ {
-			n := min(len(as), maxSections)
-			f := &Forum{Name: forumName(name, part), Sections: as[:n]}
+		as, ls := byGroup[g], libs[g]
+		for part := 0; len(as) > 0 || len(ls) > 0; part++ {
+			n, k := min(len(as), maxSections), min(len(ls), maxSections)
+			f := &Forum{Name: forumName(name, part), Sections: as[:n], Libs: ls[:k]}
 			f.Go = goWord(name, part, used)
 			out = append(out, f)
-			as = as[n:]
+			as, ls = as[n:], ls[k:]
 		}
 	}
 	return out, nil
@@ -267,8 +283,16 @@ func (s *session) forumCommands(st *forumState, line string) (func() error, erro
 			s.sections(st)
 		case is(verb, "NEW", 2):
 			s.newCounts(st)
-		case is(verb, "LIBRARY", 3) || is(verb, "DL", 2):
-			s.out("The libraries of this forum are not open yet.\n")
+		case is(verb, "LIBRARY", 3) || strings.HasPrefix(verb, "DL") || strings.HasPrefix(verb, "LIB"):
+			// LIB 3, LIB3, DL3; the rest of the line is the library's
+			n := strings.TrimLeft(verb, "LIBRARYD")
+			if n == "" {
+				n, arg, _ = strings.Cut(arg, " ")
+			}
+			if leave, err := s.library(st, strings.TrimSpace(n), cmds[i+1:]); leave != nil || err != nil {
+				return leave, err
+			}
+			i = len(cmds)
 		case is(verb, "CONFERENCE", 2):
 			s.out("Conferencing is not open yet.\n")
 		case is(verb, "HELP", 1) || verb == "?":

@@ -1,11 +1,17 @@
 package server
 
 import (
+	"bytes"
+	"io"
+	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/ui3270"
+	"github.com/D-Modem/bbs/internal/xfer"
 )
 
 // cisLogin logs a user on to the CompuServe listener, to the TOP menu.
@@ -116,4 +122,108 @@ func TestCompuServeForums(t *testing.T) {
 	d.send("OFF\r")
 	d.expect("Exiting at ")
 	d.expect("Thank you for using CompuServe!")
+}
+
+// TestCompuServeLibraries: a forum's library, its files listed the
+// period's way, one downloaded by B Plus and one uploaded by Classic B.
+func TestCompuServeLibraries(t *testing.T) {
+	data := bytes.Repeat([]byte("CompuServe B Plus test data\r\n"), 300)
+	e := startFull(t, ui3270.Graphics{}, nil, func(b *bbs.BBS, dir string) {
+		a, err := b.Store.FileAreaByName("Uploads")
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := filepath.Join(dir, "bplus.zip")
+		if err := os.WriteFile(p, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := b.Files.Put(a, p, "BPLUS.ZIP", "B Plus for everyone", "Keywords: BPLUS PROTOCOL\nThe protocol, in Go.", "sysop", ""); err != nil {
+			t.Fatal(err)
+		}
+	}, cisListener())
+
+	d := cisLogin(e, "72000,1", "alicepass1")
+	d.send("GO TESTBBS\r")
+	d.expect("Forum !")
+	d.send("LIB 0;DIR /DES\r")
+	d.expect("BPLUS.ZIP/binary ")
+	d.expect("Accesses: 0\r\n")
+	d.expect("    Title   : B Plus for everyone\r\n    Keywords: BPLUS PROTOCOL\r\n\r\n    The protocol, in Go.\r\n")
+	d.expect("LIB !")
+	d.send("SCA\r")
+	d.expect("BPLUS.ZIP/Bin  Bytes: 8700\r\n  Title   : B Plus for everyone\r\n")
+	d.expect("LIB !")
+	d.send("DOW BPLUS.ZIP /PROTO:B\r")
+	d.expect("DOW BPLUS.ZIP /PROTO:B\r\n")
+	term := xfer.NewBLink(d.port())
+	if err := term.AnswerENQ(&xfer.BParams{WS: 1, WR: 1, BS: 8, CM: xfer.CheckCRC16}); err != nil {
+		t.Fatal(err)
+	}
+	var got bytes.Buffer
+	var name string
+	if err := term.Terminal(func(n string, bin bool) (io.Writer, error) { name = n; return &got, nil }, nil); err != nil {
+		t.Fatal(err)
+	}
+	d.got = term.Rest()
+	if name != "BPLUS.ZIP" || !bytes.Equal(got.Bytes(), data) {
+		t.Errorf("downloaded %q, %d bytes", name, got.Len())
+	}
+	d.expect("LIB !")
+	d.send("DIR BPLUS.ZIP\r")
+	d.expect("Accesses: 1\r\n")
+	d.expect("LIB !")
+
+	d.send("UPL NOTES.TXT /PROTO:B /TYPE:ASC\r")
+	d.expect("/TYPE:ASC\r\n")
+	term = xfer.NewBLink(d.port())
+	if err := term.AnswerENQ(nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := term.Terminal(nil, func(n string) (io.Reader, error) {
+		if n != "NOTES.TXT" {
+			t.Errorf("asked for %q", n)
+		}
+		return strings.NewReader("my notes\r\n"), nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	d.got = term.Rest()
+	d.expect("Title: ")
+	d.send("My notes\r")
+	d.expect("Keywords: ")
+	d.send("notes test\r")
+	d.expect("Enter /EX to exit EDIT")
+	d.send("Notes I took.\r/ex\r")
+	d.expect("Is this okay (Y or N)? ")
+	d.send("y\r")
+	d.expect("File NOTES.TXT stored in library")
+	d.expect("LIB !")
+	d.send("SCA /DES\r")
+	d.expect("NOTES.TXT  Bytes: 10\r\n  Title   : My notes\r\n  Keywords: NOTES TEST\r\n")
+	d.send("M\r")
+	d.expect("Forum !")
+	d.send("OFF\r")
+	d.expect("Thank you for using CompuServe!")
+}
+
+// port is the dialog's connection for a transfer protocol, starting with
+// what the dialog has read and not yet looked at.
+func (d *dialog) port() xfer.Port {
+	p := &prefixed{Conn: d.c, pre: d.got}
+	d.got = nil
+	return p
+}
+
+type prefixed struct {
+	net.Conn
+	pre []byte
+}
+
+func (p *prefixed) Read(b []byte) (int, error) {
+	if len(p.pre) > 0 {
+		n := copy(b, p.pre)
+		p.pre = p.pre[n:]
+		return n, nil
+	}
+	return p.Conn.Read(b)
 }

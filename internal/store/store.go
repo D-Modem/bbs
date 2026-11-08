@@ -117,6 +117,8 @@ type Store struct {
 	dummy []byte
 	// keepOSCAR: passwords set or checked keep their AIM digests (oscar.go)
 	keepOSCAR atomic.Bool
+	// keepCIS: and their CompuServe Secure Login keys (cis.go)
+	keepCIS atomic.Bool
 }
 
 // Open opens (and makes, if need be) the database at addr: a file's path
@@ -253,6 +255,7 @@ func (s *Store) CreateUser(name, password, location string, sysop bool) (*User, 
 	}
 	if password != "" {
 		s.KeepOSCARKeys(id, password)
+		s.KeepCISKey(id, password)
 	}
 	return s.UserByID(id)
 }
@@ -285,6 +288,7 @@ func (s *Store) CheckPassword(name, pw string) (*User, error) {
 		return nil, ErrNotFound
 	}
 	s.KeepOSCARKeys(u.ID, pw) // best effort: the login stands without them
+	s.KeepCISKey(u.ID, pw)
 	return u, nil
 }
 
@@ -295,6 +299,9 @@ func (s *Store) SetPassword(id int64, pw string) error {
 		return err
 	}
 	if err := s.exec1(`UPDATE users SET password = ? WHERE id = ?`, h, id); err != nil {
+		return err
+	}
+	if err := s.KeepCISKey(id, pw); err != nil {
 		return err
 	}
 	return s.KeepOSCARKeys(id, pw)
@@ -681,6 +688,7 @@ type FileArea struct {
 	DownloadReq string // the access requirement to download ("": anyone)
 	UploadReq   string // and to upload
 	FileEcho    string // its FidoNet file echo's tag ("": not one)
+	Group       string // the group it is listed under ("": none): a CompuServe forum's libraries
 	Files       int
 	Bytes       int64
 }
@@ -727,7 +735,7 @@ func (s *Store) DeleteFileArea(id int64) error {
 	return s.exec1(`DELETE FROM file_areas WHERE id = ?`, id)
 }
 
-const fileAreaQuery = `SELECT a.id, a.name, a.description, a.sysop_upload, a.download_req, a.upload_req, COALESCE(a.fileecho, ''),
+const fileAreaQuery = `SELECT a.id, a.name, a.description, a.sysop_upload, a.download_req, a.upload_req, COALESCE(a.fileecho, ''), a.grp,
 	(SELECT COUNT(*) FROM files f WHERE f.area_id = a.id),
 	(SELECT COALESCE(SUM(f.size), 0) FROM files f WHERE f.area_id = a.id)
 	FROM file_areas a`
@@ -736,7 +744,7 @@ const fileAreaQuery = `SELECT a.id, a.name, a.description, a.sysop_upload, a.dow
 // there is none.
 func scanFileArea(row interface{ Scan(...any) error }) (*FileArea, error) {
 	var a FileArea
-	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopUpload, &a.DownloadReq, &a.UploadReq, &a.FileEcho, &a.Files, &a.Bytes)
+	err := row.Scan(&a.ID, &a.Name, &a.Description, &a.SysopUpload, &a.DownloadReq, &a.UploadReq, &a.FileEcho, &a.Group, &a.Files, &a.Bytes)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
