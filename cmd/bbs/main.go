@@ -72,6 +72,7 @@ import (
 	"github.com/D-Modem/bbs/internal/imageboard"
 	"github.com/D-Modem/bbs/internal/ircd"
 	"github.com/D-Modem/bbs/internal/mrc"
+	"github.com/D-Modem/bbs/internal/msn"
 	"github.com/D-Modem/bbs/internal/news"
 	"github.com/D-Modem/bbs/internal/nntp"
 	"github.com/D-Modem/bbs/internal/oscar"
@@ -273,6 +274,9 @@ func main() {
 		}
 		if a := cfg.AOL; a != nil {
 			fmt.Printf("aol: %q\n", a.Address)
+		}
+		if m := cfg.MSN; m != nil {
+			fmt.Printf("msn: %q, conversations at %q, handles @%s\n", m.Address, m.Host, m.Domain)
 		}
 		if cfg.Finger != nil {
 			fmt.Printf("finger: %s (online %v, users %v)\n", cfg.Finger.Address, cfg.Finger.Online, cfg.Finger.Users)
@@ -494,6 +498,19 @@ func serve(cfg *server.Config, path string) int {
 	if asrv != nil {
 		go func() {
 			if err := asrv.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
+	if cfg.MSN != nil {
+		msrv, err := msn.New(b, *cfg.MSN)
+		if err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+		go func() {
+			if err := msrv.Run(ctx); err != nil {
 				lg.Printf("%v", err)
 				stop()
 			}
