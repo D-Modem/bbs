@@ -200,6 +200,12 @@ type Board struct {
 	Live *Book  // a live feed (nil: none)
 	// LiveDelay is how far behind the live feed is ("": real time)
 	LiveDelay string
+	// LiveSource names the live feed ("": IEX TOPS); LiveScope and
+	// LiveCredit are its Snapshot's Scope and Credit
+	LiveSource, LiveScope, LiveCredit string
+	// Fetch, if set, is asked for symbols a caller is about to see (the
+	// live feed's quotes are only of those asked for: Alpaca's)
+	Fetch func(ctx context.Context, syms []string)
 
 	mu    sync.Mutex
 	snap  *Snapshot
@@ -210,7 +216,12 @@ type Board struct {
 // Current is the quotes as they are now; nil (and why) if there are none.
 func (b *Board) Current() (*Snapshot, error) {
 	if b.Live != nil {
-		s := b.Live.Snapshot("IEX TOPS (live)")
+		src := b.LiveSource
+		if src == "" {
+			src = "IEX TOPS"
+		}
+		s := b.Live.Snapshot(src + " (live)")
+		s.Scope, s.Credit = b.LiveScope, b.LiveCredit
 		if len(s.Quotes) > 0 || b.Path == "" {
 			return s, nil
 		}
@@ -232,6 +243,17 @@ func (b *Board) Current() (*Snapshot, error) {
 		b.mtime = fi.ModTime()
 	}
 	return b.snap, b.err
+}
+
+// Want: the symbols are about to be seen, so a source that fetches them
+// on demand is asked for them (a few seconds at most).
+func (b *Board) Want(syms ...string) {
+	if b.Fetch == nil || len(syms) == 0 {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	b.Fetch(ctx, syms)
 }
 
 // Listen reads a live TOPS feed from UDP (a multicast group, joined on

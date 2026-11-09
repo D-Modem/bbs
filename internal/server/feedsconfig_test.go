@@ -77,9 +77,20 @@ delay = 15 minutes
 		"[feed x]\nurl = ftp://example.org/\n",
 		"[weather]\nquake_min = big\n",
 		"[quotes]\ndefault = not a symbol!\n",
+		"[quotes]\nalpaca_key = PK1\n",
+		"[quotes]\nalpaca_key = PK1\nalpaca_secret = s\nlisten = 233.215.21.4:10378\n",
+		"[quotes]\nalpaca_key = PK1\nalpaca_secret = s\nalpaca_feed = nasdaq\n",
 	} {
 		if _, err := Parse([]byte("[listen telnet]\ntype = telnet\naddress = :2300\n" + bad)); err == nil {
 			t.Errorf("taken: %q", bad)
 		}
+	}
+
+	c, err = Parse([]byte("[listen telnet]\ntype = telnet\naddress = :2300\n[quotes]\nalpaca_key = PK1\nalpaca_secret = s\nalpaca_feed = delayed_sip\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q := c.Quotes; q.AlpacaKey != "PK1" || q.AlpacaSecret != "s" || q.AlpacaSymbols != 30 || q.Delay != "15 minutes" {
+		t.Errorf("Alpaca %+v", q)
 	}
 }

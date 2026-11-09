@@ -37,6 +37,14 @@ func startNews(ctx context.Context, b *bbs.BBS, cfg *server.Config) {
 	if q := cfg.Quotes; q != nil {
 		b.Quotes = &quotes.Board{Path: q.File, LiveDelay: q.Delay}
 		b.QuoteDefault = q.Default
+		if q.AlpacaKey != "" {
+			prev, _ := quotes.Load(q.File)
+			al := alpaca(q, quotes.NewBook(prev))
+			al.Log = b.Log.Printf
+			b.Quotes.Live, b.Quotes.Fetch = al.Book, al.Want
+			b.Quotes.LiveSource, b.Quotes.LiveScope, b.Quotes.LiveCredit = "Alpaca "+q.AlpacaFeed, al.Scope(), al.Credit()
+			go al.Run(ctx)
+		}
 		if q.Listen != "" {
 			prev, _ := quotes.Load(q.File)
 			b.Quotes.Live = quotes.NewBook(prev)
@@ -47,6 +55,12 @@ func startNews(ctx context.Context, b *bbs.BBS, cfg *server.Config) {
 			}()
 		}
 	}
+}
+
+// alpaca is [quotes]' Alpaca, into b.
+func alpaca(q *server.QuoteSettings, b *quotes.Book) *quotes.Alpaca {
+	return &quotes.Alpaca{Key: q.AlpacaKey, Secret: q.AlpacaSecret, Feed: q.AlpacaFeed, Max: q.AlpacaSymbols,
+		Pinned: q.Default, Book: b, UserAgent: q.UserAgent}
 }
 
 func feedStatus(fs *feeds.Service) []bbs.FeedStatus {
@@ -124,7 +138,7 @@ func feedsCmd(cfg *server.Config, args []string) {
 	}
 }
 
-// quotesCmd: bbs quotes fetch [DATE] | load FILE | show SYMBOL...
+// quotesCmd: bbs quotes fetch [DATE] | load FILE | show SYMBOL... | alpaca [SYMBOL...]
 func quotesCmd(cfg *server.Config, args []string) {
 	if len(args) == 0 {
 		usage()
@@ -197,8 +211,14 @@ func quotesCmd(cfg *server.Config, args []string) {
 			fatal(err)
 		}
 		save(b, "IEX TOPS capture")
-	case "show":
-		s, err := quotes.Load(path)
+	case "show", "alpaca":
+		var s *quotes.Snapshot
+		var err error
+		if args[0] == "show" {
+			s, err = quotes.Load(path)
+		} else {
+			s, err = alpacaCheck(cfg.Quotes, prev, args[1:])
+		}
 		if err != nil {
 			fatal(err)
 		}
@@ -219,4 +239,36 @@ func quotesCmd(cfg *server.Config, args []string) {
 	default:
 		usage()
 	}
+}
+
+// alpacaCheck tries [quotes]' Alpaca keys: the symbols' snapshots by REST,
+// then the stream, for a few seconds.
+func alpacaCheck(q *server.QuoteSettings, prev *quotes.Snapshot, syms []string) (*quotes.Snapshot, error) {
+	if q.AlpacaKey == "" {
+		return nil, fmt.Errorf("no alpaca_key in [quotes]")
+	}
+	if len(syms) == 0 {
+		syms = q.Default
+	}
+	var norm []string
+	for _, s := range syms {
+		if n := quotes.Normalize(s); n != "" {
+			norm = append(norm, n)
+		}
+	}
+	al := alpaca(q, quotes.NewBook(prev))
+	al.Pinned = nil
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	if err := al.Fetch(ctx, norm); err != nil {
+		return nil, err
+	}
+	fmt.Printf("snapshots (%s feed): OK\n", q.AlpacaFeed)
+	al.Log = func(f string, a ...any) { fmt.Printf(f+"\n", a...) }
+	sctx, scancel := context.WithTimeout(ctx, 8*time.Second)
+	defer scancel()
+	al.Want(sctx, norm)
+	al.Run(sctx)
+	al.Book.Clock(time.Now())
+	return al.Book.Snapshot("Alpaca " + q.AlpacaFeed), nil
 }

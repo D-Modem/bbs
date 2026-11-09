@@ -21,6 +21,13 @@ type QuoteSettings struct {
 	Interface string // the interface its multicast group is joined on
 	Delay     string // how far behind the live feed is ("": real time)
 	Default   []string
+
+	// Alpaca's market data, live, instead of a TOPS feed (AlpacaKey "":
+	// not)
+	AlpacaKey, AlpacaSecret string
+	AlpacaFeed              string // iex, sip or delayed_sip
+	AlpacaSymbols           int    // the most on its stream at once
+	UserAgent               string
 }
 
 // userAgent is how the BBS names itself to the sites it reads, with the
@@ -127,6 +134,26 @@ func (c *Config) feedSections(cf *config.File) error {
 			if _, _, err := net.SplitHostPort(q.Listen); err != nil {
 				return fmt.Errorf("[quotes] listen: %v", err)
 			}
+		}
+		q.AlpacaKey = s.String("alpaca_key", "")
+		q.AlpacaSecret = s.String("alpaca_secret", "")
+		q.AlpacaFeed = s.String("alpaca_feed", "iex")
+		q.UserAgent = userAgent(fs.String("contact", ""))
+		var err error
+		if q.AlpacaSymbols, err = s.Int("alpaca_symbols", 30, 1, 10000); err != nil {
+			return fmt.Errorf("[quotes] %v", err)
+		}
+		switch {
+		case q.AlpacaKey == "" && q.AlpacaSecret == "":
+		case q.AlpacaKey == "" || q.AlpacaSecret == "":
+			return fmt.Errorf("[quotes] alpaca_key and alpaca_secret go together")
+		case q.Listen != "":
+			return fmt.Errorf("[quotes] listen (a TOPS feed) or alpaca_key (Alpaca's), not both")
+		case q.AlpacaFeed != "iex" && q.AlpacaFeed != "sip" && q.AlpacaFeed != "delayed_sip":
+			return fmt.Errorf("[quotes] alpaca_feed: %q is not iex, sip or delayed_sip", q.AlpacaFeed)
+		}
+		if q.AlpacaKey != "" && q.AlpacaFeed == "delayed_sip" && q.Delay == "" {
+			q.Delay = "15 minutes"
 		}
 		for _, sym := range strings.FieldsFunc(s.String("default", "SPY DIA QQQ AAPL MSFT"), func(r rune) bool { return r == ',' || r == ' ' }) {
 			n := quotes.Normalize(sym)

@@ -759,6 +759,10 @@ Stock quotes from IEX (the Investors Exchange): its own trades and quotes, not t
 | `listen` |  |  | a live TOPS feed (IEX's real-time feed, or its free delayed one; both need a connection to IEX): its UDP address (a multicast group, joined on the interface), and how far behind it is, for the callers. Examples: `233.215.21.4:10378`. |
 | `interface` |  |  | a live TOPS feed (IEX's real-time feed, or its free delayed one; both need a connection to IEX): its UDP address (a multicast group, joined on the interface), and how far behind it is, for the callers. Examples: `eth1`. |
 | `delay` |  |  | a live TOPS feed (IEX's real-time feed, or its free delayed one; both need a connection to IEX): its UDP address (a multicast group, joined on the interface), and how far behind it is, for the callers. Examples: `15 minutes`. |
+| `alpaca_key` |  |  | or Alpaca's market data (alpaca.markets), live: its free plan has IEX's trades and quotes for 30 symbols at a time on its stream (those callers looked at last, and default), any symbol by its snapshots. The keys are an Alpaca account's (a paper-trading one will do): keep this file 0640. Alpaca's terms ask for 30 days' notice before its data is shown to others. bbs quotes alpaca AAPL tries them. Examples: `PK...`. |
+| `alpaca_secret` |  |  | or Alpaca's market data (alpaca.markets), live: its free plan has IEX's trades and quotes for 30 symbols at a time on its stream (those callers looked at last, and default), any symbol by its snapshots. The keys are an Alpaca account's (a paper-trading one will do): keep this file 0640. Alpaca's terms ask for 30 days' notice before its data is shown to others. bbs quotes alpaca AAPL tries them. Examples: `...`. |
+| `alpaca_feed` |  |  | iex (the free plan), sip (every exchange: a paid plan) or delayed_sip. Examples: `iex`. |
+| `alpaca_symbols` |  |  | the most symbols on the stream at once (the free plan's limit) Examples: `30`. |
 
 
 ## `[time]`

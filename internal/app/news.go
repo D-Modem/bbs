@@ -419,18 +419,19 @@ func (s *Session) stockQuotes() error {
 	}
 	for {
 		s.N.Doing("Stock quotes")
+		syms := s.symbols()
+		s.B.Quotes.Want(syms...)
 		snap, err := s.B.Quotes.Current()
 		if err != nil {
 			s.UI.Say(view.Plain, "There are no quotes yet: "+err.Error()+".")
 			return nil
 		}
-		syms := s.symbols()
 		t := &view.Table{Title: "Stock quotes", Pick: "Number for more", Empty: "(no symbols: A adds one)",
 			Note: QuoteNote(snap, s.B.Quotes.LiveDelay),
 			Columns: []view.Column{{Title: "Symbol", Width: 8}, {Title: "Price", Width: 10, Right: true},
 				{Title: "Change", Width: 9, Right: true}, {Title: "%", Width: 7, Right: true},
 				{Title: "High", Width: 10, Right: true, Wide: true}, {Title: "Low", Width: 10, Right: true, Wide: true},
-				{Title: "IEX volume", Width: 11, Right: true, Wide: true}},
+				{Title: volumeLabel(snap), Width: 11, Right: true, Wide: true}},
 			Actions: []view.Action{{ID: "add", Label: "Add", Key: 'A', PF: 4}, {ID: "remove", Label: "Remove", Key: 'R', PF: 5},
 				{ID: "look", Label: "Look up", Key: 'L', PF: 6}}}
 		for i, sym := range syms {
@@ -455,8 +456,12 @@ func (s *Session) stockQuotes() error {
 				}
 				continue
 			}
+			s.B.Quotes.Want(sym)
+			if now, err := s.B.Quotes.Current(); err == nil {
+				snap = now
+			}
 			if _, ok := snap.Quotes[sym]; !ok {
-				s.UI.Say(view.Bad, "IEX has no trades or quotes of "+sym+" in these prices.")
+				s.UI.Say(view.Bad, "There are no trades or quotes of "+sym+" in these prices.")
 				if c.Action == "look" {
 					continue
 				}
@@ -537,7 +542,7 @@ func quoteCells(sym string, q *iex.Quote) []string {
 func QuoteNote(snap *iex.Snapshot, delay string) []view.Line {
 	var when string
 	if strings.Contains(snap.Source, "live") {
-		when = "IEX's prices now"
+		when = "The prices now"
 		if delay != "" {
 			when += ", " + delay + " behind"
 		}
@@ -550,15 +555,29 @@ func QuoteNote(snap *iex.Snapshot, delay string) []view.Line {
 			when += " (as far as it went: " + snap.Session + ")"
 		}
 	}
-	return []view.Line{view.T(view.Dim, when+". Trades and quotes on IEX only."),
-		view.T(view.Dim, iex.Credit)}
+	scope, credit := "on IEX only", iex.Credit
+	if snap.Scope != "" && snap.Scope != "IEX" {
+		scope = "on " + snap.Scope
+	}
+	if snap.Credit != "" {
+		credit = snap.Credit
+	}
+	return []view.Line{view.T(view.Dim, when+". Trades and quotes "+scope+"."), view.T(view.Dim, credit)}
+}
+
+// volumeLabel is what the volume is of: IEX's alone, or all the market's.
+func volumeLabel(snap *iex.Snapshot) string {
+	if snap.Scope == "" || snap.Scope == "IEX" {
+		return "IEX volume"
+	}
+	return "Volume"
 }
 
 // quote is one symbol's quote in full.
 func (s *Session) quote(snap *iex.Snapshot, sym string) error {
 	q := snap.Quotes[sym]
 	if q == nil {
-		s.UI.Say(view.Plain, "IEX has nothing of "+sym+" in these prices.")
+		s.UI.Say(view.Plain, "There is nothing of "+sym+" in these prices.")
 		return nil
 	}
 	lines := QuoteNote(snap, s.B.Quotes.LiveDelay)
@@ -566,7 +585,7 @@ func (s *Session) quote(snap *iex.Snapshot, sym string) error {
 	if d, p, ok := q.Change(); ok {
 		lines = append(lines, view.V("Change:", fmt.Sprintf("%+.2f (%+.2f%%) from %s", d, p, money(q.PrevClose))))
 	}
-	if q.Last != 0 {
+	if q.Last != 0 && !q.LastTime.IsZero() {
 		lines = append(lines, view.V("Last trade:", fmt.Sprintf("%s, %d shares, %s ET", money(q.Last), q.LastSize,
 			q.LastTime.In(easternTime()).Format("Mon 2 Jan 15:04:05"))))
 	}
@@ -580,7 +599,7 @@ func (s *Session) quote(snap *iex.Snapshot, sym string) error {
 	if q.Bid != 0 || q.Ask != 0 {
 		lines = append(lines, view.V("Bid/ask:", fmt.Sprintf("%s x %d / %s x %d", money(q.Bid), q.BidSize, money(q.Ask), q.AskSize)))
 	}
-	lines = append(lines, view.V("IEX volume:", fmt.Sprintf("%d shares", q.Volume)))
+	lines = append(lines, view.V(volumeLabel(snap)+":", fmt.Sprintf("%d shares", q.Volume)))
 	if q.Halted {
 		lines = append(lines, view.T(view.Warn, "Trading is halted."))
 	}

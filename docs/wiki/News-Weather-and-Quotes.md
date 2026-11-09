@@ -148,7 +148,7 @@ The quotes are IEX's (the Investors Exchange): its own trades and quotes,
 not the whole market's, with IEX's credit on each screen. Every caller has
 a list of symbols (`default` until they add or remove one); a symbol
 chosen shows its last trade, open, high, low, close, extended-hours price,
-bid and ask, and IEX volume.
+bid and ask, and IEX volume (all the market's, from Alpaca's paid plan).
 
 ### The day before's prices, free (HIST)
 
@@ -201,5 +201,41 @@ trades, quotes, official prices, trading status, system events). Test
 securities are left out; odd lots count toward volume but not the last
 sale, high or low; trades outside regular hours are the extended-hours
 price.
+
+### Live from Alpaca
+
+```
+[quotes]
+alpaca_key = PK...
+alpaca_secret = ...
+alpaca_feed = iex
+alpaca_symbols = 30
+```
+
+[Alpaca](https://alpaca.markets/data)'s market data needs no connection
+to IEX: an account (a paper-trading one will do) gives a key and secret.
+Its free plan (`alpaca_feed = iex`) has IEX's trades and quotes, live; a
+paid one (`sip`) every US exchange's, and `delayed_sip` them 15 minutes
+late.
+
+A symbol a caller looks at is fetched then (Alpaca's snapshot: the day so
+far, and the day before's close for the change), and followed on Alpaca's
+stream: the default symbols and those looked at most recently, up to
+`alpaca_symbols` (the free plan allows 30 at a time). What is followed is
+fetched again every five minutes; the rest when it is next looked at, if
+a minute old. The quotes begin again with each session's first trade, so
+nothing need run each morning. The session (before the open, regular
+hours, after hours, closed) is by the clock: a weekday with no trades by
+9:35 is taken for a holiday.
+
+`bbs quotes alpaca AAPL MSFT` tries the keys: the snapshots, then the
+stream for a few seconds. Keep the configuration file 0640, as the keys
+are in it.
+
+Alpaca's terms are for personal, non-commercial use: to make its data
+available to others through your own application, they ask for 30 days'
+written notice first, and its written consent to republish it. Tell them
+of the BBS before you turn this on. `listen` and `alpaca_key` are one or
+the other.
 
 **See also:** [Message areas](Message-Areas), [Newsgroups and NNTP](Newsgroups-and-NNTP), [Sysop tools](Sysop-Tools)

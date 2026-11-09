@@ -42,13 +42,16 @@ func (q *Quote) Change() (float64, float64, bool) {
 }
 
 // Price is the quote's price: the close if there is one, else the last
-// trade, else the middle of the bid and ask.
+// trade, else the last trade outside regular hours (before the open), else
+// the middle of the bid and ask.
 func (q *Quote) Price() float64 {
 	switch {
 	case q.Close != 0:
 		return q.Close
 	case q.Last != 0:
 		return q.Last
+	case q.Extended != 0:
+		return q.Extended
 	case q.Bid != 0 && q.Ask != 0:
 		return (q.Bid + q.Ask) / 2
 	}
@@ -62,6 +65,10 @@ type Snapshot struct {
 	Made    time.Time
 	Quotes  map[string]*Quote
 	Session string // where the session was: "closed", "regular hours" ...
+	// Scope is whose trades these are ("": IEX's own), Credit whose data
+	// it is ("": IEX's, as its HIST terms ask)
+	Scope  string `json:",omitempty"`
+	Credit string `json:",omitempty"`
 }
 
 // Book keeps the quotes as a feed's messages come: a Handler.
@@ -73,11 +80,12 @@ type Book struct {
 	session string
 	prev    map[string]float64 // the session before's closes
 	last    int64              // the newest timestamp seen (ns)
+	day     map[string]string  // each quote's session (YYYYMMDD), when known
 }
 
 // NewBook is an empty book; prev is the session before's (nil: none).
 func NewBook(prev *Snapshot) *Book {
-	b := &Book{q: map[string]*Quote{}, test: map[string]bool{}, prev: map[string]float64{}}
+	b := &Book{q: map[string]*Quote{}, test: map[string]bool{}, prev: map[string]float64{}, day: map[string]string{}}
 	if prev != nil {
 		for s, q := range prev.Quotes {
 			if p := q.Price(); p != 0 {
@@ -108,11 +116,35 @@ func (b *Book) seen(ts int64) {
 
 func price(p int64) float64 { return float64(p) / priceScale }
 
+func dateOf(ts int64) string { return time.Unix(0, ts).In(eastern).Format("20060102") }
+
+// touch: a trade of sym at ts.  The first of a new session (a live feed
+// kept over days) begins the quote again, with the session before's
+// price as the close the change is from.
+func (b *Book) touch(sym string, ts int64) {
+	d := dateOf(ts)
+	was := b.day[sym]
+	b.day[sym] = d
+	q := b.q[sym]
+	if q == nil || was == "" || d <= was {
+		return
+	}
+	prev := q.Close
+	if prev == 0 {
+		prev = q.Last
+	}
+	if prev == 0 {
+		prev = q.PrevClose
+	}
+	*q = Quote{Symbol: sym, PrevClose: prev}
+}
+
 // Trade: Handler.
 func (b *Book) Trade(sym string, ts int64, size uint32, p int64, flags byte) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.seen(ts)
+	b.touch(sym, ts)
 	q := b.get(sym)
 	q.Volume += uint64(size)
 	pr := price(p)
@@ -197,6 +229,63 @@ func (b *Book) System(ts int64, event byte) {
 		b.session = "after hours"
 	case 'E', 'C':
 		b.session = "closed"
+	}
+}
+
+// Put is a quote whole, as a source of them has it (Alpaca's snapshots):
+// of the session of date (YYYYMMDD), and as of ts.
+func (b *Book) Put(q Quote, date string, ts int64) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.seen(ts)
+	c := q
+	b.q[q.Symbol] = &c
+	b.day[q.Symbol] = date
+}
+
+// Day is a session's prices so far, as bars have them: the open, high and
+// low are taken where the trades have not given them, and the volume where
+// it is more.  Not of the quote's session, it is left.
+func (b *Book) Day(sym string, ts int64, open, high, low float64, volume uint64) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	q := b.q[sym]
+	if q == nil || b.day[sym] != dateOf(ts) {
+		return
+	}
+	if q.Open == 0 {
+		q.Open = open
+	}
+	if q.High == 0 || high > q.High {
+		q.High = high
+	}
+	if q.Low == 0 || low != 0 && low < q.Low {
+		q.Low = low
+	}
+	if volume > q.Volume {
+		q.Volume = volume
+	}
+}
+
+// Clock: where the session is, by the clock, for a feed with no system
+// events (Alpaca's).  A weekday with no trades by 9:35 is a holiday.
+func (b *Book) Clock(now time.Time) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	et := now.In(eastern)
+	min := et.Hour()*60 + et.Minute()
+	traded := b.last != 0 && dateOf(b.last) == et.Format("20060102")
+	switch {
+	case et.Weekday() == time.Saturday || et.Weekday() == time.Sunday, min < 4*60, min >= 20*60:
+		b.session = "closed"
+	case min < 9*60+30:
+		b.session = "before the open"
+	case !traded && min >= 9*60+35:
+		b.session = "closed"
+	case min < 16*60:
+		b.session = "regular hours"
+	default:
+		b.session = "after hours"
 	}
 }
 

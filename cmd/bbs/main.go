@@ -172,6 +172,7 @@ func usage() {
                                                   files (some 16 GB, read as they come, not kept)
   bbs [-config FILE] quotes load FILE               quotes from a TOPS capture (pcap, pcapng, .gz)
   bbs [-config FILE] quotes show SYMBOL...          the quotes kept
+  bbs [-config FILE] quotes alpaca [SYMBOL...]     try [quotes]' Alpaca keys: the symbols now
   bbs [-config FILE] gemini cert [-force]          make the Gemini server's certificate (it asks
                                                   for host names, organization and years)
 `)
