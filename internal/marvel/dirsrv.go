@@ -147,7 +147,7 @@ func (d *dirsrv) call(h hostBlock) ([]byte, bool) {
 		}
 		var ids []uint32
 		if key == 0 {
-			ids = []uint32{iconFolder, iconBoard}
+			ids = []uint32{iconFolder, iconBoard, iconChat}
 		}
 		var b []byte
 		for _, id := range ids {

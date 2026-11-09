@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/store"
 )
 
@@ -20,6 +21,8 @@ import (
 //	4:0        MSN Today: the boards with the newest posts
 //	1:group    a group's boards
 //	0:area     a board (the BBS service answers inside it)
+//	1:0x12     Chat: the chat rooms (in Categories and MSN Central)
+//	id:CHAT    a room (the chat window opens it)
 //
 // A node's id is the 8 bytes the client sends: two dwords, the first the
 // service's index (or 0 for a board), the second the node's own.
@@ -66,6 +69,8 @@ type node struct {
 	goWord   string
 	app      uint32
 	board    *store.Area // a board's area
+	room     bool
+	people   int // in a room
 	modified time.Time
 	gen      uint32
 }
@@ -102,7 +107,7 @@ func (t *tree) kids(k nodeKey) []*node {
 
 // buildTree is the directory for the areas given (those the caller may
 // read), under the BBS's name.
-func buildTree(system string, areas []*store.Area) *tree {
+func buildTree(system string, areas []*store.Area, rooms []roomEntry) *tree {
 	t := &tree{nodes: map[nodeKey]*node{}, children: map[nodeKey][]nodeKey{}, parents: map[nodeKey][]nodeKey{}}
 	folder := func(k nodeKey, name, desc, goWord string) *node {
 		return &node{key: k, name: name, desc: desc, goWord: goWord, app: appDirectory}
@@ -113,6 +118,24 @@ func buildTree(system string, areas []*store.Area) *tree {
 	t.add(keyWorldwide, folder(keyCats, "Categories", "The message areas of "+system, "categories"))
 	t.add(keyCentral, folder(keyAssist, "Member Assistance", "", "assistance"))
 	t.add(keyAssist, folder(keyToday, "MSN Today", "The boards with the newest messages", "today"))
+
+	if len(rooms) > 0 {
+		chat := folder(keyChat, "Chat", "Talk with the people on "+system+" now", "chat")
+		t.add(keyCentral, chat)
+		t.add(keyCats, chat)
+		for _, r := range rooms {
+			desc := r.topic
+			if desc == "" {
+				desc = "A chat room"
+			}
+			rn := &node{key: nodeKey{r.id, roomTag}, name: r.name, desc: desc, goWord: "chat " + strings.ToLower(r.name),
+				app: appChat, room: true, people: r.people, gen: uint32(r.people)*2 + 1}
+			if r.name == bbs.MainRoom {
+				rn.goWord = "chat main"
+			}
+			t.add(keyChat, rn)
+		}
+	}
 
 	var groups []string
 	byGroup := map[string][]*store.Area{}
@@ -161,7 +184,7 @@ func boardGen(a *store.Area) uint32 {
 // refreshes a view only when the number changes.
 func (t *tree) stamp(k nodeKey, seen map[nodeKey]bool) uint32 {
 	n := t.nodes[k]
-	if n.board != nil || seen[k] {
+	if n.board != nil || n.room || seen[k] {
 		return n.gen
 	}
 	seen[k] = true
@@ -212,6 +235,7 @@ const (
 	shabbyBanner   = 0x05000001
 	iconFolder     = 0x0599
 	iconBoard      = 0x059A
+	iconChat       = 0x059B
 	lcidEnglishUS  = 0x0409
 	notFound       = 0x10002 // GetDeidFromGoWord: no such go word
 	refused        = 0x101   // a tree edit this server won't make
@@ -247,6 +271,8 @@ func (t *tree) dirProp(name string, n *node, list bool) prop {
 		var f byte
 		if n.board != nil {
 			f = flagDelegate
+		} else if n.room {
+			f = flagLeaf
 		} else if len(t.children[n.key]) > 0 {
 			f = flagHasSub
 		}
@@ -260,6 +286,9 @@ func (t *tree) dirProp(name string, n *node, list bool) prop {
 	case "h":
 		if n.board != nil {
 			return dword(iconBoard)
+		}
+		if n.room {
+			return dword(iconChat)
 		}
 		return dword(iconFolder)
 	case "mf", "wv":
@@ -279,6 +308,9 @@ func (t *tree) dirProp(name string, n *node, list bool) prop {
 		if n.board != nil {
 			return dword(uint32(n.board.Messages))
 		}
+		if n.room {
+			return dword(uint32(n.people))
+		}
 		return dword(0)
 	case "l":
 		if n.board != nil {
@@ -294,6 +326,8 @@ func (t *tree) dirProp(name string, n *node, list bool) prop {
 		typ := "Folder"
 		if n.board != nil {
 			typ = "Bulletin Board Folder"
+		} else if n.room {
+			typ = "Chat Room"
 		}
 		if list {
 			return str(ptAnsi, typ)

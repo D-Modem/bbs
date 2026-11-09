@@ -51,8 +51,10 @@ type Server struct {
 	B *bbs.BBS
 	S Settings
 
-	mu    sync.Mutex
-	conns map[*conn]bool
+	mu        sync.Mutex
+	conns     map[*conn]bool
+	roomIDs   map[string]uint32
+	roomNames map[uint32]string
 }
 
 // New checks the settings and makes the server.
@@ -65,7 +67,8 @@ func New(b *bbs.BBS, s Settings) (*Server, error) {
 	if s.MaxClients == 0 {
 		s.MaxClients = 64
 	}
-	return &Server{B: b, S: s, conns: map[*conn]bool{}}, nil
+	return &Server{B: b, S: s, conns: map[*conn]bool{},
+		roomIDs: map[string]uint32{}, roomNames: map[uint32]string{}}, nil
 }
 
 // Run listens on the settings' address until ctx is done.

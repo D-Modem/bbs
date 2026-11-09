@@ -84,6 +84,23 @@ func boardArt(n int) canvas {
 	return c
 }
 
+// chatArt is two speech balloons.
+func chatArt(n int) canvas {
+	c := newCanvas(n)
+	s := func(v int) int { return v * n / iconSize }
+	c.box(s(2), s(4), s(20), s(16), cWhite, cBlack)
+	c.box(s(5), s(16), s(7), s(19), cWhite, cBlack)
+	c.box(s(11), s(13), s(29), s(25), cYellow, cBlack)
+	c.box(s(24), s(25), s(26), s(28), cYellow, cBlack)
+	for _, y := range []int{8, 11} {
+		c.line(s(5), s(17), s(y), cNavy)
+	}
+	for _, y := range []int{18, 21} {
+		c.line(s(14), s(26), s(y), cNavy)
+	}
+	return c
+}
+
 // ico is the canvas as a 4-bit Windows icon.
 func (c canvas) ico() []byte {
 	n := len(c)
@@ -169,6 +186,7 @@ var shabbies = map[uint32][]byte{
 	shabbyBanner: boardArt(bannerSize).bmp(),
 	iconFolder:   folderArt(iconSize).ico(),
 	iconBoard:    boardArt(iconSize).ico(),
+	iconChat:     chatArt(iconSize).ico(),
 }
 
 // shabby is the file for a shabby id (empty: none; the client then shows

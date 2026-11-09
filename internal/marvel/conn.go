@@ -34,6 +34,20 @@ type service interface {
 	call(h hostBlock) (r []byte, ok bool)
 }
 
+// A service that holds something for its pipe (a chat room) lets it go
+// when the pipe closes or the connection ends.
+type ender interface{ end() }
+
+// A service that keeps an iterator open (a chat room's events) is told
+// when the client gives it up.
+type canceller interface{ cancel(h hostBlock) }
+
+func endService(svc service) {
+	if e, ok := svc.(ender); ok {
+		e.end()
+	}
+}
+
 // conn is one client's connection.
 type conn struct {
 	s      *Server
@@ -71,6 +85,11 @@ func (c *conn) serve(n *bbs.Node) {
 		c.s.mu.Lock()
 		delete(c.s.conns, c)
 		c.s.mu.Unlock()
+		for p, svc := range c.pipes {
+			if !c.closed[p] {
+				endService(svc)
+			}
+		}
 		c.l.close()
 		c.mu.Lock()
 		node, own := c.node, c.own
@@ -135,10 +154,17 @@ func (c *conn) open(b []byte) {
 		reply = binary.LittleEndian.AppendUint16(reply, v)
 	}
 	c.l.send(reply)
-	svc := c.newService(name)
+	version := ""
+	if len(parts) > 1 {
+		version = parts[1]
+	}
+	svc := c.newService(name, version, pipe)
 	if svc == nil {
 		c.logf("pipe %d: no service %q", pipe, name)
 		return
+	}
+	if old, ok := c.pipes[pipe]; ok && !c.closed[pipe] {
+		endService(old)
 	}
 	c.pipes[pipe] = svc
 	delete(c.closed, pipe)
@@ -146,8 +172,16 @@ func (c *conn) open(b []byte) {
 	c.sendPipe(pipe, discovery(svc.ifaces()))
 }
 
-func (c *conn) newService(name string) service {
+func (c *conn) newService(name, version string, pipe uint16) service {
 	switch strings.ToUpper(name) {
+	case "MOSRXP":
+		return newMailbox(c)
+	case "MOSABP":
+		return &addrBook{c: c}
+	case "CONFLOC":
+		return &confloc{c: c}
+	case "CONFSRV":
+		return newChat(c, pipe)
 	case "LOGSRV":
 		return &logsrv{c: c}
 	case "DIRSRV":
@@ -165,7 +199,10 @@ func (c *conn) sendPipe(pipe uint16, b []byte) error {
 // data is a message on a pipe; false when the last pipe closes.
 func (c *conn) data(pipe uint16, b []byte) bool {
 	if len(b) == 1 && b[0] == pipeClose {
-		if _, ok := c.pipes[pipe]; ok {
+		if svc, ok := c.pipes[pipe]; ok {
+			if !c.closed[pipe] {
+				endService(svc)
+			}
 			c.closed[pipe] = true
 		}
 		if len(c.pipes) == 0 {
@@ -189,6 +226,9 @@ func (c *conn) data(pipe uint16, b []byte) bool {
 	}
 	// an iterator given up: acknowledged on the call it ends
 	if !h.oneWay() && len(h.Params) == 1 && h.Params[0] == 0x0F {
+		if cl, ok := svc.(canceller); ok {
+			cl.cancel(h)
+		}
 		h.Params = []byte{tagEndStatic, tagStreamEnd}
 		c.sendPipe(pipe, h.bytes())
 		return true
@@ -270,5 +310,9 @@ func (c *conn) tree() *tree {
 			areas = append(areas, a)
 		}
 	}
-	return buildTree(b.Conf().Name, areas)
+	var rooms []roomEntry
+	if u != nil {
+		rooms = c.rooms()
+	}
+	return buildTree(b.Conf().Name, areas, rooms)
 }

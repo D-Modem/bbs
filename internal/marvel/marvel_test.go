@@ -486,10 +486,10 @@ func TestDirectoryAndBoards(t *testing.T) {
 		t.Errorf("MSN Central: %q", names(central))
 	}
 	cats := c.treeCall(2, treeGetChildren, keyCats, 0, nav...)
-	if got := names(cats); len(got) != 1 || got[0] != "General" {
+	if got := names(cats); strings.Join(got, ",") != "Chat,General" {
 		t.Fatalf("categories: %q", got)
 	}
-	gk, _ := keyOf(cats[0]["a"])
+	gk, _ := keyOf(cats[1]["a"])
 	brds := c.treeCall(2, treeGetChildren, gk, 0, nav...)
 	if got := names(brds); strings.Join(got, ",") != "Chatter,Retro" {
 		t.Fatalf("boards: %q", got)

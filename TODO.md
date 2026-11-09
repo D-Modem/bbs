@@ -4,16 +4,14 @@ Ideas not yet started, with what is known of them.
 
 ## An MSN Classic front end
 
-*Status: started; the link, the RPC, sign-in, the directory and bulletin
-boards (`internal/marvel`, `[marvel]`, `frontend = marvel`) are done.  Not
-yet tried with a real client.*
+*Status: started; the link, the RPC, sign-in, the directory, bulletin
+boards, e-mail and its address book, and chat (`internal/marvel`,
+`[marvel]`, `frontend = marvel`) are done.  Not yet tried with a real
+client.*
 
 For the MSN client of Windows 95 (MSN 1.0 to 1.2), over TCP (port 569) and
 by modem, from the marvel-msn project's protocol notes.  Next:
 
-- **E-mail**: MOSRXP (Exchange's MSN transport) and MOSABP (its address
-  book) onto BBS mail.
-- **Chat**: CONFLOC and CONFSRV, the chat rooms onto the BBS's chat.
 - **Find**: FINDSVC, whose replies come in two host blocks.
 - **Files**: FTM and Download-and-Run nodes onto the file areas.
 - **MSN 1.3 (OSR2)**: its NTLM sign-in needs the password's NT hash, kept
