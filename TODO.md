@@ -4,8 +4,8 @@ Ideas not yet started, with what is known of them.
 
 ## An AOL front end
 
-*Status: started; the FDO91 layer (`internal/aol/fdo`) and P3
-(`internal/aol/p3`) are done.*
+*Status: started; FDO91 (`internal/aol/fdo`), P3 (`internal/aol/p3`) and
+the host's sign-on (`internal/aol`, `[aol]`) are done.*
 
 For AOL 3.0 and 4.0 for Windows, the real clients, over TCP (port 5190, the
 client's `AmericaOnline.aol.com`) and by modem.
@@ -19,12 +19,14 @@ client's `AmericaOnline.aol.com`) and by modem.
   end of a link: INIT acknowledged, DATA in order in and within a window
   of 16 out, ACKs every 8 or soon after, NAKs and go-back-N resends,
   heartbeats after 12 seconds, 10 of them and the link is down.
-- **Listener**, next: OSCAR's port 5190 already hands a connection that
-  starts with P3's sync byte to `oscar.Server.P3`; serve it there with
-  `p3.Serve`, and sniff a P3 INIT (`p3.Sniff`) on the telnet port too.
-- **Tokens**: `Dd` sign-on (the form's two `de_data`) to the BBS's login,
-  then chat (`Aa`), IMs (`iS`), mail (`m4`, MIP), keywords (`k1`/`f1`) to
-  areas, `pE` sign-off; each answered with forms compiled from source.
+- **Host** (started): `[aol]`, sharing 5190 with `[oscar]` through its P3
+  hook; `Dd` signs on with a BBS account (a node, as any caller), then
+  `async_online`, the client's main window (32-296) and the BBS's own
+  Welcome; `pE` answered with `XS`; other tokens with `uni_wait_off`.
+  Streams go as `aT`, or `at` pieces when long; the client's long ones
+  are put together.  Not yet tried with a real client.
+- **Tokens**, next: chat (`Aa`), IMs (`iS`), mail (`m4`, MIP), keywords
+  (`k1`/`f1`) to areas; each answered with forms compiled from source.
 - **Modem callers**: the client's CCL script expects a network's prompts
   (SprintNet, Tymnet) before P3; emulate one, or ship a CCL that dials
   straight in.

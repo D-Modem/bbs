@@ -140,6 +140,7 @@ which is generated from `bbs.conf.sample`.
 | [Chat and paging](Chat-and-Paging) | chat rooms, node messages, paging the sysop |
 | [IRC](IRC) | the IRC server, with the chat rooms as channels |
 | [AIM and ICQ](AIM-and-ICQ) | the OSCAR server: AIM and ICQ clients, buddies, IMs and chat rooms |
+| [AOL clients](AOL) | a host for AOL's own clients (3.0, 4.0): sign-on with BBS accounts |
 | [MSN Messenger](MSN-Messenger) | the MSN server: MSN Messenger 1.0 to 4.7, contacts and IMs |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
