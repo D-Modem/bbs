@@ -17,6 +17,9 @@ const historyLines = 500
 // ErrNoUser: there is no user of that name.
 var ErrNoUser = errors.New("there is no user of that name")
 
+// ErrBlocked: the user blocks the sender.
+var ErrBlocked = errors.New("that user is not taking your messages")
+
 // Keep keeps a private line from the node's user to another (delivered:
 // they had it, on some node).
 func (n *Node) Keep(to *store.User, text string, delivered bool) {
@@ -51,6 +54,9 @@ func (n *Node) TellUser(to *store.User, text string) (online bool, err error) {
 	text = Clean(text, MaxChatLine)
 	if text == "" {
 		return false, errors.New("say something")
+	}
+	if from := n.User(); from != nil && n.b.Blocks(to, from) {
+		return false, ErrBlocked
 	}
 	sent := false
 	var lastErr error
@@ -198,8 +204,65 @@ func (b *BBS) RemoveFriend(u *store.User, name string) (*store.User, error) {
 	return f, nil
 }
 
-// WatchFriends has fn told when a user's friends list changes, until the
-// returned func is called.  fn must not block.
+// Blocks reports whether u blocks other.
+func (b *BBS) Blocks(u, other *store.User) bool {
+	ok, err := b.Store.IsBlocked(u.ID, other.ID)
+	if err != nil {
+		b.Log.Printf("blocked list of %s: %v", u.Name, err)
+	}
+	return ok
+}
+
+// Blocked is a user's blocked list.
+func (b *BBS) Blocked(u *store.User) ([]store.Friend, error) { return b.Store.Blocked(u.ID) }
+
+// Block puts the user of that name on u's blocked list (they can no
+// longer send u private messages, nor see u online where a front end
+// shows it); that user.
+func (b *BBS) Block(u *store.User, name string) (*store.User, error) {
+	f, err := b.userNamed(name)
+	if err != nil {
+		return nil, err
+	}
+	if f.ID == u.ID {
+		return nil, errors.New("you cannot block yourself")
+	}
+	if err := b.Store.Block(u.ID, f.ID); err != nil {
+		return nil, err
+	}
+	b.FriendsChanged(u.ID)
+	return f, nil
+}
+
+// Unblock takes the user of that name off u's blocked list; that user.
+func (b *BBS) Unblock(u *store.User, name string) (*store.User, error) {
+	f, err := b.userNamed(name)
+	if err != nil {
+		return nil, err
+	}
+	if ok, err := b.Store.IsBlocked(u.ID, f.ID); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, errors.New(f.Name + " is not on your blocked list")
+	}
+	if err := b.Store.Unblock(u.ID, f.ID); err != nil {
+		return nil, err
+	}
+	b.FriendsChanged(u.ID)
+	return f, nil
+}
+
+// userNamed is the user of that name (ErrNoUser: none).
+func (b *BBS) userNamed(name string) (*store.User, error) {
+	f, err := b.Store.UserByName(strings.TrimSpace(name))
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, ErrNoUser
+	}
+	return f, err
+}
+
+// WatchFriends has fn told when a user's friends list (or blocked list)
+// changes, until the returned func is called.  fn must not block.
 func (b *BBS) WatchFriends(fn func(user int64)) (stop func()) {
 	b.presMu.Lock()
 	defer b.presMu.Unlock()

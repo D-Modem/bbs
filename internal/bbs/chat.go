@@ -528,6 +528,9 @@ func (n *Node) Message(to int, text string) error {
 	if o == nil || o.User() == nil || o == n {
 		return ErrNoNode
 	}
+	if from := n.User(); from != nil && n.b.Blocks(o.User(), from) {
+		return ErrBlocked
+	}
 	if n.flood() {
 		return ErrFlood
 	}

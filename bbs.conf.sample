@@ -670,6 +670,28 @@ address = 127.0.0.1:2513
 ; the screen name the BBS's notices come from
 ;system = OnlineHost
 
+; MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows
+; Messenger 4.x (MSNP2 to 7), beside IRC and AIM.  Users sign in as
+; name@domain with their BBS passwords; contacts are their friends list;
+; an IM is a private message (a PRIVMSG on IRC), kept for one away.  The
+; clients must be pointed at this host (see the wiki page).
+; See docs/wiki/MSN-Messenger.md
+;[msn]
+;address = :1863
+; where clients are sent for conversations, host:port (default: the
+; address each one came to; set it behind NAT)
+;host = msn.example.org:1863
+; handles are name@domain (default bbs.invalid); clients may sign in with
+; any domain, as MSN 1.0's @hotmail.com
+;domain = msn.example.org
+;max_clients = 256
+; each conversation is a connection of its own
+;max_per_ip = 16
+; the name the BBS's notices come from
+;system = BBS
+; a web address the clients' links (inbox, profiles) open
+;site = https://bbs.example.org/
+
 ; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
 ; beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike.
 ; See docs/wiki/MRC.md

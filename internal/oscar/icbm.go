@@ -176,6 +176,9 @@ func (ss *session) deliver(u *store.User, ck []byte, raw string, isHTML, auto bo
 	if plain == "" {
 		return nil
 	}
+	if ss.s.B.Blocks(u, ss.u) {
+		return errOffline // on their blocked list (any front end's)
+	}
 	for _, o := range ss.s.sessionsOf(u.ID) {
 		if o.blocks(ss.u) {
 			return errOffline

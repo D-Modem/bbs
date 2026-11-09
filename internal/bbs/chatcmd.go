@@ -15,6 +15,7 @@ var ChatHelp = []string{
 	"  /msg WHO TEXT   to a user, kept if away  /topic          this room's topic",
 	"  /history [WHO]  your talks with a user   /friends        your friends list",
 	"  /friend WHO     put one on your list     /unfriend WHO   take one off it",
+	"  /block WHO      stop their messages      /unblock WHO    let them again",
 	"  /quit           leave the chat",
 	"Sysops:  /pages  callers paging   /answer [NODE]  answer one   /busy  pages on or off",
 	"         /topic TEXT  set a permanent room's topic",
@@ -166,6 +167,23 @@ func (n *Node) ChatCommand(line string) (out []string, leave bool, err error) {
 			return nil, false, err
 		}
 		return []string{f.Name + " is off your friends list."}, false, nil
+	case "block", "unblock":
+		u := n.User()
+		if u == nil || arg == "" {
+			return nil, false, fmt.Errorf("/%s WHO: a user's name", strings.ToLower(cmd))
+		}
+		if strings.ToLower(cmd) == "block" {
+			f, err := n.b.Block(u, arg)
+			if err != nil {
+				return nil, false, err
+			}
+			return []string{f.Name + " is blocked: you will not get their messages."}, false, nil
+		}
+		f, err := n.b.Unblock(u, arg)
+		if err != nil {
+			return nil, false, err
+		}
+		return []string{f.Name + " is no longer blocked."}, false, nil
 	case "pages":
 		ps := n.b.Pages()
 		if len(ps) == 0 {
