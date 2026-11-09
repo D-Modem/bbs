@@ -67,8 +67,15 @@ signed on is shown in a message box.
 
 The keyword Mail opens the BBS's mailbox window, newest first with new
 mail marked `*`. A button reads a mail, which marks it read, and the mail's
-window can delete it. The client's own Read Mail and Old Mail lists are
-not served yet.
+window can delete it.
+
+The client's own mail windows work too: Read New Mail on the toolbar
+(`m7`), Old Mail (`m9`, mail already read) and Sent Mail (`m8`). Each is
+filled with a MIP list, newest first. Opening a mail (`m3`) sends it
+whole and marks it read. Ignore marks a mail read, Keep As New marks it
+unread again, and Delete puts it in the BBS trash (`m2`). These answers
+were worked out from the client's mail tool and have not yet been tried
+with a real client.
 
 ## Message boards
 

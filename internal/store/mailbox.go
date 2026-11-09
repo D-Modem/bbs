@@ -386,6 +386,11 @@ func (s *Store) MarkMailRead(user, id int64) error {
 	return s.onReceived(user, id, `UPDATE mailbox SET "read" = TRUE WHERE id = ?`)
 }
 
+// MarkMailUnread marks a mail of user's not yet read.
+func (s *Store) MarkMailUnread(user, id int64) error {
+	return s.onReceived(user, id, `UPDATE mailbox SET "read" = FALSE WHERE id = ?`)
+}
+
 // DeleteMail puts a mail of user's in their trash.
 func (s *Store) DeleteMail(user, id int64) error {
 	return s.onReceived(user, id, `UPDATE mailbox SET deleted = ? WHERE id = ?`, now())
