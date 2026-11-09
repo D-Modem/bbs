@@ -101,6 +101,18 @@ func chatArt(n int) canvas {
 	return c
 }
 
+// fileArt is a page with its corner turned down.
+func fileArt(n int) canvas {
+	c := newCanvas(n)
+	s := func(v int) int { return v * n / iconSize }
+	c.box(s(6), s(2), s(25), s(29), cWhite, cBlack)
+	c.box(s(19), s(2), s(25), s(8), cSilver, cBlack)
+	for _, y := range []int{12, 15, 18, 21, 24} {
+		c.line(s(9), s(22), s(y), cNavy)
+	}
+	return c
+}
+
 // ico is the canvas as a 4-bit Windows icon.
 func (c canvas) ico() []byte {
 	n := len(c)
@@ -187,6 +199,7 @@ var shabbies = map[uint32][]byte{
 	iconFolder:   folderArt(iconSize).ico(),
 	iconBoard:    boardArt(iconSize).ico(),
 	iconChat:     chatArt(iconSize).ico(),
+	iconFile:     fileArt(iconSize).ico(),
 }
 
 // shabby is the file for a shabby id (empty: none; the client then shows

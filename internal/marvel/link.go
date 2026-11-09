@@ -251,6 +251,13 @@ func (l *selectLink) send(msg []byte) error {
 	return err
 }
 
+// backlog is how many packets wait for the window or an ACK.
+func (l *selectLink) backlog() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return len(l.waiting) + len(l.unacked)
+}
+
 // fill sends what waits, as far as the window allows.
 func (l *selectLink) fill() error {
 	for len(l.waiting) > 0 && len(l.unacked) < window {

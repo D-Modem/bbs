@@ -1,6 +1,7 @@
 package marvel
 
 import (
+	"slices"
 	"strings"
 )
 
@@ -105,8 +106,11 @@ func (d *dirsrv) call(h hostBlock) ([]byte, bool) {
 		var recs [][]byte
 		switch h.Method {
 		case treeGetProperties:
+			// Find's result rows are the only reads of "f", and take the
+			// list's types
+			t.find = slices.Contains(r.props, "f")
 			for _, k := range r.nodes {
-				recs = append(recs, record(t.dirProps(r.props, t.get(k), false)))
+				recs = append(recs, record(t.dirProps(r.props, t.get(k), t.find)))
 			}
 		case treeGetParents:
 			for _, p := range t.parents[r.nodes[0]] {
@@ -147,7 +151,7 @@ func (d *dirsrv) call(h hostBlock) ([]byte, bool) {
 		}
 		var ids []uint32
 		if key == 0 {
-			ids = []uint32{iconFolder, iconBoard, iconChat}
+			ids = []uint32{iconFolder, iconBoard, iconChat, iconFile}
 		}
 		var b []byte
 		for _, id := range ids {

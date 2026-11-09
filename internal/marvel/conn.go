@@ -182,6 +182,10 @@ func (c *conn) newService(name, version string, pipe uint16) service {
 		return &confloc{c: c}
 	case "CONFSRV":
 		return newChat(c, pipe)
+	case "FTM":
+		return newFTM(c, pipe)
+	case "FINDSVC":
+		return &findSvc{c: c, pipe: pipe}
 	case "LOGSRV":
 		return &logsrv{c: c}
 	case "DIRSRV":
@@ -314,5 +318,5 @@ func (c *conn) tree() *tree {
 	if u != nil {
 		rooms = c.rooms()
 	}
-	return buildTree(b.Conf().Name, areas, rooms)
+	return buildTree(b.Conf().Name, areas, rooms, c.libraries(u))
 }

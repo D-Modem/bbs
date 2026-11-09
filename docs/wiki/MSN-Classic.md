@@ -8,7 +8,8 @@ from the Compose window, and a member's own messages deleted. MSN Today
 lists the boards with the newest messages. The Inbox (Microsoft Exchange,
 with the MSN service) is the caller's BBS mail, and the Chat folder holds
 the BBS's chat rooms, where MSN callers talk with everyone else in them.
-This is early work, not yet tried with a real client.
+The Files folder holds the file areas, whose files download, and Find
+searches all of it. This is early work, not yet tried with a real client.
 
 ## Over TCP
 
@@ -84,8 +85,26 @@ Point the client's phone number at the line that reaches that listener.
   other networks. `/me` at the start of a line is an action. Sysop rooms
   aren't listed, and rooms can't be made from the client.
 
-Not served yet: Find, file downloads, the
-sign-up wizard and MSN Today's Media Viewer title. The 1996 client
+- **Files**: the Files folder (go word `files`, in MSN Central and in
+  Categories) has a folder for each file area the caller may download
+  from. Each file is a Download-and-Run file, as MSN's own downloads
+  were: opening it has the client's File Transfer Manager fetch it, with
+  its progress window, and then the client opens it as Explorer would (a
+  program runs; a `.zip` opens in whatever the PC opens those with). The
+  file lands in the PC's temporary folder, so a caller who wants to keep
+  it saves it from there. Each download counts against the caller's
+  daily limit and ratio, as it does everywhere else.
+- **Find**: Find > The Microsoft Network searches the directory's names
+  and descriptions: folders, boards, chat rooms, file libraries and files
+  (not the messages in a board). The words and wildcards work as the
+  dialog's help says: a word matches whole words, `*` and `?` stand in
+  for letters, and a quoted phrase matches its words in order. The "of
+  type" list narrows it (bulletin boards, chat rooms, "Kiosks and other
+  files" for the files, newsgroups for the areas that carry one). Nothing
+  here has a place, so a search with Place filled in finds nothing. At
+  most 200 results come back.
+
+Not served yet: the sign-up wizard and MSN Today's Media Viewer title. The 1996 client
 (Windows 95 OSR2, MSN 1.3) signs in with NTLM, which needs a password hash
 the BBS doesn't keep, so it can't sign in.
 
