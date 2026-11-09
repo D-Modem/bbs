@@ -146,6 +146,11 @@ throttle_time = 600
 ;                        and an empty line: app_dmodem's DMODEM_* or a
 ;                        modemmenu item's MODEM_* (rate, caller ID, number)
 ;   header_timeout = 10  seconds for the header
+;   handoff = no         type = raw on a unix socket, with header = yes:
+;                        the caller's line itself may come with the header
+;                        (SCM_RIGHTS, modemmenu's item with handoff = yes),
+;                        the session then on that terminal, nothing copied;
+;                        closing the connection gives the line back
 ;   trust_user = no      yes: the header's MODEM_USER (an rlogin's server
 ;                        user) is logged in without a password.  Only where
 ;                        nothing but trusted menus can connect
@@ -244,6 +249,18 @@ address = 127.0.0.1:2513
 ;type = raw
 ;address = /run/bbs/menu.sock
 ;header = yes
+;trust_user = yes
+;create_users = yes
+;socket_mode = 0660
+;socket_group = asterisk
+
+; the same with the caller's line itself (modemmenu's item with
+; handoff = yes): the BBS on the modem's terminal, nothing copied between
+;[listen handoff]
+;type = raw
+;address = /run/bbs/handoff.sock
+;header = yes
+;handoff = yes
 ;trust_user = yes
 ;create_users = yes
 ;socket_mode = 0660
@@ -652,6 +669,28 @@ address = 127.0.0.1:2513
 ;uin_base = 100000
 ; the screen name the BBS's notices come from
 ;system = OnlineHost
+
+; MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows
+; Messenger 4.x (MSNP2 to 7), beside IRC and AIM.  Users sign in as
+; name@domain with their BBS passwords; contacts are their friends list;
+; an IM is a private message (a PRIVMSG on IRC), kept for one away.  The
+; clients must be pointed at this host (see the wiki page).
+; See docs/wiki/MSN-Messenger.md
+;[msn]
+;address = :1863
+; where clients are sent for conversations, host:port (default: the
+; address each one came to; set it behind NAT)
+;host = msn.example.org:1863
+; handles are name@domain (default bbs.invalid); clients may sign in with
+; any domain, as MSN 1.0's @hotmail.com
+;domain = msn.example.org
+;max_clients = 256
+; each conversation is a connection of its own
+;max_per_ip = 16
+; the name the BBS's notices come from
+;system = BBS
+; a web address the clients' links (inbox, profiles) open
+;site = https://bbs.example.org/
 
 ; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
 ; beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike.

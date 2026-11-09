@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -401,7 +402,12 @@ func TestAIMToIRC(t *testing.T) {
 
 	// Carol Ann, on IRC: she arrives, and IMs go both ways
 	carol := ircLogin(t, e.ircAddr, "Carol Ann")
-	if sn, info := alice.arrival(); sn != "CarolAnn" && sn != "Carol Ann" {
+	// (bob's arrival can come again first, as his session settles)
+	sn, info := alice.arrival()
+	for i := 0; sn == "bob" && i < 3; i++ {
+		sn, info = alice.arrival()
+	}
+	if sn != "CarolAnn" && sn != "Carol Ann" {
 		t.Errorf("carol arrival %q %v", sn, info)
 	}
 	alice.sendIM("Carol Ann", "<HTML>hi &amp; welcome</HTML>", false)
@@ -413,10 +419,14 @@ func TestAIMToIRC(t *testing.T) {
 		t.Errorf("alice got %q %q", from, text)
 	}
 
-	// offline, and unknown: not logged on
+	// one away: the IM is kept, and alice told so; one unknown: not logged on
 	alice.sendIM("sysop", "anyone?", false)
+	if from, text := alice.recvIM(); from != "OnlineHost" || !strings.Contains(text, "sysop is not on now") {
+		t.Errorf("alice told %q %q", from, text)
+	}
+	alice.sendIM("nobody", "anyone?", false)
 	if r := (&rd{p: alice.expect(0x04, 0x01)}); r.u16() != icbmNotLoggedOn {
-		t.Error("no error to an offline user")
+		t.Error("no error to an unknown user")
 	}
 
 	// bob goes: alice is told
@@ -652,4 +662,146 @@ func TestP3(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("not given to P3")
 	}
+}
+
+// TestKeptIMs: IMs and PRIVMSGs to one away are kept, and given them when
+// they come: on AIM as IMs after the client is ready, on ICQ as offline
+// messages, on IRC as PRIVMSGs with their times; the conversation is
+// there to read back by IRC.
+func TestKeptIMs(t *testing.T) {
+	e := start(t)
+	host, ck, _ := login(t, e.addr, "alice", "password1", true)
+	alice := bos(t, host, ck)
+	alice.sendIM("bob", "<HTML>are you there?</HTML>", false)
+	alice.recvIM() // the note that bob is away
+	carol := ircLogin(t, e.ircAddr, "Carol Ann")
+	carol.send("PRIVMSG bob :hi from IRC")
+	if l := carol.expect(" 301 "); !strings.Contains(l, "next log in") {
+		t.Errorf("carol told %q", l)
+	}
+
+	// bob comes by AIM: both, as IMs, after his client is ready
+	host, ck, _ = login(t, e.addr, "bob", "password1", true)
+	bob := bos(t, host, ck)
+	got := map[string]string{}
+	for range 2 {
+		from, text := bob.recvIM()
+		got[from] = text
+	}
+	if !strings.Contains(got["alice"], "while you were away) are you there?") {
+		t.Errorf("from alice %q", got["alice"])
+	}
+	if !strings.Contains(got["CarolAnn"], "hi from IRC") && !strings.Contains(got["Carol Ann"], "hi from IRC") {
+		t.Errorf("from carol %v", got)
+	}
+
+	// read back, by IRC
+	carol.send("PRIVMSG BBSServ :HISTORY bob")
+	if l := carol.expect("<Carol Ann> hi from IRC"); !strings.Contains(l, "NOTICE") {
+		t.Errorf("history %q", l)
+	}
+
+	// ICQ: an offline message, with its sender and time
+	bob.c.Close()
+	for i := 0; len(e.srv.nodesOf("bob")) > 0; i++ {
+		if i > 300 {
+			t.Fatal("bob never went")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	alice.sendIM("bob", "for ICQ", true)
+	alice.expect(0x04, 0x0c) // kept; alice was told once already
+	bobU, _ := e.b.Store.UserByName("bob")
+	aliceU, _ := e.b.Store.UserByName("alice")
+	uin := e.srv.uinOf(bobU.ID)
+	host, ck, _ = roastedLogin(t, e.addr, uin, "password1")
+	icq := bos(t, host, ck)
+	var q le
+	q.u16(0)
+	q.u32(e.srv.S.UINBase + uint32(bobU.ID))
+	q.u16(icqOfflineReq)
+	q.u16(2)
+	binary.LittleEndian.PutUint16(q, uint16(len(q)-2))
+	var t1 tlvs
+	t1.add(0x0001, q)
+	icq.send(0x15, 0x02, t1.bytes())
+	v, _ := parseTLVs(icq.expect(0x15, 0x03)).get(0x0001)
+	r := &lrd{rd{p: v}}
+	r.u16()
+	r.u32()
+	if k := r.u16(); k != icqOfflineMsg {
+		t.Fatalf("kind %x", k)
+	}
+	r.u16()
+	if from := r.u32(); from != e.srv.S.UINBase+uint32(aliceU.ID) {
+		t.Errorf("from %d", from)
+	}
+	if y := r.u16(); y != uint16(time.Now().UTC().Year()) {
+		t.Errorf("year %d", y)
+	}
+	r.take(4)
+	r.take(2)
+	if text := r.str(); text != "for ICQ" {
+		t.Errorf("text %q", text)
+	}
+	v, _ = parseTLVs(icq.expect(0x15, 0x03)).get(0x0001)
+	r = &lrd{rd{p: v}}
+	r.u16()
+	r.u32()
+	if k := r.u16(); k != icqOfflineDone {
+		t.Errorf("then %x", k)
+	}
+	if cs, _ := e.b.Store.KeptChats(bobU.ID); len(cs) != 0 {
+		t.Errorf("still kept: %v", cs)
+	}
+}
+
+// TestFriendsList: the server-stored buddy list is the friends list: a
+// buddy not a BBS user is refused, one added from IRC comes to the AIM
+// client in a Friends group, one deleted by AIM is off the list.
+func TestFriendsList(t *testing.T) {
+	e := start(t)
+	host, ck, _ := login(t, e.addr, "alice", "password1", true)
+	alice := bos(t, host, ck)
+	alice.send(0x13, 0x04, nil)
+	alice.expect(0x13, 0x06)
+	var b buf
+	itemBytes(&b, store.FeedbagItem{Name: "nobody", GroupID: 1, ItemID: 9, ClassID: fbBuddy})
+	alice.send(0x13, 0x08, b)
+	if c := alice.expect(0x13, 0x0e); !bytes.Equal(c, []byte{0, fbInvalid}) {
+		t.Errorf("a buddy not a user: %x", c)
+	}
+
+	ic := ircLogin(t, e.ircAddr, "alice")
+	ic.send("PRIVMSG BBSServ :FRIENDS ADD Carol_Ann")
+	ic.expect("is on your friends list")
+	alice.expect(0x13, 0x11)
+	add := &rd{p: alice.expect(0x13, 0x08)}
+	var names []string
+	var carolItem store.FeedbagItem
+	for _, it := range readItems(add) {
+		names = append(names, it.Name)
+		if it.ClassID == fbBuddy {
+			carolItem = it
+		}
+	}
+	if carolItem.Name != "Carol Ann" || !slices.Contains(names, "Friends") {
+		t.Fatalf("added %q", names)
+	}
+
+	aliceU, _ := e.b.Store.UserByName("alice")
+	if fs, _ := e.b.Store.Friends(aliceU.ID); len(fs) != 1 || fs[0].Name != "Carol Ann" {
+		t.Fatalf("friends %v", fs)
+	}
+	var d buf
+	itemBytes(&d, carolItem)
+	alice.send(0x13, 0x0a, d)
+	if c := alice.expect(0x13, 0x0e); !bytes.Equal(c, []byte{0, fbOK}) {
+		t.Errorf("delete: %x", c)
+	}
+	if fs, _ := e.b.Store.Friends(aliceU.ID); len(fs) != 0 {
+		t.Errorf("friends after: %v", fs)
+	}
+	ic.send("PRIVMSG BBSServ :FRIENDS")
+	ic.expect("Your friends list is empty")
 }

@@ -205,7 +205,18 @@ Code: `internal/cis/slp.go`, `internal/cis/hmi.go`, `internal/xfer/cisbtl.go`. T
   - `0x07` hangs up.
   - Everything else gets an ack on stream 1.
   - The first message after the Transport Layer starts is sent twice, 300 ms apart. Every answer waits 120 ms first, as E's does.
-- **Page names:** `CIS:<ID>` and `HOM:<word>` both resolve through the ASCII service's page tree (`pages.txt`, IDs and GO words). Aliases: `NEWPAGE` → `NEW`, `CONTENTS` → `TOP`, `MAILHMI` → `MAIL`. Pages go out as `CIS:<ID>`, numbered with a 24-bit hash of the ID. `CIS:FORUMS` is the forum list. A forum, `MAIL` and `CB` are, for now, articles that say to use a terminal (milestone 8). An unknown name gets an article saying so, never nothing.
+- **Page names:** `CIS:<ID>` and `HOM:<word>` both resolve through the ASCII service's page tree (`pages.txt`, IDs and GO words). Aliases: `NEWPAGE` → `NEW`, `CONTENTS` → `TOP`, `MAILHMI` → `MAIL`. Pages go out as `CIS:<ID>`, numbered with a 24-bit hash of the ID. An unknown name gets an article saying so, never nothing.
+- **Forums and Mail (milestone 8), as pages, the way E measured WinCIM asking for them** (`internal/cis/hmiforum.go`):
+  - `CIS:FORUMS` lists the forums.
+  - `CIS:<GO>` is one forum: its sections, then its libraries.
+  - `CIS:<GO>/S<n>` lists a section's messages, newest first, up to 200.
+  - `CIS:<GO>/M<number>` is one message as an article, in the forum software 4 header format. Reading it sets the last-read mark.
+  - `CIS:<GO>/L<n>` is a library's file list, as an article.
+  - `CIS:MAIL` is the mailbox: `HOM:MAILHMI` from Get Mail, newest first, unread letters marked `*`.
+  - `CIS:MAIL/<id>` is one letter. Reading it marks it read.
+  - Every item has kind 0. E found that kind 1 draws a label the client will not select.
+  - Pages are made afresh on each request.
+- **Not yet:** sending mail. E found that it is the `IInMailSendTV` transaction, sent at Send/Retrieve All, and its bytes are not recovered. Forum posting (`IFoMsgSendTV`), library transfers (`IFoLibSendTV`, streams 2/3/6/8), the CB, and the forms layer (`FORMCB.DLL`) are not done either.
 
 ## 5. Reverse-engineering plan for the gaps
 

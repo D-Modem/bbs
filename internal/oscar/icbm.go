@@ -37,7 +37,7 @@ func (ss *session) icbm(h snacHeader, r *rd) {
 		ss.fail(0x0004, h.req, icbmRefused)
 	case 0x000b: // the client's error or auto answer, for the sender
 		ss.relayToSender(h, r, 0x000b)
-	case 0x0010: // offline messages: none kept
+	case 0x0010: // offline messages: given as IMs once the client is ready
 		ss.snac(0x0004, 0x0017, h.req, nil)
 	case 0x0014: // typing
 		ss.relayToSender(h, r, 0x0014)
@@ -176,17 +176,39 @@ func (ss *session) deliver(u *store.User, ck []byte, raw string, isHTML, auto bo
 	if plain == "" {
 		return nil
 	}
+	if ss.s.B.Blocks(u, ss.u) {
+		return errOffline // on their blocked list (any front end's)
+	}
 	for _, o := range ss.s.sessionsOf(u.ID) {
 		if o.blocks(ss.u) {
 			return errOffline
 		}
 	}
-	nodes := ss.s.nodesOf(u.Name)
-	if len(nodes) == 0 {
-		return errOffline
-	}
 	if auto {
 		plain = "(auto reply) " + plain
+	}
+	nodes := ss.s.nodesOf(u.Name)
+	if len(nodes) == 0 {
+		if auto {
+			return nil // an auto reply is not kept
+		}
+		// kept for them, and the sender told so (once)
+		if err := ss.n.Throttle(); err != nil {
+			return err
+		}
+		ss.n.Keep(u, plain, false)
+		ss.mu.Lock()
+		noted := ss.noted[u.ID]
+		ss.noted[u.ID] = true
+		ss.mu.Unlock()
+		if !noted {
+			from := ss.systemName()
+			name := u.Name
+			ss.do(func() {
+				ss.imFrom(from, name+" is not on now; they will have your messages when they next sign on.")
+			})
+		}
+		return nil
 	}
 	native := false
 	var lastErr error
@@ -223,6 +245,12 @@ func (ss *session) deliver(u *store.User, ck []byte, raw string, isHTML, auto bo
 	}
 	if native {
 		ss.s.B.Log.Printf("node %d: %s sent an IM to %s", ss.n.Num, ss.u.Name, u.Name)
+	}
+	if sent && !auto {
+		ss.n.Keep(u, plain, true)
+		ss.mu.Lock()
+		delete(ss.noted, u.ID)
+		ss.mu.Unlock()
 	}
 	if !sent && lastErr != nil {
 		return lastErr

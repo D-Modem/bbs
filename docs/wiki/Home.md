@@ -79,7 +79,8 @@ which is generated from `bbs.conf.sample`.
 - [Newsgroups](Newsgroups-and-NNTP) served by NNTP and exchanged with other
   news servers
 - [IRC](IRC), where the chat rooms are channels, [AIM and ICQ](AIM-and-ICQ)
-  for AIM and ICQ clients on the same chat, and [MRC](MRC), the chat
+  for AIM and ICQ clients on the same chat, [MSN Messenger](MSN-Messenger)
+  for MSN clients, and [MRC](MRC), the chat
   network shared with other BBSes
 - [Finger and gopher](Finger-and-Gopher)
 - [Time](Time): NTP, NTS and PTP, followed and served
@@ -136,6 +137,7 @@ which is generated from `bbs.conf.sample`.
 | [Chat and paging](Chat-and-Paging) | chat rooms, node messages, paging the sysop |
 | [IRC](IRC) | the IRC server, with the chat rooms as channels |
 | [AIM and ICQ](AIM-and-ICQ) | the OSCAR server: AIM and ICQ clients, buddies, IMs and chat rooms |
+| [MSN Messenger](MSN-Messenger) | the MSN server: MSN Messenger 1.0 to 4.7, contacts and IMs |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
 | [Time](Time) | NTP, NTS and PTP: the clock following time servers, and serving time |

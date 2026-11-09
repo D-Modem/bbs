@@ -32,6 +32,7 @@ the file is laid out.
 | [`[door NAME]`](#door-name) | A door: a program callers play, or another system's doors. |
 | [`[irc]`](#irc) | IRC: the chat rooms as channels (#main ...), for IRC clients. |
 | [`[oscar]`](#oscar) | AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC. |
+| [`[msn]`](#msn) | MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (MSNP2 to 7), beside IRC and AIM. |
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
 | [`[gopher]`](#gopher) | gopher: about the system, who is on, and what areas the sysop opens: no login, so anyone sees them. |
@@ -99,7 +100,7 @@ There may be any number of these, each with its own NAME.
 | key | default | live | what it does |
 |---|---|---|---|
 | `type` | `telnet` |  | a telnet server; with tn3270 = yes (the default), a client that says it is a 3270 (IBM-3278-2-E, IBM-DYNAMIC) gets the 3270 screens raw the caller's bytes as they come, no protocol: app_dmodem's mode = tcp, modemmenu tcp/unix items rlogin RFC 1282, as modemmenu's rlogin items speak it ssh SSH: passwords or users' keys (host_keys, legacy) Examples: `telnet`, `raw`, `ssh`, `rlogin`. |
-| `address` | `host:port` |  | or a unix socket's path (/run/bbs/bbs.sock) Examples: `:2300`, `:992`, `127.0.0.1:2323`, `:2324`, `:2222`, `127.0.0.1:2513`, `/run/bbs/menu.sock`. |
+| `address` | `host:port` |  | or a unix socket's path (/run/bbs/bbs.sock) Examples: `:2300`, `:992`, `127.0.0.1:2323`, `:2324`, `:2222`, `127.0.0.1:2513`, `/run/bbs/menu.sock`, `/run/bbs/handoff.sock`. |
 | `via` | `...` |  | how its callers came, in who's online (telnet, modem, rlogin by type) |
 | `ansi` | `auto` |  | the terminal's ANSI color: auto asks the terminal (or believes its terminal type), yes, no. |
 | `utf8` | `auto` |  | UTF-8 both ways: auto by the terminal type (xterm and friends yes; "ansi" BBS terminals no), yes, no. |
@@ -110,6 +111,7 @@ There may be any number of these, each with its own NAME.
 | `max_per_ip` | `4` |  | connections at once from one address (loopback and unix sockets: no limit, they are modem servers) |
 | `header` | `no` |  | yes: a session header comes first, NAME=value lines and an empty line: app_dmodem's DMODEM_* or a modemmenu item's MODEM_* (rate, caller ID, number) Examples: `yes`. |
 | `header_timeout` | `10` |  | seconds for the header. |
+| `handoff` | `no` |  | type = raw on a unix socket, with header = yes: the caller's line itself may come with the header (SCM_RIGHTS, modemmenu's item with handoff = yes), the session then on that terminal, nothing copied; closing the connection gives the line back. Examples: `yes`. |
 | `trust_user` | `no` |  | yes: the header's MODEM_USER (an rlogin's server user) is logged in without a password. Only where nothing but trusted menus can connect. Examples: `yes`. |
 | `create_users` | `no` |  | yes, with trust_user: a user unknown here gets an account (with no password of its own) Examples: `yes`. |
 | `socket_mode` | `0660` |  | a unix socket's permissions. |
@@ -450,6 +452,21 @@ AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC.  Users sign o
 | `max_per_ip` |  |  | each client opens a few connections: sign-on, the BOS, chat rooms. Examples: `16`. |
 | `uin_base` |  |  | an account's ICQ number is this plus its number. Examples: `100000`. |
 | `system` |  |  | the screen name the BBS's notices come from. Examples: `OnlineHost`. |
+
+
+## `[msn]`
+
+MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (MSNP2 to 7), beside IRC and AIM.  Users sign in as name@domain with their BBS passwords; contacts are their friends list; an IM is a private message (a PRIVMSG on IRC), kept for one away.  The clients must be pointed at this host (see the wiki page). See docs/wiki/MSN-Messenger.md.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:1863`. |
+| `host` |  |  | where clients are sent for conversations, host:port (default: the address each one came to; set it behind NAT) Examples: `msn.example.org:1863`. |
+| `domain` |  |  | handles are name@domain (default bbs.invalid); clients may sign in with any domain, as MSN 1.0's @hotmail.com. Examples: `msn.example.org`. |
+| `max_clients` |  |  | handles are name@domain (default bbs.invalid); clients may sign in with any domain, as MSN 1.0's @hotmail.com. Examples: `256`. |
+| `max_per_ip` |  |  | each conversation is a connection of its own. Examples: `16`. |
+| `system` |  |  | the name the BBS's notices come from. Examples: `BBS`. |
+| `site` |  |  | a web address the clients' links (inbox, profiles) open. Examples: `https://bbs.example.org/`. |
 
 
 ## `[mrc]`

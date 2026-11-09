@@ -184,17 +184,19 @@ type BBS struct {
 	// sysopAway: the sysop is not to be paged (pages leave a message)
 	sysopAway atomic.Bool
 
-	mu       sync.Mutex
-	nodes    map[int]*Node
-	failures map[string][]time.Time
-	hubOnce  sync.Once
-	chat     *hub
-	relay    Relay // a chat network's rooms (MRC)
-	geoMu    sync.Mutex
-	geo      *geoip.File
-	presMu   sync.Mutex
-	presence map[int]func(name string, online bool) // WatchPresence's
-	presNext int
+	mu         sync.Mutex
+	nodes      map[int]*Node
+	failures   map[string][]time.Time
+	hubOnce    sync.Once
+	chat       *hub
+	relay      Relay // a chat network's rooms (MRC)
+	geoMu      sync.Mutex
+	geo        *geoip.File
+	presMu     sync.Mutex
+	presence   map[int]func(name string, online bool) // WatchPresence's
+	presNext   int
+	friendFns  map[int]func(user int64) // WatchFriends'
+	friendNext int
 }
 
 // New makes the BBS of the settings and store.
@@ -622,6 +624,7 @@ func (b *BBS) menuLogin(who, name, pw string) (*store.User, error) {
 	b.Log.Printf("%s: %s's password by modemmenu (%s)", who, u.Name, backend)
 	b.Store.KeepOSCARKeys(u.ID, pw) // for AIM's digest logins, if kept
 	b.Store.KeepCISKey(u.ID, pw)    // and CompuServe's
+	b.Store.KeepMSNKey(u.ID, pw)    // and MSN's
 	return u, nil
 }
 
@@ -674,6 +677,7 @@ func (n *Node) loggedIn(u *store.User, how string) (*store.User, error) {
 		return nil, err
 	}
 	n.SetUser(u)
+	n.DeliverKept()
 	n.startClock(u)
 	if err := n.b.Store.AddCall(&store.Call{UserID: u.ID, Name: u.Name, Location: u.Location,
 		Via: n.Caller.Via, Node: n.Num}); err != nil {

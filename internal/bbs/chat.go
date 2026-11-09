@@ -35,6 +35,7 @@ type Event struct {
 	Node int
 	Text string
 	Time time.Time
+	Kept bool // a private message kept while its caller was away
 	// the CB handle the sender goes by ("": none; From is still the
 	// user's name, for those that do not show handles)
 	Handle string
@@ -52,6 +53,9 @@ func (e Event) String() string {
 	case Left:
 		return "<- " + e.From + " left"
 	case Private:
+		if e.Kept {
+			return fmt.Sprintf("Message from %s (%s, while you were away): %s", e.From, e.Time.Format("Jan 2 15:04"), e.Text)
+		}
 		return fmt.Sprintf("Message from %s (node %d): %s", e.From, e.Node, e.Text)
 	case Mail:
 		return "New mail from " + e.From + ": " + e.Text
@@ -523,6 +527,9 @@ func (n *Node) Message(to int, text string) error {
 	o := n.b.node(to)
 	if o == nil || o.User() == nil || o == n {
 		return ErrNoNode
+	}
+	if from := n.User(); from != nil && n.b.Blocks(o.User(), from) {
+		return ErrBlocked
 	}
 	if n.flood() {
 		return ErrFlood
