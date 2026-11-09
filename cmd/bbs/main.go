@@ -86,6 +86,7 @@ import (
 	"github.com/D-Modem/bbs/internal/server"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/ymsg"
 	"github.com/D-Modem/menu/authd"
 )
 
@@ -311,6 +312,9 @@ func main() {
 		}
 		if m := cfg.Marvel; m != nil {
 			fmt.Printf("marvel: %q\n", m.Address)
+		}
+		if y := cfg.YMSG; y != nil {
+			fmt.Printf("ymsg: %q, web %q, https %q\n", y.Address, y.HTTPAddress, y.HTTPSAddress)
 		}
 		if cfg.Finger != nil {
 			fmt.Printf("finger: %s (online %v, users %v)\n", cfg.Finger.Address, cfg.Finger.Online, cfg.Finger.Users)
@@ -623,6 +627,19 @@ func serve(cfg *server.Config, path string) int {
 		}
 		go func() {
 			if err := msrv.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
+	if cfg.YMSG != nil {
+		ysrv, err := ymsg.New(b, *cfg.YMSG)
+		if err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+		go func() {
+			if err := ysrv.Run(ctx); err != nil {
 				lg.Printf("%v", err)
 				stop()
 			}

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // EventKind says what an Event is.
@@ -491,13 +493,19 @@ type RoomInfo struct {
 
 // Rooms lists the chat rooms in use (private ones only to sysops and
 // their own caller).
-func (n *Node) Rooms() []RoomInfo {
-	u := n.User()
-	h := n.b.hub()
+func (n *Node) Rooms() []RoomInfo { return n.b.rooms(n.User(), n.Num) }
+
+// PublicRooms lists the chat rooms in use but the private ones (for a
+// list shown to anyone, as a Yahoo client's room browser).
+func (b *BBS) PublicRooms() []RoomInfo { return b.rooms(nil, 0) }
+
+// rooms lists the chat rooms in use, as u on node sees them.
+func (b *BBS) rooms(u *store.User, node int) []RoomInfo {
+	h := b.hub()
 	h.mu.Lock()
 	var out []RoomInfo
 	for name, r := range h.rooms {
-		if strings.HasPrefix(name, "sysop-") && name != pageRoom(n.Num) && (u == nil || !u.Sysop) {
+		if strings.HasPrefix(name, "sysop-") && (node == 0 || name != pageRoom(node)) && (u == nil || !u.Sysop) {
 			continue
 		}
 		ri := RoomInfo{Name: name, Permanent: r.permanent, Topic: r.topic}
@@ -509,7 +517,7 @@ func (n *Node) Rooms() []RoomInfo {
 	}
 	h.mu.Unlock()
 	for i := range out {
-		for _, m := range n.b.remoteMembers(out[i].Name) {
+		for _, m := range b.remoteMembers(out[i].Name) {
 			out[i].Users = append(out[i].Users, m.Name+" ("+m.Via+")")
 		}
 	}

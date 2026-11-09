@@ -83,7 +83,7 @@ which is generated from `bbs.conf.sample`.
   news servers
 - [IRC](IRC), where the chat rooms are channels, [AIM and ICQ](AIM-and-ICQ)
   for AIM and ICQ clients on the same chat, [MSN Messenger](MSN-Messenger)
-  for MSN clients, and [MRC](MRC), the chat
+  for MSN clients, [Yahoo! Messenger](Yahoo-Messenger) for Yahoo clients, and [MRC](MRC), the chat
   network shared with other BBSes
 - [Finger, gopher and Gemini](Finger-and-Gopher)
 - [Time](Time): NTP, NTS and PTP, followed and served
@@ -145,6 +145,7 @@ which is generated from `bbs.conf.sample`.
 | [AOL clients](AOL) | a host for AOL's own clients (3.0, 4.0): sign-on with BBS accounts |
 | [MSN Messenger](MSN-Messenger) | the MSN server: MSN Messenger 1.0 to 4.7, contacts and IMs |
 | [MSN Classic](MSN-Classic) | The Microsoft Network for Windows 95's client: sign-in, the areas as Categories, bulletin boards |
+| [Yahoo! Messenger](Yahoo-Messenger) | the Yahoo server: YMSG 9 to 16, buddies, IMs, chat rooms and conferences |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Finger, gopher and Gemini](Finger-and-Gopher) | who is on, and the BBS in gopherspace and Geminispace |
 | [Time](Time) | NTP, NTS and PTP: the clock following time servers, and serving time |
