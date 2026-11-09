@@ -50,6 +50,10 @@ the file is laid out.
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
 | [`[gopher]`](#gopher) | gopher: about the system, who is on, and what areas the sysop opens: no login, so anyone sees them. |
 | [`[gemini]`](#gemini) | gemini: gopher's capsule over Gemini (gemini://, TLS): about the system, who is on, users as finger tells of them, and what areas the sysop opens: no login, so anyone sees them. |
+| [`[feeds]`](#feeds) | News, weather and quotes: the main menu's [N], as the online services had them. |
+| [`[feed NAME]`](#feed-name) | A feed of the sysop's, or changes to the catalogue's of that name (enabled = no leaves it out) |
+| [`[weather]`](#weather) | Each caller's weather, for where they say they are (a US ZIP code, a town anywhere, or a latitude and longitude): the National Weather Service's forecast and warnings in the US, Open-Meteo's forecast elsewhere (free for non-commercial use, credited), and the USGS's earthquakes near. |
+| [`[quotes]`](#quotes) | Stock quotes from IEX (the Investors Exchange): its own trades and quotes, not the whole market's. |
 | [`[time]`](#time) | Time. |
 | [`[ntp]`](#ntp) | an NTP server (UDP). |
 | [`[nts]`](#nts) | an NTS-KE server (RFC 8915): TLS 1.3, its clients' keys and cookies for [ntp], which then answers NTS-secured requests too. |
@@ -727,6 +731,67 @@ gemini: gopher's capsule over Gemini (gemini://, TLS): about the system, who is 
 | `areas` |  |  | message areas shown (a wildmat of area names; "": none) Examples: `general,announcements`. |
 | `files` |  |  | file areas listed and downloadable. Examples: `no`. |
 | `users` |  |  | /users: look up a user, as finger tells of them. Examples: `yes`. |
+
+
+## `[feeds]`
+
+News, weather and quotes: the main menu's [N], as the online services had them.  News feeds (RSS, Atom, JSON Feed) are posted to read-only message areas, made when first needed, so they are read everywhere areas are: the terminals, newsreaders (an area made a newsgroup), QWK, the web forum, gopher.  An item is its headline, its summary and a link: what feeds are published for.  bbs feeds catalog lists the feeds the BBS knows.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `contact` |  |  | a way to reach the sysop, sent to the sites read (the SEC refuses readers without one, the National Weather Service asks for one) Examples: `sysop@example.org`. |
+| `catalog` |  |  | feeds of the catalogue: all, groups (news, business, technology, science, government) or feeds by name. Examples: `all`. |
+| `every` |  |  | minutes between readings, and days items are kept (0: for ever), for feeds that say none of their own. Examples: `30`. |
+| `keep_days` |  |  | minutes between readings, and days items are kept (0: for ever), for feeds that say none of their own. Examples: `30`. |
+| `max_items` |  |  | the most items of a feed posted at one reading. Examples: `50`. |
+
+
+## `[feed NAME]`
+
+A feed of the sysop's, or changes to the catalogue's of that name (enabled = no leaves it out)
+
+There may be any number of these, each with its own NAME.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `enabled` |  |  | See the section above. Examples: `yes`. |
+| `url` |  |  | See the section above. Examples: `https://lobste.rs/rss`. |
+| `title` |  |  | See the section above. Examples: `Lobsters`. |
+| `area` |  |  | the area (its name by default), and the group it is listed under. Examples: `Lobsters`. |
+| `group` |  |  | the area (its name by default), and the group it is listed under. Examples: `Technology`. |
+| `description` |  |  | the area (its name by default), and the group it is listed under. Examples: `Lobsters: computing`. |
+| `every` |  |  | the area (its name by default), and the group it is listed under. Examples: `60`. |
+| `keep_days` |  |  | the area (its name by default), and the group it is listed under. Examples: `14`. |
+
+
+## `[weather]`
+
+Each caller's weather, for where they say they are (a US ZIP code, a town anywhere, or a latitude and longitude): the National Weather Service's forecast and warnings in the US, Open-Meteo's forecast elsewhere (free for non-commercial use, credited), and the USGS's earthquakes near.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `contact` |  |  | as [feeds] contact (which it defaults to) Examples: `sysop@example.org`. |
+| `international` |  |  | forecasts outside the US, from Open-Meteo. Examples: `yes`. |
+| `quake_radius` |  |  | earthquakes within this many km, of this magnitude or more. Examples: `300`. |
+| `quake_min` |  |  | earthquakes within this many km, of this magnitude or more. Examples: `2.5`. |
+| `alerts_at_login` |  |  | serious warnings (Severe, Extreme) where a caller is, told at the login. Examples: `yes`. |
+
+
+## `[quotes]`
+
+Stock quotes from IEX (the Investors Exchange): its own trades and quotes, not the whole market's.  bbs quotes fetch reads IEX's free HIST file of the last session (some 16 GB, read as it comes: nothing is kept but the quotes) into file; an [event] runs it each morning: [event quotes] command = /usr/local/bin/bbs -config /etc/bbs/bbs.conf quotes fetch at = 06:30 timeout = 3600 The change from the day before needs that day's file first: bbs quotes fetch YYYYMMDD of the session before, then bbs quotes fetch.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `file` |  |  | See the section above. Examples: `/var/lib/bbs/quotes.json.gz`. |
+| `default` |  |  | the symbols a caller sees before they choose their own. Examples: `SPY DIA QQQ AAPL MSFT`. |
+| `listen` |  |  | a live TOPS feed (IEX's real-time feed, or its free delayed one; both need a connection to IEX): its UDP address (a multicast group, joined on the interface), and how far behind it is, for the callers. Examples: `233.215.21.4:10378`. |
+| `interface` |  |  | a live TOPS feed (IEX's real-time feed, or its free delayed one; both need a connection to IEX): its UDP address (a multicast group, joined on the interface), and how far behind it is, for the callers. Examples: `eth1`. |
+| `delay` |  |  | a live TOPS feed (IEX's real-time feed, or its free delayed one; both need a connection to IEX): its UDP address (a multicast group, joined on the interface), and how far behind it is, for the callers. Examples: `15 minutes`. |
+| `alpaca_key` |  |  | or Alpaca's market data (alpaca.markets), live: its free plan has IEX's trades and quotes for 30 symbols at a time on its stream (those callers looked at last, and default), any symbol by its snapshots. The keys are an Alpaca account's (a paper-trading one will do): keep this file 0640. Alpaca's terms ask for 30 days' notice before its data is shown to others. bbs quotes alpaca AAPL tries them. Examples: `PK...`. |
+| `alpaca_secret` |  |  | or Alpaca's market data (alpaca.markets), live: its free plan has IEX's trades and quotes for 30 symbols at a time on its stream (those callers looked at last, and default), any symbol by its snapshots. The keys are an Alpaca account's (a paper-trading one will do): keep this file 0640. Alpaca's terms ask for 30 days' notice before its data is shown to others. bbs quotes alpaca AAPL tries them. Examples: `...`. |
+| `alpaca_feed` |  |  | iex (the free plan), sip (every exchange: a paid plan) or delayed_sip. Examples: `iex`. |
+| `alpaca_symbols` |  |  | the most symbols on the stream at once (the free plan's limit) Examples: `30`. |
 
 
 ## `[time]`
