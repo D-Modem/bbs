@@ -32,6 +32,8 @@ the file is laid out.
 | [`[door NAME]`](#door-name) | A door: a program callers play, or another system's doors. |
 | [`[irc]`](#irc) | IRC: the chat rooms as channels (#main ...), for IRC clients. |
 | [`[oscar]`](#oscar) | AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC. |
+| [`[irclink]`](#irclink) | IRC server linking: the BBS as a hub server on an IRC network, by TS6 (Solanum, charybdis, ircd-ratbox; ircd-hybrid 8 with protocol = hybrid). |
+| [`[ircpeer NAME]`](#ircpeer-name) | A server the BBS links with, one section each: [ircpeer ITS.NAME]. |
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
 | [`[gopher]`](#gopher) | gopher: about the system, who is on, and what areas the sysop opens: no login, so anyone sees them. |
@@ -446,6 +448,44 @@ AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC.  Users sign o
 | `max_per_ip` |  |  | each client opens a few connections: sign-on, the BOS, chat rooms. Examples: `16`. |
 | `uin_base` |  |  | an account's ICQ number is this plus its number. Examples: `100000`. |
 | `system` |  |  | the screen name the BBS's notices come from. Examples: `OnlineHost`. |
+
+
+## `[irclink]`
+
+IRC server linking: the BBS as a hub server on an IRC network, by TS6 (Solanum, charybdis, ircd-ratbox; ircd-hybrid 8 with protocol = hybrid). Every BBS user online is a user there, whom anyone can /msg and /whois; the rooms beginning irc- are its channels (irc-retro is #retro).  A nick taken there is the BBS user's as Nick|Tag.  See docs/wiki/IRC-Linking.md.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `server_name` |  |  | the BBS's server name on the network. Examples: `irc.bbs.example.org`. |
+| `sid` |  |  | the TS6 server ID: a digit, then two letters or digits, the network's own. Examples: `1BB`. |
+| `description` |  |  | its description, in LINKS (default: the BBS's name) Examples: `The D-Modem BBS`. |
+| `network` |  |  | the network's name, as WHOIS of its users shows it. Examples: `MyNet`. |
+| `tag` |  |  | Nick\|Tag for a BBS user whose nick is taken. Examples: `DM`. |
+| `host` |  |  | the BBS users' host, as the network sees them (default: server_name) Examples: `users.bbs.example.org`. |
+| `prefix` |  |  | the rooms that are channels (none: every room) Examples: `irc-`. |
+| `nick_length` |  |  | the network's NICKLEN (Solanum's 31 less one; ratbox and hybrid: 9) Examples: `30`. |
+| `address` |  |  | where servers link in (and address = none for none) Examples: `:7000`. |
+| `tls_address` |  |  | where servers link in (and address = none for none) Examples: `:7001`. |
+| `tls_cert` |  |  | the certificate and key for tls_address. Examples: `/etc/bbs/tls.crt`. |
+| `tls_key` |  |  | the certificate and key for tls_address. Examples: `/etc/bbs/tls.key`. |
+| `retry` |  |  | between tries of a link out, in seconds. Examples: `30`. |
+
+
+## `[ircpeer NAME]`
+
+A server the BBS links with, one section each: [ircpeer ITS.NAME].
+
+There may be any number of these, each with its own NAME.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | where to link out to (none: it links in) Examples: `hub.example.net:7000`. |
+| `tls` |  |  | link out by TLS. Examples: `yes`. |
+| `tls_verify` |  |  | check its certificate (a self-signed one: no) Examples: `yes`. |
+| `send_password` |  |  | the password we send it (its accept_password) Examples: `ours-to-it`. |
+| `accept_password` |  |  | the password it sends us (its send_password) Examples: `its-to-us`. |
+| `tag` |  |  | its users' tag, beside a BBS user of the same nick (Nick\|Tag) Examples: `HUB`. |
+| `protocol` |  |  | ts6 (Solanum, charybdis, ratbox) or hybrid (ircd-hybrid 8) Examples: `ts6`. |
 
 
 ## `[mrc]`

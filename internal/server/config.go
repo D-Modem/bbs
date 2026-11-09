@@ -25,6 +25,7 @@ import (
 	"github.com/D-Modem/bbs/internal/guard"
 	"github.com/D-Modem/bbs/internal/imageboard"
 	"github.com/D-Modem/bbs/internal/ircd"
+	"github.com/D-Modem/bbs/internal/irclink"
 	"github.com/D-Modem/bbs/internal/logo"
 	"github.com/D-Modem/bbs/internal/mrc"
 	"github.com/D-Modem/bbs/internal/nntp"
@@ -58,12 +59,13 @@ type Config struct {
 	QWKNets    []*qwknet.Net  // [qwknet NAME]: QWK networks this is a node of
 	Binkp      *BinkpSettings // nil: no binkp answering
 	Doors      []*door.Door
-	Finger     *finger.Settings // nil: no finger server
-	IRC        *ircd.Settings   // nil: no IRC server
-	OSCAR      *oscar.Settings  // nil: no AIM/ICQ server
-	MRC        *mrc.Settings    // nil: not on Multi Relay Chat
-	Screens    *screens.Set     // nil: no screens of the sysop's
-	ScriptsDir string           // "": no scripts
+	Finger     *finger.Settings  // nil: no finger server
+	IRC        *ircd.Settings    // nil: no IRC server
+	OSCAR      *oscar.Settings   // nil: no AIM/ICQ server
+	MRC        *mrc.Settings     // nil: not on Multi Relay Chat
+	IRCLink    *irclink.Settings // nil: not linked to an IRC network
+	Screens    *screens.Set      // nil: no screens of the sysop's
+	ScriptsDir string            // "": no scripts
 	Menus      map[string]*bbs.Menu
 	Text       map[string]string // [strings]
 	HTTP       *api.Settings     // nil: no HTTP API
@@ -142,6 +144,9 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.mrcSection(cf); err != nil {
 		return nil, err
 	}
+	if err := c.irclinkSection(cf); err != nil {
+		return nil, err
+	}
 	if err := c.infoSections(cf); err != nil {
 		return nil, err
 	}
@@ -208,7 +213,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "oscar", "mrc", "menu", "strings", "http", "level", "chan":
+		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "oscar", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}

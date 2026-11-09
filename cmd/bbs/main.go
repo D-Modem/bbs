@@ -69,6 +69,7 @@ import (
 	"github.com/D-Modem/bbs/internal/gopher"
 	"github.com/D-Modem/bbs/internal/imageboard"
 	"github.com/D-Modem/bbs/internal/ircd"
+	"github.com/D-Modem/bbs/internal/irclink"
 	"github.com/D-Modem/bbs/internal/mrc"
 	"github.com/D-Modem/bbs/internal/news"
 	"github.com/D-Modem/bbs/internal/nntp"
@@ -443,8 +444,22 @@ func serve(cfg *server.Config, path string) int {
 			lg.Printf("%v", err)
 			return 1
 		}
-		b.SetRelay(mc)
+		b.AddRelay(mc)
 		go mc.Run(ctx)
+	}
+	if cfg.IRCLink != nil {
+		hub, err := irclink.New(b, *cfg.IRCLink)
+		if err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+		b.AddRelay(hub)
+		go func() {
+			if err := hub.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
 	}
 	if cfg.IRC != nil {
 		is, err := ircd.New(b, *cfg.IRC)

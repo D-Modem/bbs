@@ -189,7 +189,7 @@ type BBS struct {
 	failures map[string][]time.Time
 	hubOnce  sync.Once
 	chat     *hub
-	relay    Relay // a chat network's rooms (MRC)
+	relays   []Relay // chat networks' rooms (MRC, IRC links)
 	geoMu    sync.Mutex
 	geo      *geoip.File
 	presMu   sync.Mutex

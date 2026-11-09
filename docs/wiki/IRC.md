@@ -141,4 +141,4 @@ The IRC protocol's parts come from [ergo](https://github.com/ergochat/ergo):
 
 Its tests also use irc-go's client (`ircevent`).
 
-**See also:** [Chat and paging](Chat-and-Paging), [MRC](MRC), [Security](Security)
+**See also:** [Chat and paging](Chat-and-Paging), [IRC server linking](IRC-Linking), [MRC](MRC), [Security](Security)

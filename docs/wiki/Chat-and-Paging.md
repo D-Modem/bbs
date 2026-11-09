@@ -31,7 +31,9 @@ A caller can say up to 8 lines in 10 seconds; more than that is refused
 ("slow down").
 
 Rooms whose names begin with `mrc-` belong to [MRC](MRC) and are shared
-with other BBSes. The rooms are also channels on the BBS's [IRC](IRC)
+with other BBSes. With [IRC server linking](IRC-Linking), rooms beginning
+`irc-` are an IRC network's channels, and `/msg NICK TEXT` reaches
+someone on that network. The rooms are also channels on the BBS's [IRC](IRC)
 server (`#main` and the rest), with IRC clients in them alongside the
 callers.
 

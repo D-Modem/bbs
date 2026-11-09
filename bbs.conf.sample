@@ -653,6 +653,54 @@ address = 127.0.0.1:2513
 ; the screen name the BBS's notices come from
 ;system = OnlineHost
 
+; IRC server linking: the BBS as a hub server on an IRC network, by TS6
+; (Solanum, charybdis, ircd-ratbox; ircd-hybrid 8 with protocol = hybrid).
+; Every BBS user online is a user there, whom anyone can /msg and /whois;
+; the rooms beginning irc- are its channels (irc-retro is #retro).  A nick
+; taken there is the BBS user's as Nick|Tag.  See docs/wiki/IRC-Linking.md
+;[irclink]
+; the BBS's server name on the network
+;server_name = irc.bbs.example.org
+; the TS6 server ID: a digit, then two letters or digits, the network's own
+;sid = 1BB
+; its description, in LINKS (default: the BBS's name)
+;description = The D-Modem BBS
+; the network's name, as WHOIS of its users shows it
+;network = MyNet
+; Nick|Tag for a BBS user whose nick is taken
+;tag = DM
+; the BBS users' host, as the network sees them (default: server_name)
+;host = users.bbs.example.org
+; the rooms that are channels (none: every room)
+;prefix = irc-
+; the network's NICKLEN (Solanum's 31 less one; ratbox and hybrid: 9)
+;nick_length = 30
+; where servers link in (and address = none for none)
+;address = :7000
+;tls_address = :7001
+; the certificate and key for tls_address
+;tls_cert = /etc/bbs/tls.crt
+;tls_key = /etc/bbs/tls.key
+; between tries of a link out, in seconds
+;retry = 30
+
+; A server the BBS links with, one section each: [ircpeer ITS.NAME]
+;[ircpeer hub.example.net]
+; where to link out to (none: it links in)
+;address = hub.example.net:7000
+; link out by TLS
+;tls = yes
+; check its certificate (a self-signed one: no)
+;tls_verify = yes
+; the password we send it (its accept_password)
+;send_password = ours-to-it
+; the password it sends us (its send_password)
+;accept_password = its-to-us
+; its users' tag, beside a BBS user of the same nick (Nick|Tag)
+;tag = HUB
+; ts6 (Solanum, charybdis, ratbox) or hybrid (ircd-hybrid 8)
+;protocol = ts6
+
 ; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
 ; beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike.
 ; See docs/wiki/MRC.md

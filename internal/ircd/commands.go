@@ -69,7 +69,7 @@ func (c *client) command(m *ircmsg.Message) {
 		var on []string
 		for _, nick := range m.Params {
 			for _, w := range strings.Fields(nick) {
-				if len(c.nodesOf(w)) > 0 || fold(w) == fold(c.s.svc.Name) {
+				if _, remote := c.s.B.LookupRemote(w); len(c.nodesOf(w)) > 0 || remote || fold(w) == fold(c.s.svc.Name) {
 					on = append(on, w)
 				}
 			}
@@ -201,6 +201,9 @@ func (c *client) part(ch string) {
 // member is a room member as NAMES and WHO give one: nick, user (how they
 // came), host (their node), and op for a sysop (@).
 func (c *client) member(m bbs.RoomMember) (nick, user, host string, op bool) {
+	if m.Node == 0 { // on a linked network: as it names them
+		return m.Name, m.Via, m.Host, false
+	}
 	nick, user, host = Nick(m.Name), m.Via, fmt.Sprintf("node%d", m.Node)
 	if u, err := c.s.B.Store.UserByName(m.Name); err == nil && u.Sysop {
 		op = true
@@ -310,6 +313,10 @@ func (c *client) whois(nick string) {
 		return
 	}
 	ns := c.nodesOf(nick)
+	if r, ok := c.s.B.LookupRemote(nick); len(ns) == 0 && ok {
+		c.whoisRemote(r)
+		return
+	}
 	if len(ns) == 0 {
 		c.reply(ERR_NOSUCHNICK, nick, "No such nick")
 		c.reply(RPL_ENDOFWHOIS, nick, "End of /WHOIS list")
@@ -336,6 +343,22 @@ func (c *client) whois(nick string) {
 	c.reply(RPL_WHOISIDLE, nick, strconv.Itoa(int(time.Since(n.Since).Seconds())), strconv.FormatInt(n.Since.Unix(), 10),
 		"seconds idle, signon time")
 	c.reply(RPL_ENDOFWHOIS, nick, "End of /WHOIS list")
+}
+
+// whoisRemote is WHOIS of someone on a linked network.
+func (c *client) whoisRemote(r bbs.RemoteUser) {
+	c.reply(RPL_WHOISUSER, r.Nick, r.User, r.Host, "*", r.Real)
+	c.reply(RPL_WHOISSERVER, r.Nick, r.Server, "on "+r.Network)
+	if r.Away != "" {
+		c.reply(RPL_AWAY, r.Nick, r.Away)
+	}
+	if r.Account != "" {
+		c.reply(RPL_WHOISACCOUNT, r.Nick, r.Account, "is logged in as")
+	}
+	if !r.Since.IsZero() {
+		c.reply(RPL_WHOISIDLE, r.Nick, "0", strconv.FormatInt(r.Since.Unix(), 10), "seconds idle, signon time")
+	}
+	c.reply(RPL_ENDOFWHOIS, r.Nick, "End of /WHOIS list")
 }
 
 // list is LIST: the rooms, their numbers of callers (the service counted
@@ -447,8 +470,21 @@ func (c *client) privmsg(command, target, text string) {
 	}
 	ns := c.nodesOf(target)
 	if len(ns) == 0 {
-		if !notice {
+		// someone on a linked network?
+		err := c.n.MessageRemote(target, text, notice, emote)
+		switch {
+		case err == nil:
+			if emote {
+				text = "\x01ACTION " + text + "\x01"
+			}
+			if c.caps["echo-message"] {
+				c.send(map[string]string{"time": stamp(time.Now())}, c.source(), command, target, text)
+			}
+		case notice:
+		case errors.Is(err, bbs.ErrNoSuchNick):
 			c.reply(ERR_NOSUCHNICK, target, "No such nick")
+		default:
+			c.reply(ERR_CANNOTSENDTOCHAN, target, "Cannot send: "+err.Error())
 		}
 		return
 	}
@@ -494,6 +530,14 @@ func (c *client) events() {
 	}
 }
 
+// sourceOfEvent is how an event's sender is named.
+func (c *client) sourceOfEvent(e bbs.Event) string {
+	if e.Mask != "" {
+		return e.Mask // someone on a linked IRC network
+	}
+	return c.sourceOf(e.From, e.Node)
+}
+
 // sourceOf is how one on a node is named.
 func (c *client) sourceOf(name string, node int) string {
 	if _, site, ok := strings.Cut(name, "@"); ok && node == 0 {
@@ -521,19 +565,19 @@ func (c *client) event(e bbs.Event) {
 		if e.Kind == bbs.Emoted {
 			text = "\x01ACTION " + text + "\x01"
 		}
-		c.send(tags, c.sourceOf(e.From, e.Node), "PRIVMSG", "#"+e.Room, text)
+		c.send(tags, c.sourceOfEvent(e), "PRIVMSG", "#"+e.Room, text)
 	case bbs.Joined:
 		if e.Node != c.n.Num {
-			c.send(tags, c.sourceOf(e.From, e.Node), "JOIN", "#"+e.Room)
+			c.send(tags, c.sourceOfEvent(e), "JOIN", "#"+e.Room)
 		}
 	case bbs.Left:
 		if e.Node != c.n.Num {
-			c.send(tags, c.sourceOf(e.From, e.Node), "PART", "#"+e.Room)
+			c.send(tags, c.sourceOfEvent(e), "PART", "#"+e.Room)
 		}
 	case bbs.Topic:
 		c.send(tags, c.s.svc.source(c), "TOPIC", "#"+e.Room, e.Text)
 	case bbs.Private:
-		c.send(tags, c.sourceOf(e.From, e.Node), "PRIVMSG", c.nick, e.Text)
+		c.send(tags, c.sourceOfEvent(e), "PRIVMSG", c.nick, e.Text)
 	case bbs.Paged:
 		text := fmt.Sprintf("%s (node %d) is paging you", e.From, e.Node)
 		if e.Text != "" {

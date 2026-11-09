@@ -38,6 +38,9 @@ type Event struct {
 	// the CB handle the sender goes by ("": none; From is still the
 	// user's name, for those that do not show handles)
 	Handle string
+	// the sender as an IRC network names them (nick!user@host), for one
+	// from a linked IRC network ("": none)
+	Mask string
 }
 
 // String is the event as a line for the caller.
@@ -311,15 +314,16 @@ func (b *BBS) RoomMembers(name string) []RoomMember {
 		out = append(out, RoomMember{Name: m.name(), Node: m.Num, Via: via, Handle: m.Handle()})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Node < out[j].Node })
-	return out
+	return append(out, b.remoteMembers(name)...)
 }
 
 // RoomMember is one in a room.
 type RoomMember struct {
 	Name   string
-	Node   int
-	Via    string
+	Node   int    // 0: someone on a network elsewhere
+	Via    string // how they came (for one elsewhere, the network's ident)
 	Handle string // a CB handle ("": none)
+	Host   string // for one elsewhere, their host
 }
 
 // enter puts the node in a room's members, tells the others, and gives
@@ -487,7 +491,6 @@ func (n *Node) Rooms() []RoomInfo {
 	u := n.User()
 	h := n.b.hub()
 	h.mu.Lock()
-	defer h.mu.Unlock()
 	var out []RoomInfo
 	for name, r := range h.rooms {
 		if strings.HasPrefix(name, "sysop-") && name != pageRoom(n.Num) && (u == nil || !u.Sysop) {
@@ -499,6 +502,12 @@ func (n *Node) Rooms() []RoomInfo {
 		}
 		sort.Strings(ri.Users)
 		out = append(out, ri)
+	}
+	h.mu.Unlock()
+	for i := range out {
+		for _, m := range n.b.remoteMembers(out[i].Name) {
+			out[i].Users = append(out[i].Users, m.Name+" ("+m.Via+")")
+		}
 	}
 	sortRooms(out)
 	return out

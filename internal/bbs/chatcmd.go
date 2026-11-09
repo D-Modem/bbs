@@ -13,6 +13,7 @@ var ChatHelp = []string{
 	"  /who            who is in this room      /rooms          the rooms in use",
 	"  /join ROOM      go to another room       /me ACTION      * you do something",
 	"  /msg NODE TEXT  a message to one node    /topic          this room's topic",
+	"  /msg NICK TEXT  to someone on a linked IRC network",
 	"  /quit           leave the chat",
 	"Sysops:  /pages  callers paging   /answer [NODE]  answer one   /busy  pages on or off",
 	"         /topic TEXT  set a permanent room's topic",
@@ -91,7 +92,14 @@ func (n *Node) ChatCommand(line string) (out []string, leave bool, err error) {
 		to, text, _ := strings.Cut(arg, " ")
 		num, err := strconv.Atoi(to)
 		if err != nil {
-			return nil, false, fmt.Errorf("/msg NODE TEXT: a node's number first")
+			// a name: someone on a linked chat network
+			if err := n.MessageRemote(to, text, false, false); err != nil {
+				if err == ErrNoSuchNick {
+					return nil, false, fmt.Errorf("/msg NODE TEXT: a node's number, or a nick on a linked network")
+				}
+				return nil, false, err
+			}
+			return []string{"Sent to " + to + "."}, false, nil
 		}
 		if err := n.Message(num, text); err != nil {
 			return nil, false, err
