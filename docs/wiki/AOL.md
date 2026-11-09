@@ -1,7 +1,8 @@
 The BBS can be an AOL host for AOL's own Windows clients (3.0, 4.0 and
 later) over TCP. A caller signs on in the client with their BBS name and
-password, and the BBS draws its Welcome window. This is early work: sign-on
-and sign-off work, and chat, IMs, mail and keywords are still to come.
+password, and the BBS draws its Welcome window. People Connection is the
+BBS's chat, and Instant Messages are its private messages, with callers on
+every other route. This is early work: mail and keywords are still to come.
 
 ```ini
 [aol]
@@ -36,6 +37,20 @@ the address as failed logins do everywhere else. The deny list and bans in
 
 A signed-on client is a node, as any caller is, and appears in Who's On
 as `AOL`. Sign Off in the client signs off and hangs up.
+
+## Chat and Instant Messages
+
+People Connection takes the client into the BBS's main chat room, in the
+client's own room window: the people there are listed, and lines come and
+go with callers on terminals, IRC, AIM, ICQ and MSN in the same room. A
+line beginning `/me ` is an action.
+
+An Instant Message goes to a BBS user wherever they are on, as a private
+message (an IM in AIM, a PRIVMSG on IRC, a line on a terminal). One away
+has it when they next sign on, as on every other route, and the sender is
+told. Messages to the client open its own Instant Message window, one for
+each person. Screen names are compared without their spaces, so
+`CarolAnn` is the user Carol Ann (AOL's screen names have no spaces).
 
 ## How it is built
 
