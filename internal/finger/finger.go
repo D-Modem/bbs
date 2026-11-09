@@ -67,7 +67,7 @@ func (s *Server) handle(c net.Conn) {
 	case q == "":
 		out = s.online()
 	default:
-		out = s.user(q)
+		out = s.User(q)
 	}
 	var b strings.Builder
 	for _, l := range out {
@@ -103,8 +103,8 @@ func (s *Server) online() []string {
 	return out
 }
 
-// user tells of one user.
-func (s *Server) user(name string) []string {
+// User tells of one user.
+func (s *Server) User(name string) []string {
 	if !s.S.Users {
 		return []string{"Users are not told of by finger here."}
 	}

@@ -136,13 +136,13 @@ func (s *Server) handle(c net.Conn) {
 	case sel == "" || sel == "/":
 		s.root(c)
 	case parts[0] == "about" && len(parts) == 1:
-		text(c, s.about())
+		text(c, s.About())
 	case parts[0] == "who" && len(parts) == 1:
-		text(c, s.who())
+		text(c, s.Who())
 	case parts[0] == "areas" && len(parts) == 1 && s.S.Areas != "":
 		s.areas(c)
 	case parts[0] == "area" && (len(parts) == 2 || len(parts) == 3):
-		if a := s.area(id(1)); a != nil && id(2) >= 0 {
+		if a := s.Area(id(1)); a != nil && id(2) >= 0 {
 			s.messages(c, a, id(2))
 			return
 		}
@@ -179,9 +179,9 @@ func (s *Server) root(c io.Writer) {
 	s.menu(c, items)
 }
 
-// about is what the system is: its name, place, sysop, how many users, and
+// About is what the system is: its name, place, sysop, how many users, and
 // the message of the day.
-func (s *Server) about() []string {
+func (s *Server) About() []string {
 	out := []string{s.B.Conf().Name}
 	if s.B.Conf().Location != "" {
 		out = append(out, s.B.Conf().Location)
@@ -199,8 +199,8 @@ func (s *Server) about() []string {
 	return out
 }
 
-// who is the callers on now, a line each under a heading.
-func (s *Server) who() []string {
+// Who is the callers on now, a line each under a heading.
+func (s *Server) Who() []string {
 	out := []string{fmt.Sprintf("%4s  %-24s %-12s %5s  %s", "Node", "User", "Via", "On", "Doing")}
 	on := 0
 	for _, n := range s.B.Nodes() {
@@ -222,8 +222,8 @@ func (s *Server) open(a *store.Area) bool {
 	return s.S.Areas != "" && news.Wildmat(strings.ToLower(s.S.Areas), strings.ToLower(a.Name))
 }
 
-// area is the message area of the id, if gopher shows it (nil: not).
-func (s *Server) area(id int64) *store.Area {
+// Area is the message area of the id, if gopher shows it (nil: not).
+func (s *Server) Area(id int64) *store.Area {
 	if id < 1 {
 		return nil
 	}
@@ -271,11 +271,11 @@ func (s *Server) message(c io.Writer, id int64) {
 		return
 	}
 	m, err := s.B.Store.Message(id)
-	if err != nil || s.area(m.AreaID) == nil {
+	if err != nil || s.Area(m.AreaID) == nil {
 		notFound(s, c)
 		return
 	}
-	a := s.area(m.AreaID)
+	a := s.Area(m.AreaID)
 	out := []string{"Area:    " + a.Name, "From:    " + m.From, "To:      " + m.To,
 		"Subject: " + m.Subject, "Date:    " + m.Created.Format("2006-01-02 15:04"), ""}
 	out = append(out, strings.Split(m.Body, "\n")...)
@@ -292,7 +292,7 @@ func (s *Server) fileAreas(c io.Writer) {
 	fas, _ := s.B.Store.FileAreas()
 	items := []item{{'i', "File areas of " + s.B.Conf().Name, ""}, {'i', "", ""}}
 	for _, fa := range fas {
-		if openFiles(fa) {
+		if OpenFiles(fa) {
 			items = append(items, item{'1', fmt.Sprintf("%s (%d)  %s", fa.Name, fa.Files, fa.Description),
 				fmt.Sprintf("/files/%d", fa.ID)})
 		}
@@ -300,9 +300,9 @@ func (s *Server) fileAreas(c io.Writer) {
 	s.menu(c, items)
 }
 
-// openFiles reports whether a file area is gopher's: gopher has no login,
+// OpenFiles reports whether a file area is gopher's: gopher has no login,
 // so only an area anyone may download from (no download requirement).
-func openFiles(fa *store.FileArea) bool {
+func OpenFiles(fa *store.FileArea) bool {
 	return bbs.MustRequire(fa.DownloadReq).Allows(nil)
 }
 
@@ -325,7 +325,7 @@ func (s *Server) files(c io.Writer, id int64) {
 		return
 	}
 	fa, err := s.B.Store.FileArea(id)
-	if err != nil || !openFiles(fa) {
+	if err != nil || !OpenFiles(fa) {
 		notFound(s, c)
 		return
 	}
@@ -353,7 +353,7 @@ func (s *Server) download(c io.Writer, id int64) {
 		notFound(s, c)
 		return
 	}
-	if fa, err := s.B.Store.FileArea(f.AreaID); err != nil || !openFiles(fa) {
+	if fa, err := s.B.Store.FileArea(f.AreaID); err != nil || !OpenFiles(fa) {
 		notFound(s, c)
 		return
 	}

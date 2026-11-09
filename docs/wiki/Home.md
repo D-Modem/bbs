@@ -85,7 +85,7 @@ which is generated from `bbs.conf.sample`.
   for AIM and ICQ clients on the same chat, [MSN Messenger](MSN-Messenger)
   for MSN clients, and [MRC](MRC), the chat
   network shared with other BBSes
-- [Finger and gopher](Finger-and-Gopher)
+- [Finger, gopher and Gemini](Finger-and-Gopher)
 - [Time](Time): NTP, NTS and PTP, followed and served
 
 **On the web**
@@ -146,7 +146,7 @@ which is generated from `bbs.conf.sample`.
 | [MSN Messenger](MSN-Messenger) | the MSN server: MSN Messenger 1.0 to 4.7, contacts and IMs |
 | [MSN Classic](MSN-Classic) | The Microsoft Network for Windows 95's client: sign-in, the areas as Categories, bulletin boards |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
-| [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
+| [Finger, gopher and Gemini](Finger-and-Gopher) | who is on, and the BBS in gopherspace and Geminispace |
 | [Time](Time) | NTP, NTS and PTP: the clock following time servers, and serving time |
 | [Web forum](Web-Forum) | the message areas as a web forum |
 | [Image boards](Image-Boards) | anonymous image boards, in the style of kusaba x and 4chan |

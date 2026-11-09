@@ -879,6 +879,26 @@ address = 127.0.0.1:2513
 ; file areas listed and downloadable
 ;files = no
 
+; gemini: gopher's capsule over Gemini (gemini://, TLS): about the system,
+; who is on, users as finger tells of them, and what areas the sysop opens:
+; no login, so anyone sees them.  Port 1965 needs no privilege
+;[gemini]
+;address = :1965
+; the host name bbs gemini cert offers for a new certificate
+;hostname = bbs.example.org
+; the certificate and key (PEM); with neither, gemini-cert.pem and
+; gemini-key.pem beside the database, which bbs gemini cert makes (it asks
+; for the host names, organization and years first).  Clients trust it on
+; first use and warn if it ever changes
+;cert_file = /etc/bbs/gemini-cert.pem
+;key_file = /etc/bbs/gemini-key.pem
+; message areas shown (a wildmat of area names; "": none)
+;areas = general,announcements
+; file areas listed and downloadable
+;files = no
+; /users: look up a user, as finger tells of them
+;users = yes
+
 ; Time.  The BBS's clock can follow time servers, and the BBS can be a
 ; time server itself: NTP, NTS (NTP made secure with TLS keys) and PTP.
 ; With no servers it tells of the system clock (kept by chrony, ntpd ...).

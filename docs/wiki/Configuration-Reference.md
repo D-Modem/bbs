@@ -47,6 +47,7 @@ the file is laid out.
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
 | [`[gopher]`](#gopher) | gopher: about the system, who is on, and what areas the sysop opens: no login, so anyone sees them. |
+| [`[gemini]`](#gemini) | gemini: gopher's capsule over Gemini (gemini://, TLS): about the system, who is on, users as finger tells of them, and what areas the sysop opens: no login, so anyone sees them. |
 | [`[time]`](#time) | Time. |
 | [`[ntp]`](#ntp) | an NTP server (UDP). |
 | [`[nts]`](#nts) | an NTS-KE server (RFC 8915): TLS 1.3, its clients' keys and cookies for [ntp], which then answers NTS-secured requests too. |
@@ -664,6 +665,21 @@ gopher: about the system, who is on, and what areas the sysop opens: no login, s
 | `port` |  |  | the name and port menus send clients back to. Examples: `70`. |
 | `areas` |  |  | message areas shown (a wildmat of area names; "": none) Examples: `general,announcements`. |
 | `files` |  |  | file areas listed and downloadable. Examples: `no`. |
+
+
+## `[gemini]`
+
+gemini: gopher's capsule over Gemini (gemini://, TLS): about the system, who is on, users as finger tells of them, and what areas the sysop opens: no login, so anyone sees them.  Port 1965 needs no privilege.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:1965`. |
+| `hostname` |  |  | the host name bbs gemini cert offers for a new certificate. Examples: `bbs.example.org`. |
+| `cert_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes. Examples: `/etc/bbs/gemini-cert.pem`. |
+| `key_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes. Examples: `/etc/bbs/gemini-key.pem`. |
+| `areas` |  |  | message areas shown (a wildmat of area names; "": none) Examples: `general,announcements`. |
+| `files` |  |  | file areas listed and downloadable. Examples: `no`. |
+| `users` |  |  | /users: look up a user, as finger tells of them. Examples: `yes`. |
 
 
 ## `[time]`
