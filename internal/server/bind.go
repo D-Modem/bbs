@@ -97,6 +97,9 @@ func Bind(cfg *Config) ([]sockets.Socket, error) {
 	if cfg.Gopher != nil {
 		addrs = append(addrs, cfg.Gopher.Address)
 	}
+	if cfg.Gemini != nil {
+		addrs = append(addrs, cfg.Gemini.Address)
+	}
 	if cfg.Binkp != nil {
 		addrs = append(addrs, cfg.Binkp.Address)
 	}

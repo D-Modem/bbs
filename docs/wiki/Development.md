@@ -40,10 +40,11 @@ cover.
 | `doors/dosemu2` | the Docker image DOS doors run in: dosemu2, its FOSSIL on COM1 |
 | `internal/finger` | the finger server |
 | `internal/gopher` | the gopher server |
+| `internal/gemini` | the Gemini server: gopher's capsule and finger's users, over TLS |
 | `internal/forum` | the web forum: its pages (html/template; `themes/NAME/` a theme's own, over its parent's and `templates/`), the themes' CSS (`static/`), sessions by the API's tokens |
 | `internal/api` | the HTTP API: REST, server-sent events, WebSockets, metrics, OpenAPI; the web terminal page (`web/`: xterm.js, the page) |
 | `proto` | the WebSocket protocol, `bbs.v1` (`make proto` regenerates `internal/api/pb`) |
-| `internal/tcpserv` | what finger and gopher share: limits, timeouts |
+| `internal/tcpserv` | what finger, gopher and Gemini share: limits, timeouts |
 | `internal/screens` | the sysop's display files: finding them, @-codes, 3270 colour tags |
 | `internal/xfer` | XMODEM, YMODEM, ZMODEM and Kermit, both ways |
 | `internal/logo` | the logo: a PNG, or the name in a pixel font |
@@ -136,9 +137,9 @@ when the bbs-dosemu2 image is built, a real DOS door talking by FOSSIL in
 it. Chat: rooms, history, private rooms, flooding, node messages, paging
 and answering, the page command (and that it runs no shell); two callers
 chatting and paging on the text BBS; a 3270 (s3270) chatting with a text
-caller and getting a node message on its message line. Finger and
-gopher: their answers and refusals, with the finger program and curl as
-clients. Customization: finding display files by terminal, SAUCE,
+caller and getting a node message on its message line. Finger,
+gopher and Gemini: their answers and refusals, with the finger program and
+curl as clients, and `bbs gemini cert` asking before it makes a certificate. Customization: finding display files by terminal, SAUCE,
 @-codes and widths, colour tags; menus and strings in the configuration
 and what it refuses; a text caller through an ANSI logon (CP437 as it
 is), the strings, a welcome screen, the sysop's menus and submenus, a

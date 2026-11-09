@@ -70,6 +70,7 @@ import (
 	"github.com/D-Modem/bbs/internal/finger"
 	"github.com/D-Modem/bbs/internal/ftn"
 	"github.com/D-Modem/bbs/internal/ftp"
+	"github.com/D-Modem/bbs/internal/gemini"
 	"github.com/D-Modem/bbs/internal/gopher"
 	"github.com/D-Modem/bbs/internal/imageboard"
 	"github.com/D-Modem/bbs/internal/ircd"
@@ -163,6 +164,8 @@ func usage() {
   bbs [-config FILE] chan board list | del DIR      del takes its posts and images too
   bbs [-config FILE] chan ban add ADDRESS DAYS [BOARD|-] [REASON...]   (0 days: for ever)
   bbs [-config FILE] chan ban list | del ID
+  bbs [-config FILE] gemini cert [-force]          make the Gemini server's certificate (it asks
+                                                  for host names, organization and years)
 `)
 	os.Exit(2)
 }
@@ -318,6 +321,10 @@ func main() {
 		if g := cfg.Gopher; g != nil {
 			fmt.Printf("gopher: %s as %s:%d, areas %q, files %v\n", g.Address, g.Host, g.Port, g.Areas, g.Files)
 		}
+		if g := cfg.Gemini; g != nil {
+			fmt.Printf("gemini: %s, areas %q, files %v, users %v\n", g.Address, g.Areas, g.Files, g.Users)
+			fmt.Printf("gemini certificate %s: %s\n", g.CertFile, gemini.CertInfo(g.CertFile))
+		}
 		for _, d := range cfg.Doors {
 			if r := d.Remote; r != nil {
 				fmt.Printf("[door %s] %s at %s, %v\n", d.Name, r.Kind, r.Address, d.TimeLimit)
@@ -375,6 +382,8 @@ func main() {
 		timeCmd(cfg, args)
 	case "chan":
 		chanCmd(cfg, args)
+	case "gemini":
+		geminiCmd(cfg, args)
 	default:
 		usage()
 	}
@@ -636,6 +645,15 @@ func serve(cfg *server.Config, path string) int {
 		gs := &gopher.Server{B: b, S: *cfg.Gopher}
 		go func() {
 			if err := gs.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
+	if cfg.Gemini != nil {
+		gm := &gemini.Server{B: b, S: *cfg.Gemini}
+		go func() {
+			if err := gm.Run(ctx); err != nil {
 				lg.Printf("%v", err)
 				stop()
 			}

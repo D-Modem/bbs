@@ -40,7 +40,7 @@
 - [MSN Messenger](MSN-Messenger)
 - [MSN Classic (1995)](MSN-Classic)
 - [MRC](MRC)
-- [Finger and gopher](Finger-and-Gopher)
+- [Finger, gopher and Gemini](Finger-and-Gopher)
 - [Time: NTP, NTS and PTP](Time)
 - [Web forum](Web-Forum)
 - [Image boards](Image-Boards)
