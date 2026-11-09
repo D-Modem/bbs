@@ -28,7 +28,8 @@ type session struct {
 	o    Options
 	user *store.User
 
-	chatting bool // in a chat room: its lines shown as such
+	chatting bool  // in a chat room: its lines shown as such
+	desk     *desk // the full screen kept up between sheets (sheet.go), if it is up
 }
 
 // errHangup: the caller logged off.

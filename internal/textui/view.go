@@ -111,6 +111,7 @@ func (s *session) Narrow() bool { return s.t.Narrow() }
 // a key until it is an item's.  It is that item's key; "" for Enter (none
 // chosen: the caller shows its menu again, or goes back if it will).
 func (s *session) Menu(m *view.Menu) (string, error) {
+	s.EndSheets()
 	t := s.t
 	if len(m.Intro) > 0 {
 		t.Println("")
@@ -164,6 +165,7 @@ func (s *session) Menu(m *view.Menu) (string, error) {
 // action's key, More at Enter if there is more, or Back.  With nothing to
 // pick or do it pauses at the end and is Back.
 func (s *session) Table(tb *view.Table) (view.Choice, error) {
+	s.EndSheets()
 	t := s.t
 	t.Println("")
 	t.Println(t.C(Cyan, tb.Title))
@@ -272,6 +274,7 @@ func (s *session) Table(tb *view.Table) (view.Choice, error) {
 // picture, its body a page at a time; then waits for an action's key (Q:
 // Quit, Enter or space: Default, each Back if unset).
 func (s *session) Message(m *view.Message) (string, error) {
+	s.EndSheets()
 	t := s.t
 	t.Clear()
 	t.Println(t.C(Dim, m.Where))
@@ -319,6 +322,9 @@ func (s *session) Message(m *view.Message) (string, error) {
 // Form asks for each field in turn, Enter keeping its value; nothing typed
 // for a first field with no value is giving up (false).
 func (s *session) Form(f *view.Form) (map[string]string, bool, error) {
+	if s.desk != nil && len(f.Fields) > 0 {
+		return s.formBox(s.deskBase(), f)
+	}
 	t := s.t
 	for _, l := range f.Intro {
 		t.Println(s.line(l))
@@ -365,6 +371,7 @@ func (s *session) Form(f *view.Form) (map[string]string, bool, error) {
 // Panel shows a panel's title, picture and lines, and reads a key: an
 // action's ID, Back for Q or Enter, "" for any other.
 func (s *session) Panel(p *view.Panel) (string, error) {
+	s.EndSheets()
 	t := s.t
 	t.Println("")
 	t.Println(t.C(Cyan, p.Title))
@@ -399,6 +406,7 @@ func (s *session) Panel(p *view.Panel) (string, error) {
 // line editor; true if it was sent.  An error sending is told the caller,
 // and is false.
 func (s *session) Edit(d *view.Draft) (bool, error) {
+	s.EndSheets()
 	t := s.t
 	t.Println("")
 	to := d.To
@@ -466,12 +474,19 @@ func (s *session) Edit(d *view.Draft) (bool, error) {
 
 // Confirm asks a yes or no question, def at Enter.
 func (s *session) Confirm(question string, def bool) (bool, error) {
+	if s.desk != nil {
+		return s.confirmBox(s.deskBase(), question, def)
+	}
 	return s.t.YesNo(question, def)
 }
 
 // Say prints msg in its tone; a Bright one as a heading, after a blank
 // line.
 func (s *session) Say(tn view.Tone, msg string) {
+	if s.desk != nil {
+		s.desk.flash = msg // at the foot of the next screen
+		return
+	}
 	if tn == view.Bright {
 		s.t.Println("")
 		s.t.Println(s.t.C(Cyan, msg))
@@ -483,6 +498,9 @@ func (s *session) Say(tn view.Tone, msg string) {
 // Show shows a title and lines a page at a time, and waits for a key at
 // the end (not if the caller quit before it).
 func (s *session) Show(title string, ls []view.Line) error {
+	if s.desk != nil {
+		return s.messageBox(s.deskBase(), title, ls)
+	}
 	t := s.t
 	t.Println("")
 	t.Println(t.C(Cyan, title))

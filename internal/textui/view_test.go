@@ -25,15 +25,24 @@ func TestKeyLabel(t *testing.T) {
 	}
 }
 
-// TestSheetFoot: the key line names a sheet's keys, leaving out those with
+// TestSheetFoot: the key bar names a sheet's keys, leaving out those with
 // a 3270 PF key alone (no NUL for them).
 func TestSheetFoot(t *testing.T) {
-	term, c := ansiTerm()
-	d := &sheetDraw{t: term, sh: &view.Sheet{Keys: []view.Action{{Key: 'A', Label: "Add"}, {PF: 5, Label: "PFonly"}}}, cur: -1}
-	d.drawFoot()
-	term.Flush()
-	out := c.String()
-	if strings.Contains(out, "\x00") || strings.Contains(out, "PFonly") || !strings.Contains(out, "A Add  Enter change") {
-		t.Errorf("foot %q", out)
+	term, _ := ansiTerm()
+	s := &session{t: term}
+	s.startDesk()
+	w := &sheetWin{s: s, sh: &view.Sheet{Title: "T", Keys: []view.Action{{Key: 'A', Label: "Add"}, {PF: 5, Label: "PFonly"}}}, cur: -1}
+	bar := screenRow(w.frame(), term.Rows-1)
+	if strings.Contains(bar, "\x00") || strings.Contains(bar, "PFonly") || !strings.Contains(bar, "A Add  F9 Quit") {
+		t.Errorf("key bar %q", bar)
 	}
+}
+
+// screenRow is a screen's row as text.
+func screenRow(scr *screen, row int) string {
+	var b strings.Builder
+	for x := 0; x < scr.cols; x++ {
+		b.WriteRune(scr.at(row, x).r)
+	}
+	return b.String()
 }
