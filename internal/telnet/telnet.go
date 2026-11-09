@@ -21,6 +21,9 @@ import (
 const (
 	SE   = 240
 	NOP  = 241
+	BRK  = 243 // Break
+	IP   = 244 // Interrupt Process
+	AO   = 245 // Abort Output
 	GA   = 249
 	SB   = 250
 	WILL = 251
@@ -72,6 +75,8 @@ type Conn struct {
 	lastCR bool
 	early  []byte // data that came while negotiating
 	out    []byte // answers to send, in order
+
+	onBreak func() // SetOnBreak's
 }
 
 const (
@@ -85,6 +90,15 @@ const (
 // New wraps a connection.
 func New(c net.Conn) *Conn {
 	return &Conn{Conn: c, r: bufio.NewReaderSize(c, 4096)}
+}
+
+// SetOnBreak has f called when the client sends Break, Interrupt Process
+// or Abort Output (its Break key, or a menu's "send break"); they are seen
+// as the client's data is read.
+func (c *Conn) SetOnBreak(f func()) {
+	c.mu.Lock()
+	c.onBreak = f
+	c.mu.Unlock()
 }
 
 // TermType is the terminal type the client gave ("" if none).
@@ -222,6 +236,11 @@ func (c *Conn) input(b byte) (byte, bool) {
 			c.cmd, c.state = b, stOpt
 		case SB:
 			c.sub, c.state = c.sub[:0], stSub
+		case BRK, IP, AO:
+			if c.onBreak != nil {
+				c.onBreak()
+			}
+			c.state = stData
 		default: // NOP, GA, AYT, ...: nothing to do
 			c.state = stData
 		}

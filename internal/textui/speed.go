@@ -3,6 +3,7 @@ package textui
 import (
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/D-Modem/bbs/internal/bbs"
@@ -11,7 +12,9 @@ import (
 // Line speeds: a caller by telnet, SSH or the web may have what the BBS
 // sends come at a modem's speed, as it did when ANSI art was drawn a line
 // at a time.  Only what is sent is slowed: keys come in at once, and the
-// BBS reads them as soon as it is done sending.
+// BBS reads them as soon as it is done sending.  A Break (telnet's, SSH's)
+// or Ctrl-X while a screen is coming sends the rest of it at once, up to
+// the next prompt: skipped, but drawn whole, with no escape sequence cut.
 
 // pacer is the line under a terminal, sending at most bps bits a second
 // (8N1: ten bits a character); 0 is the line's own speed.
@@ -22,7 +25,15 @@ type pacer struct {
 	next   time.Time // when the next byte may go
 	direct bool      // a file transfer's bytes: at the line's own speed
 	sleep  func(time.Duration)
+
+	skip     atomic.Bool // Break or Ctrl-X: at the line's own speed to the next prompt
+	poll     func()      // looks for Ctrl-X (and a telnet Break) among the keys come
+	lastPoll time.Time
+	noPoll   atomic.Bool // a door reads the keys: poll is not called
 }
+
+// pollEvery is how often keys are looked at while a screen is slowed.
+const pollEvery = 100 * time.Millisecond
 
 // pace is how far ahead of the line a write may get: the bytes of this
 // long go in one write.
@@ -45,6 +56,15 @@ func (p *pacer) Write(b []byte) (int, error) {
 	}
 	sent := 0
 	for sent < len(b) {
+		if p.poll != nil && !p.noPoll.Load() && time.Since(p.lastPoll) >= pollEvery {
+			p.lastPoll = time.Now()
+			p.poll()
+		}
+		if p.skip.Load() {
+			m, err := p.Conn.Write(b[sent:])
+			p.next = time.Now()
+			return sent + m, err
+		}
 		n := min(chunk, len(b)-sent)
 		if d := time.Until(p.next); d > 0 {
 			p.sleep(d)
@@ -200,4 +220,29 @@ func (s *session) pickSpeed(restore bool) error {
 		v = strconv.Itoa(bps)
 	}
 	return s.n.SetPref("baud", v)
+}
+
+// skipKey is Ctrl-X: while a screen is slowed, the rest of it at once.
+const skipKey = 0x18
+
+// Break is the caller's Break (telnet's, SSH's): a screen being slowed to
+// the line speed comes the rest of the way at once.  Any goroutine may
+// call it.
+func (t *Term) Break() { t.line.skip.Store(true) }
+
+// pollSkip looks at the keys come while a screen is slowed: a Ctrl-X first
+// among them is taken as Break.  Reading lets a telnet Break be seen.
+func (t *Term) pollSkip() {
+	if t.r.Buffered() == 0 {
+		t.c.SetReadDeadline(time.Now().Add(2 * time.Millisecond))
+		t.r.Peek(1)
+		t.c.SetReadDeadline(time.Time{})
+	}
+	if t.r.Buffered() == 0 {
+		return
+	}
+	if b, err := t.r.Peek(1); err == nil && b[0] == skipKey && !t.PETSCII {
+		t.r.ReadByte()
+		t.Break()
+	}
 }

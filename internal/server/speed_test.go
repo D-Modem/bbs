@@ -1,8 +1,11 @@
 package server
 
 import (
+	"io"
+	"net"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/D-Modem/bbs/internal/bbs"
 	"golang.org/x/crypto/ssh"
@@ -93,4 +96,47 @@ func TestLineSpeedModem(t *testing.T) {
 	if strings.Contains(string(d.before), "ine speed") {
 		t.Errorf("line speeds offered a modem caller: %q", d.before)
 	}
+}
+
+// TestLineSpeedSkip: at 300 bit/s an SSH Break (RFC 4335), or Ctrl-X,
+// sends the rest of the screen at once.
+func TestLineSpeedSkip(t *testing.T) {
+	e, addr, _ := startSSH(t, nil)
+	u, _ := e.b.Store.UserByName("alice")
+	if err := e.b.Store.SetPrefs(u.ID, "baud=300"); err != nil {
+		t.Fatal(err)
+	}
+	c, err := sshDial(t, addr, "alice", ssh.Password("alicepass1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := c.NewSession()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RequestPty("xterm-256color", 40, 100, ssh.TerminalModes{}); err != nil {
+		t.Fatal(err)
+	}
+	in, _ := s.StdinPipe()
+	out, _ := s.StdoutPipe()
+	if err := s.Shell(); err != nil {
+		t.Fatal(err)
+	}
+	a, b := net.Pipe()
+	go func() { io.Copy(a, out); a.Close() }()
+	go io.Copy(in, a)
+	t.Cleanup(func() { s.Close(); b.Close() })
+	d := &dialog{t: t, c: b}
+
+	// the main menu, some 1500 bytes: most of a minute at 300 bit/s
+	time.Sleep(300 * time.Millisecond)
+	if ok, err := s.SendRequest("break", true, ssh.Marshal(struct{ Ms uint32 }{500})); err != nil || !ok {
+		t.Fatalf("break: %v %v", ok, err)
+	}
+	d.expect("Command: ")
+	// and slow again after: the profile, skipped by Ctrl-X
+	d.send("P")
+	time.Sleep(300 * time.Millisecond)
+	d.send("\x18")
+	d.expect("[Q]uit: ")
 }

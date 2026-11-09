@@ -263,10 +263,15 @@ func (s *Server) sshCall(c net.Conn, l *Listener, caller *bbs.Caller, remote str
 		}
 	}
 	c.SetReadDeadline(time.Time{})
+	t := newSSHTerm(ch, c, pty)
+	defer t.close()
 	go func() {
 		for req := range creqs {
+			if req.Type == "break" { // RFC 4335: OpenSSH's ~B, PuTTY's Break
+				t.sendBreak()
+			}
 			// window-change: the size is the one the session began with
-			req.Reply(req.Type == "window-change", nil)
+			req.Reply(req.Type == "window-change" || req.Type == "break", nil)
 		}
 	}()
 
@@ -274,8 +279,6 @@ func (s *Server) sshCall(c net.Conn, l *Listener, caller *bbs.Caller, remote str
 		caller.TrustedUser, caller.TrustedHow = u, sc.Permissions.Extensions["how"]
 	}
 	caller.Terminal = bbs.Clean(pty.Term, 40)
-	t := newSSHTerm(ch, c, pty)
-	defer t.close()
 	node, err := s.B.Enter(caller, func() { c.Close() })
 	if err != nil {
 		s.B.Log.Printf("[listen %s] %s: %v", l.Name, remote, err)
@@ -319,6 +322,24 @@ type sshTerm struct {
 	mu      sync.Mutex
 	dl      time.Time
 	changed chan struct{} // closed when dl changes
+	onBreak func()        // SetOnBreak's
+}
+
+// SetOnBreak has f called when the client sends a break.
+func (t *sshTerm) SetOnBreak(f func()) {
+	t.mu.Lock()
+	t.onBreak = f
+	t.mu.Unlock()
+}
+
+// sendBreak is the client's break: SetOnBreak's func, if set.
+func (t *sshTerm) sendBreak() {
+	t.mu.Lock()
+	f := t.onBreak
+	t.mu.Unlock()
+	if f != nil {
+		f()
+	}
 }
 
 // newSSHTerm is ch as a terminal, conn closed when a write hangs; the pty's

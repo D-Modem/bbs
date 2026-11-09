@@ -96,7 +96,8 @@ throttle_time = 600
 ; whose line has a speed of its own) may have the BBS send to them at a
 ; modem's speed, 300 to 115200 bit/s, ANSI art drawn as it was.  Each
 ; picks theirs on the profile (B), or with Ctrl-B at any prompt; it is
-; kept with their account.  line_speeds = no: none may.  line_speed: what
+; kept with their account.  Break (telnet's or SSH's) or Ctrl-X sends the
+; rest of a slow screen at once.  line_speeds = no: none may.  line_speed: what
 ; callers get until they pick (off: full speed).  line_speed_ask = yes:
 ; asked at each login
 line_speeds = yes

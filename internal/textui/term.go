@@ -166,8 +166,10 @@ func (t *Term) Raw(b []byte) error {
 func NewTerm(c Conn) *Term {
 	line := &pacer{Conn: c, sleep: time.Sleep}
 	ec := &echoConn{Conn: line}
-	return &Term{c: ec, echo: ec, line: line, r: bufio.NewReaderSize(c, 1024), w: bufio.NewWriterSize(ec, 4096),
+	t := &Term{c: ec, echo: ec, line: line, r: bufio.NewReaderSize(c, 1024), w: bufio.NewWriterSize(ec, 4096),
 		Cols: 80, Rows: 24, Idle: 10 * time.Minute}
+	line.poll = t.pollSkip
+	return t
 }
 
 // echoConn gives what is written to the caller to Echo as well (for a
@@ -387,6 +389,8 @@ func (t *Term) read(keys bool) (rune, error) {
 	if err := t.Flush(); err != nil {
 		return 0, err
 	}
+	t.line.skip.Store(false) // a skipped screen ends at its prompt
+	t.line.noPoll.Store(false)
 	start := time.Now()
 	for {
 		limit := start.Add(t.Idle)
@@ -1111,6 +1115,8 @@ func (t *Term) Port() (port, error) {
 func (t *Term) DoorPort() (port, error) {
 	p, err := t.Port()
 	p.paced = true
+	// the door's own goroutine reads the keys till it is done: not polled
+	t.line.noPoll.Store(true)
 	return p, err
 }
 

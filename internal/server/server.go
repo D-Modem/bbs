@@ -605,6 +605,11 @@ func (s *Server) text(rw io.ReadWriter, c deadliner, l *Listener, node *bbs.Node
 		deadliner
 	}{rw, c}
 	t := textui.NewTerm(conn)
+	if b, ok := rw.(interface{ SetOnBreak(func()) }); ok {
+		// Break (telnet's, SSH's) skips the rest of a screen slowed to a line speed
+		b.SetOnBreak(t.Break)
+		defer b.SetOnBreak(nil)
+	}
 	t.Clean8 = true
 	t.Ident = node.Caller.Ident
 	if sz, ok := rw.(interface{ Size() (int, int) }); ok {
