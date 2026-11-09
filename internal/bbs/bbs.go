@@ -150,6 +150,11 @@ type BBS struct {
 	NetmailTo func(ftn.Addr) (string, error)
 	// Nodelist is the FidoNet nodelist (nil: none)
 	Nodelist func() *ftn.Nodelist
+	// Email sends mail from u to an e-mail address, here or elsewhere;
+	// reply is the mail it answers (nil if none).  Nil: no e-mail.
+	Email EmailFunc
+	// MailWatch is told of mail delivered to a user here (IMAP's IDLE)
+	MailWatch func(user int64)
 	// ImageBoards are the image boards, for the terminals (nil: none)
 	ImageBoards ImageBoards
 	// MenuAuth checks the passwords of accounts modemmenu logs in (its
@@ -844,6 +849,9 @@ func (n *Node) SendMail(to, subject string, body []string, replyTo int64) error 
 			return errors.New("your access allows mail only to the sysop")
 		}
 		return n.sendNetmail(u, name, addr, subject, body, replyTo)
+	}
+	if IsEmailAddress(to) {
+		return n.sendEmail(u, strings.TrimSpace(to), subject, body, replyTo)
 	}
 	rcpt, err := n.b.Store.UserByName(strings.TrimSpace(to))
 	if errors.Is(err, store.ErrNotFound) {

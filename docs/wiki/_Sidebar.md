@@ -29,6 +29,7 @@
 - [Files and FTP](Files-and-FTP)
 - [File transfers](File-Transfers)
 - [Doors](Doors)
+- [E-mail](E-mail)
 - [Newsgroups and NNTP](Newsgroups-and-NNTP)
 - [FidoNet](FidoNet)
 - [Chat and paging](Chat-and-Paging)

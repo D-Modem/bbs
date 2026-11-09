@@ -14,8 +14,10 @@ type NewsSettings struct {
 	Organization string
 }
 
-// localPart is a user name as an address's local part: what is not a
-// letter, digit or one of ._- becomes a dot.
+// LocalPart is a user name as an address's local part: what is not a
+// letter, digit or one of ._- becomes a dot, all in lower case.
+func LocalPart(name string) string { return localPart(name) }
+
 func localPart(name string) string {
 	out := strings.Map(func(r rune) rune {
 		if r < 0x80 && (r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("._-", r)) {

@@ -106,6 +106,15 @@ type Message struct {
 	// the poster's country (ISO 3166-1), where it was known when they
 	// posted here ("": not known, or written elsewhere)
 	Country string
+
+	// mail: the mailbox entry it was found by (0: none), and that entry's
+	// star; the e-mail addresses of the sender and recipients, where they
+	// are not users here ("": a user here); Raw and MessageID are the
+	// message as it came by SMTP or IMAP (nil: written here)
+	Box      int64
+	Starred  bool
+	FromAddr string
+	ToAddr   string
 }
 
 // Store is the database.
@@ -611,78 +620,6 @@ func (s *Store) NewCount(user, area int64) (int, error) {
 	var n int
 	err = s.db.QueryRow(`SELECT COUNT(*) FROM messages WHERE area_id = ? AND id > ?`,
 		area, last).Scan(&n)
-	return n, err
-}
-
-const mailCols = `id, from_id, from_name, to_id, to_name, subject, body, reply_to, created, "read",
-	COALESCE(ftn_msgid, '')`
-
-// scanMail is the private message in a row of mailCols; ErrNotFound if
-// there is none.
-func scanMail(row interface{ Scan(...any) error }) (*Message, error) {
-	var m Message
-	var created int64
-	err := row.Scan(&m.ID, &m.FromID, &m.From, &m.ToID, &m.To, &m.Subject,
-		&m.Body, &m.ReplyTo, &created, &m.Read, &m.FTNMsgID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNotFound
-	}
-	if err != nil {
-		return nil, err // nothing half scanned
-	}
-	m.Created = unix(created)
-	return &m, nil
-}
-
-// SendMail delivers a private message.
-func (s *Store) SendMail(m *Message) (int64, error) {
-	id, err := s.db.insertID(`INSERT INTO mail (from_id, from_name, to_id, to_name, subject, body, reply_to, created,
-		ftn_msgid)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, m.FromID, m.From, m.ToID, m.To, m.Subject, m.Body, m.ReplyTo, now(),
-		nullString(m.FTNMsgID))
-	if err != nil {
-		return 0, err
-	}
-	return id, nil
-}
-
-// Inbox lists a user's mail, oldest first.
-func (s *Store) Inbox(user int64) ([]*Message, error) {
-	rows, err := s.db.Query(`SELECT `+mailCols+` FROM mail WHERE to_id = ? ORDER BY id`, user)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var out []*Message
-	for rows.Next() {
-		m, err := scanMail(rows)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, m)
-	}
-	return out, rows.Err()
-}
-
-// Mail finds a mail of user's by id: no one reads another's mail.
-func (s *Store) Mail(user, id int64) (*Message, error) {
-	return scanMail(s.db.QueryRow(`SELECT `+mailCols+` FROM mail WHERE id = ? AND to_id = ?`, id, user))
-}
-
-// MarkMailRead marks a mail of user's read.
-func (s *Store) MarkMailRead(user, id int64) error {
-	return s.exec1(`UPDATE mail SET "read" = TRUE WHERE id = ? AND to_id = ?`, id, user)
-}
-
-// DeleteMail deletes a mail of user's.
-func (s *Store) DeleteMail(user, id int64) error {
-	return s.exec1(`DELETE FROM mail WHERE id = ? AND to_id = ?`, id, user)
-}
-
-// UnreadMail counts a user's unread mail.
-func (s *Store) UnreadMail(user int64) (int, error) {
-	var n int
-	err := s.db.QueryRow(`SELECT COUNT(*) FROM mail WHERE to_id = ? AND "read" = FALSE`, user).Scan(&n)
 	return n, err
 }
 

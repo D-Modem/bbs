@@ -40,6 +40,7 @@ Main menu
 | Make it look like your own | [Customization](Customization), [Scripting](Scripting) |
 | Take calls by modem | [Modem callers](Modem-Callers) |
 | Join FidoNet, QWK networks or Usenet | [FidoNet](FidoNet), [Offline mail](Offline-Mail#qwk-networks), [Newsgroups and NNTP](Newsgroups-and-NNTP) |
+| Give users e-mail addresses | [E-mail](E-mail) |
 | Put the board on the web | [Web forum](Web-Forum), [Image boards](Image-Boards), [HTTP API](HTTP-API) |
 | Work on the code | [Development](Development) |
 
@@ -76,6 +77,8 @@ which is generated from `bbs.conf.sample`.
 
 - [FidoNet](FidoNet) and other FTN networks: echomail, netmail, file
   echoes, AreaFix and a built-in binkp mailer
+- [E-mail](E-mail): each user an address, their BBS mail read over IMAP
+  and POP3 and sent over SMTP, to and from the internet
 - [Newsgroups](Newsgroups-and-NNTP) served by NNTP and exchanged with other
   news servers
 - [IRC](IRC), where the chat rooms are channels, [AIM and ICQ](AIM-and-ICQ)
@@ -132,6 +135,7 @@ which is generated from `bbs.conf.sample`.
 | [Files and FTP](Files-and-FTP) | file areas, the FTP (FTPS) server |
 | [File transfers](File-Transfers) | X/Y/ZMODEM, Kermit, IND$FILE |
 | [Doors](Doors) | DOS doors in dosemu2 (Docker), Linux doors, doors on other systems |
+| [E-mail](E-mail) | addresses, IMAP, POP3, SMTP, the MX, a smarthost, DNS |
 | [Newsgroups and NNTP](Newsgroups-and-NNTP) | the NNTP server, news peers |
 | [FidoNet](FidoNet) | echomail, netmail, binkp, file echoes, AreaFix, nodelists |
 | [Chat and paging](Chat-and-Paging) | chat rooms, node messages, paging the sysop |
