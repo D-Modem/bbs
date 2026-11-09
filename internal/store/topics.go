@@ -191,6 +191,11 @@ func (s *Store) LastMessage(area int64) (*Message, error) {
 	return scanMessage(s.db.QueryRow(`SELECT `+msgCols+` FROM messages WHERE area_id = ? ORDER BY id DESC LIMIT 1`, area))
 }
 
+// Newest are an area's newest messages, up to limit, newest first.
+func (s *Store) Newest(area int64, limit int) ([]*Message, error) {
+	return s.messageList(`SELECT `+msgCols+` FROM messages WHERE area_id = ? ORDER BY id DESC LIMIT ?`, area, limit)
+}
+
 // MessagesBy are a user's newest messages in the areas, newest first.
 func (s *Store) MessagesBy(user int64, areas []int64, limit int) ([]*Message, error) {
 	if len(areas) == 0 {

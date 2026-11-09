@@ -42,6 +42,7 @@ import (
 
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/cis"
+	"github.com/D-Modem/bbs/internal/marvel"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/telnet"
 	"github.com/D-Modem/bbs/internal/textui"
@@ -72,7 +73,8 @@ type Listener struct {
 	HostKeys      []string // ssh: the host keys' files
 	Legacy        bool     // ssh: offer old algorithms too (CBC ciphers, DH group 1)
 	// Frontend is what callers get: "" the BBS, "compuserve" the
-	// CompuServe Information Service (internal/cis)
+	// CompuServe Information Service (internal/cis), "marvel" The
+	// Microsoft Network for its 1995 client (internal/marvel)
 	Frontend string
 	Connect  string // compuserve: the CONNECT line's rate ("": no line)
 	// TLS: telnet or raw over TLS (telnets, port 992), with this
@@ -422,6 +424,8 @@ func (s *Server) handle(nc net.Conn, l *Listener) {
 	switch {
 	case l.Frontend == "compuserve":
 		err = s.compuserve(c, l, node)
+	case l.Frontend == "marvel":
+		err = s.marvel(c, l, node)
 	case l.Kind == "telnet":
 		err = s.telnet(c, l, node)
 	case l.Kind == "rlogin":
@@ -507,6 +511,20 @@ func (s *Server) compuserve(c net.Conn, l *Listener, node *bbs.Node) error {
 	}
 	node.SetTerminal(node.Caller.Via, tc.TermType())
 	return cis.Run(s.B, node, tc, opt)
+}
+
+// marvel runs The Microsoft Network on a call, for the MSN client of
+// Windows 95: over telnet in binary both ways, its own packets from the
+// start.
+func (s *Server) marvel(c net.Conn, l *Listener, node *bbs.Node) error {
+	if l.Kind != "telnet" {
+		return marvel.Call(s.B, node, c)
+	}
+	tc := telnet.New(c)
+	if err := tc.StartNVT(true, 2*time.Second); err != nil {
+		return err
+	}
+	return marvel.Call(s.B, node, tc)
 }
 
 // tn3270 hands a telnet connection to go3270 and runs the 3270 BBS on it;
