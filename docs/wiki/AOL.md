@@ -2,7 +2,8 @@ The BBS can be an AOL host for AOL's own Windows clients (3.0, 4.0 and
 later) over TCP. A caller signs on in the client with their BBS name and
 password, and the BBS draws its Welcome window. People Connection is the
 BBS's chat, and Instant Messages are its private messages, with callers on
-every other route. This is early work: mail and keywords are still to come.
+every other route, mail is BBS mail, and keywords go to each of these.
+This is early work, not yet tried with a real client.
 
 ```ini
 [aol]
@@ -51,6 +52,29 @@ has it when they next sign on, as on every other route, and the sender is
 told. Messages to the client open its own Instant Message window, one for
 each person. Screen names are compared without their spaces, so
 `CarolAnn` is the user Carol Ann (AOL's screen names have no spaces).
+
+## Mail
+
+Compose Mail in the client sends BBS mail to each name it is addressed
+to, by screen name as for IMs. 4.0's formatted mail arrives as plain text.
+The Welcome window says how much new mail is waiting, and new mail while
+signed on is shown in a message box.
+
+The keyword Mail opens the BBS's mailbox window, newest first with new
+mail marked `*`. A button reads a mail, which marks it read, and the mail's
+window can delete it. The client's own Read Mail and Old Mail lists are
+not served yet.
+
+## Keywords
+
+The client's Keyword window (Ctrl+K) takes:
+
+| Keyword | Goes to |
+|---|---|
+| `Chat` | People Connection |
+| `Mail` | the mailbox |
+| `Who` | who is on now, by any route |
+| `Help` | the list of keywords |
 
 ## How it is built
 

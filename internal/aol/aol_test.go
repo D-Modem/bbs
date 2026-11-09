@@ -3,6 +3,7 @@ package aol
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"path/filepath"
@@ -293,7 +294,8 @@ func TestLongStreams(t *testing.T) {
 }
 
 func TestForms(t *testing.T) {
-	for _, src := range []string{onlineForm, alertForm(`"Quotes" and \ and é`), welcomeForm("BBS", "Zoë", 3)} {
+	for _, src := range []string{onlineForm, alertForm(`"Quotes" and \ and é`), welcomeForm("BBS", "Zoë", 3, 1),
+		windowForm("50-1-1", "Mailbox", "a\r\nb", 4, []button{{"Read", "read mail 1"}})} {
 		if _, err := fdo.Compile(src); err != nil {
 			t.Errorf("%v:\n%s", err, src)
 		}
@@ -473,5 +475,145 @@ func TestIM(t *testing.T) {
 	a.send("iO", deData("bob"))
 	if s := a.stream(); !strings.Contains(s, "bob is online") {
 		t.Errorf("iO:\n%s", s)
+	}
+}
+
+// mailForm is a mail as the Write Mail form sends it (m4): its header and
+// text, in one stream or in two.
+func mailForm(to, subject, text string, split bool) [][]byte {
+	head := "  mip_addressee <" + fdo.Quote(to) + ">\n  mip_subject <" + fdo.Quote(subject) + ">\n"
+	body := "  mip_text <" + fdo.Quote(text) + ">\n  mip_end_message\n"
+	st := func(src string) []byte {
+		return append([]byte{0, 7}, fdo.MustCompile("uni_start_stream\n"+src+"uni_end_stream\n")...)
+	}
+	if split {
+		return [][]byte{st(head), st(body)}
+	}
+	return [][]byte{st(head + body)}
+}
+
+// button0 is the keyword the button labelled so in a host window sends
+// (sm_send_token_raw <"Kk", keyword>, read from the compiled stream).
+func button0(t *testing.T, src, label string) string {
+	t.Helper()
+	b := fdo.MustCompile(src)
+	i := bytes.Index(b, append([]byte(label), 0x02)) // its title, then its first atom
+	if i < 0 {
+		t.Fatalf("no button %q:\n%s", label, src)
+	}
+	j := bytes.Index(b[i:], []byte("Kk"))
+	if j < 0 {
+		t.Fatalf("button %q sends nothing", label)
+	}
+	rest := b[i+j+2:]
+	n := 0
+	for n < len(rest) && rest[n] >= 0x20 && rest[n] < 0x7F {
+		n++
+	}
+	return string(rest[:n])
+}
+
+func TestMail(t *testing.T) {
+	srv, _ := newServer(t)
+	if _, err := srv.B.Store.CreateUser("Carol Ann", "password1", "There", false); err != nil {
+		t.Fatal(err)
+	}
+	a := signedOn(t, srv, "alice")
+
+	// alice writes to Carol Ann, in one stream; then in two
+	a.send("m4", mailForm("CarolAnn", "Lunch", "Are you free?\r\nNoon?", false)[0])
+	if s := a.stream(); !strings.Contains(s, "mip_message_accepted") {
+		t.Errorf("sent:\n%s", s)
+	}
+	parts := mailForm("CarolAnn", "Again", "<html><b>Bold</b> &amp; plain<br>line 2</html>", true)
+	a.send("m4", parts[0])
+	if s := a.stream(); !strings.Contains(s, "mip_header_accepted") {
+		t.Errorf("header:\n%s", s)
+	}
+	a.send("m4", parts[1])
+	if s := a.stream(); !strings.Contains(s, "mip_message_accepted") {
+		t.Errorf("sent:\n%s", s)
+	}
+	u, _ := srv.B.Store.UserByName("Carol Ann")
+	inbox, err := srv.B.Store.Inbox(u.ID)
+	if err != nil || len(inbox) != 2 {
+		t.Fatalf("inbox %v %v", inbox, err)
+	}
+	if m := inbox[0]; m.From != "alice" || m.Subject != "Lunch" || m.Body != "Are you free?\nNoon?" {
+		t.Errorf("first %+v", m)
+	}
+	if m := inbox[1]; m.Body != "Bold & plain\nline 2" {
+		t.Errorf("4.0's HTML: %q", m.Body)
+	}
+	// to no one here
+	a.send("m4", mailForm("nobody", "Hi", "x", false)[0])
+	if s := a.stream(); strings.Contains(s, "mip_message_accepted") {
+		t.Errorf("to nobody:\n%s", s)
+	}
+	if s := a.stream(); !strings.Contains(s, "not sent to") || !strings.Contains(s, "nobody") {
+		t.Errorf("to nobody:\n%s", s)
+	}
+
+	// Carol is told at sign-on, and reads it by keyword and buttons
+	c := connect(t, srv)
+	c.send("Dd", signOnForm("CarolAnn", "password1"))
+	c.stream()
+	if s := c.stream(); !strings.Contains(s, "You have 2 new messages") {
+		t.Errorf("welcome:\n%s", s)
+	}
+	c.send("Kk", deData("Mail"))
+	c.stream() // the last mailbox closed
+	box := c.stream()
+	if !strings.Contains(box, "You have 2 messages, 2 new") {
+		t.Errorf("mailbox:\n%s", box)
+	}
+	kw := button0(t, box, "* "+inbox[0].Created.Format("Jan 2")+"  alice: Lunch")
+	c.send("Kk", []byte(kw))
+	c.stream()
+	letter := c.stream()
+	if !strings.Contains(letter, "Subject: Lunch") || !strings.Contains(letter, `Are you free?\r\nNoon?`) {
+		t.Errorf("letter:\n%s", letter)
+	}
+	if m, _ := srv.B.Store.Mail(u.ID, inbox[0].ID); !m.Read {
+		t.Error("not marked read")
+	}
+	c.send("Kk", []byte(button0(t, letter, "Delete")))
+	c.stream() // the letter closed
+	c.stream() // the last mailbox closed
+	if s := c.stream(); !strings.Contains(s, "You have 1 message, 1 new") {
+		t.Errorf("after delete:\n%s", s)
+	}
+	// no one reads another's mail
+	a.send("Kk", []byte(fmt.Sprintf("read mail %d", inbox[1].ID)))
+	if s := a.stream(); !strings.Contains(s, "not in your mailbox") {
+		t.Errorf("another's:\n%s", s)
+	}
+}
+
+func TestKeywords(t *testing.T) {
+	srv, _ := newServer(t)
+	a := signedOn(t, srv, "alice")
+	a.send("Kk", deData("  HELP "))
+	a.stream()
+	if s := a.stream(); !strings.Contains(s, "Mail: your mailbox") || button0(t, s, "Chat") != "chat" {
+		t.Errorf("help:\n%s", s)
+	}
+	a.send("Kk", []byte("who"))
+	a.stream()
+	if s := a.stream(); !strings.Contains(s, "1 caller on now") || !strings.Contains(s, "alice, by") {
+		t.Errorf("who:\n%s", s)
+	}
+	a.send("Kk", []byte("chat"))
+	if s := a.stream(); !strings.Contains(s, "man_close") {
+		t.Errorf("chat:\n%s", s)
+	}
+	if s := a.stream(); !strings.Contains(s, "uni_invoke_local <32-117>") {
+		t.Errorf("chat:\n%s", s)
+	}
+	a.stream()
+	a.chatLine()
+	a.send("Kk", deData("nowhere"))
+	if s := a.stream(); !strings.Contains(s, `There is no keyword \"nowhere\" here`) {
+		t.Errorf("unknown:\n%s", s)
 	}
 }
