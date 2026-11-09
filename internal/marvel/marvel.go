@@ -67,6 +67,7 @@ func New(b *bbs.BBS, s Settings) (*Server, error) {
 	if s.MaxClients == 0 {
 		s.MaxClients = 64
 	}
+	b.Store.SetKeepNTLM(true) // the 1996 client's NTLM sign-in checks against them
 	return &Server{B: b, S: s, conns: map[*conn]bool{},
 		roomIDs: map[string]uint32{}, roomNames: map[uint32]string{}}, nil
 }

@@ -5,19 +5,17 @@ Ideas not yet started, with what is known of them.
 ## An MSN Classic front end
 
 *Status: started; the link, the RPC, sign-in, the directory, bulletin
-boards, e-mail and its address book, chat, Find and file downloads
-(`internal/marvel`, `[marvel]`, `frontend = marvel`) are done.  Not yet
-tried with a real client.*
+boards, e-mail and its address book, chat, Find, file downloads and
+the 1996 client's NTLM sign-in (`internal/marvel`, `[marvel]`,
+`frontend = marvel`) are done.  Not yet tried with a real client.*
 
-For the MSN client of Windows 95 (MSN 1.0 to 1.2), over TCP (port 569) and
+For the MSN client of Windows 95 (MSN 1.0 to 1.3), over TCP (port 569) and
 by modem, from the marvel-msn project's protocol notes.  Next:
 
 - **Uploads**: a file library as an MSN BBS whose messages carry the
   files as attachments (MOSAF objects in a rich-text body, MOS2 packed),
   which also lets a file be saved where the caller says rather than
   opened from the temporary folder.
-- **MSN 1.3 (OSR2)**: its NTLM sign-in needs the password's NT hash, kept
-  as CompuServe's key is.
 - **MSN Today**: the Media Viewer title (MEDVIEW), a page of news.
 
 ## An AOL front end

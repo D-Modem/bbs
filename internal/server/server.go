@@ -125,6 +125,10 @@ func (s *Server) Run(ctx context.Context) error {
 			// CIM's Secure Login needs a key made from each password
 			s.B.Store.SetKeepCIS(true)
 		}
+		if l.Frontend == "marvel" {
+			// and MSN Classic's 1996 client, its NTLM sign-in the hashes
+			s.B.Store.SetKeepNTLM(true)
+		}
 		if l.Kind == "ssh" {
 			if err := s.sshSetup(l); err != nil {
 				closeAll()

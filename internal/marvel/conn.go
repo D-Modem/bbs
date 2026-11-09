@@ -253,6 +253,17 @@ func (c *conn) data(pipe uint16, b []byte) bool {
 // signOn signs the connection on as name with pw: 0 or the code LOGSRV's
 // reply says why not.
 func (c *conn) signOn(name, pw string) uint32 {
+	return c.signOnBy(name, func(node *bbs.Node, name string) (*store.User, error) {
+		if node != nil {
+			return node.Login(name, pw)
+		}
+		return c.s.B.Authenticate("marvel", c.source, name, pw)
+	})
+}
+
+// signOnBy signs on as name, by login (given the call's node, if a modem
+// call: nil over TCP, and the member's name as the BBS has it).
+func (c *conn) signOnBy(name string, login func(*bbs.Node, string) (*store.User, error)) uint32 {
 	b := c.s.B
 	if u, err := b.Store.UserByScreenName(name); err == nil {
 		name = u.Name // a member ID with the spaces left out
@@ -260,13 +271,7 @@ func (c *conn) signOn(name, pw string) uint32 {
 	c.mu.Lock()
 	node := c.node
 	c.mu.Unlock()
-	var u *store.User
-	var err error
-	if node != nil {
-		u, err = node.Login(name, pw)
-	} else {
-		u, err = b.Authenticate("marvel", c.source, name, pw)
-	}
+	u, err := login(node, name)
 	if err != nil {
 		c.logf("sign-on as %q: %v", name, err)
 		switch {

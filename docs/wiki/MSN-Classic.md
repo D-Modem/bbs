@@ -54,6 +54,20 @@ Point the client's phone number at the line that reaches that listener.
   node and shows in Who's On as `MSN`. The Password dialog changes the BBS
   password. The billing pages show the account's name and location and
   keep nothing.
+- **The 1996 client** (Windows 95 OSR2, MSN 1.3) signs in with NTLM: it
+  never sends the password, only an answer to a challenge worked out from
+  the password's LAN Manager hash. The BBS keeps that hash and the NT
+  hash for each account, made whenever the password is typed in the clear
+  (signing in any other way, or setting a password), and bound to the
+  password, so a password changed somewhere they aren't made leaves them
+  unused until it is typed again. An account whose hashes aren't kept yet
+  gets "Password not valid" from this client: sign in once by telnet, the
+  web or the 1995 client first. The hashes are kept only while MSN Classic
+  is served (a `[marvel]` section or a `frontend = marvel` listener), and
+  they are password equivalents, the LM hash a weak one, so the database
+  needs guarding as a password file does. After signing in, the Password
+  dialog and the billing pages travel sealed (RC4) under the sign-in's
+  key, as the client expects.
 - **The directory**: only the areas the caller may read are listed. Go
   words are the areas' and groups' names (in any case), and `today`.
 - **Bulletin boards**: up to the newest few hundred messages of an area
@@ -104,9 +118,7 @@ Point the client's phone number at the line that reaches that listener.
   here has a place, so a search with Place filled in finds nothing. At
   most 200 results come back.
 
-Not served yet: the sign-up wizard and MSN Today's Media Viewer title. The 1996 client
-(Windows 95 OSR2, MSN 1.3) signs in with NTLM, which needs a password hash
-the BBS doesn't keep, so it can't sign in.
+Not served yet: the sign-up wizard and MSN Today's Media Viewer title.
 
 ## Where the protocol comes from
 
