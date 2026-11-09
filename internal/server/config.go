@@ -23,6 +23,7 @@ import (
 	"github.com/D-Modem/bbs/internal/fido"
 	"github.com/D-Modem/bbs/internal/finger"
 	"github.com/D-Modem/bbs/internal/ftp"
+	"github.com/D-Modem/bbs/internal/gemini"
 	"github.com/D-Modem/bbs/internal/gopher"
 	"github.com/D-Modem/bbs/internal/guard"
 	"github.com/D-Modem/bbs/internal/imageboard"
@@ -78,6 +79,7 @@ type Config struct {
 	HTTP        *api.Settings     // nil: no HTTP API
 	Chan        imageboard.Settings
 	Gopher      *gopher.Settings // nil: no gopher server
+	Gemini      *gemini.Settings // nil: no Gemini server
 	Time        *TimeSettings    // nil: no [time], [ntp], [nts] or [ptp]
 	Database    string
 	Log         string // syslog, stderr, none, or a file
@@ -233,7 +235,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
+		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "gemini", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
 			"mail", "smarthost", "pop3", "imap", "smtp", "mx", "lmtp":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)

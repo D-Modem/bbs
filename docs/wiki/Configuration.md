@@ -45,7 +45,7 @@ whether terminals are asked what they are (see
 | `scripts_dir` (in `[general]`) | the sysop's JavaScript | [Scripting](Scripting) |
 | `[security]` | deny lists, bans, the hack log | [Security](Security) |
 | `[event NAME]` | scheduled programs | [Sysop tools](Sysop-Tools) |
-| `[finger]`, `[gopher]` | the finger and gopher servers | [Finger and gopher](Finger-and-Gopher) |
+| `[finger]`, `[gopher]`, `[gemini]` | the finger, gopher and Gemini servers | [Finger, gopher and Gemini](Finger-and-Gopher) |
 | `[irc]` | the IRC server for the chat rooms | [IRC](IRC) |
 | `[mrc]` | Multi Relay Chat | [MRC](MRC) |
 | `database` (in `[general]`) | SQLite's file, or a PostgreSQL, MySQL or MariaDB server | [Databases](Databases) |
@@ -73,7 +73,7 @@ Configuration). They are full screen on ANSI terminals, use PF keys on a
 | Board configuration | the BBS's name, the sysop's, the location, postal address, dial-in numbers and internet addresses; the banner, message of the day, goodbye, logo; menus and prompts |
 | System configuration | the user and group it runs as; the database and log; where files are kept and how large they may be; deny lists, the hack log, bans; scheduled events; every section of the file as it is |
 | Connections and modems | modem lines and every listener; callers at once, logins, time-outs, lock-outs; passwords by modemmenu's auth socket ([Modem callers](Modem-Callers#the-same-password-for-telnet-ssh-and-the-web)); the caller ID country and GeoIP |
-| Services | telnet, TN3270, SSH and RLogin listeners; finger, gopher, FTP, IRC, news, the web (API, forum, image boards); MRC, FidoNet, QWK networks, doors |
+| Services | telnet, TN3270, SSH and RLogin listeners; finger, gopher, Gemini, FTP, IRC, news, the web (API, forum, image boards); MRC, FidoNet, QWK networks, doors |
 | Users and groups | the accounts (level, flags, sysop, locked, a new password; new ones; deleted ones) and the access levels |
 | Maintenance | disk space; what message areas keep, old messages taken out; the image boards' archive; backups: one now, those made, `[backup]` ([Backups](Backups)) |
 

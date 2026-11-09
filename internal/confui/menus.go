@@ -187,6 +187,7 @@ func (e *Editor) servicesMenu() page {
 			heading("Servers"),
 			single("Finger", "finger"),
 			single("Gopher", "gopher"),
+			single("Gemini", "gemini"),
 			single("FTP", "ftp"),
 			single("IRC (ircd)", "irc"),
 			menu("News (NNTP)", e.onOff(sec("nntp")), func() error { return e.show(e.newsPage()) }),

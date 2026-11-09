@@ -43,7 +43,7 @@ user = bbs
 
 When it is started as root, `bbs serve` reads the configuration and binds
 every port and unix socket it listens on (the listeners, the HTTP API and
-metrics, FTP, NNTP, IRC, finger, gopher and binkp). Then it gives up root,
+metrics, FTP, NNTP, IRC, finger, gopher, Gemini and binkp). Then it gives up root,
 takes the user's supplementary groups (such as `socket_group`'s and
 docker's), and runs itself again as the user. It stays the same process,
 with the same PID for systemd and `systemctl reload`, and keeps the

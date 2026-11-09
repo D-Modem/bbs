@@ -65,8 +65,9 @@ over TLS.
 - Finger tells no addresses or caller IDs and forwards nothing; gopher
   shows no message or file area unless the sysop names it (and `bbs
   check` warns when they do), and its selectors are database records, not
-  paths. Both limit connections at once and from one address, and both
-  time out.
+  paths. Gemini shows what gopher would, under its own `areas` and
+  `files`, and finger's users. All three limit connections at once and
+  from one address, and all time out.
 - The HTTP API: TLS by default (`bbs check` warns when it is off on an
   address others reach); tokens of 32 random bytes kept only as hashes,
   never in URLs, limited by scope (`sysop` only for sysops), expiring
@@ -109,7 +110,7 @@ ban_minutes = 60                       ; a throttled address is banned this long
   `198.51.100.0/24`, `2001:db8::/32`; `#` or `;` begins a comment). A
   connection from one is closed at once on every service: the terminal
   listeners and SSH, FTP, NNTP, the HTTP API and web terminal, finger,
-  gopher and binkp. Callers through unix sockets (a modem server, an
+  gopher, Gemini and binkp. Callers through unix sockets (a modem server, an
   upstream menu) are never refused. The file is read again when it
   changes; `bbs check` warns of lines that are not addresses.
 - Mail from the internet (`[mx]`) can also be checked against DNS

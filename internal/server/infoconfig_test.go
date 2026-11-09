@@ -46,11 +46,25 @@ files = yes
 	if err != nil || c.Gopher.Port != 70 || c.Gopher.Areas != "" || c.Gopher.Files {
 		t.Errorf("defaults %+v %v", c.Gopher, err)
 	}
+	c, err = load("[general]\ndatabase = /var/lib/bbs/bbs.db\n[gemini]\nareas = *\n")
+	if g := c.Gemini; err != nil || g.Address != ":1965" || !g.MakeCert || !g.Users || g.Areas != "*" ||
+		g.CertFile != "/var/lib/bbs/gemini-cert.pem" || g.KeyFile != "/var/lib/bbs/gemini-key.pem" {
+		t.Errorf("gemini %+v %v", g, err)
+	}
+	if !strings.Contains(strings.Join(c.Warnings, "\n"), "[gemini] shows message or file areas to anyone") {
+		t.Errorf("no gemini warning: %v", c.Warnings)
+	}
+	c, err = load("[gemini]\naddress = :1966\ncert_file = /etc/c.pem\nkey_file = /etc/k.pem\nusers = no\n")
+	if g := c.Gemini; err != nil || g.MakeCert || g.Users || g.CertFile != "/etc/c.pem" || len(c.Warnings) != 0 {
+		t.Errorf("gemini %+v %v %v", g, err, c.Warnings)
+	}
 	for body, want := range map[string]string{
-		"[finger]\naddress = 79\n":          "[finger] address",
-		"[gopher]\nport = 0\n":              "[gopher]",
-		"[general]\npage_command = 'x\n":    "page_command",
-		"[general]\nqwk_id = too-long-id\n": "qwk_id",
+		"[finger]\naddress = 79\n":           "[finger] address",
+		"[gemini]\ncert_file = /etc/c.pem\n": "[gemini] cert_file",
+		"[gemini]\naddress = x\n":            "[gemini] address",
+		"[gopher]\nport = 0\n":               "[gopher]",
+		"[general]\npage_command = 'x\n":     "page_command",
+		"[general]\nqwk_id = too-long-id\n":  "qwk_id",
 	} {
 		if _, err := load(body); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%q: %v", body, err)

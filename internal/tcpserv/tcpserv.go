@@ -1,4 +1,4 @@
-// Package tcpserv serves small one-question protocols (finger, gopher):
+// Package tcpserv serves small one-question protocols (finger, gopher, Gemini):
 // connections limited at once and from one address, each with a time
 // limit, a panic in one not taking the rest down.
 package tcpserv

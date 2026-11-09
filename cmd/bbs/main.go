@@ -70,6 +70,7 @@ import (
 	"github.com/D-Modem/bbs/internal/finger"
 	"github.com/D-Modem/bbs/internal/ftn"
 	"github.com/D-Modem/bbs/internal/ftp"
+	"github.com/D-Modem/bbs/internal/gemini"
 	"github.com/D-Modem/bbs/internal/gopher"
 	"github.com/D-Modem/bbs/internal/imageboard"
 	"github.com/D-Modem/bbs/internal/ircd"
@@ -313,6 +314,10 @@ func main() {
 		}
 		if g := cfg.Gopher; g != nil {
 			fmt.Printf("gopher: %s as %s:%d, areas %q, files %v\n", g.Address, g.Host, g.Port, g.Areas, g.Files)
+		}
+		if g := cfg.Gemini; g != nil {
+			fmt.Printf("gemini: %s, areas %q, files %v, users %v\n", g.Address, g.Areas, g.Files, g.Users)
+			fmt.Printf("gemini certificate %s: %s\n", g.CertFile, gemini.CertInfo(g.CertFile, g.MakeCert))
 		}
 		for _, d := range cfg.Doors {
 			if r := d.Remote; r != nil {
@@ -619,6 +624,15 @@ func serve(cfg *server.Config, path string) int {
 		gs := &gopher.Server{B: b, S: *cfg.Gopher}
 		go func() {
 			if err := gs.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
+	if cfg.Gemini != nil {
+		gm := &gemini.Server{B: b, S: *cfg.Gemini}
+		go func() {
+			if err := gm.Run(ctx); err != nil {
 				lg.Printf("%v", err)
 				stop()
 			}
