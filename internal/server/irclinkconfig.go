@@ -43,6 +43,9 @@ func (c *Config) irclinkSection(cf *config.File) error {
 		if l.Retry, err = s.Seconds("retry", 30, 1, 3600); err != nil {
 			return err
 		}
+		if l.Numeric, err = s.Int("numeric", -1, 0, 4095); err != nil {
+			return err
+		}
 		for _, a := range []struct{ key, v string }{{"address", l.Address}, {"tls_address", l.TLSAddress}} {
 			if _, _, err := net.SplitHostPort(a.v); a.v != "" && err != nil {
 				return fmt.Errorf("%s: %v", a.key, err)
@@ -68,8 +71,13 @@ func (c *Config) irclinkSection(cf *config.File) error {
 			case "ts6":
 			case "hybrid":
 				p.Hybrid = true
+			case "p10":
+				p.P10 = true
+				if !s.Has("nick_length") {
+					l.NickLen = 12 // ircu's
+				}
 			default:
-				return fmt.Errorf("[ircpeer %s] protocol: ts6 or hybrid, not %q", ps.Name, proto)
+				return fmt.Errorf("[ircpeer %s] protocol: ts6, hybrid or p10, not %q", ps.Name, proto)
 			}
 			if p.Address == "none" {
 				p.Address = ""

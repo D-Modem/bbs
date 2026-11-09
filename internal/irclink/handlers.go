@@ -343,6 +343,10 @@ func (h *Hub) query(l *link, src, command string, params []string, raw string) {
 		if len(params) > 1 {
 			target = params[1]
 		}
+	case "LINKS":
+		if len(params) > 1 {
+			target = params[0] // LINKS server :mask
+		}
 	default:
 		if len(params) > 0 {
 			target = params[len(params)-1]
@@ -361,7 +365,7 @@ func (h *Hub) query(l *link, src, command string, params []string, raw string) {
 	}
 	switch command {
 	case "VERSION":
-		reply("351", "bbs-sec.", h.me.name, "TS6 hub for the chat of "+h.B.Conf().Name)
+		reply("351", "bbs-sec.", h.me.name, "TS6 and P10 hub for the chat of "+h.B.Conf().Name)
 	case "MOTD":
 		text := strings.TrimRight(h.B.MOTDText(), "\n")
 		if text == "" {
@@ -378,7 +382,7 @@ func (h *Hub) query(l *link, src, command string, params []string, raw string) {
 		reply("257", h.B.Conf().Name)
 		reply("258", "Sysop: "+h.B.Conf().Sysop)
 	case "INFO":
-		reply("371", h.B.Conf().Name+": its chat rooms, as a TS6 server")
+		reply("371", h.B.Conf().Name+": its chat rooms, as a TS6 and P10 server")
 		reply("374", "End of /INFO list.")
 	case "TIME":
 		reply("391", h.me.name, time.Now().Format(time.RFC1123))

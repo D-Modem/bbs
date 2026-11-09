@@ -748,7 +748,8 @@ address = 127.0.0.1:2513
 ;system = OnlineHost
 
 ; IRC server linking: the BBS as a hub server on an IRC network, by TS6
-; (Solanum, charybdis, ircd-ratbox; ircd-hybrid 8 with protocol = hybrid).
+; (Solanum, charybdis, ircd-ratbox; ircd-hybrid 8 with protocol = hybrid)
+; or P10 (ircu, Undernet's, with protocol = p10).
 ; Every BBS user online is a user there, whom anyone can /msg and /whois;
 ; the rooms beginning irc- are its channels (irc-retro is #retro).  A nick
 ; taken there is the BBS user's as Nick|Tag.  See docs/wiki/IRC-Linking.md
@@ -757,6 +758,8 @@ address = 127.0.0.1:2513
 ;server_name = irc.bbs.example.org
 ; the TS6 server ID: a digit, then two letters or digits, the network's own
 ;sid = 1BB
+; the P10 server numeric, 0 to 4095, the network's own (for a P10 link)
+;numeric = 42
 ; its description, in LINKS (default: the BBS's name)
 ;description = The D-Modem BBS
 ; the network's name, as WHOIS of its users shows it
@@ -767,7 +770,8 @@ address = 127.0.0.1:2513
 ;host = users.bbs.example.org
 ; the rooms that are channels (none: every room)
 ;prefix = irc-
-; the network's NICKLEN (Solanum's 31 less one; ratbox and hybrid: 9)
+; the network's NICKLEN (Solanum's 31 less one; ratbox and hybrid: 9;
+; ircu: 12, the default with a P10 peer)
 ;nick_length = 30
 ; where servers link in (and address = none for none)
 ;address = :7000
@@ -792,8 +796,9 @@ address = 127.0.0.1:2513
 ;accept_password = its-to-us
 ; its users' tag, beside a BBS user of the same nick (Nick|Tag)
 ;tag = HUB
-; ts6 (Solanum, charybdis, ratbox) or hybrid (ircd-hybrid 8)
+; ts6 (Solanum, charybdis, ratbox), hybrid (ircd-hybrid 8) or p10 (ircu)
 ;protocol = ts6
+
 ; AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP).  Users sign
 ; on with their BBS names and passwords and get the BBS's Welcome window.
 ; The client's port is 5190: with [oscar] there too, the two share it.  The

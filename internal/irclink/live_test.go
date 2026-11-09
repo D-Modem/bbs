@@ -11,8 +11,8 @@ import (
 	"time"
 )
 
-// TestLive links to a real TS6 ircd, when one is set up (it is skipped
-// otherwise):
+// TestLive links to a real ircd, TS6 or P10, when one is set up (it is
+// skipped otherwise):
 //
 //	IRCLINK_LIVE_PEER     its server name, linking in to 127.0.0.1:17000
 //	IRCLINK_LIVE_SEND     the password we send it (its accept_password)
@@ -20,6 +20,7 @@ import (
 //	IRCLINK_LIVE_CLIENT   its address for clients (127.0.0.1:16667)
 //	IRCLINK_LIVE_NICKLEN  its NICKLEN, if not 30 (hybrid's is 9)
 //	IRCLINK_LIVE_LINKOUT  its address for servers, if the BBS links out
+//	IRCLINK_LIVE_PROTOCOL hybrid or p10, if not TS6 (the BBS's P10 numeric is 1)
 //
 // A client on it sees the BBS's alice (and the network's carol beside her
 // as Nick|Tag), talks with her in #retro, messages her, and WHOISes her.
@@ -30,7 +31,7 @@ func TestLive(t *testing.T) {
 	}
 	trace = func(s string) { t.Log(s) }
 	t.Cleanup(func() { trace = nil })
-	e := start(t)
+	e := startWith(t, func(s *Settings) { s.Numeric = 1 })
 	e.hub.S.Address = "127.0.0.1:17000"
 	e.hub.S.NickLen = 30
 	if n, err := strconv.Atoi(os.Getenv("IRCLINK_LIVE_NICKLEN")); err == nil {
@@ -38,7 +39,8 @@ func TestLive(t *testing.T) {
 	}
 	ours := e.hub.tagged("alice", e.hub.me, nil, "")
 	e.hub.S.Peers = []Peer{{Name: peer, SendPassword: os.Getenv("IRCLINK_LIVE_SEND"),
-		AcceptPassword: os.Getenv("IRCLINK_LIVE_ACCEPT"), Tag: "far", Address: os.Getenv("IRCLINK_LIVE_LINKOUT")}}
+		AcceptPassword: os.Getenv("IRCLINK_LIVE_ACCEPT"), Tag: "far", Address: os.Getenv("IRCLINK_LIVE_LINKOUT"),
+		Hybrid: os.Getenv("IRCLINK_LIVE_PROTOCOL") == "hybrid", P10: os.Getenv("IRCLINK_LIVE_PROTOCOL") == "p10"}}
 	// a user there who has alice's nick
 	c := dialIRC(t, os.Getenv("IRCLINK_LIVE_CLIENT"), "alice")
 	alice := e.node(t, "alice")
@@ -70,7 +72,7 @@ func TestLive(t *testing.T) {
 	}
 	c.expect("PRIVMSG alice :hello back")
 	alice.Leave()
-	c.expect(":" + ours + "!bbs@irc.test.example PART #retro")
+	c.expect(":" + ours + "!bbs@irc.test.example PART ") // ircu: PART :#retro
 }
 
 // ircClient is a client of the live ircd.

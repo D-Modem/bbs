@@ -46,17 +46,20 @@ type link struct {
 	caps      map[string]bool
 	srv       *server // its server, once linked
 
-	hybrid  bool // it speaks ircd-hybrid 8's TS6 (SERVER with a SID, its UID, TBURST, EOB)
-	pinged  bool // our PING after the handshake is sent
-	bursted bool // our burst is sent: lines may go to it
+	hybrid  bool   // it speaks ircd-hybrid 8's TS6 (SERVER with a SID, its UID, TBURST, EOB)
+	p10     bool   // it speaks P10 (ircu): its lines are translated both ways
+	cur     string // the P10 line being taken, for the other P10 links
+	pinged  bool   // our PING after the handshake is sent
+	bursted bool   // our burst is sent: lines may go to it
 }
 
 // line makes a line: source (a SID or UID; "": none), command and
 // parameters, the last as trailing.
 func line(source, command string, params ...string) string {
 	m := ircmsg.MakeMessage(nil, source, command, params...)
-	switch command {
-	case "JOIN", "PART", "NICK", "MODE", "TMODE":
+	switch {
+	case command == "JOIN", command == "NICK", command == "MODE", command == "TMODE":
+	case command == "PART" && len(params) < 2:
 	default:
 		if len(params) > 0 {
 			m.ForceTrailing() // text, a list or a description
@@ -72,8 +75,17 @@ func line(source, command string, params ...string) string {
 // trace is told every line, when set (tests).
 var trace func(string)
 
-// sendRaw queues a line to the link; a full queue drops it.
+// sendRaw queues a TS6 line to the link (as P10's, for a P10 link); a
+// full queue drops it.
 func (l *link) sendRaw(s string) {
+	if l.p10 && s != flushClose {
+		s = l.h.toP10(s)
+	}
+	l.write(s)
+}
+
+// write queues a line to the link as it is.
+func (l *link) write(s string) {
 	if s == "" {
 		return
 	}
@@ -194,6 +206,11 @@ func (l *link) handshake() {
 	if l.peer.Hybrid {
 		l.hybrid = true
 	}
+	if l.peer.P10 || l.p10 {
+		l.p10 = true
+		l.p10Handshake() // its burst comes first; ours follows its EB
+		return
+	}
 	if l.hybrid {
 		l.send("", "PASS", l.peer.SendPassword)
 		l.send("", "CAPAB", "KNOCK TBURST ENCAP EOB")
@@ -242,23 +259,47 @@ func (l *link) read() string {
 			return err.Error()
 		}
 		pinged = false
-		m, err := ircmsg.ParseLine(string(raw))
-		if err != nil {
-			continue
-		}
-		m.Command = strings.ToUpper(m.Command)
 		if trace != nil {
 			trace("<- " + l.name() + " " + string(raw))
 		}
 		h := l.h
 		h.mu.Lock()
-		why, ok := h.handle(l, &m, string(raw))
+		why, ok := "", true
+		if l.p10 && l.srv != nil {
+			why, ok = h.takeP10(l, string(raw))
+		} else if m, err := ircmsg.ParseLine(string(raw)); err == nil {
+			m.Command = strings.ToUpper(m.Command)
+			why, ok = h.handle(l, &m, string(raw))
+		}
 		h.mu.Unlock()
 		if !ok {
 			l.sendRaw("ERROR :Closing link: " + why)
 			return why
 		}
 	}
+}
+
+// takeP10 is a line from a P10 link, taken as TS6's.  The hub's lock is
+// held.
+func (h *Hub) takeP10(l *link, raw string) (string, bool) {
+	for _, in := range h.fromP10(l, raw) {
+		if in.ts6 == "" {
+			h.forwardP10(l, in.p10)
+			continue
+		}
+		m, err := ircmsg.ParseLine(in.ts6)
+		if err != nil {
+			continue
+		}
+		m.Command = strings.ToUpper(m.Command)
+		l.cur = in.p10
+		why, ok := h.handle(l, &m, in.ts6)
+		l.cur = ""
+		if !ok {
+			return why, false
+		}
+	}
+	return "", true
 }
 
 // handle is a line from a link; false drops the link, for why. The hub's
@@ -433,7 +474,8 @@ func (h *Hub) register(l *link, m *ircmsg.Message) (string, bool) {
 	}
 	switch m.Command {
 	case "PASS":
-		// PASS password TS 6 :SID; hybrid 8's SERVER gives the SID instead
+		// PASS password TS 6 :SID; hybrid 8's SERVER gives the SID instead,
+		// and P10's PASS is the password alone
 		l.pass = p(0)
 		if strings.ToUpper(p(1)) == "TS" {
 			if p(2) != "6" || !sidRE.MatchString(p(3)) {
@@ -449,7 +491,25 @@ func (h *Hub) register(l *link, m *ircmsg.Message) (string, bool) {
 		name := p(0)
 		peer := h.peer(name)
 		desc := m.Params[len(m.Params)-1]
-		if len(m.Params) >= 4 && sidRE.MatchString(p(2)) {
+		if len(m.Params) >= 7 && p10ProtoRE.MatchString(p(4)) {
+			// SERVER name hops start link J10 numeric+mask +flags :desc (P10)
+			if h.S.Numeric < 0 {
+				return "the BBS has no P10 numeric ([irclink] numeric)", false
+			}
+			num := p(5)
+			if len(num) < 2 || fromB64(num[:2]) < 0 {
+				return "bad numeric " + num, false
+			}
+			if num[:2] == h.nums.server(h.me.sid) {
+				return "numeric " + num[:2] + " is the BBS's", false
+			}
+			if sid := h.nums.knownServer(num[:2]); sid != "" && h.servers[sid] != nil {
+				return "numeric " + num[:2] + " is in use", false
+			}
+			l.sid = h.nums.sidOf(num[:2], func(s string) bool { return h.servers[s] != nil })
+			l.p10 = true
+			l.caps["EUID"] = true // a P10 user's account comes in N
+		} else if len(m.Params) >= 4 && sidRE.MatchString(p(2)) {
 			l.sid = p(2) // SERVER name hops SID +flags :description (hybrid 8)
 			l.hybrid = true
 		}
@@ -462,7 +522,7 @@ func (h *Hub) register(l *link, m *ircmsg.Message) (string, bool) {
 			return "linked to " + l.peer.Name + ", not " + name, false
 		case l.pass != peer.AcceptPassword:
 			return "bad password", false
-		case !l.caps["ENCAP"]:
+		case !l.caps["ENCAP"] && !l.p10:
 			return "the BBS needs ENCAP", false
 		case h.names[fold(name)] != nil:
 			return name + " is on the network already", false
@@ -475,6 +535,7 @@ func (h *Hub) register(l *link, m *ircmsg.Message) (string, bool) {
 		}
 		s := &server{sid: l.sid, name: name, desc: desc, hops: 1, uplink: h.me, link: l, tag: peer.Tag}
 		h.servers[s.sid] = s
+		h.nums.back("s" + s.sid)
 		h.names[fold(name)] = s
 		l.srv = s
 		h.B.Log.Printf("irclink: %s linked (%s)", name, l.conn.RemoteAddr())
@@ -514,9 +575,28 @@ func (h *Hub) sourceServer(src string) *server {
 func (h *Hub) forward(from *link, raw string) {
 	for l := range h.links {
 		if l != from && l.bursted && l.srv != nil {
-			l.sendRaw(raw)
+			l.deliver(from, raw)
 		}
 	}
+}
+
+// forwardP10 sends a P10 line on to every P10 link but the one it came by.
+func (h *Hub) forwardP10(from *link, raw string) {
+	for l := range h.links {
+		if l != from && l.bursted && l.srv != nil && l.p10 {
+			l.write(raw)
+		}
+	}
+}
+
+// deliver sends a line come by a link (nil: the hub's own) on to this
+// one: a P10 line on to a P10 link as it came, else as TS6's.
+func (l *link) deliver(from *link, raw string) {
+	if l.p10 && from != nil && from.p10 && from.cur != "" {
+		l.write(from.cur)
+		return
+	}
+	l.sendRaw(raw)
 }
 
 // broadcast sends a line to every link.
@@ -536,7 +616,7 @@ func (h *Hub) route(target string, from *link, raw string) {
 	if s == nil || s.link == nil || s.link == from || !s.link.bursted {
 		return
 	}
-	s.link.sendRaw(raw)
+	s.link.deliver(from, raw)
 }
 
 // sid is SID: a server behind the link.
@@ -552,6 +632,7 @@ func (h *Hub) sid(l *link, src, name, hops, sid, desc, raw string) (string, bool
 	n, _ := strconv.Atoi(hops)
 	s := &server{sid: sid, name: name, desc: desc, hops: max(n, up.hops+1), uplink: up, link: l}
 	h.servers[sid] = s
+	h.nums.back("s" + sid)
 	h.names[fold(name)] = s
 	h.forward(l, raw)
 	return "", true
@@ -631,6 +712,11 @@ func (h *Hub) burst(l *link) {
 	}
 	if l.hybrid {
 		l.send(h.me.sid, "EOB")
+	}
+	if l.p10 {
+		me := h.nums.server(h.me.sid)
+		l.write(p10Line(me, "EB", false))
+		l.write(p10Line(me, "EA", false)) // its EB came before our burst
 	}
 	l.bursted = true
 	l.send(h.me.sid, "PING", h.me.name, l.srv.sid)
