@@ -6,7 +6,9 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"path/filepath"
@@ -184,6 +186,19 @@ func (cl *client) expect(want string) (string, string) {
 			return l, p
 		}
 		seen = append(seen, l)
+	}
+}
+
+// gone waits for the server to close the connection.
+func (cl *client) gone() {
+	cl.t.Helper()
+	for {
+		if _, _, err := cl.line(); err != nil {
+			if !errors.Is(err, io.EOF) {
+				cl.t.Fatalf("waiting for the server to close: %v", err)
+			}
+			return
+		}
 	}
 }
 
@@ -539,6 +554,7 @@ func TestIRC(t *testing.T) {
 	}
 
 	as.cmd("OUT")
+	as.gone() // the server has her out of the switchboard before Carol writes
 	carol.send("PRIVMSG alice :still there?")
 	rng, _ := alice.expect("RNG ")
 	if !strings.HasSuffix(rng, " CarolAnn@bbs.test Carol%20Ann") {
