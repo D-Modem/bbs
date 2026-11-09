@@ -32,6 +32,7 @@ the file is laid out.
 | [`[door NAME]`](#door-name) | A door: a program callers play, or another system's doors. |
 | [`[irc]`](#irc) | IRC: the chat rooms as channels (#main ...), for IRC clients. |
 | [`[oscar]`](#oscar) | AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC. |
+| [`[aol]`](#aol) | AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP). |
 | [`[msn]`](#msn) | MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (MSNP2 to 7), beside IRC and AIM. |
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
@@ -448,6 +449,17 @@ AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC.  Users sign o
 | `max_per_ip` |  |  | each client opens a few connections: sign-on, the BOS, chat rooms. Examples: `16`. |
 | `uin_base` |  |  | an account's ICQ number is this plus its number. Examples: `100000`. |
 | `system` |  |  | the screen name the BBS's notices come from. Examples: `OnlineHost`. |
+
+
+## `[aol]`
+
+AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP).  Users sign on with their BBS names and passwords and get the BBS's Welcome window. The client's port is 5190: with [oscar] there too, the two share it.  The client finds its host as AmericaOnline.aol.com (point that name here in its machine's hosts file, or edit its TCP.CCL).
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:5190`. |
+| `max_clients` |  |  | See the section above. Examples: `256`. |
+| `max_per_ip` |  |  | See the section above. Examples: `4`. |
 
 
 ## `[msn]`

@@ -48,6 +48,7 @@ import (
 	"io"
 	"log"
 	"log/syslog"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -58,6 +59,7 @@ import (
 
 	"golang.org/x/term"
 
+	"github.com/D-Modem/bbs/internal/aol"
 	"github.com/D-Modem/bbs/internal/api"
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/events"
@@ -270,6 +272,9 @@ func main() {
 		if o := cfg.OSCAR; o != nil {
 			fmt.Printf("oscar: %q, reconnect at %q, ICQ numbers from %d\n", o.Address, o.Host, o.UINBase)
 		}
+		if a := cfg.AOL; a != nil {
+			fmt.Printf("aol: %q\n", a.Address)
+		}
 		if m := cfg.MSN; m != nil {
 			fmt.Printf("msn: %q, conversations at %q, handles @%s\n", m.Address, m.Host, m.Domain)
 		}
@@ -466,14 +471,33 @@ func serve(cfg *server.Config, path string) int {
 			}
 		}()
 	}
+	var asrv *aol.Server
+	if cfg.AOL != nil {
+		if asrv, err = aol.New(b, *cfg.AOL); err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+	}
 	if cfg.OSCAR != nil {
 		osrv, err := oscar.New(b, *cfg.OSCAR)
 		if err != nil {
 			lg.Printf("%v", err)
 			return 1
 		}
+		if asrv != nil && sameAddress(cfg.OSCAR.Address, cfg.AOL.Address) {
+			osrv.P3 = asrv.Handle // AOL's clients come to OSCAR's port
+			asrv = nil
+		}
 		go func() {
 			if err := osrv.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
+	if asrv != nil {
+		go func() {
+			if err := asrv.Run(ctx); err != nil {
 				lg.Printf("%v", err)
 				stop()
 			}
@@ -1683,4 +1707,16 @@ func dbCmd(cfg *server.Config, args []string) {
 		fatal(err)
 	}
 	fmt.Println("done: set database = in the configuration to the new one")
+}
+
+// sameAddress is whether two listening addresses are one port: the same
+// port, on the same host or on every one.
+func sameAddress(a, b string) bool {
+	ah, ap, err1 := net.SplitHostPort(a)
+	bh, bp, err2 := net.SplitHostPort(b)
+	if err1 != nil || err2 != nil || ap != bp {
+		return false
+	}
+	any := func(h string) bool { return h == "" || h == "0.0.0.0" || h == "::" }
+	return ah == bh || any(ah) || any(bh)
 }
