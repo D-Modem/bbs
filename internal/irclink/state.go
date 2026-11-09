@@ -166,6 +166,7 @@ func (h *Hub) addUser(u *user) {
 		u.chans = map[*channel]string{}
 	}
 	h.users[u.uid] = u
+	h.nums.back("u" + u.uid)
 	h.nicks[fold(u.nick)] = u
 	if u.local != "" {
 		h.local[fold(u.local)] = u
@@ -180,6 +181,7 @@ func (h *Hub) removeUser(u *user, why string) {
 		h.part(u, ch, name, why)
 	}
 	delete(h.users, u.uid)
+	h.nums.retireUser(u.uid)
 	if h.nicks[fold(u.nick)] == u {
 		delete(h.nicks, fold(u.nick))
 	}
@@ -255,6 +257,7 @@ func (h *Hub) removeServer(s *server, why string) {
 		}
 	}
 	for _, o := range gone {
+		h.nums.retireServer(o.sid)
 		delete(h.servers, o.sid)
 		delete(h.names, fold(o.name))
 	}

@@ -31,6 +31,16 @@ func TestIRCLinkConfig(t *testing.T) {
 	if p := l.Peers[1]; p.Hybrid || p.Address != "" || p.Tag != "leaf" {
 		t.Errorf("peer %+v", p)
 	}
+	if l.Numeric != -1 {
+		t.Errorf("numeric %d", l.Numeric)
+	}
+	c, err = load(base + "numeric = 42\n[ircpeer under.example.net]\nsend_password = a\naccept_password = b\nprotocol = p10\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := c.IRCLink; l.Numeric != 42 || l.NickLen != 12 || !l.Peers[0].P10 {
+		t.Errorf("p10 %+v", l)
+	}
 	if c, err := load(""); err != nil || c.IRCLink != nil {
 		t.Errorf("no [irclink]: %+v %v", c.IRCLink, err)
 	}
@@ -41,8 +51,10 @@ func TestIRCLinkConfig(t *testing.T) {
 		base + "prefix = Bad_\n":                          "prefix",
 		base + "nick_length = 3\n":                        "nick_length",
 		base + "[ircpeer x.example]\nsend_password = a\n": "accept_password",
-		base + "[ircpeer x.example]\nsend_password = a\naccept_password = b\nprotocol = p10\n": "protocol",
-		"[ircpeer x.example]\n": "without [irclink]",
+		base + "[ircpeer x.example]\nsend_password = a\naccept_password = b\nprotocol = p10\n": "numeric",
+		base + "[ircpeer x.example]\nsend_password = a\naccept_password = b\nprotocol = p9\n":  "protocol",
+		base + "numeric = 4096\n": "numeric",
+		"[ircpeer x.example]\n":   "without [irclink]",
 	} {
 		if _, err := load(body); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("%q: %v", body, err)
