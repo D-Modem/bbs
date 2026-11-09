@@ -83,8 +83,11 @@ func (c *Config) ftpSection(f *config.Section) error {
 	}
 	set.CertFile = f.String("cert_file", "")
 	set.KeyFile = f.String("key_file", "")
-	if set.TLS != ftp.TLSNo && (set.CertFile == "" || set.KeyFile == "") {
-		return errors.New("cert_file and key_file are needed for TLS (or tls = no)")
+	if set.TLS != ftp.TLSNo {
+		var err error
+		if set.CertFile, set.KeyFile, err = c.tlsFiles(set.CertFile, set.KeyFile); err != nil {
+			return fmt.Errorf("TLS %v (or tls = no)", err)
+		}
 	}
 	var err error
 	if set.Anonymous, err = f.Bool("anonymous", false); err != nil {

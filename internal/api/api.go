@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/fido"
 	"github.com/D-Modem/bbs/internal/forum"
 	"github.com/D-Modem/bbs/internal/imageboard"
@@ -465,7 +466,7 @@ func (s *Server) Run(ctx context.Context) error {
 // Serve serves on ln until ctx is done.
 func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	s.Ctx = ctx
-	h := s.Handler()
+	h := certs.WrapHTTP(s.Handler())
 	hs := &http.Server{Handler: h, ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 2 * time.Minute,
 		MaxHeaderBytes: 16 << 10, ErrorLog: s.B.Log,
 		BaseContext: func(net.Listener) context.Context { return ctx }}
@@ -483,7 +484,10 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	s.B.Log.Printf("http: listening on %s (tls %v)", ln.Addr(), s.S.TLS)
 	var err error
 	if s.S.TLS {
-		err = hs.ServeTLS(l, s.S.CertFile, s.S.KeyFile)
+		if hs.TLSConfig, err = certs.Config(s.S.CertFile, s.S.KeyFile); err != nil {
+			return fmt.Errorf("http: %w", err)
+		}
+		err = hs.ServeTLS(l, "", "")
 	} else {
 		err = hs.Serve(l)
 	}

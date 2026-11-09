@@ -50,8 +50,11 @@ func (c *Config) newsSections(cf *config.File) error {
 		}
 		set.CertFile = s.String("cert_file", "")
 		set.KeyFile = s.String("key_file", "")
-		if set.TLS != nntp.TLSNo && (set.CertFile == "" || set.KeyFile == "") {
-			return errors.New("[nntp] cert_file and key_file are needed for TLS")
+		if set.TLS != nntp.TLSNo {
+			var err error
+			if set.CertFile, set.KeyFile, err = c.tlsFiles(set.CertFile, set.KeyFile); err != nil {
+				return fmt.Errorf("[nntp] TLS %v", err)
+			}
 		}
 		switch r := strings.ToLower(s.String("read", "anyone")); r {
 		case "anyone":

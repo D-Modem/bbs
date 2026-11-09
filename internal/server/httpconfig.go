@@ -28,8 +28,10 @@ func (c *Config) httpSection(s *config.Section) error {
 		return err
 	}
 	h.CertFile, h.KeyFile = s.String("cert_file", ""), s.String("key_file", "")
-	if h.TLS && (h.CertFile == "" || h.KeyFile == "") {
-		return errors.New("cert_file and key_file are needed for TLS (or tls = no, behind a proxy that has it)")
+	if h.TLS {
+		if h.CertFile, h.KeyFile, err = c.tlsFiles(h.CertFile, h.KeyFile); err != nil {
+			return fmt.Errorf("TLS %v (or tls = no, behind a proxy that has it)", err)
+		}
 	}
 	if h.TrustedProxies, err = api.ParseProxies(s.String("trusted_proxies", "")); err != nil {
 		return fmt.Errorf("trusted_proxies: %v", err)

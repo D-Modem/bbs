@@ -41,6 +41,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/cis"
 	"github.com/D-Modem/bbs/internal/marvel"
 	"github.com/D-Modem/bbs/internal/sockets"
@@ -173,7 +174,7 @@ func (s *Server) Run(ctx context.Context) error {
 // from those bound before root was given up, or made now).
 func (s *Server) listen(l *Listener) (net.Listener, error) {
 	if l.CertFile != "" {
-		cert, err := tls.LoadX509KeyPair(l.CertFile, l.KeyFile)
+		cfg, err := certs.Config(l.CertFile, l.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("tls: %w", err)
 		}
@@ -181,8 +182,7 @@ func (s *Server) listen(l *Listener) (net.Listener, error) {
 		if err != nil {
 			return nil, err
 		}
-		return tls.NewListener(ln, &tls.Config{Certificates: []tls.Certificate{cert},
-			MinVersion: tls.VersionTLS12}), nil
+		return tls.NewListener(ln, cfg), nil
 	}
 	if !l.Unix() {
 		return sockets.Listen("tcp", l.Address)

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/news"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
@@ -58,11 +59,11 @@ type Server struct {
 func NewServer(svc *Service, set ServerSettings, peers []*Peer) (*Server, error) {
 	s := &Server{Svc: svc, Set: set, Peers: peers, perIP: map[string]int{}, conns: map[net.Conn]bool{}}
 	if set.TLS != TLSNo {
-		cert, err := tls.LoadX509KeyPair(set.CertFile, set.KeyFile)
+		cfg, err := certs.Config(set.CertFile, set.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("nntp: certificate: %w", err)
 		}
-		s.tlsConfig = &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12}
+		s.tlsConfig = cfg
 	}
 	return s, nil
 }

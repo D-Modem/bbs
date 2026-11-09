@@ -1,7 +1,6 @@
 package server
 
 import (
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -105,13 +104,10 @@ func (c *Config) timeSections(cf *config.File) error {
 			if _, _, err := net.SplitHostPort(k.Address); err != nil {
 				return fmt.Errorf("address: %v", err)
 			}
-			if k.CertFile == "" || k.KeyFile == "" {
-				return errors.New("tls_cert and tls_key: NTS-KE is TLS")
-			}
-			if _, err := tls.LoadX509KeyPair(k.CertFile, k.KeyFile); err != nil {
-				return fmt.Errorf("tls_cert, tls_key: %v", err)
-			}
 			var err error
+			if k.CertFile, k.KeyFile, err = c.tlsFiles(k.CertFile, k.KeyFile); err != nil {
+				return fmt.Errorf("NTS-KE is TLS: tls_cert, tls_key: %v", err)
+			}
 			if k.MaxClients, err = ks.Int("max_clients", 64, 1, 10000); err != nil {
 				return err
 			}

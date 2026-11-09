@@ -2,11 +2,8 @@ package server
 
 import (
 	"bytes"
-	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/D-Modem/bbs/internal/aol"
-	"github.com/D-Modem/bbs/internal/api"
 	"net"
 	"os"
 	"os/exec"
@@ -14,6 +11,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/D-Modem/bbs/internal/acme"
+	"github.com/D-Modem/bbs/internal/aol"
+	"github.com/D-Modem/bbs/internal/api"
+	"github.com/D-Modem/bbs/internal/certs"
 
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/config"
@@ -57,42 +59,44 @@ type Config struct {
 	FTP          *ftp.Settings // nil: no FTP server
 	FTPAdvertise string        // the FTP server's address, as users are told it
 
-	News        bbs.NewsSettings
-	MaxArticle  int64
-	NNTP        *nntp.ServerSettings // nil: no NNTP server
-	Peers       []*nntp.Peer
-	Mail        *email.Settings // [mail]; nil: no e-mail
-	MailServers []*MailServer
-	Fido        *fido.Settings // nil: not on FidoNet
-	QWKNets     []*qwknet.Net  // [qwknet NAME]: QWK networks this is a node of
-	Binkp       *BinkpSettings // nil: no binkp answering
-	Doors       []*door.Door
-	Finger      *finger.Settings  // nil: no finger server
-	IRC         *ircd.Settings    // nil: no IRC server
-	OSCAR       *oscar.Settings   // nil: no AIM/ICQ server
-	AOL         *aol.Settings     // nil: no host for AOL clients
-	MSN         *msn.Settings     // nil: no MSN Messenger server
-	Marvel      *marvel.Settings  // nil: no host for the MSN (1995) client over TCP
-	YMSG        *ymsg.Settings    // nil: no Yahoo! Messenger server
-	MRC         *mrc.Settings     // nil: not on Multi Relay Chat
-	IRCLink     *irclink.Settings // nil: not linked to an IRC network
-	Screens     *screens.Set      // nil: no screens of the sysop's
-	ScriptsDir  string            // "": no scripts
-	Menus       map[string]*bbs.Menu
-	Text        map[string]string // [strings]
-	HTTP        *api.Settings     // nil: no HTTP API
-	Chan        imageboard.Settings
-	Gopher      *gopher.Settings // nil: no gopher server
-	Gemini      *gemini.Settings // nil: no Gemini server
-	Time        *TimeSettings    // nil: no [time], [ntp], [nts] or [ptp]
-	Database    string
-	Log         string // syslog, stderr, none, or a file
-	Listeners   []*Listener
-	Warnings    []string
-	Guard       *guard.Guard     // [security]
-	RunAs       *sockets.Account // [general] user and group: who serve becomes, its ports bound (nil: as it is started)
-	MenuAuth    *MenuAuth        // [modemmenu]: passwords asked of modemmenu (nil: none)
-	Events      []*events.Event
+	News            bbs.NewsSettings
+	MaxArticle      int64
+	NNTP            *nntp.ServerSettings // nil: no NNTP server
+	Peers           []*nntp.Peer
+	Mail            *email.Settings // [mail]; nil: no e-mail
+	MailServers     []*MailServer
+	Fido            *fido.Settings // nil: not on FidoNet
+	QWKNets         []*qwknet.Net  // [qwknet NAME]: QWK networks this is a node of
+	Binkp           *BinkpSettings // nil: no binkp answering
+	Doors           []*door.Door
+	Finger          *finger.Settings  // nil: no finger server
+	IRC             *ircd.Settings    // nil: no IRC server
+	OSCAR           *oscar.Settings   // nil: no AIM/ICQ server
+	AOL             *aol.Settings     // nil: no host for AOL clients
+	MSN             *msn.Settings     // nil: no MSN Messenger server
+	Marvel          *marvel.Settings  // nil: no host for the MSN (1995) client over TCP
+	YMSG            *ymsg.Settings    // nil: no Yahoo! Messenger server
+	ACME            *acme.Settings    // nil: no ACME client; certificates are the sysop's files
+	MRC             *mrc.Settings     // nil: not on Multi Relay Chat
+	IRCLink         *irclink.Settings // nil: not linked to an IRC network
+	Screens         *screens.Set      // nil: no screens of the sysop's
+	ScriptsDir      string            // "": no scripts
+	Menus           map[string]*bbs.Menu
+	Text            map[string]string // [strings]
+	HTTP            *api.Settings     // nil: no HTTP API
+	Chan            imageboard.Settings
+	Gopher          *gopher.Settings // nil: no gopher server
+	Gemini          *gemini.Settings // nil: no Gemini server
+	Time            *TimeSettings    // nil: no [time], [ntp], [nts] or [ptp]
+	Database        string
+	Log             string // syslog, stderr, none, or a file
+	Listeners       []*Listener
+	Warnings        []string
+	Guard           *guard.Guard     // [security]
+	RunAs           *sockets.Account // [general] user and group: who serve becomes, its ports bound (nil: as it is started)
+	MenuAuth        *MenuAuth        // [modemmenu]: passwords asked of modemmenu (nil: none)
+	Events          []*events.Event
+	acmeHTTPDefault bool // [acme] has no http_address: acmeHTTP settles it
 }
 
 // DefaultListeners are used when the file has no [listen] section: telnet
@@ -139,6 +143,9 @@ func load(cf *config.File) (*Config, error) {
 	}
 	if err := c.files(cf.Get("general", "")); err != nil {
 		return nil, fmt.Errorf("[general] %w", err)
+	}
+	if err := c.acmeSection(cf); err != nil {
+		return nil, err
 	}
 	if err := c.newsSections(cf); err != nil {
 		return nil, err
@@ -223,7 +230,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	names := map[string]bool{}
 	for _, sec := range cf.All("listen") {
-		l, err := listener(sec)
+		l, err := listener(sec, c.acmeNames())
 		if err != nil {
 			return nil, fmt.Errorf("[listen %s] %w", sec.Name, err)
 		}
@@ -243,9 +250,10 @@ func load(cf *config.File) (*Config, error) {
 	if len(c.Listeners) == 0 {
 		c.Listeners = DefaultListeners()
 	}
+	c.acmeHTTP()
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "gemini", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "marvel", "ymsg", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
+		case "general", "security", "acme", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "gemini", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "marvel", "ymsg", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
 			"mail", "smarthost", "pop3", "imap", "smtp", "mx", "lmtp":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
@@ -485,7 +493,7 @@ func (c *Config) securitySection(sec *config.Section) error {
 
 // listener reads a [listen NAME]: its type, address and options, refusing
 // those its type cannot have and a tls_cert whose key does not load.
-func listener(sec *config.Section) (*Listener, error) {
+func listener(sec *config.Section, acmeNames []string) (*Listener, error) {
 	if sec.Name == "" {
 		return nil, errors.New("a listener needs a name: [listen NAME]")
 	}
@@ -561,14 +569,14 @@ func listener(sec *config.Section) (*Listener, error) {
 		return nil, err
 	}
 	l.CertFile, l.KeyFile = sec.String("tls_cert", ""), sec.String("tls_key", "")
-	if (l.CertFile == "") != (l.KeyFile == "") {
-		return nil, errors.New("tls_cert and tls_key: both, or neither")
+	if (l.CertFile == "") != (l.KeyFile == "") && !certs.IsACME(l.CertFile) {
+		return nil, errors.New("tls_cert and tls_key: both, or neither (or tls_cert = acme)")
 	}
 	if l.CertFile != "" && (l.Kind != "telnet" && l.Kind != "raw" || l.Unix()) {
 		return nil, errors.New("tls_cert: only for telnet and raw listeners on a TCP port")
 	}
 	if l.CertFile != "" {
-		if _, err := tls.LoadX509KeyPair(l.CertFile, l.KeyFile); err != nil {
+		if err := certs.Check(l.CertFile, l.KeyFile, acmeNames); err != nil {
 			return nil, fmt.Errorf("tls_cert, tls_key: %v", err)
 		}
 	}

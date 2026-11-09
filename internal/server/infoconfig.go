@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/config"
 	"github.com/D-Modem/bbs/internal/finger"
 	"github.com/D-Modem/bbs/internal/gemini"
@@ -72,6 +73,11 @@ func (c *Config) infoSections(cf *config.File) error {
 		g.Host = s.String("hostname", host)
 		g.CertFile, g.KeyFile = s.String("cert_file", ""), s.String("key_file", "")
 		switch {
+		case certs.IsACME(g.CertFile):
+			if err := certs.Check(g.CertFile, g.KeyFile, c.acmeNames()); err != nil {
+				return fmt.Errorf("[gemini] %v", err)
+			}
+			c.Warnings = append(c.Warnings, "[gemini] cert_file = acme: Gemini clients pin the certificate they first see, and a renewed one has a new key")
 		case g.CertFile == "" && g.KeyFile == "":
 			g.CertFile = filepath.Join(c.DataDir(), "gemini-cert.pem")
 			g.KeyFile = filepath.Join(c.DataDir(), "gemini-key.pem")
