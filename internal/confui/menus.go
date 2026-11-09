@@ -10,29 +10,137 @@ import (
 
 // The menus, by what a sysop looks for.
 
+// The first page's menus, by their labels (the pull-down menus' paths
+// name them).
+const (
+	mBoard    = "Board configuration"
+	mSystem   = "System configuration"
+	mLines    = "Connections and modems"
+	mInternet = "Internet services"
+	mOnline   = "Online services"
+	mChat     = "Messengers and chat"
+	mMail     = "E-mail"
+	mNetworks = "Networks and doors"
+	mTime     = "Time"
+	mUsers    = "Users and groups"
+	mMaint    = "Maintenance"
+	mReview   = "Review changes"
+	mCheck    = "Check the configuration"
+)
+
 // mainMenu is the first page: the menus, then review, check, save and quit.
 func (e *Editor) mainMenu() page {
 	return page{title: "Configuration", items: func() []item {
 		g := sec("general")
 		name, _ := e.doc.Get(g, "name")
 		n := e.changes()
-		review := menu("Review changes", fmt.Sprintf("%d not saved", n), e.review)
-		review.Kind = view.EntryAction
-		review.do, review.open = e.review, nil
+		review := action(mReview, e.review)
+		review.Value = fmt.Sprintf("%d not saved", n)
 		return []item{
-			menu("Board configuration", name, func() error { return e.show(e.boardMenu()) }),
-			menu("System configuration", "", func() error { return e.show(e.systemMenu()) }),
-			menu("Connections and modems", e.count("listen", nil, "listener"), func() error { return e.show(e.connectionsMenu()) }),
-			menu("Services", "", func() error { return e.show(e.servicesMenu()) }),
-			menu("Users and groups", "", func() error { return e.show(e.usersMenu()) }),
-			menu("Maintenance", "", func() error { return e.show(e.maintenanceMenu()) }),
+			withHelp(e.submenu(mBoard, name, e.boardMenu), "The BBS's name, sysop and where it is; what callers see; the menus and prompts."),
+			withHelp(e.submenu(mSystem, "", e.systemMenu), "The database and log, where files are kept, security, the user it runs as, scheduled events, and every section of the file."),
+			withHelp(e.submenu(mLines, e.count("listen", nil, "listener"), e.connectionsMenu), "Modem lines and listeners (the ports callers come in by), callers' limits, modemmenu's passwords, caller ID."),
+			heading("What callers reach"),
+			withHelp(e.submenu(mInternet, "", e.servicesMenu), "Telnet, TN3270, SSH and RLogin for terminals; finger, gopher, Gemini, FTP, news and the web."),
+			withHelp(e.submenu(mOnline, e.onCount("aol", "marvel"), e.onlineMenu), "The BBS as America Online, CompuServe and The Microsoft Network, for their own 1990s client programs."),
+			withHelp(e.submenu(mChat, e.onCount("oscar", "msn", "ymsg", "irc", "irclink", "mrc"), e.chatMenu), "AIM and ICQ, MSN Messenger, Yahoo! Messenger, the IRC server and its network links, Multi Relay Chat."),
+			withHelp(e.submenu(mMail, e.onOff(sec("mail")), e.mailMenu), "Each user's e-mail: the domain, sending (direct or by a smarthost), POP3, IMAP, SMTP, MX and LMTP."),
+			withHelp(e.submenu(mNetworks, "", e.networksMenu), "FidoNet and binkp, QWK networks, and the doors."),
+			withHelp(e.submenu(mTime, e.onCount("time", "ntp", "nts", "ptp"), e.timeMenu), "The clock the BBS follows (NTP, NTS, PTP servers) and the time servers it can be."),
+			heading("Accounts and upkeep"),
+			withHelp(e.submenu(mUsers, "", e.usersMenu), "User accounts, access levels and flags."),
+			withHelp(e.submenu(mMaint, "", e.maintenanceMenu), "Disk space, what the message areas keep, backups."),
 			heading(""),
 			review,
-			action("Check the configuration", e.check),
+			action(mCheck, e.check),
 			action("Save and exit (F10)", func() error { return errSave }),
 			action("Quit without saving (F9)", func() error { return errQuit }),
 		}
 	}}
+}
+
+// withHelp is it with its help.
+func withHelp(it item, help string) item {
+	it.Help = help
+	return it
+}
+
+// submenu is an item that opens the page p makes.
+func (e *Editor) submenu(label, value string, p func() page) item {
+	it := menu(label, value, func() error { return e.show(p()) })
+	it.sub = p
+	return it
+}
+
+// onCount is how many of the sections of kinds the file has, in words.
+func (e *Editor) onCount(kinds ...string) string {
+	n := 0
+	for _, k := range kinds {
+		if e.doc.Has(sec(k)) {
+			n++
+		}
+	}
+	if n == 0 {
+		return "off"
+	}
+	return fmt.Sprintf("%d on", n)
+}
+
+// pullDowns are the menu bar's menus: File, then the first page's menus
+// gathered under short names, each item a jump to its page.
+func (e *Editor) pullDowns() []view.PullDown {
+	tops := map[string]item{}
+	for _, it := range e.mainMenu().items() {
+		tops[it.Label] = it
+	}
+	// expand is a first-page menu's own menus, under a heading of it
+	expand := func(label string, head bool) []view.PullItem {
+		var out []view.PullItem
+		top, ok := tops[label]
+		if !ok || top.sub == nil {
+			return nil
+		}
+		if head {
+			out = append(out, view.PullItem{Label: label, Heading: true})
+		}
+		for _, it := range top.sub().items() {
+			switch {
+			case it.Kind == view.EntryHeading:
+				if len(out) > 0 && !out[len(out)-1].Heading {
+					out = append(out, view.PullItem{Label: it.Label, Heading: true})
+				}
+			case it.Kind == view.EntryMenu && !it.Disabled:
+				out = append(out, view.PullItem{Label: it.Label, Path: []string{label, it.Label}})
+			}
+		}
+		for len(out) > 0 && out[len(out)-1].Heading {
+			out = out[:len(out)-1]
+		}
+		return out
+	}
+	page := func(label string) view.PullItem { return view.PullItem{Label: label, Path: []string{label}} }
+	pd := func(label string, items ...[]view.PullItem) view.PullDown {
+		m := view.PullDown{Label: label}
+		for _, its := range items {
+			m.Items = append(m.Items, its...)
+		}
+		return m
+	}
+	one := func(its ...view.PullItem) []view.PullItem { return its }
+	rule := view.PullItem{Heading: true}
+	return []view.PullDown{
+		pd("File", one(page(mReview), page(mCheck), rule,
+			view.PullItem{Label: "Save and exit  F10", Action: view.SheetSave},
+			view.PullItem{Label: "Quit without saving  F9", Action: view.SheetQuit})),
+		pd("Setup", one(page(mBoard), page(mSystem), page(mUsers), page(mMaint), rule,
+			view.PullItem{Label: "All settings, by section", Path: []string{mSystem, "All settings, by section"}})),
+		pd("Lines", one(page(mLines), rule), expand(mLines, false)),
+		pd("Internet", one(page(mInternet), rule), expand(mInternet, false)),
+		pd("Online", expand(mOnline, true), expand(mChat, true)),
+		pd("Mail", one(page(mMail), rule), expand(mMail, false)),
+		pd("Networks", one(page(mNetworks), rule), expand(mNetworks, false)),
+		pd("Time", one(page(mTime), rule), expand(mTime, false)),
+	}
 }
 
 // count is how many sections of a kind there are, in words.
@@ -163,21 +271,40 @@ func (e *Editor) onOff(s confedit.Section) string {
 	return "off"
 }
 
-// servicesMenu is Services: listeners by type, the servers whose section
-// turns them on, and the networks and doors.
-func (e *Editor) servicesMenu() page {
-	ofType := func(t string) func(confedit.Section) bool {
-		return func(s confedit.Section) bool { return listenType(e, s) == t }
+// ofType keeps the listeners of a type.
+func (e *Editor) ofType(t string) func(confedit.Section) bool {
+	return func(s confedit.Section) bool { return listenType(e, s) == t }
+}
+
+// ofFrontEnd keeps the listeners that answer as a front end (compuserve,
+// marvel).
+func (e *Editor) ofFrontEnd(f string) func(confedit.Section) bool {
+	return func(s confedit.Section) bool {
+		v, _ := e.doc.Get(s, "frontend")
+		return v == f
 	}
+}
+
+// single is an item for a section whose being there turns a server on:
+// its page has Enabled and its keys.
+func (e *Editor) single(label, kind string) item {
+	it := menu(label, e.onOff(sec(kind)), func() error { return e.show(e.sectionPage(sec(kind), label, true)) })
+	if k := e.cat.Kind(kind); k != nil {
+		it.Help = firstSentence(k.Help)
+		it.help = k.Help
+	}
+	return it
+}
+
+// servicesMenu is Internet services: the terminals' listeners by type, and
+// the servers whose section turns them on.
+func (e *Editor) servicesMenu() page {
 	listeners := func(label, t, addr string) item {
-		return menu(label, e.count("listen", ofType(t), "listener"), func() error {
-			return e.show(e.listeners(ofType(t), label, map[string]string{"type": t, "address": addr}))
+		return menu(label, e.count("listen", e.ofType(t), "listener"), func() error {
+			return e.show(e.listeners(e.ofType(t), label, map[string]string{"type": t, "address": addr}))
 		})
 	}
-	single := func(label, kind string) item {
-		return menu(label, e.onOff(sec(kind)), func() error { return e.show(e.sectionPage(sec(kind), label, true)) })
-	}
-	return page{title: "Services", items: func() []item {
+	return page{title: mInternet, items: func() []item {
 		return []item{
 			heading("Callers' terminals"),
 			listeners("Telnet", "telnet", ":23"),
@@ -185,15 +312,112 @@ func (e *Editor) servicesMenu() page {
 			listeners("SSH", "ssh", ":22"),
 			listeners("RLogin", "rlogin", "127.0.0.1:513"),
 			heading("Servers"),
-			single("Finger", "finger"),
-			single("Gopher", "gopher"),
-			single("Gemini", "gemini"),
-			single("FTP", "ftp"),
-			single("IRC (ircd)", "irc"),
+			e.single("Finger", "finger"),
+			e.single("Gopher", "gopher"),
+			e.single("Gemini", "gemini"),
+			e.single("FTP", "ftp"),
 			menu("News (NNTP)", e.onOff(sec("nntp")), func() error { return e.show(e.newsPage()) }),
 			menu("Web: API, forum, image boards", e.onOff(sec("http")), func() error { return e.show(e.webPage()) }),
-			heading("Networks and doors"),
-			single("Multi Relay Chat", "mrc"),
+		}
+	}}
+}
+
+// onlineMenu is Online services: the dial-up services of the 1990s the BBS
+// answers as, for their own client programs.
+func (e *Editor) onlineMenu() page {
+	return page{title: mOnline,
+		note: []view.Line{view.T(view.Dim, "The BBS as the online services, for their own client programs.")},
+		items: func() []item {
+			return []item{
+				e.single("America Online (AOL)", "aol"),
+				menu("CompuServe (CIS)", e.count("listen", e.ofFrontEnd("compuserve"), "listener"), func() error {
+					return e.show(e.frontEndListeners("CompuServe (CIS)", "compuserve",
+						"Listeners with frontend = compuserve answer as CompuServe.",
+						map[string]string{"type": "telnet", "address": ":2324", "frontend": "compuserve"}))
+				}),
+				menu("The Microsoft Network (MSN 1995)", e.onOff(sec("marvel")), func() error { return e.show(e.marvelPage()) }),
+			}
+		}}
+}
+
+// frontEndListeners is the listeners that answer as a front end, with a
+// word on it; added ones get the keys of with.
+func (e *Editor) frontEndListeners(title, frontend, note string, with map[string]string) page {
+	p := e.listeners(e.ofFrontEnd(frontend), title, with)
+	p.note = []view.Line{view.T(view.Dim, note)}
+	return p
+}
+
+// marvelPage is MSN Classic: its TCP host, and its dial-in listeners.
+func (e *Editor) marvelPage() page {
+	return page{title: "The Microsoft Network (MSN 1995)", items: func() []item {
+		out := []item{e.enabled(sec("marvel"), "Over TCP (port 569)")}
+		out = append(out, e.sectionFields(sec("marvel"))...)
+		out = append(out, heading("Modem callers"),
+			menu("Listeners with frontend = marvel", e.count("listen", e.ofFrontEnd("marvel"), "listener"), func() error {
+				return e.show(e.frontEndListeners("MSN dial-in listeners", "marvel",
+					"Windows 95's MSN client dialing in comes through these.",
+					map[string]string{"type": "raw", "address": "127.0.0.1:2325", "frontend": "marvel"}))
+			}))
+		return out
+	}}
+}
+
+// chatMenu is Messengers and chat: the instant messengers, IRC and its
+// links, Multi Relay Chat.
+func (e *Editor) chatMenu() page {
+	return page{title: mChat, items: func() []item {
+		return []item{
+			heading("Instant messengers"),
+			e.single("AIM and ICQ (OSCAR)", "oscar"),
+			e.single("MSN Messenger", "msn"),
+			e.single("Yahoo! Messenger", "ymsg"),
+			heading("IRC"),
+			e.single("IRC server", "irc"),
+			menu("IRC network links", e.onOff(sec("irclink")), func() error { return e.show(e.ircLinkPage()) }),
+			heading("Between BBSes"),
+			e.single("Multi Relay Chat", "mrc"),
+		}
+	}}
+}
+
+// ircLinkPage is IRC server linking: [irclink] and the [ircpeer]s.
+func (e *Editor) ircLinkPage() page {
+	return page{title: "IRC network links", items: func() []item {
+		out := []item{e.enabled(sec("irclink"), "Linked to a network")}
+		out = append(out, e.sectionFields(sec("irclink"))...)
+		out = append(out, heading("Servers linked with"), menu("Peer servers", e.count("ircpeer", nil, "server"), func() error {
+			return e.show(e.listPage("Peer servers", "ircpeer", "server", nil, func(s confedit.Section) string {
+				a, _ := e.doc.Get(s, "address")
+				return a
+			}, nil))
+		}))
+		return out
+	}}
+}
+
+// mailMenu is E-mail: [mail], the smarthost, and each mail server.
+func (e *Editor) mailMenu() page {
+	return page{title: mMail, items: func() []item {
+		out := []item{e.enabled(sec("mail"), "E-mail")}
+		out = append(out, e.sectionFields(sec("mail"))...)
+		out = append(out,
+			heading("Sending"),
+			e.single("Smarthost (send through)", "smarthost"),
+			heading("Servers"),
+			e.single("POP3", "pop3"),
+			e.single("IMAP", "imap"),
+			e.single("SMTP submission", "smtp"),
+			e.single("MX (mail from the internet)", "mx"),
+			e.single("LMTP (from a mail server)", "lmtp"))
+		return out
+	}}
+}
+
+// networksMenu is Networks and doors: FidoNet, QWK, the doors.
+func (e *Editor) networksMenu() page {
+	return page{title: mNetworks, items: func() []item {
+		return []item{
 			menu("FidoNet", e.onOff(sec("fido")), func() error { return e.show(e.fidoPage()) }),
 			menu("QWK networks", e.count("qwknet", nil, "network"), func() error {
 				return e.show(e.listPage("QWK networks", "qwknet", "network", nil, func(s confedit.Section) string {
@@ -207,6 +431,19 @@ func (e *Editor) servicesMenu() page {
 					return d
 				}, nil))
 			}),
+		}
+	}}
+}
+
+// timeMenu is Time: the clock the BBS follows, and its time servers.
+func (e *Editor) timeMenu() page {
+	return page{title: mTime, items: func() []item {
+		return []item{
+			e.single("Clock and time sources", "time"),
+			heading("Time servers"),
+			e.single("NTP server", "ntp"),
+			e.single("NTS-KE server (secure NTP)", "nts"),
+			e.single("PTP grandmaster", "ptp"),
 		}
 	}}
 }

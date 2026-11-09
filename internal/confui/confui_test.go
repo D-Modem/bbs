@@ -13,6 +13,7 @@ import (
 	bbssec "github.com/D-Modem/bbs"
 	"github.com/D-Modem/bbs/internal/backup"
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/confedit"
 	"github.com/D-Modem/bbs/internal/store"
 	"github.com/D-Modem/bbs/internal/view"
 )
@@ -291,7 +292,7 @@ func TestServices(t *testing.T) {
 	p := writeConf(t)
 	os.WriteFile(p, []byte(file+"\n; finger\n;[finger]\n;address = :79\n"), 0o600)
 	ui := &script{t: t, forms: []map[string]string{{"name": "ssh"}}, steps: []step{
-		open("Services"),
+		open("Internet services"),
 		open("Finger"), expect("Enabled", "no", false, set("Enabled", "yes")), set("online", "no"), back,
 		open("SSH"), key("add"),
 		expect("type", "ssh", true, set("address", ":2222")), back, back,
@@ -451,3 +452,87 @@ func TestBackUpNow(t *testing.T) {
 		t.Errorf("written:\n%s", data)
 	}
 }
+
+// jump is a step that picks a pull-down menu's item (by the menu's label
+// and the item's), checking the sheet has it.
+func jump(menu, item string) step {
+	return func(t *testing.T, sh *view.Sheet) view.SheetResult {
+		t.Helper()
+		for _, m := range sh.Menus {
+			if m.Label != menu {
+				continue
+			}
+			for _, it := range m.Items {
+				if it.Label == item && !it.Heading {
+					if it.Action != "" {
+						return view.SheetResult{Action: it.Action}
+					}
+					return view.SheetResult{Action: view.SheetJump, Jump: it.Path}
+				}
+			}
+		}
+		t.Fatalf("%s: no %s > %s in the menus", sh.Crumbs, menu, item)
+		return view.SheetResult{}
+	}
+}
+
+// at is a step that checks the sheet is the one crumbs names, then does
+// then.
+func at(crumbs string, then step) step {
+	return func(t *testing.T, sh *view.Sheet) view.SheetResult {
+		t.Helper()
+		if sh.Crumbs != crumbs {
+			t.Fatalf("at %q, not %q", sh.Crumbs, crumbs)
+		}
+		return then(t, sh)
+	}
+}
+
+// TestPullDowns: a pull-down menu's item goes from deep in one menu to a
+// page of another, by the pages between; every front end is on a menu.
+func TestPullDowns(t *testing.T) {
+	p := writeConf(t)
+	ui := &script{t: t, steps: []step{
+		open("Internet services"), open("Finger"),
+		jump("Online", "America Online (AOL)"),
+		at("Configuration > Online services > America Online (AOL)", set("Enabled", "yes")),
+		jump("Online", "Yahoo! Messenger"),
+		at("Configuration > Messengers and chat > Yahoo! Messenger", set("Enabled", "yes")),
+		jump("Time", "NTP server"),
+		at("Configuration > Time > NTP server", back),
+		at("Configuration > Time", back),
+		at("Configuration", jump("File", "Save and exit  F10")),
+	}}
+	if err := (&Editor{UI: ui, Tools: bbs.ConfigTools{Path: p}}).Run(); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(p)
+	for _, want := range []string{"[aol]", "[ymsg]"} {
+		if !strings.Contains(string(data), want) {
+			t.Errorf("no %q in:\n%s", want, data)
+		}
+	}
+	// every kind of section the sample has is on a menu's page
+	e := &Editor{UI: ui}
+	e.cat = confeditCatalog()
+	e.doc, _ = confeditParse(nil)
+	e.orig, _ = confeditParse(nil)
+	var labels []string
+	for _, m := range e.pullDowns() {
+		for _, it := range m.Items {
+			labels = append(labels, it.Label)
+		}
+	}
+	all := strings.Join(labels, "|")
+	for _, want := range []string{"America Online (AOL)", "CompuServe (CIS)", "The Microsoft Network (MSN 1995)",
+		"AIM and ICQ (OSCAR)", "MSN Messenger", "Yahoo! Messenger", "IRC server", "IRC network links", "Multi Relay Chat",
+		"POP3", "IMAP", "Smarthost (send through)", "Gopher", "Gemini", "Finger", "NTP server", "PTP grandmaster", "FidoNet", "Doors"} {
+		if !strings.Contains("|"+all+"|", "|"+want+"|") {
+			t.Errorf("no %q in the pull-down menus: %s", want, all)
+		}
+	}
+}
+
+func confeditCatalog() *confedit.Catalog { return confedit.NewCatalog(bbssec.Sample) }
+
+func confeditParse(b []byte) (*confedit.Doc, error) { return confedit.Parse(b) }

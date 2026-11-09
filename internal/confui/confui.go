@@ -41,7 +41,10 @@ type Editor struct {
 
 	db     *data // the accounts and areas, as read and as changed (nil: not read yet)
 	crumbs []string
-	flash  string // a word for the next screen's foot
+	trail  []string // the label of the item each page in crumbs was opened by ("": the first, or not by one)
+	via    string   // the label of the item opening a page now
+	jump   []string // where a pull-down menu's item goes: labels of items to open from the first page
+	flash  string   // a word for the next screen's foot
 }
 
 var (
@@ -53,11 +56,14 @@ var (
 // Run shows the screens until the sysop saves or leaves.
 func (e *Editor) Run() error {
 	e.cat = confedit.NewCatalog(bbssec.Sample)
+	if se, ok := e.UI.(view.SheetEnder); ok {
+		defer se.EndSheets()
+	}
 	if ok, err := e.load(); err != nil || !ok {
 		return err
 	}
 	for {
-		e.crumbs = nil
+		e.crumbs, e.trail, e.jump = nil, nil, nil
 		err := e.show(e.mainMenu())
 		switch {
 		case err == nil || errors.Is(err, errQuit):
@@ -121,6 +127,7 @@ func (e *Editor) load() (bool, error) {
 type item struct {
 	view.Entry
 	open func() error         // EntryMenu: another page
+	sub  func() page          // and that page, where it is known (for the pull-down menus)
 	set  func(v string) error // a value's
 	do   func() error         // EntryAction
 	help string               // the whole help, for F1 (Entry.Help: its first line)
@@ -141,12 +148,61 @@ type page struct {
 // back a page (nil).
 func (e *Editor) show(p page) error {
 	e.crumbs = append(e.crumbs, p.title)
-	defer func() { e.crumbs = e.crumbs[:len(e.crumbs)-1] }()
+	e.trail = append(e.trail, e.via)
+	e.via = ""
+	defer func() {
+		e.crumbs = e.crumbs[:len(e.crumbs)-1]
+		e.trail = e.trail[:len(e.trail)-1]
+	}()
 	cursor := 0
 	for {
 		its := p.items()
+		if e.jump != nil {
+			// a pull-down's item: back to where its path and this page's
+			// meet, then on down it
+			at := e.trail[1:]
+			if len(at) > len(e.jump) || !prefix(at, e.jump) {
+				return nil
+			}
+			if len(at) == len(e.jump) {
+				e.jump = nil
+			} else {
+				next, last := e.jump[len(at)], len(at) == len(e.jump)-1
+				i := -1
+				for j, it := range its {
+					if it.Label == next && it.Choosable() {
+						i = j
+						break
+					}
+				}
+				if i < 0 {
+					e.jump = nil
+				} else {
+					cursor = i
+					var err error
+					switch it := its[i]; {
+					case it.open != nil:
+						e.via = it.Label
+						err = it.open()
+						e.via = ""
+					case it.do != nil && last:
+						e.jump = nil
+						err = it.do()
+					default:
+						e.jump = nil
+					}
+					if errors.Is(err, errClose) {
+						return nil
+					}
+					if err != nil {
+						return err
+					}
+					continue
+				}
+			}
+		}
 		sh := &view.Sheet{Title: p.title, Crumbs: strings.Join(e.crumbs, " > "), Note: p.note,
-			Cursor: cursor, Keys: p.keys, Status: e.status()}
+			Cursor: cursor, Keys: p.keys, Status: e.status(), Menus: e.pullDowns()}
 		for _, it := range its {
 			sh.Entries = append(sh.Entries, it.Entry)
 		}
@@ -164,6 +220,11 @@ func (e *Editor) show(p page) error {
 			return errSave
 		case view.SheetQuit:
 			return errQuit
+		case view.SheetJump:
+			e.jump = r.Jump
+			if len(e.jump) == 0 {
+				e.jump = nil
+			}
 		case view.SheetHelp:
 			if r.Entry >= 0 && r.Entry < len(its) {
 				err = e.helpOf(its[r.Entry])
@@ -174,7 +235,9 @@ func (e *Editor) show(p page) error {
 			}
 			switch it := its[r.Entry]; {
 			case it.open != nil:
+				e.via = it.Label
 				err = it.open()
+				e.via = ""
 			case it.do != nil:
 				err = it.do()
 			}
@@ -200,6 +263,19 @@ func (e *Editor) show(p page) error {
 			return err
 		}
 	}
+}
+
+// prefix is whether a begins b.
+func prefix(a, b []string) bool {
+	if len(a) > len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // helpOf shows an item's whole help (F1), wrapped to the screen, and when a
@@ -358,8 +434,8 @@ func (e *Editor) save() (bool, error) {
 	if len(ch) > 0 {
 		if e.Tools.Reload == nil {
 			lines = append(lines, view.L(""),
-				view.L("A BBS running puts the green changes in force at a reload (systemctl reload"),
-				view.L("bbs, or SIGHUP); the yellow ones when it starts again."), view.L(""))
+				view.L("A BBS running puts the green changes in force at a reload (systemctl reload bbs, or SIGHUP); the yellow ones when it starts again."),
+				view.L(""))
 			lines = append(lines, e.diffLines(ch)...)
 		} else {
 			applied, restart, err := e.Tools.Reload()

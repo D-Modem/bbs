@@ -11,7 +11,7 @@ any terminal, although watching a node needs a text terminal.
 | statistics | `S` | totals (users, messages, mail, files; logins, posts, pages and failed logins since the start), and calls, new users, posts and uploads for each of the last 14 days, as bars |
 | hack log and bans | `H` | the addresses banned now (a number lifts its ban), and `L` the [hack log](Security#keeping-callers-out)'s last 100 lines |
 | scheduled events | `E` | the events, when they run next and how their last run went; one's command and output, and `R` runs it now |
-| configuration | `F` | the configuration menus: the board, the system, connections, services, users and groups, maintenance; nothing changes until F10 saves (F9 quits), and then what may change while callers are on is put in force at once ([Configuration](Configuration#editing-it-the-configuration-screens)). Shown when the BBS runs with `-config` |
+| configuration | `F` | the setup screens (blue windows and pull-down menus on ANSI terminals): the board, the system, connections, internet and online services, messengers, e-mail, networks, time, users and groups, maintenance; nothing changes until F10 saves (F9 quits), and then what may change while callers are on is put in force at once ([Configuration](Configuration#editing-it-the-configuration-screens)). Shown when the BBS runs with `-config` |
 | available | `A` | whether pages reach you; when not, a caller who pages is told you are not available and may leave you a message |
 
 Validating new users stays on the main menu (`V`, when some wait).

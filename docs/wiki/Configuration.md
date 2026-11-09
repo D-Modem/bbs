@@ -62,20 +62,35 @@ password.
 
 ## Editing it: the configuration screens
 
-`bbs -config /etc/bbs/bbs.conf config` opens full-screen menus on your
+`bbs -config /etc/bbs/bbs.conf config` opens the setup screens on your
 terminal for editing the file and the accounts, whether or not the BBS is
-running. The same menus are in the [sysop tools](Sysop-Tools) (`F`,
-Configuration). They are full screen on ANSI terminals, use PF keys on a
-3270, and become numbered lines on a terminal with neither.
+running. The same screens are in the [sysop tools](Sysop-Tools) (`F`,
+Configuration). On an ANSI terminal they look like the BBS setup programs
+of the 1990s: a menu bar of pull-down menus, a shaded blue desk, each menu
+a window over the one it was opened from, the line's help in a box below,
+and values changed in boxes that pop up. They use PF keys on a 3270, and
+become numbered lines on a terminal with neither.
+
+<img src="https://raw.githubusercontent.com/D-Modem/bbs/main/.github/config-screens.png" alt="The setup screens: the Online pull-down menu over the main menu" width="100%">
 
 | Menu | What is in it |
 |---|---|
 | Board configuration | the BBS's name, the sysop's, the location, postal address, dial-in numbers and internet addresses; the banner, message of the day, goodbye, logo; menus and prompts |
 | System configuration | the user and group it runs as; the database and log; where files are kept and how large they may be; deny lists, the hack log, bans; scheduled events; every section of the file as it is |
 | Connections and modems | modem lines and every listener; callers at once, logins, time-outs, lock-outs; passwords by modemmenu's auth socket ([Modem callers](Modem-Callers#the-same-password-for-telnet-ssh-and-the-web)); the caller ID country and GeoIP |
-| Services | telnet, TN3270, SSH and RLogin listeners; finger, gopher, Gemini, FTP, IRC, news, the web (API, forum, image boards); MRC, FidoNet, QWK networks, doors |
+| Internet services | telnet, TN3270, SSH and RLogin listeners; finger, gopher, Gemini, FTP, news, the web (API, forum, image boards) |
+| Online services | [AOL](AOL), [CompuServe](CompuServe) (its listeners) and [The Microsoft Network](MSN-Classic) (its TCP host and dial-in listeners) |
+| Messengers and chat | [AIM and ICQ](AIM-and-ICQ), [MSN Messenger](MSN-Messenger), [Yahoo! Messenger](Yahoo-Messenger), the [IRC](IRC) server, [IRC network links](IRC-Linking) and their peers, [MRC](MRC) |
+| E-mail | [`[mail]`](E-mail), the smarthost, POP3, IMAP, SMTP submission, MX and LMTP |
+| Networks and doors | [FidoNet](FidoNet) and binkp, QWK networks, doors |
+| Time | the clock and its sources, and the NTP, NTS-KE and PTP servers ([Time](Time)) |
 | Users and groups | the accounts (level, flags, sysop, locked, a new password; new ones; deleted ones) and the access levels |
 | Maintenance | disk space; what message areas keep, old messages taken out; the image boards' archive; backups: one now, those made, `[backup]` ([Backups](Backups)) |
+
+The menu bar's pull-down menus (`/`, F12, or Alt and the menu's red
+letter) go straight to any of these from anywhere: File (review, check,
+save, quit), Setup, Lines, Internet, Online (the online services and the
+messengers), Mail, Networks, Time and Help.
 
 System passwords (PAM, LDAP) are checked by modemmenu, which logs callers
 in and hands them to the BBS (see [Modem callers](Modem-Callers)). Running
@@ -85,13 +100,21 @@ covered in [Running](Running#running-as-a-user-of-its-own).
 | Key | What it does |
 |---|---|
 | arrows, PgUp, PgDn, Home, End | move (a letter goes to the next line beginning with it) |
-| Enter | open a menu, change a value (typed on the foot line, Enter to keep it), do an action |
+| Enter | open a menu, change a value (typed in a box that pops up, or picked from a list of its choices), do an action |
 | Space | turn a yes/no over, or go to the next choice |
-| Esc, left arrow | back |
+| Esc, left arrow | back a window |
+| `/`, F12, Alt+letter | the menu bar's pull-down menus (arrows between them, Enter to go) |
 | F1 or `?` | the whole help for the line (from bbs.conf.sample) |
 | F9 | quit without saving (after a yes, if anything changed) |
 | F10 | save and exit |
 | `A`, `D` | add one (a listener, a door, a user ...), delete it |
+| Ctrl-L | draw the screen again |
+
+In a box where a value is typed, the arrows, Home and End move, Ctrl-U
+clears it, Enter keeps it and Esc leaves the value as it was. The screens
+are sent a changed cell at a time, so moving the bar costs a modem caller
+a few bytes, and a terminal without UTF-8 gets code page 437's lines and
+shading.
 
 On a 3270, type `S` beside a menu to open it, type over values and send
 them with Enter; PF1 is help, PF3 goes back, and PF9 and PF10 work like F9
@@ -99,7 +122,7 @@ and F10. On a terminal without ANSI, type a line's number to open or change
 it, `S` to save and exit, or `X` to leave without saving.
 
 Nothing changes until you save. A changed line is marked `*`, and the
-bottom line counts the unsaved changes. The main menu's Review changes
+help box counts the unsaved changes. The main menu's Review changes
 lists them all, and Check the configuration reads the file as the BBS
 would.
 

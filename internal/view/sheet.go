@@ -16,6 +16,24 @@ type Sheet struct {
 	Cursor  int      // the entry the cursor begins on
 	Keys    []Action // more keys (A Add, D Delete ...), with PF keys on a 3270
 	Status  string   // the foot's left: "3 changes not saved"
+	// Menus are the pull-down menus of a menu bar, where the front end
+	// draws one (a text terminal's full screen): picking an item jumps
+	// to its Path, or does its Action
+	Menus []PullDown
+}
+
+// PullDown is a pull-down menu of a menu bar.
+type PullDown struct {
+	Label string
+	Items []PullItem
+}
+
+// PullItem is a pull-down menu's line.
+type PullItem struct {
+	Label   string
+	Path    []string // where it jumps: the labels of the entries to open, from the first sheet
+	Action  string   // or what it does (SheetSave, SheetQuit), as a sheet's result
+	Heading bool     // a line between groups (Label: its words, if any)
 }
 
 // EntryKind is what an entry is.
@@ -61,6 +79,18 @@ type SheetResult struct {
 	Action string            // Pick (a Menu or Action entry chosen), SheetSet, SheetSave, SheetQuit, Back, a Keys ID
 	Entry  int               // the entry the cursor was on
 	Values map[string]string // SheetSet: entries' new values by ID (a 3270 sends all it changed at once)
+	Jump   []string          // SheetJump: a pull-down item's Path
+}
+
+// SheetJump is a sheet's result when a pull-down item was picked: go to
+// its Path.
+const SheetJump = "jump"
+
+// SheetEnder is a front end that keeps its full screen up between sheets
+// (to put questions and help over it): EndSheets puts it away when they
+// are done.
+type SheetEnder interface {
+	EndSheets()
 }
 
 // SheetUI is a front end that draws sheets full-screen.

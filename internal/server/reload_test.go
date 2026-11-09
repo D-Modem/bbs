@@ -133,19 +133,19 @@ func TestConfigScreens(t *testing.T) {
 	saved(t, e, p)
 }
 
-// TestConfigScreensANSI: on an ANSI terminal, the full screen: the arrow
-// keys, Enter to change a value, F10 to save and leave.
+// TestConfigScreensANSI: on an ANSI terminal, the setup screens: the arrow
+// keys, Enter to change a value in its box, F10 to save and leave.
 func TestConfigScreensANSI(t *testing.T) {
 	e, p := configEnv(t, "yes")
 	s := ansiLogin(e)
 	s.send("*")
 	s.expect("Configuration")
 	s.send("F")
-	s.expect("F10 save+exit")
+	s.expect("Messengers and chat")
 	s.send("\x1b[B\x1b[A\r") // down, up: Board configuration
-	s.expect("Configuration > Board configuration")
+	s.expect("Sysop's name")
 	s.send("\r")
-	s.expect("BBS name: ")
+	s.expect("Clear") // the box the name is typed in
 	s.send("\x15Renamed BBS\r")
 	s.expect("1 change not saved")
 	s.send("\x1b[21~") // F10
@@ -158,9 +158,9 @@ func TestConfigQuit(t *testing.T) {
 	e, p := configEnv(t, "yes")
 	s := ansiLogin(e)
 	s.send("*F")
-	s.expect("F10 save+exit")
+	s.expect("Messengers and chat")
 	s.send("\r\r")
-	s.expect("BBS name: ")
+	s.expect("Clear")
 	s.send("\x15Not Saved\r")
 	s.expect("1 change not saved")
 	s.send("\x1b[20~") // F9

@@ -39,6 +39,7 @@
 - [AOL clients](AOL)
 - [MSN Messenger](MSN-Messenger)
 - [MSN Classic (1995)](MSN-Classic)
+- [Yahoo! Messenger](Yahoo-Messenger)
 - [MRC](MRC)
 - [Finger, gopher and Gemini](Finger-and-Gopher)
 - [Time: NTP, NTS and PTP](Time)
