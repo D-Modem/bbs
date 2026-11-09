@@ -23,7 +23,7 @@ func alertForm(text string) string {
 }
 
 // welcomeForm is the BBS's Welcome window.
-func welcomeForm(bbsName, user string, online int) string {
+func welcomeForm(bbsName, user string, online, unread int) string {
 	others := "You are the only one here."
 	switch {
 	case online == 2:
@@ -31,17 +31,25 @@ func welcomeForm(bbsName, user string, online int) string {
 	case online > 2:
 		others = fmt.Sprintf("%d other callers are here.", online-1)
 	}
+	mail := "You have no new mail."
+	if unread > 0 {
+		mail = fmt.Sprintf("You have %s.  The keyword Mail opens your mailbox.", count(unread, "new message", "new messages"))
+	}
 	text := strings.Join([]string{
 		fmt.Sprintf("Welcome to %s, %s!", bbsName, user),
 		"",
 		"You are signed on with your BBS account.  " + others,
+		"",
+		mail,
+		"",
+		"The keyword Help lists where you can go.",
 	}, "\r\n") // the client drops what follows a bare CR
 	return fmt.Sprintf(`uni_start_stream
   man_start_object <ind_group, %s>
     mat_orientation <vcf>
     mat_position <center_center>
     man_start_object <view, "">
-      mat_size <40, 6>
+      mat_size <40, 9>
       man_append_data <%s>
       man_end_data
     man_end_object

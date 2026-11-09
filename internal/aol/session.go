@@ -31,6 +31,7 @@ type session struct {
 	slots    map[string]byte // the room window's people, by lower-case name
 	nextSlot byte
 	ims      map[string]int // IM windows, by lower-case partner
+	draft    *draft         // the mail the client is sending
 
 	parts map[partKey][]byte // streams the client has sent part of
 }
@@ -83,6 +84,12 @@ func (ss *session) signedOn() bool {
 
 // token handles one token from the client.
 func (ss *session) token(tok string, body []byte) {
+	if tok == "Kk" && isText(body) { // from a button: the word, as it is
+		if ss.signedOn() {
+			ss.keyword(keywordOf(body))
+		}
+		return
+	}
 	sid, atoms := splitStream(tok, body)
 	if atoms = ss.whole(tok, sid, atoms); atoms == nil {
 		return // more to come
@@ -104,6 +111,10 @@ func (ss *session) token(tok string, body []byte) {
 		ss.sendIM(atoms)
 	case tok == "iO":
 		ss.available(atoms)
+	case tok == "Kk":
+		ss.keyword(keywordOf(append(sid, atoms...)))
+	case tok == "m4":
+		ss.sendMail(atoms)
 	default:
 		ss.logf("token %q (not served yet)", tok)
 		// never leave the client waiting on an answer that won't come
@@ -275,7 +286,8 @@ func (ss *session) signOn(atoms []byte) {
 	ss.mu.Unlock()
 	b.Log.Printf("node %d: %s on AOL (%s, %s)", n.Num, u.Name, ss.host, ss.init)
 	ss.send(onlineForm)
-	ss.send(welcomeForm(b.Conf().Name, u.Name, len(b.Nodes())))
+	unread, _ := b.Store.UnreadMail(u.ID)
+	ss.send(welcomeForm(b.Conf().Name, u.Name, len(b.Nodes()), unread))
 	for _, e := range n.Kept() {
 		ss.event(e)
 	}

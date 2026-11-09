@@ -30,9 +30,14 @@ client's `AmericaOnline.aol.com`) and by modem.
   as `AB`, comings and goings as `CA`/`CB`, `Aa` said; `iS`/`is` IMs as
   BBS private messages (kept for one away), shown in 32-223 (4.0's
   32-6736); `iO` asks who is on.
-- **Tokens**, next: mail (`m4`, MIP), keywords (`k1`/`f1`) to areas, the
-  room list (`LP`); each answered with forms compiled from source.  The
-  client asks for art it lacks (`fh`): none is served yet.
+- **Keywords and mail** (done, untried with a real client): `Kk` from
+  the Keyword window (de_data) or a host button (the word as it is) to
+  Help, Chat, Mail, Who; `m4` MIP mail (header and text in one stream or
+  two) to BBS mail; the mailbox, a mail and Who are host windows whose
+  buttons send keywords; new mail counted on the Welcome window.
+- **Tokens**, next: the client's own Read Mail list (`m7` and its MIP
+  answers), the room list (`LP`) and other rooms, message areas as
+  boards; the client asks for art it lacks (`fh`): none is served yet.
 - **Modem callers**: the client's CCL script expects a network's prompts
   (SprintNet, Tymnet) before P3; emulate one, or ship a CCL that dials
   straight in.

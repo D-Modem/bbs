@@ -5,7 +5,8 @@
 // own that draw windows and run actions.
 //
 // The client signs on with a BBS account (the Welcome form's screen name
-// and password, token Dd), and signs off with pE.  The client's own
+// and password, token Dd), and signs off with pE; keywords (Kk) and mail
+// (m4) go to the BBS's chat, mail and Who.  The client's own
 // database has most of its windows; the host draws its own Welcome.
 //
 // Sources for what the client expects: Dialtone (MIT) and other hosts
