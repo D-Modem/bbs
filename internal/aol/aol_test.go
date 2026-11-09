@@ -617,3 +617,101 @@ func TestKeywords(t *testing.T) {
 		t.Errorf("unknown:\n%s", s)
 	}
 }
+
+func TestRooms(t *testing.T) {
+	srv, _ := newServer(t)
+	a := signedOn(t, srv, "alice")
+	a.send("Kk", []byte("room tea"))
+	a.stream()
+	if s := a.stream(); !strings.Contains(s, `man_preset_title <"tea">`) {
+		t.Errorf("tea:\n%s", s)
+	}
+	a.stream()
+	a.chatLine()
+	// List Rooms, from the room window: LP and an argument
+	a.send("LP", []byte{0, 1, 0})
+	a.stream()
+	s := a.stream()
+	if !strings.Contains(s, "2 rooms") {
+		t.Errorf("rooms:\n%s", s)
+	}
+	if k := button0(t, s, "tea (1)"); k != "room tea" {
+		t.Errorf("tea's button: %q", k)
+	}
+	if k := button0(t, s, "main (0)"); k != "room main" {
+		t.Errorf("main's button: %q", k)
+	}
+	a.send("Kk", []byte("room no such room!"))
+	if s := a.stream(); !strings.Contains(s, "You can't go into") {
+		t.Errorf("bad name:\n%s", s)
+	}
+}
+
+func TestBoards(t *testing.T) {
+	srv, _ := newServer(t)
+	st := srv.B.Store
+	ar, err := st.CreateArea("General", "Talk about anything", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := signedOn(t, srv, "alice")
+	a.send("Kk", deData("Boards"))
+	a.stream()
+	s := a.stream()
+	if k := button0(t, s, "General"); k != fmt.Sprintf("board %d", ar.ID) {
+		t.Fatalf("boards:\n%s", s)
+	}
+	a.send("Kk", []byte(fmt.Sprintf("board %d", ar.ID)))
+	a.stream()
+	s = a.stream()
+	if !strings.Contains(s, "There are no topics yet") {
+		t.Errorf("board:\n%s", s)
+	}
+	// a new topic: the post window, and its Send
+	a.send("Kk", []byte(button0(t, s, "Start a topic")))
+	a.stream()
+	if s := a.stream(); !strings.Contains(s, "edit_view") || !strings.Contains(s, `de_ez_send_form <"Zp">`) {
+		t.Errorf("post window:\n%s", s)
+	}
+	a.send("Zp", deData("Hello", "First post\rhere"))
+	a.stream() // the post window closed
+	a.stream() // the last topic closed
+	s = a.stream()
+	if !strings.Contains(s, `"Hello"`) || !strings.Contains(s, `First post\r\nhere`) {
+		t.Errorf("topic:\n%s", s)
+	}
+	ms, _ := st.Messages(ar.ID, 0, 10)
+	if len(ms) != 1 || ms[0].From != "alice" || ms[0].Subject != "Hello" {
+		t.Fatalf("posted %+v", ms)
+	}
+	// a reply
+	a.send("Kk", []byte(button0(t, s, "Reply")))
+	a.stream()
+	if s := a.stream(); !strings.Contains(s, `"Re: Hello"`) {
+		t.Errorf("reply window:\n%s", s)
+	}
+	a.send("Zp", deData("Re: Hello", "Second"))
+	a.stream()
+	a.stream()
+	if s := a.stream(); !strings.Contains(s, "First post") || !strings.Contains(s, "Second") {
+		t.Errorf("topic:\n%s", s)
+	}
+	ms, _ = st.Messages(ar.ID, 0, 10)
+	if len(ms) != 2 || ms[1].ReplyTo != ms[0].ID || ms[1].To != "alice" {
+		t.Errorf("reply %+v", ms[1])
+	}
+	// the board lists it; a send with no window open is refused
+	a.send("Kk", []byte(fmt.Sprintf("board %d", ar.ID)))
+	a.stream()
+	if s := a.stream(); !strings.Contains(s, "Hello (2)") {
+		t.Errorf("board:\n%s", s)
+	}
+	a.send("Zp", deData("x", "y"))
+	if s := a.stream(); !strings.Contains(s, "to post") {
+		t.Errorf("no window:\n%s", s)
+	}
+	a.send("Kk", []byte("board 999"))
+	if s := a.stream(); !strings.Contains(s, "no such board") {
+		t.Errorf("999:\n%s", s)
+	}
+}

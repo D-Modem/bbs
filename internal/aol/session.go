@@ -32,6 +32,7 @@ type session struct {
 	nextSlot byte
 	ims      map[string]int // IM windows, by lower-case partner
 	draft    *draft         // the mail the client is sending
+	posting  *postTo        // where the post window open sends to
 
 	parts map[partKey][]byte // streams the client has sent part of
 }
@@ -84,8 +85,13 @@ func (ss *session) signedOn() bool {
 
 // token handles one token from the client.
 func (ss *session) token(tok string, body []byte) {
-	if tok == "Kk" && isText(body) { // from a button: the word, as it is
-		if ss.signedOn() {
+	if tok == "Kk" && isText(body) || tok == "LP" { // a button's word as it is; LP's argument, unused
+		if !ss.signedOn() {
+			return
+		}
+		if tok == "LP" {
+			ss.rooms()
+		} else {
 			ss.keyword(keywordOf(body))
 		}
 		return
@@ -107,6 +113,8 @@ func (ss *session) token(tok string, body []byte) {
 		ss.say(atoms)
 	case tok == "CL":
 		ss.leaveChat()
+	case tok == postToken:
+		ss.post(atoms)
 	case tok == "iS" || tok == "is":
 		ss.sendIM(atoms)
 	case tok == "iO":

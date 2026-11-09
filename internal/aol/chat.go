@@ -174,3 +174,41 @@ func (ss *session) roomEvent(e bbs.Event) {
 		ss.l.WriteToken("CB", []byte{slot})
 	}
 }
+
+// The room list's window.
+const roomsWindow = "50-3-1"
+
+// rooms is LP, the room window's List Rooms: the BBS's rooms, each a
+// button that goes in.
+func (ss *session) rooms() {
+	seen := map[string]bool{}
+	var list []bbs.RoomInfo
+	for _, r := range ss.n.Rooms() {
+		seen[r.Name] = true
+		list = append(list, r)
+	}
+	for _, r := range ss.s.B.PermanentRooms() {
+		if !seen[r.Name] {
+			seen[r.Name] = true
+			list = append(list, r)
+		}
+	}
+	if !seen[bbs.MainRoom] {
+		list = append([]bbs.RoomInfo{{Name: bbs.MainRoom, Permanent: true}}, list...)
+	}
+	var buttons []button
+	for _, r := range list {
+		label := fmt.Sprintf("%s (%d)", r.Name, len(r.Users))
+		if r.Topic != "" {
+			label += ": " + clip(r.Topic, 40)
+		}
+		buttons = append(buttons, button{label, "room " + r.Name})
+		if len(buttons) == 30 {
+			break
+		}
+	}
+	text := fmt.Sprintf("%s, with how many are in each.  To start a room of your own, "+
+		"use the keyword Room and its name (\"room tea\").", count(len(list), "room", "rooms"))
+	ss.send(closeForm(roomsWindow))
+	ss.send(windowForm(roomsWindow, "Chat Rooms", text, 3, buttons))
+}

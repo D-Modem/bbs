@@ -18,6 +18,8 @@ import (
 var keywords = []struct{ word, what string }{
 	{"Chat", "People Connection, the BBS's main chat room"},
 	{"Mail", "your mailbox"},
+	{"Rooms", "the chat rooms; Room and a name goes into one"},
+	{"Boards", "the message boards"},
 	{"Who", "who is on the BBS now"},
 	{"Help", "this list"},
 }
@@ -44,6 +46,27 @@ func (ss *session) keyword(kw string) {
 			return
 		}
 	}
+	if verb, arg, ok := strings.Cut(k, " "); ok {
+		id, err := strconv.ParseInt(arg, 10, 64)
+		switch {
+		case verb == "room":
+			ss.joinRoom(arg)
+			return
+		case err != nil:
+		case verb == "board":
+			ss.board(id)
+			return
+		case verb == "topic":
+			ss.topic(id)
+			return
+		case verb == "post":
+			ss.postForm(id, 0)
+			return
+		case verb == "reply":
+			ss.postForm(0, id)
+			return
+		}
+	}
 	switch k {
 	case "":
 		ss.send(waitOff)
@@ -51,6 +74,10 @@ func (ss *session) keyword(kw string) {
 		ss.enterChat()
 	case "mail", "read mail", "new mail", "mailbox", "check mail", "email", "e-mail":
 		ss.mailbox()
+	case "rooms", "room", "list rooms", "chat rooms":
+		ss.rooms()
+	case "boards", "board", "messages", "message boards", "forums":
+		ss.boards()
 	case "who", "online", "who's online", "whos online", "members":
 		ss.who()
 	case "help", "keyword", "keywords", "keyword list":
