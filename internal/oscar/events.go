@@ -12,7 +12,11 @@ import (
 func (ss *session) event(e bbs.Event) {
 	switch e.Kind {
 	case bbs.Private:
-		ss.imFrom(e.From, e.Text)
+		text := e.Text
+		if e.Kept {
+			text = "(" + e.Time.Format("Jan 2 15:04") + ", while you were away) " + text
+		}
+		ss.imFrom(e.From, text)
 		return
 	case bbs.Said, bbs.Emoted, bbs.Joined, bbs.Left, bbs.Topic:
 		if c := ss.chatOf(e.Room); c != nil {

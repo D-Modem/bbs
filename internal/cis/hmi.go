@@ -18,8 +18,9 @@ package cis
 // dates.  What this serves: the session's opening, the pages (menus as
 // 0x27, articles as 0x28 and their text in pieces), the rest of a menu's
 // items (0x34), Find (0x22), the directory lookup (0x0D), acks for the
-// rest, and the logoff.  Forums, Mail and the CB in CIM are still to come:
-// their pages say so.
+// rest, and the logoff.  Forums, their libraries' lists and Mail to read
+// are pages too (hmiforum.go); the CB in CIM, downloads and sending mail
+// are still to come.
 
 import (
 	"errors"
@@ -143,7 +144,7 @@ func (s *session) hmi() error {
 	if err != nil {
 		return fmt.Errorf("cis: CIM's Transport Layer: %w", err)
 	}
-	h := &hmiSession{s: s, t: t, made: map[string]*Page{}}
+	h := &hmiSession{s: s, t: t}
 	return h.run()
 }
 
@@ -245,14 +246,12 @@ func paramsOK(line string) bool {
 	return sum&0xFFFF == n
 }
 
-// hmiSession is the HMI's state: the article being fetched, and the pages
-// made for names that are no page of the service's.
+// hmiSession is the HMI's state: the article being fetched.
 type hmiSession struct {
 	s       *session
 	t       *xfer.BTransport
 	settled bool // the first message has gone (twice)
 	text    []byte
-	made    map[string]*Page
 	// delay is the wait before each answer, as the emulator that was
 	// checked against WinCIM waits.
 	delay time.Duration
@@ -455,15 +454,13 @@ var hmiAliases = map[string]string{
 }
 
 // lookup is the page a name stands for: "CIS:TOP", "HOM:FORUMS", a GO
-// word.  A name that is none gets a page saying so: the client must never
-// be left without one.
+// word, a forum's or the mailbox's own pages (hmiforum.go).  A name that
+// is none gets a page saying so: the client must never be left without
+// one.  Pages are made afresh each time, so they show what is there now.
 func (h *hmiSession) lookup(name string) *Page {
 	name = strings.ToUpper(strings.TrimSpace(name))
 	if name == "" {
 		name = "CIS:TOP"
-	}
-	if p := h.made[name]; p != nil {
-		return p
 	}
 	w := name
 	if i := strings.IndexByte(w, ':'); i >= 0 && i <= 3 {
@@ -472,30 +469,8 @@ func (h *hmiSession) lookup(name string) *Page {
 	if a, ok := hmiAliases[w]; ok && h.s.pages.Get(w) == nil {
 		w = a
 	}
-	s := h.s
-	var p *Page
-	if f := s.forum(w); f != nil && s.pages.Get(w) == nil {
-		p = &Page{ID: f.Go, Title: f.Name, Text: []string{
-			" " + f.Name,
-			"",
-			" Forums are not in CIM here yet: a terminal program reaches",
-			" this one with GO " + f.Go + ".",
-		}}
-	} else if p = s.pages.Get(w); p != nil {
-		switch p.ID {
-		case "FORUMS":
-			p = s.forumsPage()
-			if !p.Menu() {
-				p.Text = []string{" There are no forums here yet."}
-			}
-		case "MAIL", "CB":
-			what := map[string]string{"MAIL": "CompuServe Mail", "CB": "The CB Simulator"}[p.ID]
-			p = &Page{ID: p.ID, Title: p.Title, Text: []string{
-				" " + what + " is not in CIM here yet: a terminal program",
-				" reaches it with GO " + p.ID + ".",
-			}}
-		}
-	} else {
+	p := h.page(w)
+	if p == nil {
 		p = &Page{ID: w, Title: "CompuServe", Text: []string{
 			" " + w + " is not a service here.",
 			"",
@@ -508,6 +483,39 @@ func (h *hmiSession) lookup(name string) *Page {
 	if p.Title == "" {
 		p.Title = "CompuServe"
 	}
-	h.made[name] = p
+	return p
+}
+
+// page is the page w names, or nil.
+func (h *hmiSession) page(w string) *Page {
+	s := h.s
+	word, part, _ := strings.Cut(w, "/")
+	if word == "MAIL" || word == "EASYPLEX" {
+		return s.mailPage(part)
+	}
+	if f := s.forum(word); f != nil && s.pages.Get(word) == nil {
+		if part != "" {
+			return s.forumPart(f, part)
+		}
+		return s.forumPage(f)
+	}
+	if part != "" {
+		return nil
+	}
+	p := s.pages.Get(w)
+	if p == nil {
+		return nil
+	}
+	switch p.ID {
+	case "FORUMS":
+		p = s.forumsPage()
+	case "MAIL":
+		return s.mailPage("")
+	case "CB":
+		p = &Page{ID: p.ID, Title: p.Title, Text: []string{
+			" The CB Simulator is not in CIM here yet: a terminal program",
+			" reaches it with GO CB.",
+		}}
+	}
 	return p
 }

@@ -117,6 +117,28 @@ DEL lets it go when its last caller leaves.  ROOM TOPIC sets its topic
 		maxParams:         3,
 		unsplitFinalParam: true,
 	}
+	svc.Commands["friends"] = &serviceCommand{
+		handler: bsFriends,
+		help: `Syntax: $bFRIENDS [ADD|DEL <nick>]$b
+
+FRIENDS lists your friends list, and who on it is on now.  FRIENDS ADD
+puts a BBS user on it, FRIENDS DEL takes one off.  It is the same list
+on the BBS, and your buddy list on AIM and ICQ.`,
+		helpShort: "$bFRIENDS$b lists, adds and removes your friends.",
+		maxParams: 2,
+	}
+	svc.Commands["history"] = &serviceCommand{
+		handler: bsHistory,
+		help: `Syntax: $bHISTORY [nick] [lines]$b
+
+Private messages are kept.  HISTORY alone lists those you have talked
+with; HISTORY <nick> shows your last lines with them (50, or as many
+as you ask, up to 500).  A message to someone not on is kept for them,
+and they have it when they next log in.`,
+		helpShort: "$bHISTORY$b shows your private conversations.",
+		maxParams: 2,
+	}
+	svc.Commands["friend"] = &serviceCommand{aliasOf: "friends"}
 	svc.Commands["channel"] = &serviceCommand{aliasOf: "room"}
 	svc.Commands["channels"] = &serviceCommand{aliasOf: "rooms"}
 	svc.Commands["account"] = &serviceCommand{aliasOf: "info"}
@@ -490,5 +512,89 @@ func bsRoom(svc *service, c *client, _ string, params []string) {
 	}
 	if err != nil {
 		svc.notice(c, capital(err.Error())+".")
+	}
+}
+
+// bsFriends is FRIENDS: the friends list, ADD and DEL.
+func bsFriends(svc *service, c *client, _ string, params []string) {
+	b := c.s.B
+	if len(params) == 0 {
+		lines, err := b.FriendLines(c.u)
+		if err != nil {
+			svc.notice(c, capital(err.Error())+".")
+			return
+		}
+		for _, l := range lines {
+			svc.notice(c, l)
+		}
+		return
+	}
+	if len(params) < 2 {
+		svc.notice(c, fmt.Sprintf("FRIENDS ADD or DEL a nick: /msg %s HELP FRIENDS", svc.Name))
+		return
+	}
+	name := params[1]
+	if u := c.userOfNick(name); u != nil {
+		name = u.Name
+	}
+	switch strings.ToLower(params[0]) {
+	case "add":
+		f, err := b.AddFriend(c.u, name)
+		if err != nil {
+			svc.notice(c, capital(err.Error())+".")
+			return
+		}
+		svc.notice(c, Nick(f.Name)+" is on your friends list.")
+	case "del", "delete", "remove":
+		f, err := b.RemoveFriend(c.u, name)
+		if err != nil {
+			svc.notice(c, capital(err.Error())+".")
+			return
+		}
+		svc.notice(c, Nick(f.Name)+" is off your friends list.")
+	default:
+		svc.notice(c, fmt.Sprintf("FRIENDS ADD or DEL a nick: /msg %s HELP FRIENDS", svc.Name))
+	}
+}
+
+// bsHistory is HISTORY: those talked with, or the last lines with one.
+func bsHistory(svc *service, c *client, _ string, params []string) {
+	if len(params) == 0 {
+		ps, err := c.n.Conversations()
+		if err != nil {
+			svc.notice(c, capital(err.Error())+".")
+			return
+		}
+		if len(ps) == 0 {
+			svc.notice(c, "You have no conversations yet.")
+			return
+		}
+		for _, p := range ps {
+			svc.notice(c, fmt.Sprintf("%-20s %d lines, the last %s", Nick(p.Name), p.Lines, p.Last.Format("Jan 2 15:04")))
+		}
+		return
+	}
+	u := c.userOfNick(params[0])
+	if u == nil {
+		svc.notice(c, "There is no user of that nick.")
+		return
+	}
+	limit := 50
+	if len(params) > 1 {
+		if n, err := strconv.Atoi(params[1]); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	cs, err := c.n.History(u, limit)
+	if err != nil {
+		svc.notice(c, capital(err.Error())+".")
+		return
+	}
+	if len(cs) == 0 {
+		svc.notice(c, "You and "+Nick(u.Name)+" have not talked yet.")
+		return
+	}
+	for _, l := range bbs.HistoryLines(cs) {
+		svc.notice(c, l)
 	}
 }

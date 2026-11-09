@@ -11,6 +11,7 @@ import (
 	"github.com/ergochat/irc-go/ircmsg"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/store"
 )
 
 // command handles a registered client's line.
@@ -264,6 +265,26 @@ func (c *client) nodesOf(nick string) []bbs.NodeInfo {
 	return out
 }
 
+// userOfNick is the BBS user a nick is of, on or not (nil: none).
+func (c *client) userOfNick(nick string) *store.User {
+	if fold(nick) == fold(c.s.svc.Name) {
+		return nil
+	}
+	if u, err := c.s.B.Store.UserByName(nick); err == nil {
+		return u
+	}
+	us, err := c.s.B.Store.Users()
+	if err != nil {
+		return nil
+	}
+	for _, u := range us {
+		if fold(Nick(u.Name)) == fold(nick) {
+			return u
+		}
+	}
+	return nil
+}
+
 // who is WHO: a channel's members (and the service, in a permanent room),
 // or a nick's nodes.
 func (c *client) who(mask string) {
@@ -446,14 +467,31 @@ func (c *client) privmsg(command, target, text string) {
 		return
 	}
 	ns := c.nodesOf(target)
-	if len(ns) == 0 {
-		if !notice {
-			c.reply(ERR_NOSUCHNICK, target, "No such nick")
-		}
-		return
-	}
 	if emote {
 		text = "* " + c.u.Name + " " + text
+	}
+	if len(ns) == 0 {
+		// a user away: kept for them
+		u := c.userOfNick(target)
+		if u == nil {
+			if !notice {
+				c.reply(ERR_NOSUCHNICK, target, "No such nick")
+			}
+			return
+		}
+		if _, err := c.n.TellUser(u, text); err != nil {
+			if !notice {
+				c.reply(ERR_CANNOTSENDTOCHAN, target, "Cannot send: "+err.Error())
+			}
+			return
+		}
+		if c.caps["echo-message"] {
+			c.send(map[string]string{"time": stamp(time.Now())}, c.source(), command, target, text)
+		}
+		if !notice {
+			c.reply(RPL_AWAY, Nick(u.Name), "Not on now; they will have your message when they next log in")
+		}
+		return
 	}
 	sent := false
 	var lastErr error
@@ -465,6 +503,11 @@ func (c *client) privmsg(command, target, text string) {
 			lastErr = err
 		} else {
 			sent = true
+		}
+	}
+	if sent {
+		if u, err := c.s.B.Store.UserByName(ns[0].User); err == nil {
+			c.n.Keep(u, text, true)
 		}
 	}
 	switch {
@@ -533,7 +576,11 @@ func (c *client) event(e bbs.Event) {
 	case bbs.Topic:
 		c.send(tags, c.s.svc.source(c), "TOPIC", "#"+e.Room, e.Text)
 	case bbs.Private:
-		c.send(tags, c.sourceOf(e.From, e.Node), "PRIVMSG", c.nick, e.Text)
+		text := e.Text
+		if e.Kept && !c.caps["server-time"] {
+			text = "[" + e.Time.Format("Jan 2 15:04") + "] " + text
+		}
+		c.send(tags, c.sourceOf(e.From, e.Node), "PRIVMSG", c.nick, text)
 	case bbs.Paged:
 		text := fmt.Sprintf("%s (node %d) is paging you", e.From, e.Node)
 		if e.Text != "" {

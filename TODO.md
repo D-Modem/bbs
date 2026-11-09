@@ -2,6 +2,36 @@
 
 Ideas not yet started, with what is known of them.
 
+## An AOL front end
+
+*Status: started; the FDO91 layer (`internal/aol/fdo`) and P3
+(`internal/aol/p3`) are done.*
+
+For AOL 3.0 and 4.0 for Windows, the real clients, over TCP (port 5190, the
+client's `AmericaOnline.aol.com`) and by modem.
+
+- **FDO91** (done): atom streams read and written, all eight encoding
+  styles and large atoms; a compiler from FDO91 source that matches
+  Ada32.dll byte for byte on AtomForge's corpus (1,889 forms, 74,369
+  single atoms, 44 live captures); a decompiler whose text compiles back
+  to the same bytes.
+- **P3** (done): packets (CRC-16/ARC, AOL 4.0's `**`), and the host's
+  end of a link: INIT acknowledged, DATA in order in and within a window
+  of 16 out, ACKs every 8 or soon after, NAKs and go-back-N resends,
+  heartbeats after 12 seconds, 10 of them and the link is down.
+- **Listener**, next: OSCAR's port 5190 already hands a connection that
+  starts with P3's sync byte to `oscar.Server.P3`; serve it there with
+  `p3.Serve`, and sniff a P3 INIT (`p3.Sniff`) on the telnet port too.
+- **Tokens**: `Dd` sign-on (the form's two `de_data`) to the BBS's login,
+  then chat (`Aa`), IMs (`iS`), mail (`m4`, MIP), keywords (`k1`/`f1`) to
+  areas, `pE` sign-off; each answered with forms compiled from source.
+- **Modem callers**: the client's CCL script expects a network's prompts
+  (SprintNet, Tymnet) before P3; emulate one, or ship a CCL that dials
+  straight in.
+- **To decide**: AOL 4.0's RSA handshake (revival servers turn it off in
+  the client); which client forms (32-xxxx) are in its own database and
+  which the host must send.
+
 ## Doors for 3270 callers: an ANSI to 3270 layer
 
 *Status: being thought about; other ways to solve it may win.*

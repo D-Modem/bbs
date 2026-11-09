@@ -52,7 +52,10 @@ type session struct {
 	pdMode   byte      // permit/deny mode (1 all ... 5 buddies only)
 	permit   map[string]bool
 	deny     map[string]bool
-	bagOn    bool // the feedbag is in use
+	bagOn    bool                // the feedbag is in use
+	items    []store.FeedbagItem // the feedbag as the client last had it
+	bagSent  bool                // the client asked for the feedbag
+	noted    map[int64]bool      // told that these are away (their IMs kept)
 	chats    map[*chatConn]bool
 	nav      []*flapConn // service connections without rooms (chat nav)
 }
@@ -91,7 +94,7 @@ func (s *Server) bos(fc *flapConn, host string, k *cookie) {
 		signon: time.Now(), todo: make(chan func(), queueLen), done: make(chan struct{}),
 		versions: map[uint16]uint16{}, listed: map[string]string{}, bagged: map[string]string{},
 		watch: map[int64]string{}, permit: map[string]bool{}, deny: map[string]bool{},
-		pdMode: pdPermitAll, chats: map[*chatConn]bool{}}
+		pdMode: pdPermitAll, chats: map[*chatConn]bool{}, noted: map[int64]bool{}}
 	n, err := s.B.Enter(&bbs.Caller{Via: via, Listener: "oscar", Remote: host, Source: "ip:" + host,
 		Terminal: k.clientID}, ss.close)
 	if err != nil {
@@ -212,9 +215,10 @@ func (ss *session) events() {
 		case f := <-ss.todo:
 			f()
 		case <-ss.n.Wake():
-			for _, e := range ss.n.Pending() {
-				ss.event(e)
+			if !ss.ready() {
+				continue // held until the client is ready (online drains them)
 			}
+			ss.drain()
 		}
 	}
 }
@@ -364,7 +368,22 @@ func (ss *session) online() {
 	ss.mu.Unlock()
 	ss.n.Doing(ss.doing())
 	ss.do(ss.allArrived)
+	ss.do(ss.drain)
+	if !ss.icq { // ICQ asks for its offline messages itself
+		ss.do(func() {
+			for _, e := range ss.n.Kept() {
+				ss.event(e)
+			}
+		})
+	}
 	ss.s.changed(ss.u)
+}
+
+// drain gives the client the node's events waiting.
+func (ss *session) drain() {
+	for _, e := range ss.n.Pending() {
+		ss.event(e)
+	}
 }
 
 // doing is what who's online says of the session.

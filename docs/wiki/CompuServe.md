@@ -49,10 +49,20 @@ with their identification, which shows in who's online. A CIM client
 CIM clients speak HMI, a binary protocol inside B Plus packets. The
 service follows what 24high/CompuServe-Emulator recovered from WinCIM
 3.0.2: the Secure Login, the terminal-mode trade after it, the B Plus
-Transport Layer, and the HMI messages for pages. WinCIM can show the main
-menu, the menus and articles of `pages.txt`, What's New and the Table of
-Contents, and use Find. Forums, Mail and the CB are not in CIM yet; their
-pages say to use a terminal program for now.
+Transport Layer, and the HMI messages for pages. In WinCIM you can:
+
+- browse the main menu, the menus and articles of `pages.txt`, What's New
+  and the Table of Contents, and use Find;
+- read the forums: the forum list, a forum's sections and libraries, a
+  section's messages (newest first) and each message, which then counts
+  as read;
+- see a library's files (downloads still need a terminal program);
+- read your mail with **Get Mail**: the mailbox, newest first, unread
+  letters marked `*`. A letter read is marked read.
+
+Sending mail, posting to forums, downloads and the CB are not in CIM yet.
+WinCIM sends mail and forum messages through transactions of its own,
+which nobody has recovered yet. Use a terminal program for those for now.
 
 Point WinCIM at the listener over TCP. In CIS.INI, the connector's
 `CommType=WINSOCK`, `WinsockCommType=Local` and `HostIPAddress` set
@@ -250,7 +260,8 @@ so only callers using the same key read each other.
 | Libraries on the file areas, with B+ downloads and uploads | |
 | CompuServe Mail on the BBS's private mail | A kept address book, binary mail |
 | The CB Simulator on the chat rooms | Forum conferences (CO) |
-| CIM: Secure Login, the B Plus Transport Layer, HMI pages, menus, articles and Find | Forums, Mail, libraries and CB in CIM |
+| CIM: Secure Login, the B Plus Transport Layer, HMI pages, menus, articles and Find | |
+| CIM: reading forums and Mail, library lists | CIM: sending mail, posting, downloads, CB |
 
 The research behind all this, with sources, is in
 [docs/cis](https://github.com/D-Modem/bbs/tree/main/docs/cis).

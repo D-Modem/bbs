@@ -28,6 +28,7 @@ import (
 	"github.com/D-Modem/bbs/internal/ircd"
 	"github.com/D-Modem/bbs/internal/logo"
 	"github.com/D-Modem/bbs/internal/mrc"
+	"github.com/D-Modem/bbs/internal/msn"
 	"github.com/D-Modem/bbs/internal/nntp"
 	"github.com/D-Modem/bbs/internal/oscar"
 	"github.com/D-Modem/bbs/internal/phone"
@@ -64,6 +65,7 @@ type Config struct {
 	Finger      *finger.Settings // nil: no finger server
 	IRC         *ircd.Settings   // nil: no IRC server
 	OSCAR       *oscar.Settings  // nil: no AIM/ICQ server
+	MSN         *msn.Settings    // nil: no MSN Messenger server
 	MRC         *mrc.Settings    // nil: not on Multi Relay Chat
 	Screens     *screens.Set     // nil: no screens of the sysop's
 	ScriptsDir  string           // "": no scripts
@@ -145,6 +147,9 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.oscarSection(cf); err != nil {
 		return nil, err
 	}
+	if err := c.msnSection(cf); err != nil {
+		return nil, err
+	}
 	if err := c.mrcSection(cf); err != nil {
 		return nil, err
 	}
@@ -214,7 +219,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "oscar", "mrc", "menu", "strings", "http", "level", "chan",
+		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "oscar", "msn", "mrc", "menu", "strings", "http", "level", "chan",
 			"mail", "smarthost", "pop3", "imap", "smtp", "mx", "lmtp":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
@@ -504,6 +509,12 @@ func listener(sec *config.Section) (*Listener, error) {
 	}
 	if l.HeaderTimeout, err = sec.Seconds("header_timeout", 10, 1, 300); err != nil {
 		return nil, err
+	}
+	if l.Handoff, err = sec.Bool("handoff", false); err != nil {
+		return nil, err
+	}
+	if l.Handoff && (!l.Unix() || !l.Header || l.Kind != "raw") {
+		return nil, errors.New("handoff: needs type = raw on a unix socket, and header = yes")
 	}
 	if l.TrustUser, err = sec.Bool("trust_user", false); err != nil {
 		return nil, err
