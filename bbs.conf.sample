@@ -670,6 +670,16 @@ address = 127.0.0.1:2513
 ; the screen name the BBS's notices come from
 ;system = OnlineHost
 
+; AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP).  Users sign
+; on with their BBS names and passwords and get the BBS's Welcome window.
+; The client's port is 5190: with [oscar] there too, the two share it.  The
+; client finds its host as AmericaOnline.aol.com (point that name here in
+; its machine's hosts file, or edit its TCP.CCL).
+;[aol]
+;address = :5190
+;max_clients = 256
+;max_per_ip = 4
+
 ; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
 ; beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike.
 ; See docs/wiki/MRC.md
