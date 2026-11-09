@@ -90,6 +90,12 @@ type Term struct {
 	latin1   bool       // a DEC terminal's 8-bit characters are Latin-1
 	sinceKey int        // lines printed since a key was read
 	ripScene bool       // a RIP scene is on the screen
+
+	// OnLineSpeedKey, if set, is called for Ctrl-B at a prompt: the line
+	// speed's picker (PickLineSpeed)
+	OnLineSpeedKey func() error
+	line           *pacer // under echo: what is sent, at the line speed
+	picking        bool   // in PickLineSpeed: Ctrl-B is a key
 }
 
 // translator turns what the BBS writes (UTF-8, ANSI) into a terminal's.
@@ -158,8 +164,9 @@ func (t *Term) Raw(b []byte) error {
 
 // NewTerm makes a terminal on c, 80x24 plain ASCII until told otherwise.
 func NewTerm(c Conn) *Term {
-	ec := &echoConn{Conn: c}
-	return &Term{c: ec, echo: ec, r: bufio.NewReaderSize(c, 1024), w: bufio.NewWriterSize(ec, 4096),
+	line := &pacer{Conn: c, sleep: time.Sleep}
+	ec := &echoConn{Conn: line}
+	return &Term{c: ec, echo: ec, line: line, r: bufio.NewReaderSize(c, 1024), w: bufio.NewWriterSize(ec, 4096),
 		Cols: 80, Rows: 24, Idle: 10 * time.Minute}
 }
 
@@ -418,6 +425,16 @@ func (t *Term) read(keys bool) (rune, error) {
 			if err := t.skipEscape(); err != nil {
 				return 0, err
 			}
+			continue
+		}
+		if r == lineSpeedKey && t.OnLineSpeedKey != nil && !t.picking && !t.PETSCII {
+			if err := t.OnLineSpeedKey(); err != nil {
+				return 0, err
+			}
+			if err := t.Flush(); err != nil {
+				return 0, err
+			}
+			start = time.Now()
 			continue
 		}
 		t.sinceKey = 0
@@ -1061,13 +1078,23 @@ func (t *Term) RIPClear() {
 
 // port is the terminal as a line for file transfers: the same buffered
 // reader (what was typed ahead is not lost), writes straight through.
-type port struct{ t *Term }
+type port struct {
+	t     *Term
+	paced bool // at the line speed (a door's); else the line's own (a transfer's)
+}
 
 // Read reads from the terminal's reader, what was typed ahead first.
 func (p port) Read(b []byte) (int, error) { return p.t.r.Read(b) }
 
 // Write writes b to the line as it is, past any translation.
-func (p port) Write(b []byte) (int, error) { return p.t.c.Write(b) }
+func (p port) Write(b []byte) (int, error) {
+	// the protocol's own timing: not slowed to the line speed
+	if !p.paced {
+		p.t.line.setDirect(true)
+		defer p.t.line.setDirect(false)
+	}
+	return p.t.c.Write(b)
+}
 
 // SetReadDeadline sets the line's read deadline.
 func (p port) SetReadDeadline(d time.Time) error { return p.t.c.SetReadDeadline(d) }
@@ -1077,7 +1104,14 @@ func (t *Term) Port() (port, error) {
 	if err := t.Flush(); err != nil {
 		return port{}, err
 	}
-	return port{t}, nil
+	return port{t: t}, nil
+}
+
+// DoorPort is Port for a door: what it sends comes at the line speed.
+func (t *Term) DoorPort() (port, error) {
+	p, err := t.Port()
+	p.paced = true
+	return p, err
 }
 
 // Settle waits for the line to be quiet for d (the end of a transfer, a

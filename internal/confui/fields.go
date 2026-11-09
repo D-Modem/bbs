@@ -3,8 +3,10 @@ package confui
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
+	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/confedit"
 	"github.com/D-Modem/bbs/internal/forum"
 	"github.com/D-Modem/bbs/internal/view"
@@ -49,6 +51,11 @@ func init() {
 		themes = append(themes, t.Name)
 	}
 	choices["http.forum_theme"] = themes
+	speeds := []string{"off"}
+	for _, bps := range bbs.LineSpeeds {
+		speeds = append(speeds, strconv.Itoa(bps))
+	}
+	choices["general.line_speed"] = speeds
 }
 
 // labels are keys' names as a sysop reads them, where the key's own is
@@ -67,7 +74,9 @@ var labels = map[string]string{
 	"general.attempts": "Login attempts", "general.fail_delay": "Delay after a wrong one (s)",
 	"general.login_timeout": "Time to log in (s)", "general.idle_timeout": "Idle time out (s)",
 	"general.throttle_failures": "Failures before a lock-out", "general.throttle_time": "Within (s)",
-	"general.phone_country": "Caller ID country", "general.geoip": "GeoIP database",
+	"general.line_speeds": "Callers may pick a line speed", "general.line_speed": "Line speed until they pick",
+	"general.line_speed_ask": "Ask the speed at each login",
+	"general.phone_country":  "Caller ID country", "general.geoip": "GeoIP database",
 	"general.geoip_credit": "GeoIP credit", "general.geoip_credit_url": "GeoIP credit link",
 	"general.new_user_level": "New users' level", "general.validated_level": "Validated users' level",
 	"general.tn3270_symbols": "Programmed symbols (pictures, logo)", "general.tn3270_vector": "Vector graphics (pictures, logo)",

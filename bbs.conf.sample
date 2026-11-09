@@ -92,6 +92,16 @@ idle_timeout = 600
 ; not throttled: one would lock out all
 throttle_failures = 10
 throttle_time = 600
+; line speeds: callers by telnet, SSH or the web (not modem callers,
+; whose line has a speed of its own) may have the BBS send to them at a
+; modem's speed, 300 to 115200 bit/s, ANSI art drawn as it was.  Each
+; picks theirs on the profile (B), or with Ctrl-B at any prompt; it is
+; kept with their account.  line_speeds = no: none may.  line_speed: what
+; callers get until they pick (off: full speed).  line_speed_ask = yes:
+; asked at each login
+line_speeds = yes
+line_speed = off
+line_speed_ask = no
 ; where callers are.  geoip: a country database, a MaxMind DB (.mmdb:
 ; GeoLite2 Country, DB-IP Lite...) or a CSV of ranges, read again when it
 ; changes; with it the log, who's online and the web forum's flags give

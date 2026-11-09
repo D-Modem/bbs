@@ -255,6 +255,8 @@ func (e *Editor) connectionsMenu() page {
 		}
 		out = append(out, e.fields(g, "max_nodes", "attempts", "fail_delay", "login_timeout", "idle_timeout",
 			"throttle_failures", "throttle_time", "page_command")...)
+		out = append(out, heading("Line speeds (telnet, SSH and web callers)"))
+		out = append(out, e.fields(g, "line_speeds", "line_speed", "line_speed_ask")...)
 		out = append(out, heading("Passwords by modemmenu (its auth socket)"))
 		out = append(out, e.fields(sec("modemmenu"), "auth_socket", "create_users", "timeout")...)
 		out = append(out, heading("Caller ID and where callers are"))
