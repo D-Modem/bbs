@@ -25,6 +25,13 @@ the file is laid out.
 | [`[news]`](#news) | Newsgroups: a message area with a newsgroup name (bbs area newsgroup General bbs.general) is a newsgroup, served by NNTP to newsreaders and kept in step with peer news servers. |
 | [`[nntp]`](#nntp) | The NNTP server. |
 | [`[peer NAME]`](#peer-name) | A peer news server, one section each. |
+| [`[mail]`](#mail) | E-mail. |
+| [`[smarthost]`](#smarthost) | An outgoing mail server to send through, instead of straight to each domain's MX: your provider's, or a relay such as Postfix. |
+| [`[pop3]`](#pop3) | The mail servers: each runs only with its section. |
+| [`[imap]`](#imap) | IMAP: mail programs read and file mail in the folders. |
+| [`[smtp]`](#smtp) | mail submission: users send mail, logged in (port 587 or 465) |
+| [`[mx]`](#mx) | mail from the internet: on port 25, named by the domain's MX record. |
+| [`[lmtp]`](#lmtp) | LMTP, for a mail server in front (Postfix's virtual_transport) to hand mail in: a unix socket's path or host:port. |
 | [`[fido]`](#fido) | FidoNet (or another FTN network). |
 | [`[binkp]`](#binkp) | binkp: answer the links' calls. |
 | [`[link NAME]`](#link-name) | A system we exchange mail with, one section each. |
@@ -34,9 +41,15 @@ the file is laid out.
 | [`[oscar]`](#oscar) | AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC. |
 | [`[irclink]`](#irclink) | IRC server linking: the BBS as a hub server on an IRC network, by TS6 (Solanum, charybdis, ircd-ratbox; ircd-hybrid 8 with protocol = hybrid). |
 | [`[ircpeer NAME]`](#ircpeer-name) | A server the BBS links with, one section each: [ircpeer ITS.NAME]. |
+| [`[aol]`](#aol) | AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP). |
+| [`[msn]`](#msn) | MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (MSNP2 to 7), beside IRC and AIM. |
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
 | [`[gopher]`](#gopher) | gopher: about the system, who is on, and what areas the sysop opens: no login, so anyone sees them. |
+| [`[time]`](#time) | Time. |
+| [`[ntp]`](#ntp) | an NTP server (UDP). |
+| [`[nts]`](#nts) | an NTS-KE server (RFC 8915): TLS 1.3, its clients' keys and cookies for [ntp], which then answers NTS-secured requests too. |
+| [`[ptp]`](#ptp) | a PTP grandmaster (IEEE 1588, UDP ports 319 and 320, as root): two-step, end to end. |
 | [`[menu NAME]`](#menu-name) | A menu of the sysop's: [menu main] takes the place of the built-in main menu; others are reached from it (menu:NAME). |
 | [`[strings]`](#strings) | The prompts and messages, with @-codes and tags. |
 
@@ -97,7 +110,7 @@ There may be any number of these, each with its own NAME.
 | key | default | live | what it does |
 |---|---|---|---|
 | `type` | `telnet` |  | a telnet server; with tn3270 = yes (the default), a client that says it is a 3270 (IBM-3278-2-E, IBM-DYNAMIC) gets the 3270 screens raw the caller's bytes as they come, no protocol: app_dmodem's mode = tcp, modemmenu tcp/unix items rlogin RFC 1282, as modemmenu's rlogin items speak it ssh SSH: passwords or users' keys (host_keys, legacy) Examples: `telnet`, `raw`, `ssh`, `rlogin`. |
-| `address` | `host:port` |  | or a unix socket's path (/run/bbs/bbs.sock) Examples: `:2300`, `:992`, `127.0.0.1:2323`, `:2324`, `:2222`, `127.0.0.1:2513`, `/run/bbs/menu.sock`. |
+| `address` | `host:port` |  | or a unix socket's path (/run/bbs/bbs.sock) Examples: `:2300`, `:992`, `127.0.0.1:2323`, `:2324`, `:2222`, `127.0.0.1:2513`, `/run/bbs/menu.sock`, `/run/bbs/handoff.sock`. |
 | `via` | `...` |  | how its callers came, in who's online (telnet, modem, rlogin by type) |
 | `ansi` | `auto` |  | the terminal's ANSI color: auto asks the terminal (or believes its terminal type), yes, no. |
 | `utf8` | `auto` |  | UTF-8 both ways: auto by the terminal type (xterm and friends yes; "ansi" BBS terminals no), yes, no. |
@@ -108,6 +121,7 @@ There may be any number of these, each with its own NAME.
 | `max_per_ip` | `4` |  | connections at once from one address (loopback and unix sockets: no limit, they are modem servers) |
 | `header` | `no` |  | yes: a session header comes first, NAME=value lines and an empty line: app_dmodem's DMODEM_* or a modemmenu item's MODEM_* (rate, caller ID, number) Examples: `yes`. |
 | `header_timeout` | `10` |  | seconds for the header. |
+| `handoff` | `no` |  | type = raw on a unix socket, with header = yes: the caller's line itself may come with the header (SCM_RIGHTS, modemmenu's item with handoff = yes), the session then on that terminal, nothing copied; closing the connection gives the line back. Examples: `yes`. |
 | `trust_user` | `no` |  | yes: the header's MODEM_USER (an rlogin's server user) is logged in without a password. Only where nothing but trusted menus can connect. Examples: `yes`. |
 | `create_users` | `no` |  | yes, with trust_user: a user unknown here gets an account (with no password of its own) Examples: `yes`. |
 | `socket_mode` | `0660` |  | a unix socket's permissions. |
@@ -315,6 +329,91 @@ There may be any number of these, each with its own NAME.
 | `accept_from` |  |  | the addresses it may send us articles from (IHAVE) Examples: `news.example.net`. |
 
 
+## `[mail]`
+
+E-mail.  Each user is name@domain (bbs mail address NAME shows it), and their BBS mail is their e-mail: Inbox, Sent, Drafts, Starred, Unread, All Mail and Trash, in any mail program, over POP3 and IMAP.  Without this section the BBS has no e-mail.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `domain` |  |  | See the section above. Examples: `example.org`. |
+| `hostname` |  |  | this host's name, said in SMTP's greeting and Received lines. Examples: `mail.example.org`. |
+| `outbound` |  |  | how mail for elsewhere goes: direct (to each domain's MX, port 25), smarthost (through [smarthost]) or none (only mail here) Examples: `direct`. |
+| `max_message` |  |  | the largest message taken; recipients in one; days in the trash before mail is gone (0: until emptied); days the queue keeps trying. Examples: `10M`. |
+| `max_recipients` |  |  | the largest message taken; recipients in one; days in the trash before mail is gone (0: until emptied); days the queue keeps trying. Examples: `50`. |
+| `trash_days` |  |  | the largest message taken; recipients in one; days in the trash before mail is gone (0: until emptied); days the queue keeps trying. Examples: `30`. |
+| `queue_days` |  |  | the largest message taken; recipients in one; days in the trash before mail is gone (0: until emptied); days the queue keeps trying. Examples: `5`. |
+| `postmaster` |  |  | who gets postmaster@, abuse@ and bounces' notes (default: the sysop) Examples: `sysop`. |
+| `dkim_key_file` |  |  | DKIM: bbs mail dkim /etc/bbs/dkim.pem makes the key and prints its DNS record (selector._domainkey.domain) Examples: `/etc/bbs/dkim.pem`. |
+| `dkim_selector` |  |  | DKIM: bbs mail dkim /etc/bbs/dkim.pem makes the key and prints its DNS record (selector._domainkey.domain) Examples: `bbs`. |
+| `cert_file` |  |  | the certificate for the mail servers (each can name its own) Examples: `/etc/bbs/cert.pem`. |
+| `key_file` |  |  | the certificate for the mail servers (each can name its own) Examples: `/etc/bbs/key.pem`. |
+
+
+## `[smarthost]`
+
+An outgoing mail server to send through, instead of straight to each domain's MX: your provider's, or a relay such as Postfix.  tls: starttls, implicit (port 465) or no.  insecure = yes: its certificate unchecked.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `smtp.example.net:587`. |
+| `tls` |  |  | See the section above. Examples: `starttls`. |
+| `username` |  |  | See the section above. Examples: `bbs@example.org`. |
+| `password` |  |  | See the section above. Examples: `secret`. |
+| `insecure` |  |  | See the section above. Examples: `no`. |
+
+
+## `[pop3]`
+
+The mail servers: each runs only with its section.  tls: no, optional (STARTTLS offered), required (STARTTLS before a login) or implicit (TLS from the first byte: POP3S 995, IMAPS 993, SMTPS 465).  Each takes address, tls, cert_file, key_file, max_clients, max_per_ip and idle_timeout, as [nntp] does.  POP3: mail programs fetch the inbox.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:1110`. |
+| `tls` |  |  | See the section above. Examples: `required`. |
+
+
+## `[imap]`
+
+IMAP: mail programs read and file mail in the folders.  Its IDLE wants a long idle_timeout.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:1143`. |
+| `tls` |  |  | See the section above. Examples: `required`. |
+| `idle_timeout` |  |  | See the section above. Examples: `1800`. |
+
+
+## `[smtp]`
+
+mail submission: users send mail, logged in (port 587 or 465)
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:1587`. |
+| `tls` |  |  | See the section above. Examples: `required`. |
+
+
+## `[mx]`
+
+mail from the internet: on port 25, named by the domain's MX record. checks = yes: SPF, DKIM and DMARC checked; mail is refused that fails a DMARC reject policy, or (no DMARC) fails SPF and is not signed.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:25`. |
+| `tls` |  |  | See the section above. Examples: `optional`. |
+| `checks` |  |  | See the section above. Examples: `yes`. |
+| `dnsbl` |  |  | DNS blocklists the sending address is looked up in (none by default). A listed sender is refused at MAIL FROM (554, with the list's reason); a list that does not answer refuses no one. Spamhaus refuses queries through public resolvers (8.8.8.8, 1.1.1.1) and wants a paid feed for heavy or commercial use: run a resolver of your own (unbound) for it. Examples: `zen.spamhaus.org, bl.spamcop.net`. |
+
+
+## `[lmtp]`
+
+LMTP, for a mail server in front (Postfix's virtual_transport) to hand mail in: a unix socket's path or host:port.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `/run/bbs/lmtp.sock`. |
+
+
 ## `[fido]`
 
 FidoNet (or another FTN network).  bbs area echo General FSX_GEN makes an area an echo; mail to Name@zone:net/node is netmail.  Without this section the BBS is not on FidoNet.
@@ -488,6 +587,32 @@ There may be any number of these, each with its own NAME.
 | `protocol` |  |  | ts6 (Solanum, charybdis, ratbox) or hybrid (ircd-hybrid 8) Examples: `ts6`. |
 
 
+## `[aol]`
+
+AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP).  Users sign on with their BBS names and passwords and get the BBS's Welcome window. The client's port is 5190: with [oscar] there too, the two share it.  The client finds its host as AmericaOnline.aol.com (point that name here in its machine's hosts file, or edit its TCP.CCL).
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:5190`. |
+| `max_clients` |  |  | See the section above. Examples: `256`. |
+| `max_per_ip` |  |  | See the section above. Examples: `4`. |
+
+
+## `[msn]`
+
+MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (MSNP2 to 7), beside IRC and AIM.  Users sign in as name@domain with their BBS passwords; contacts are their friends list; an IM is a private message (a PRIVMSG on IRC), kept for one away.  The clients must be pointed at this host (see the wiki page). See docs/wiki/MSN-Messenger.md.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:1863`. |
+| `host` |  |  | where clients are sent for conversations, host:port (default: the address each one came to; set it behind NAT) Examples: `msn.example.org:1863`. |
+| `domain` |  |  | handles are name@domain (default bbs.invalid); clients may sign in with any domain, as MSN 1.0's @hotmail.com. Examples: `msn.example.org`. |
+| `max_clients` |  |  | handles are name@domain (default bbs.invalid); clients may sign in with any domain, as MSN 1.0's @hotmail.com. Examples: `256`. |
+| `max_per_ip` |  |  | each conversation is a connection of its own. Examples: `16`. |
+| `system` |  |  | the name the BBS's notices come from. Examples: `BBS`. |
+| `site` |  |  | a web address the clients' links (inbox, profiles) open. Examples: `https://bbs.example.org/`. |
+
+
 ## `[mrc]`
 
 Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike. See docs/wiki/MRC.md.
@@ -526,6 +651,66 @@ gopher: about the system, who is on, and what areas the sysop opens: no login, s
 | `port` |  |  | the name and port menus send clients back to. Examples: `70`. |
 | `areas` |  |  | message areas shown (a wildmat of area names; "": none) Examples: `general,announcements`. |
 | `files` |  |  | file areas listed and downloadable. Examples: `no`. |
+
+
+## `[time]`
+
+Time.  The BBS's clock can follow time servers, and the BBS can be a time server itself: NTP, NTS (NTP made secure with TLS keys) and PTP. With no servers it tells of the system clock (kept by chrony, ntpd ...).
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `servers` |  |  | servers followed: KIND HOST, by commas. ntp HOST[:PORT], nts HOST[:PORT] (its NTS-KE port, 4460 if none), ptp HOST (unicast; ports 319 and 320) Examples: `nts time.cloudflare.com, nts nts.netnod.se, ntp pool.ntp.org`. |
+| `poll` |  |  | seconds between asking them (16 at least) Examples: `64`. |
+| `set_clock` |  |  | set the system clock (Linux; root, or CAP_SYS_TIME kept: with [general] user, systemd's AmbientCapabilities=CAP_SYS_TIME). No: the BBS keeps the offset and serves corrected time, leaving the system clock alone. Examples: `no`. |
+| `stratum` |  |  | with no servers: the stratum told (0: 3 while the kernel says the clock is synchronised, else unsynchronised), and stratum 1's reference (GPS, PPS) Examples: `0`. |
+| `refid` |  |  | with no servers: the stratum told (0: 3 while the kernel says the clock is synchronised, else unsynchronised), and stratum 1's reference (GPS, PPS) Examples: `GPS`. |
+| `root_cas` |  |  | a PEM file NTS-KE servers' certificates are checked against ("": the system's) Examples: `/etc/bbs/nts-ca.pem`. |
+| `utc_offset` |  |  | TAI - UTC, in seconds, for PTP (37 since 2017) Examples: `37`. |
+
+
+## `[ntp]`
+
+an NTP server (UDP).  Port 123 needs CAP_NET_BIND_SERVICE.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:123`. |
+| `rate` |  |  | requests a second an address may make (0: no limit), and at once. Examples: `2`. |
+| `burst` |  |  | requests a second an address may make (0: no limit), and at once. Examples: `16`. |
+
+
+## `[nts]`
+
+an NTS-KE server (RFC 8915): TLS 1.3, its clients' keys and cookies for [ntp], which then answers NTS-secured requests too.  The certificate is read again when its file changes (a renewal)
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:4460`. |
+| `tls_cert` |  |  | See the section above. Examples: `/etc/bbs/cert.pem`. |
+| `tls_key` |  |  | See the section above. Examples: `/etc/bbs/key.pem`. |
+| `ntp_host` |  |  | the NTP server clients are told to use ("": this one) Examples: `time.example.org`. |
+| `max_clients` |  |  | the NTP server clients are told to use ("": this one) Examples: `64`. |
+| `max_per_ip` |  |  | the NTP server clients are told to use ("": this one) Examples: `8`. |
+
+
+## `[ptp]`
+
+a PTP grandmaster (IEEE 1588, UDP ports 319 and 320, as root): two-step, end to end.  Multicast to 224.0.1.129 on interface, and unicast to the clients that ask (linuxptp's unicast_master_table, ptp4u's clients)
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | the address bound ("": all) |
+| `interface` |  |  | multicast's interface, and hardware timestamps' ("": no multicast) Examples: `eth0`. |
+| `multicast` |  |  | multicast's interface, and hardware timestamps' ("": no multicast) Examples: `yes`. |
+| `unicast` |  |  | multicast's interface, and hardware timestamps' ("": no multicast) Examples: `yes`. |
+| `domain` |  |  | multicast's interface, and hardware timestamps' ("": no multicast) Examples: `0`. |
+| `priority1` |  |  | multicast's interface, and hardware timestamps' ("": no multicast) Examples: `128`. |
+| `priority2` |  |  | multicast's interface, and hardware timestamps' ("": no multicast) Examples: `128`. |
+| `log_sync_interval` |  |  | intervals, as powers of two seconds: multicast syncs (0: 1 s) and announcements (1: 2 s); the shortest a unicast client is granted (-4: 1/16 s) Examples: `0`. |
+| `log_announce_interval` |  |  | intervals, as powers of two seconds: multicast syncs (0: 1 s) and announcements (1: 2 s); the shortest a unicast client is granted (-4: 1/16 s) Examples: `1`. |
+| `log_min_interval` |  |  | intervals, as powers of two seconds: multicast syncs (0: 1 s) and announcements (1: 2 s); the shortest a unicast client is granted (-4: 1/16 s) Examples: `-4`. |
+| `max_clients` |  |  | unicast clients at once. Examples: `256`. |
+| `timestamping` |  |  | software (the kernel's stamps) or hardware (the network card's: its clock kept on the system's, phc2sys -s CLOCK_REALTIME -c eth0 -O 0) Examples: `software`. |
 
 
 ## `[menu NAME]`

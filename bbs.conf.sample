@@ -146,6 +146,11 @@ throttle_time = 600
 ;                        and an empty line: app_dmodem's DMODEM_* or a
 ;                        modemmenu item's MODEM_* (rate, caller ID, number)
 ;   header_timeout = 10  seconds for the header
+;   handoff = no         type = raw on a unix socket, with header = yes:
+;                        the caller's line itself may come with the header
+;                        (SCM_RIGHTS, modemmenu's item with handoff = yes),
+;                        the session then on that terminal, nothing copied;
+;                        closing the connection gives the line back
 ;   trust_user = no      yes: the header's MODEM_USER (an rlogin's server
 ;                        user) is logged in without a password.  Only where
 ;                        nothing but trusted menus can connect
@@ -244,6 +249,18 @@ address = 127.0.0.1:2513
 ;type = raw
 ;address = /run/bbs/menu.sock
 ;header = yes
+;trust_user = yes
+;create_users = yes
+;socket_mode = 0660
+;socket_group = asterisk
+
+; the same with the caller's line itself (modemmenu's item with
+; handoff = yes): the BBS on the modem's terminal, nothing copied between
+;[listen handoff]
+;type = raw
+;address = /run/bbs/handoff.sock
+;header = yes
+;handoff = yes
 ;trust_user = yes
 ;create_users = yes
 ;socket_mode = 0660
@@ -471,6 +488,83 @@ address = 127.0.0.1:2513
 ;initial = 100
 ; the addresses it may send us articles from (IHAVE)
 ;accept_from = news.example.net
+
+; E-mail.  Each user is name@domain (bbs mail address NAME shows it), and
+; their BBS mail is their e-mail: Inbox, Sent, Drafts, Starred, Unread,
+; All Mail and Trash, in any mail program, over POP3 and IMAP.  Without
+; this section the BBS has no e-mail
+;[mail]
+;domain = example.org
+; this host's name, said in SMTP's greeting and Received lines
+;hostname = mail.example.org
+; how mail for elsewhere goes: direct (to each domain's MX, port 25),
+; smarthost (through [smarthost]) or none (only mail here)
+;outbound = direct
+; the largest message taken; recipients in one; days in the trash before
+; mail is gone (0: until emptied); days the queue keeps trying
+;max_message = 10M
+;max_recipients = 50
+;trash_days = 30
+;queue_days = 5
+; who gets postmaster@, abuse@ and bounces' notes (default: the sysop)
+;postmaster = sysop
+; DKIM: bbs mail dkim /etc/bbs/dkim.pem makes the key and prints its DNS
+; record (selector._domainkey.domain)
+;dkim_key_file = /etc/bbs/dkim.pem
+;dkim_selector = bbs
+; the certificate for the mail servers (each can name its own)
+;cert_file = /etc/bbs/cert.pem
+;key_file = /etc/bbs/key.pem
+
+; An outgoing mail server to send through, instead of straight to each
+; domain's MX: your provider's, or a relay such as Postfix.  tls: starttls,
+; implicit (port 465) or no.  insecure = yes: its certificate unchecked
+;[smarthost]
+;address = smtp.example.net:587
+;tls = starttls
+;username = bbs@example.org
+;password = secret
+;insecure = no
+
+; The mail servers: each runs only with its section.  tls: no, optional
+; (STARTTLS offered), required (STARTTLS before a login) or implicit (TLS
+; from the first byte: POP3S 995, IMAPS 993, SMTPS 465).  Each takes
+; address, tls, cert_file, key_file, max_clients, max_per_ip and
+; idle_timeout, as [nntp] does.  POP3: mail programs fetch the inbox
+;[pop3]
+;address = :1110
+;tls = required
+
+; IMAP: mail programs read and file mail in the folders.  Its IDLE wants a
+; long idle_timeout
+;[imap]
+;address = :1143
+;tls = required
+;idle_timeout = 1800
+
+; mail submission: users send mail, logged in (port 587 or 465)
+;[smtp]
+;address = :1587
+;tls = required
+
+; mail from the internet: on port 25, named by the domain's MX record.
+; checks = yes: SPF, DKIM and DMARC checked; mail is refused that fails
+; a DMARC reject policy, or (no DMARC) fails SPF and is not signed
+;[mx]
+;address = :25
+;tls = optional
+;checks = yes
+; DNS blocklists the sending address is looked up in (none by default).
+; A listed sender is refused at MAIL FROM (554, with the list's reason);
+; a list that does not answer refuses no one.  Spamhaus refuses queries
+; through public resolvers (8.8.8.8, 1.1.1.1) and wants a paid feed for
+; heavy or commercial use: run a resolver of your own (unbound) for it
+;dnsbl = zen.spamhaus.org, bl.spamcop.net
+
+; LMTP, for a mail server in front (Postfix's virtual_transport) to hand
+; mail in: a unix socket's path or host:port
+;[lmtp]
+;address = /run/bbs/lmtp.sock
 
 ; FidoNet (or another FTN network).  bbs area echo General FSX_GEN makes an
 ; area an echo; mail to Name@zone:net/node is netmail.  Without this section
@@ -700,6 +794,37 @@ address = 127.0.0.1:2513
 ;tag = HUB
 ; ts6 (Solanum, charybdis, ratbox) or hybrid (ircd-hybrid 8)
 ;protocol = ts6
+; AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP).  Users sign
+; on with their BBS names and passwords and get the BBS's Welcome window.
+; The client's port is 5190: with [oscar] there too, the two share it.  The
+; client finds its host as AmericaOnline.aol.com (point that name here in
+; its machine's hosts file, or edit its TCP.CCL).
+;[aol]
+;address = :5190
+;max_clients = 256
+;max_per_ip = 4
+
+; MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows
+; Messenger 4.x (MSNP2 to 7), beside IRC and AIM.  Users sign in as
+; name@domain with their BBS passwords; contacts are their friends list;
+; an IM is a private message (a PRIVMSG on IRC), kept for one away.  The
+; clients must be pointed at this host (see the wiki page).
+; See docs/wiki/MSN-Messenger.md
+;[msn]
+;address = :1863
+; where clients are sent for conversations, host:port (default: the
+; address each one came to; set it behind NAT)
+;host = msn.example.org:1863
+; handles are name@domain (default bbs.invalid); clients may sign in with
+; any domain, as MSN 1.0's @hotmail.com
+;domain = msn.example.org
+;max_clients = 256
+; each conversation is a connection of its own
+;max_per_ip = 16
+; the name the BBS's notices come from
+;system = BBS
+; a web address the clients' links (inbox, profiles) open
+;site = https://bbs.example.org/
 
 ; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
 ; beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike.
@@ -734,6 +859,71 @@ address = 127.0.0.1:2513
 ;areas = general,announcements
 ; file areas listed and downloadable
 ;files = no
+
+; Time.  The BBS's clock can follow time servers, and the BBS can be a
+; time server itself: NTP, NTS (NTP made secure with TLS keys) and PTP.
+; With no servers it tells of the system clock (kept by chrony, ntpd ...).
+;[time]
+; servers followed: KIND HOST, by commas.  ntp HOST[:PORT], nts HOST[:PORT]
+; (its NTS-KE port, 4460 if none), ptp HOST (unicast; ports 319 and 320)
+;servers = nts time.cloudflare.com, nts nts.netnod.se, ntp pool.ntp.org
+; seconds between asking them (16 at least)
+;poll = 64
+; set the system clock (Linux; root, or CAP_SYS_TIME kept: with [general]
+; user, systemd's AmbientCapabilities=CAP_SYS_TIME).  No: the BBS keeps
+; the offset and serves corrected time, leaving the system clock alone
+;set_clock = no
+; with no servers: the stratum told (0: 3 while the kernel says the clock
+; is synchronised, else unsynchronised), and stratum 1's reference (GPS, PPS)
+;stratum = 0
+;refid = GPS
+; a PEM file NTS-KE servers' certificates are checked against ("": the system's)
+;root_cas = /etc/bbs/nts-ca.pem
+; TAI - UTC, in seconds, for PTP (37 since 2017)
+;utc_offset = 37
+
+; an NTP server (UDP).  Port 123 needs CAP_NET_BIND_SERVICE
+;[ntp]
+;address = :123
+; requests a second an address may make (0: no limit), and at once
+;rate = 2
+;burst = 16
+
+; an NTS-KE server (RFC 8915): TLS 1.3, its clients' keys and cookies for
+; [ntp], which then answers NTS-secured requests too.  The certificate is
+; read again when its file changes (a renewal)
+;[nts]
+;address = :4460
+;tls_cert = /etc/bbs/cert.pem
+;tls_key = /etc/bbs/key.pem
+; the NTP server clients are told to use ("": this one)
+;ntp_host = time.example.org
+;max_clients = 64
+;max_per_ip = 8
+
+; a PTP grandmaster (IEEE 1588, UDP ports 319 and 320, as root): two-step,
+; end to end.  Multicast to 224.0.1.129 on interface, and unicast to the
+; clients that ask (linuxptp's unicast_master_table, ptp4u's clients)
+;[ptp]
+; the address bound ("": all)
+;address =
+; multicast's interface, and hardware timestamps' ("": no multicast)
+;interface = eth0
+;multicast = yes
+;unicast = yes
+;domain = 0
+;priority1 = 128
+;priority2 = 128
+; intervals, as powers of two seconds: multicast syncs (0: 1 s) and
+; announcements (1: 2 s); the shortest a unicast client is granted (-4: 1/16 s)
+;log_sync_interval = 0
+;log_announce_interval = 1
+;log_min_interval = -4
+; unicast clients at once
+;max_clients = 256
+; software (the kernel's stamps) or hardware (the network card's: its
+; clock kept on the system's, phc2sys -s CLOCK_REALTIME -c eth0 -O 0)
+;timestamping = software
 
 ; Menus of the sysop's.  [menu main] takes the place of the built-in main
 ; menu (on 3270s too); others are reached from it.  Each item is

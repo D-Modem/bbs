@@ -52,8 +52,10 @@ nav:
     - "IRC": IRC.md
     - "IRC server linking": IRC-Linking.md
     - "AIM and ICQ": AIM-and-ICQ.md
+    - "MSN Messenger": MSN-Messenger.md
     - "MRC": MRC.md
     - "Finger and gopher": Finger-and-Gopher.md
+    - "Time: NTP, NTS and PTP": Time.md
     - "Web forum": Web-Forum.md
     - "Image boards": Image-Boards.md
     - "HTTP API": HTTP-API.md

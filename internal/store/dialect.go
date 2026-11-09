@@ -205,6 +205,10 @@ func (t *tx) Exec(q string, args ...any) (sql.Result, error) {
 }
 
 // QueryRow is sql.Tx's, the statement made the engine's.
+func (t *tx) Query(q string, args ...any) (*sql.Rows, error) {
+	return t.Tx.Query(t.d.query(q), args...)
+}
+
 func (t *tx) QueryRow(q string, args ...any) *sql.Row {
 	return t.Tx.QueryRow(t.d.query(q), args...)
 }

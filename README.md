@@ -31,16 +31,18 @@ Main menu
 
 - Message areas, private mail, chat, paging and doors (DOS doors in dosemu2, or Linux programs)
 - File areas with X/Y/ZMODEM, Kermit, IND$FILE and FTP
-- Networks: FidoNet and other FTNs, QWK, NNTP newsgroups, IRC (and linking into an IRC network as a TS6 hub server), AIM and ICQ, and MRC
+- E-mail: IMAP, POP3 and SMTP, to and from the internet, directly or through a smarthost
+- Networks: FidoNet and other FTNs, QWK, NNTP newsgroups, IRC (and linking into an IRC network as a TS6 hub server), AIM and ICQ, MSN Messenger, and MRC
 - Terminals: ANSI, VT, PETSCII, RIPscrip, sixel and 3270 graphics
 - On the web: a forum, image boards, a web terminal and an HTTP API
+- Time: follows NTP, NTS and PTP servers, and serves all three
 - SQLite, PostgreSQL, MySQL or MariaDB
 
 The full list is on the [wiki's home page](https://github.com/D-Modem/bbs/wiki/Home).
 
 ## Quick start
 
-Go 1.24 or later:
+Go 1.26 or later:
 
 ```
 make                                    # or: go build ./cmd/bbs

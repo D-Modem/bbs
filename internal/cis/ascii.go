@@ -12,11 +12,17 @@ var errRelog = errors.New("cis: LOG")
 // ascii is the terminal service, from the banner to the logoff.
 func (s *session) ascii() error {
 	s.banner()
+	if s.firstGo == "" && s.keptSetting(setMailWait) == "mail" {
+		// Mail waiting: GO MAIL
+		if n, err := s.b.Store.UnreadMail(s.user.ID); err == nil && n > 0 {
+			s.firstGo = "MAIL"
+		}
+	}
 	top := s.pages.Get("TOP")
 	switch p := s.pages.Get(s.firstGo); {
 	case s.firstGo == "" || !s.known(s.firstGo):
 		s.show(top)
-	case p != nil && p.ID != "MAIL" && p.ID != "CB":
+	case p != nil && p.ID != "MAIL" && p.ID != "CB" && p.ID != "DEFAULT":
 		s.show(p)
 	default:
 		// /GO:word to a forum or Mail: in it first, TOP when it is left
@@ -168,6 +174,9 @@ func (s *session) goWord(word string) error {
 	}
 	if p != nil && p.ID == "CB" {
 		return s.enterCB()
+	}
+	if p != nil && p.ID == "DEFAULT" {
+		return s.terminalSettings()
 	}
 	s.goTo(p)
 	return nil

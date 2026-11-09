@@ -112,6 +112,9 @@ ban_minutes = 60                       ; a throttled address is banned this long
   gopher and binkp. Callers through unix sockets (a modem server, an
   upstream menu) are never refused. The file is read again when it
   changes; `bbs check` warns of lines that are not addresses.
+- Mail from the internet (`[mx]`) can also be checked against DNS
+  blocklists (`dnsbl = zen.spamhaus.org`), and is checked for SPF, DKIM and
+  DMARC: see [E-mail](E-mail#spam-dns-blocklists).
 - `ban_minutes`: an address that `throttle_failures` turns away is banned
   outright for that long, from every service (not a caller ID: those are a
   modem server's callers, and a ban would not stop them). Bans are kept

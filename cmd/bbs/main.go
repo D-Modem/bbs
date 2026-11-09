@@ -14,6 +14,7 @@
 //	bbs [-config FILE] area list
 //	bbs [-config FILE] area newsgroup AREA GROUP|-
 //	bbs [-config FILE] news sync [PEER]
+//	bbs [-config FILE] mail dkim KEYFILE | queue | send | address USER
 //	bbs [-config FILE] area echo AREA TAG|-
 //	bbs [-config FILE] area group AREA GROUP|-
 //	bbs [-config FILE] area aliases AREA yes|no
@@ -48,6 +49,7 @@ import (
 	"io"
 	"log"
 	"log/syslog"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -58,8 +60,10 @@ import (
 
 	"golang.org/x/term"
 
+	"github.com/D-Modem/bbs/internal/aol"
 	"github.com/D-Modem/bbs/internal/api"
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/email"
 	"github.com/D-Modem/bbs/internal/events"
 	"github.com/D-Modem/bbs/internal/fido"
 	"github.com/D-Modem/bbs/internal/files"
@@ -71,6 +75,7 @@ import (
 	"github.com/D-Modem/bbs/internal/ircd"
 	"github.com/D-Modem/bbs/internal/irclink"
 	"github.com/D-Modem/bbs/internal/mrc"
+	"github.com/D-Modem/bbs/internal/msn"
 	"github.com/D-Modem/bbs/internal/news"
 	"github.com/D-Modem/bbs/internal/nntp"
 	"github.com/D-Modem/bbs/internal/oscar"
@@ -109,6 +114,10 @@ func usage() {
   bbs [-config FILE] area require AREA READ POST    access requirements ("30 F", sysop, -: none)
   bbs [-config FILE] area newsgroup AREA GROUP|-    (- : not a newsgroup)
   bbs [-config FILE] news sync [PEER]               exchange articles with peers now
+  bbs [-config FILE] mail dkim KEYFILE              make a DKIM key, and print the DNS record for it
+  bbs [-config FILE] mail queue                     mail waiting to go elsewhere
+  bbs [-config FILE] mail send                      try the queue now
+  bbs [-config FILE] mail address USER              a user's e-mail address
   bbs [-config FILE] area echo AREA TAG|-           make an area a FidoNet echo (- : not one)
   bbs [-config FILE] area group AREA GROUP|-        list an area under a group (- : none)
   bbs [-config FILE] area aliases AREA yes|no       whether its posters may use their aliases
@@ -145,6 +154,8 @@ func usage() {
   bbs [-config FILE] file add AREA PATH [DESCRIPTION]   (as the first sysop)
   bbs [-config FILE] file list AREA
   bbs [-config FILE] file del AREA NAME
+  bbs [-config FILE] time [KIND HOST]               ask the time servers ([time] servers, or one:
+                                                  ntp, nts or ptp HOST) the offset of this clock
   bbs [-config FILE] chan board add DIR TITLE [DESCRIPTION] [-nsfw] [-forced-anon] [-text-only] [-locked] [-login] [-oekaki]
                      [-ids] [-flags]
   bbs [-config FILE] chan board set DIR KEY VALUE   (pages, per_page, mods, nsfw, login, captcha, options, files, sound...: files webm,mp4,pdf,swf,flv)
@@ -204,6 +215,9 @@ func main() {
 			if l.Header {
 				extra += ", header"
 			}
+			if l.Handoff {
+				extra += ", handoff"
+			}
 			if l.TrustUser {
 				extra += ", trust_user"
 			}
@@ -224,6 +238,24 @@ func main() {
 		for _, p := range cfg.Peers {
 			fmt.Printf("[peer %s] %s, groups %s, pull %v, push %v, every %v\n", p.Name, p.Address,
 				p.Groups, p.Pull, p.Push, p.Interval)
+		}
+		if m := cfg.Mail; m != nil {
+			out := m.Outbound
+			if out == email.OutboundSmarthost {
+				out += " " + m.Smarthost.Address
+			}
+			dk := "not signed"
+			if m.DKIM != nil {
+				dk = "DKIM " + m.DKIM.Selector + "._domainkey." + m.DKIM.Domain
+			}
+			fmt.Printf("mail: @%s, host %s, out %s, %s\n", m.Domain, m.Hostname, out, dk)
+			for _, ms := range cfg.MailServers {
+				fmt.Printf("%s: %s, tls %s", ms.Kind, ms.Set.Address, ms.Set.TLS)
+				if len(ms.Set.DNSBL) > 0 {
+					fmt.Printf(", dnsbl %s", strings.Join(ms.Set.DNSBL, ", "))
+				}
+				fmt.Println()
+			}
 		}
 		if f := cfg.Fido; f != nil {
 			var as []string
@@ -267,8 +299,17 @@ func main() {
 		if o := cfg.OSCAR; o != nil {
 			fmt.Printf("oscar: %q, reconnect at %q, ICQ numbers from %d\n", o.Address, o.Host, o.UINBase)
 		}
+		if a := cfg.AOL; a != nil {
+			fmt.Printf("aol: %q\n", a.Address)
+		}
+		if m := cfg.MSN; m != nil {
+			fmt.Printf("msn: %q, conversations at %q, handles @%s\n", m.Address, m.Host, m.Domain)
+		}
 		if cfg.Finger != nil {
 			fmt.Printf("finger: %s (online %v, users %v)\n", cfg.Finger.Address, cfg.Finger.Online, cfg.Finger.Users)
+		}
+		if t := cfg.Time; t != nil {
+			fmt.Println(t)
 		}
 		if g := cfg.Gopher; g != nil {
 			fmt.Printf("gopher: %s as %s:%d, areas %q, files %v\n", g.Address, g.Host, g.Port, g.Areas, g.Files)
@@ -306,6 +347,8 @@ func main() {
 		areaCmd(cfg, args)
 	case "news":
 		newsCmd(cfg, args)
+	case "mail":
+		mailCmd(cfg, args)
 	case "fido":
 		fidoCmd(cfg, args)
 	case "qwknet":
@@ -324,6 +367,8 @@ func main() {
 		fileAreaCmd(cfg, args)
 	case "file":
 		fileCmd(cfg, args)
+	case "time":
+		timeCmd(cfg, args)
 	case "chan":
 		chanCmd(cfg, args)
 	default:
@@ -438,6 +483,44 @@ func serve(cfg *server.Config, path string) int {
 		}()
 	}
 	svc.RunPeers(ctx, cfg.Peers)
+	trashDays := 30
+	if cfg.Mail != nil {
+		trashDays = cfg.Mail.TrashDays
+		ms := email.New(b, *cfg.Mail)
+		for _, m := range cfg.MailServers {
+			var run func(context.Context) error
+			switch m.Kind {
+			case "pop3":
+				x, err := ms.NewPOP3(m.Set)
+				if err != nil {
+					lg.Printf("%v", err)
+					return 1
+				}
+				run = x.Run
+			case "imap":
+				x, err := ms.NewIMAP(m.Set)
+				if err != nil {
+					lg.Printf("%v", err)
+					return 1
+				}
+				run = x.Run
+			default:
+				x, err := ms.NewSMTP(m.Kind, m.Set, m.Checks)
+				if err != nil {
+					lg.Printf("%v", err)
+					return 1
+				}
+				run = x.Run
+			}
+			go func() {
+				if err := run(ctx); err != nil {
+					lg.Printf("%v", err)
+					stop()
+				}
+			}()
+		}
+		go ms.RunQueue(ctx)
+	}
 	if cfg.MRC != nil {
 		mc, err := mrc.New(b, *cfg.MRC)
 		if err != nil {
@@ -474,14 +557,46 @@ func serve(cfg *server.Config, path string) int {
 			}
 		}()
 	}
+	var asrv *aol.Server
+	if cfg.AOL != nil {
+		if asrv, err = aol.New(b, *cfg.AOL); err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+	}
 	if cfg.OSCAR != nil {
 		osrv, err := oscar.New(b, *cfg.OSCAR)
 		if err != nil {
 			lg.Printf("%v", err)
 			return 1
 		}
+		if asrv != nil && sameAddress(cfg.OSCAR.Address, cfg.AOL.Address) {
+			osrv.P3 = asrv.Handle // AOL's clients come to OSCAR's port
+			asrv = nil
+		}
 		go func() {
 			if err := osrv.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
+	if asrv != nil {
+		go func() {
+			if err := asrv.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
+	if cfg.MSN != nil {
+		msrv, err := msn.New(b, *cfg.MSN)
+		if err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+		go func() {
+			if err := msrv.Run(ctx); err != nil {
 				lg.Printf("%v", err)
 				stop()
 			}
@@ -495,6 +610,10 @@ func serve(cfg *server.Config, path string) int {
 				stop()
 			}
 		}()
+	}
+	if err := startTime(ctx, b, cfg.Time, lg, stop); err != nil {
+		lg.Printf("%v", err)
+		return 1
 	}
 	if cfg.Gopher != nil {
 		gs := &gopher.Server{B: b, S: *cfg.Gopher}
@@ -534,6 +653,11 @@ func serve(cfg *server.Config, path string) int {
 		for {
 			if _, err := b.PurgeAreas(); err != nil {
 				b.Log.Printf("purging: %v", err)
+			}
+			if trashDays > 0 {
+				if _, err := st.PurgeTrash(time.Now().AddDate(0, 0, -trashDays)); err != nil {
+					b.Log.Printf("emptying the mail trash: %v", err)
+				}
 			}
 			select {
 			case <-ctx.Done():
@@ -1185,6 +1309,70 @@ func firstSysop(st *store.Store) *store.User {
 }
 
 // newsCmd exchanges articles with the news peers now, or the one named.
+// mailCmd: a DKIM key made, the queue listed or tried, a user's address.
+func mailCmd(cfg *server.Config, args []string) {
+	words, _ := split(args)
+	if len(words) == 0 {
+		usage()
+	}
+	switch words[0] {
+	case "dkim":
+		if len(words) != 2 {
+			usage()
+		}
+		k, err := email.NewDKIMKey(words[1])
+		if err != nil {
+			fatal(err)
+		}
+		rec, err := email.DKIMRecord(k)
+		if err != nil {
+			fatal(err)
+		}
+		domain := "DOMAIN"
+		if cfg.Mail != nil {
+			domain = cfg.Mail.Domain
+		}
+		fmt.Printf("key written to %s; in [mail]: dkim_key_file = %s, dkim_selector = bbs\n", words[1], words[1])
+		fmt.Printf("publish this TXT record:\n\nbbs._domainkey.%s. IN TXT \"%s\"\n", domain, rec)
+		return
+	}
+	if cfg.Mail == nil {
+		fatal(errors.New("the configuration has no [mail] section"))
+	}
+	st := open(cfg)
+	defer st.Close()
+	switch words[0] {
+	case "queue":
+		q, err := st.MailQueue(time.Time{}, 0)
+		if err != nil {
+			fatal(err)
+		}
+		for _, o := range q {
+			fmt.Printf("%d  mail %d  %s -> %s  tried %d, next %s  %s\n", o.ID, o.MailID, o.Sender, o.Rcpt,
+				o.Attempts, o.NextTry.Format("2006-01-02 15:04"), o.LastError)
+		}
+		if len(q) == 0 {
+			fmt.Println("the queue is empty")
+		}
+	case "send":
+		lg := log.New(os.Stderr, "bbs: ", log.LstdFlags)
+		b := bbs.New(cfg.Settings, st, lg)
+		email.New(b, *cfg.Mail).RunQueueOnce(context.Background())
+	case "address":
+		if len(words) != 2 {
+			usage()
+		}
+		u, err := st.UserByName(words[1])
+		if err != nil {
+			fatal(err)
+		}
+		b := bbs.New(cfg.Settings, st, log.New(io.Discard, "", 0))
+		fmt.Println(email.New(b, *cfg.Mail).Address(u))
+	default:
+		usage()
+	}
+}
+
 func newsCmd(cfg *server.Config, args []string) {
 	words, _ := split(args)
 	if len(words) == 0 || words[0] != "sync" || len(words) > 2 {
@@ -1678,4 +1866,16 @@ func dbCmd(cfg *server.Config, args []string) {
 		fatal(err)
 	}
 	fmt.Println("done: set database = in the configuration to the new one")
+}
+
+// sameAddress is whether two listening addresses are one port: the same
+// port, on the same host or on every one.
+func sameAddress(a, b string) bool {
+	ah, ap, err1 := net.SplitHostPort(a)
+	bh, bp, err2 := net.SplitHostPort(b)
+	if err1 != nil || err2 != nil || ap != bp {
+		return false
+	}
+	any := func(h string) bool { return h == "" || h == "0.0.0.0" || h == "::" }
+	return ah == bh || any(ah) || any(bh)
 }

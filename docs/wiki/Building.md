@@ -1,4 +1,4 @@
-This page shows how to build bbs from source. You need Go 1.24 or later.
+This page shows how to build bbs from source. You need Go 1.26 or later.
 
 ```
 make            # or: go build ./cmd/bbs

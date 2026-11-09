@@ -417,6 +417,12 @@ func (s *session) chooseProtocol(given string) (string, error) {
 	case "CAP", "CAPTURE", "ASCII", "DC2":
 		return "CAPTURE", nil
 	}
+	if given == "" {
+		// the permanent protocol preference, if it is one of these
+		if k, ok := map[string]string{"b": "B", "qb": "QB", "xmodem": "XMODEM", "kermit": "KERMIT"}[s.keptSetting(setProtocol)]; ok {
+			return k, nil
+		}
+	}
 	for {
 		for _, p := range protocols {
 			s.outf(" %s %s\n", p.num, p.name)

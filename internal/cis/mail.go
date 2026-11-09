@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/store"
 	"github.com/D-Modem/bbs/internal/xfer"
 )
@@ -17,7 +18,8 @@ import (
 // PARAMS.SCR (5.4, 1991) and the strings it waits for ("Mail!", "ID):",
 // "ect:", "Action!"), and 1993 captures of menu mode.  A message is
 // "pending" until it is read; read ones stay in the BBS's mailbox (as if
-// SAVEd) until deleted.
+// SAVEd) until deleted (to the user's trash).  >INTERNET:addr is e-mail,
+// where the BBS has it.
 
 // Mail's modes of operation.
 const (
@@ -61,6 +63,10 @@ func (s *session) mailSettings() *mailState {
 		m.mode = p[prefMailMode]
 	}
 	m.lineEdit = p[prefMailEdit] == "line"
+	if p[prefMailEdit] == "" {
+		// none of Mail's own: the permanent online editor
+		m.lineEdit = s.keptSetting(setEditor) == "linedit"
+	}
 	m.paged = p[prefMailPage] == "on"
 	s.mail = m
 	return m
@@ -579,7 +585,15 @@ func (s *session) resolveAddress(a string) (recipient, error) {
 					break
 				}
 			}
-			return recipient{}, errors.New("Internet mail is not offered on this service")
+			addr := strings.TrimSpace(rest)
+			if s.b.Email == nil || !bbs.IsEmailAddress(addr) {
+				return recipient{}, errors.New("Internet mail is not offered on this service")
+			}
+			shown := "INTERNET:" + addr
+			if name != "" {
+				shown = name + " >" + shown
+			}
+			return recipient{addr, shown}, nil
 		case "FAX", "POSTAL", "MCIMAIL", "X400", "MHS", "TLX", "TELEX", "EMS":
 			return recipient{}, fmt.Errorf("%s mail is not offered on this service", strings.ToUpper(net))
 		default:

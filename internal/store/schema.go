@@ -146,7 +146,39 @@ CREATE TABLE IF NOT EXISTS mail (
 	reply_to  {int} NOT NULL DEFAULT 0,
 	created   {int} NOT NULL,
 	"read"    {bool} NOT NULL DEFAULT FALSE,
-	ftn_msgid {key}
+	ftn_msgid {key},
+	raw        {blob},
+	message_id {key},
+	from_addr  {str} NOT NULL DEFAULT '',
+	to_addr    {str} NOT NULL DEFAULT ''
+)`, `
+CREATE TABLE IF NOT EXISTS mailbox (
+	id      {id},
+	user_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	mail_id {int} NOT NULL REFERENCES mail(id) ON DELETE CASCADE,
+	role    {int} NOT NULL,
+	"read"  {bool} NOT NULL DEFAULT FALSE,
+	starred {bool} NOT NULL DEFAULT FALSE,
+	deleted {int} NOT NULL DEFAULT 0,
+	flags   {str} NOT NULL DEFAULT '',
+	created {int} NOT NULL
+)`, `
+CREATE TABLE IF NOT EXISTS mail_uids (
+	id      {id},
+	user_id {int} NOT NULL,
+	folder  {int} NOT NULL,
+	box_id  {int} NOT NULL REFERENCES mailbox(id) ON DELETE CASCADE
+)`, `
+CREATE TABLE IF NOT EXISTS mail_queue (
+	id         {id},
+	mail_id    {int} NOT NULL REFERENCES mail(id) ON DELETE CASCADE,
+	user_id    {int} NOT NULL DEFAULT 0,
+	sender     {str} NOT NULL,
+	rcpt       {str} NOT NULL,
+	attempts   {int} NOT NULL DEFAULT 0,
+	next_try   {int} NOT NULL,
+	last_error {str} NOT NULL DEFAULT '',
+	created    {int} NOT NULL
 )`, `
 CREATE TABLE IF NOT EXISTS file_areas (
 	id           {id},
@@ -227,6 +259,11 @@ CREATE TABLE IF NOT EXISTS ssh_keys (
 	created     {int} NOT NULL,
 	last_used   {int} NOT NULL DEFAULT 0
 )`, `
+CREATE TABLE IF NOT EXISTS cis_keys (
+	user_id  {int} NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+	k        {blob} NOT NULL,
+	bound    {str} NOT NULL
+)`, `
 CREATE TABLE IF NOT EXISTS oscar_keys (
 	user_id  {int} NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
 	auth_key {str} NOT NULL,
@@ -242,6 +279,45 @@ CREATE TABLE IF NOT EXISTS feedbag (
 	name     {str} NOT NULL,
 	attrs    {blob},
 	PRIMARY KEY (user_id, group_id, item_id)
+)`, `
+CREATE TABLE IF NOT EXISTS chats (
+	id        {id},
+	from_id   {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	from_name {str} NOT NULL,
+	to_id     {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	to_name   {str} NOT NULL,
+	body      {text} NOT NULL,
+	created   {int} NOT NULL,
+	delivered {bool} NOT NULL DEFAULT FALSE
+)`, `
+CREATE TABLE IF NOT EXISTS msn_keys (
+	user_id  {int} NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+	salt     {str} NOT NULL,
+	digest   {str} NOT NULL,
+	bound    {str} NOT NULL
+)`, `
+CREATE TABLE IF NOT EXISTS blocks (
+	user_id    {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	blocked_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	added      {int} NOT NULL,
+	PRIMARY KEY (user_id, blocked_id)
+)`, `
+CREATE TABLE IF NOT EXISTS friends (
+	user_id   {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	friend_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	grp       {str} NOT NULL DEFAULT '',
+	alias     {str} NOT NULL DEFAULT '',
+	added     {int} NOT NULL,
+	PRIMARY KEY (user_id, friend_id)
+)`, `
+CREATE TABLE IF NOT EXISTS oscar_buddies (
+	user_id   {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	friend_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	sn        {str} NOT NULL,
+	group_id  {int} NOT NULL,
+	item_id   {int} NOT NULL,
+	attrs     {blob},
+	PRIMARY KEY (user_id, friend_id)
 )`, `
 CREATE TABLE IF NOT EXISTS chan_boards (
 	id            {id},
@@ -342,6 +418,13 @@ var indexes = []struct {
 	{"messages_area", "messages", "area_id, id", false},
 	{"messages_reply", "messages", "reply_to", false},
 	{"mail_to", "mail", "to_id, id", false},
+	{"mail_message_id", "mail", "message_id", false},
+	{"mailbox_user", "mailbox", "user_id, role, id", false},
+	{"mailbox_mail", "mailbox", "mail_id", false},
+	{"mail_uids_folder", "mail_uids", "user_id, folder, id", false},
+	{"mail_uids_box", "mail_uids", "box_id, folder", true},
+	{"mail_queue_next", "mail_queue", "next_try", false},
+	{"mail_queue_mail", "mail_queue", "mail_id", false},
 	{"files_uploader", "files", "uploader_id, created", false},
 	{"areas_newsgroup", "areas", "newsgroup", true},
 	{"messages_message_id", "messages", "message_id", true},
@@ -360,6 +443,8 @@ var indexes = []struct {
 	{"chan_posts_md5", "chan_posts", "board_id, md5", false},
 	{"chan_posts_ip", "chan_posts", "ip, created", false},
 	{"chan_reports_post", "chan_reports", "board_id, num", false},
+	{"chats_to", "chats", "to_id, delivered", false},
+	{"chats_pair", "chats", "from_id, to_id, id", false},
 }
 
 // added are the columns added since the first schema: an older database
@@ -417,6 +502,10 @@ var added = []struct{ table, column, decl string }{
 	{"chan_posts", "page_count", "{int} NOT NULL DEFAULT 0"},
 	{"chan_boards", "archive", "{bool} NOT NULL DEFAULT TRUE"},
 	{"chan_posts", "archived_on", "{int} NOT NULL DEFAULT 0"},
+	{"mail", "raw", "{blob}"},
+	{"mail", "message_id", "{key}"},
+	{"mail", "from_addr", "{str} NOT NULL DEFAULT ''"},
+	{"mail", "to_addr", "{str} NOT NULL DEFAULT ''"},
 }
 
 // migrate makes the schema, or brings an older database up to it.
@@ -426,6 +515,11 @@ func migrate(x *db) error {
 		if _, err := x.Exec(`CREATE COLLATION IF NOT EXISTS nocase (provider = icu, locale = 'und-u-ks-level2', deterministic = false)`); err != nil {
 			return fmt.Errorf("the nocase collation: %w", err)
 		}
+	}
+	// the mailboxes are new: each mail there is put in its recipient's
+	hadBoxes, err := x.hasColumn("mailbox", "id")
+	if err != nil {
+		return err
 	}
 	for _, t := range tables {
 		if _, err := x.Exec(x.d.ddl(t)); err != nil {
@@ -448,6 +542,11 @@ func migrate(x *db) error {
 	if threads {
 		if err := findThreads(x); err != nil {
 			return fmt.Errorf("finding the threads: %w", err)
+		}
+	}
+	if !hadBoxes {
+		if err := fillMailboxes(x); err != nil {
+			return fmt.Errorf("the mailboxes: %w", err)
 		}
 	}
 	for _, i := range indexes {

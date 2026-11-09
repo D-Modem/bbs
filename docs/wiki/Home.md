@@ -40,6 +40,7 @@ Main menu
 | Make it look like your own | [Customization](Customization), [Scripting](Scripting) |
 | Take calls by modem | [Modem callers](Modem-Callers) |
 | Join FidoNet, QWK networks or Usenet | [FidoNet](FidoNet), [Offline mail](Offline-Mail#qwk-networks), [Newsgroups and NNTP](Newsgroups-and-NNTP) |
+| Give users e-mail addresses | [E-mail](E-mail) |
 | Put the board on the web | [Web forum](Web-Forum), [Image boards](Image-Boards), [HTTP API](HTTP-API) |
 | Work on the code | [Development](Development) |
 
@@ -76,12 +77,16 @@ which is generated from `bbs.conf.sample`.
 
 - [FidoNet](FidoNet) and other FTN networks: echomail, netmail, file
   echoes, AreaFix and a built-in binkp mailer
+- [E-mail](E-mail): each user an address, their BBS mail read over IMAP
+  and POP3 and sent over SMTP, to and from the internet
 - [Newsgroups](Newsgroups-and-NNTP) served by NNTP and exchanged with other
   news servers
 - [IRC](IRC), where the chat rooms are channels, [AIM and ICQ](AIM-and-ICQ)
-  for AIM and ICQ clients on the same chat, and [MRC](MRC), the chat
+  for AIM and ICQ clients on the same chat, [MSN Messenger](MSN-Messenger)
+  for MSN clients, and [MRC](MRC), the chat
   network shared with other BBSes
 - [Finger and gopher](Finger-and-Gopher)
+- [Time](Time): NTP, NTS and PTP, followed and served
 
 **On the web**
 
@@ -130,14 +135,18 @@ which is generated from `bbs.conf.sample`.
 | [Files and FTP](Files-and-FTP) | file areas, the FTP (FTPS) server |
 | [File transfers](File-Transfers) | X/Y/ZMODEM, Kermit, IND$FILE |
 | [Doors](Doors) | DOS doors in dosemu2 (Docker), Linux doors, doors on other systems |
+| [E-mail](E-mail) | addresses, IMAP, POP3, SMTP, the MX, a smarthost, DNS |
 | [Newsgroups and NNTP](Newsgroups-and-NNTP) | the NNTP server, news peers |
 | [FidoNet](FidoNet) | echomail, netmail, binkp, file echoes, AreaFix, nodelists |
 | [Chat and paging](Chat-and-Paging) | chat rooms, node messages, paging the sysop |
 | [IRC](IRC) | the IRC server, with the chat rooms as channels |
 | [AIM and ICQ](AIM-and-ICQ) | the OSCAR server: AIM and ICQ clients, buddies, IMs and chat rooms |
 | [IRC server linking](IRC-Linking) | The BBS as a hub server on an IRC network (TS6): every user reachable there |
+| [AOL clients](AOL) | a host for AOL's own clients (3.0, 4.0): sign-on with BBS accounts |
+| [MSN Messenger](MSN-Messenger) | the MSN server: MSN Messenger 1.0 to 4.7, contacts and IMs |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
+| [Time](Time) | NTP, NTS and PTP: the clock following time servers, and serving time |
 | [Web forum](Web-Forum) | the message areas as a web forum |
 | [Image boards](Image-Boards) | anonymous image boards, in the style of kusaba x and 4chan |
 | [HTTP API](HTTP-API) | REST, events, WebSockets in JSON and protobuf, tokens, metrics |

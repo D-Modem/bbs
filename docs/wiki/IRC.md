@@ -54,7 +54,7 @@ up to 20 at once. Joining shows the room's last 20 lines.
 |---|---|
 | `PRIVMSG #room :text` | a line in the room |
 | `/me waves` (CTCP ACTION) | `* alice waves` |
-| `PRIVMSG nick :text` | a message to that user's nodes |
+| `PRIVMSG nick :text` | a message to that user's nodes; to one not on, [kept](Chat-and-Paging#private-messages) for them (`301` says so) |
 | a caller's node message | a `PRIVMSG` to you |
 | `NAMES`, `WHO`, `WHOIS` | who is in a room, on which node and how (`bob!telnet@node3`) |
 | `LIST` | the rooms in use |
@@ -67,6 +67,10 @@ stripped from lines going into the rooms.
 
 A sysop is told of a page by a `NOTICE`. Joining `#sysop-N` answers the
 page from node N, just as `/answer` does in the BBS's chat.
+
+Messages kept for you while you were away come as `PRIVMSG`s once you
+log in, each with its time: as `server-time` if your client takes it,
+otherwise at the start of the line.
 
 The server offers the IRCv3 capabilities `sasl`, `server-time` (the time
 of each line, the history replayed on join included), `echo-message`,
@@ -117,6 +121,8 @@ answers come as notices.
 | `KEYS`, `KEYS ADD` *password key*, `KEYS DEL` *n* | your [SSH keys](SSH). Adding one asks for your password, since a key opens your account |
 | `TOKENS`, `TOKENS REVOKE` *id* | your [HTTP API](HTTP-API) tokens |
 | `ROOMS`; `ROOM ADD`\|`DEL`\|`TOPIC` *#room* | the [permanent rooms](#permanent-rooms); making them (the sysop) |
+| `FRIENDS`, `FRIENDS ADD`\|`DEL` *nick* | your [friends list](Chat-and-Paging#friends), and who on it is on |
+| `HISTORY`, `HISTORY` *nick* [*lines*] | those you have talked with; your last lines with one (50, up to 500) |
 
 The same checks apply as on the BBS: an alias that is someone's name is
 refused, and so is a setting's wrong value. A wrong password (`KEYS

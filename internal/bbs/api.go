@@ -52,4 +52,10 @@ func (b *BBS) tellMail(to int64, from, subject string) {
 	for _, n := range ns {
 		n.deliver(Event{Kind: Mail, From: from, Text: subject, Time: time.Now()})
 	}
+	if b.MailWatch != nil {
+		b.MailWatch(to)
+	}
 }
+
+// TellMail tells a user's callers, and their mail programs, of new mail.
+func (b *BBS) TellMail(to int64, from, subject string) { b.tellMail(to, from, subject) }

@@ -3,8 +3,8 @@
 A listener with `frontend = compuserve` serves a recreation of the
 CompuServe Information Service instead of the BBS's menus. It runs on the
 BBS's own users, and it aims to work with the real CompuServe software:
-terminal programs, offline readers (TAPCIS, AutoSIG, OzCIS) and, later,
-the CompuServe Information Manager (WinCIM, DOSCIM, MacCIM). Their
+terminal programs, offline readers (TAPCIS, AutoSIG, OzCIS) and the
+CompuServe Information Manager (WinCIM, DOSCIM, MacCIM). Their
 scripts look for the period's exact prompts, so the service keeps them.
 
 ```ini
@@ -41,9 +41,51 @@ Password:
   addresses get CompuServe's `?LOG` codes.
 
 After the logon the host sends `ESC I`. Terminals that know it answer
-with their identification, which shows in who's online. CIM clients
-(`AP` in their reply) are told `?LOG CAI` for now, because the graphical
-(HMI) service is not built yet.
+with their identification, which shows in who's online. A CIM client
+(`AP` in its reply) gets the graphical service instead; see below.
+
+## CIM (WinCIM)
+
+CIM clients speak HMI, a binary protocol inside B Plus packets. The
+service follows what 24high/CompuServe-Emulator recovered from WinCIM
+3.0.2: the Secure Login, the terminal-mode trade after it, the B Plus
+Transport Layer, and the HMI messages for pages. In WinCIM you can:
+
+- browse the main menu, the menus and articles of `pages.txt`, What's New
+  and the Table of Contents, and use Find;
+- read the forums: the forum list, a forum's sections and libraries, a
+  section's messages (newest first) and each message, which then counts
+  as read;
+- see a library's files (downloads still need a terminal program);
+- read your mail with **Get Mail**: the mailbox, newest first, unread
+  letters marked `*`. A letter read is marked read.
+
+Sending mail, posting to forums, downloads and the CB are not in CIM yet.
+WinCIM sends mail and forum messages through transactions of its own,
+which nobody has recovered yet. Use a terminal program for those for now.
+
+Point WinCIM at the listener over TCP. In CIS.INI, the connector's
+`CommType=WINSOCK`, `WinsockCommType=Local` and `HostIPAddress` set
+this. CompuServe's own port for that was 4144:
+
+```ini
+[listen wincim]
+type = raw
+address = :4144
+frontend = compuserve
+connect = 9600
+```
+
+**Secure Login.** CIM logs on with the Secure Login Protocol (`+` before
+the User ID), which never sends the password. The host checks it against
+a key it keeps from the password. That key is kept only while a
+`compuserve` listener runs, the next time the user logs on with their
+password or sets one. Until then a Secure Login fails with `No.`, and the
+log says why. Log on once from a terminal, or set
+`DisableSecureLogin=ON` in CIS.INI for one plain login.
+
+None of this has met a real WinCIM yet; that is the next round of
+testing.
 
 ## Commands
 
@@ -66,6 +108,30 @@ with their identification, which shows in who's online. CIM clients
 | `LOG` | sign off and go back to `User ID:` |
 
 Commands chain with `;`, as in `SET BRI ON;GO RATES`.
+
+## Terminal settings (GO DEFAULT)
+
+`SET` changes the session's settings. `GO DEFAULT` (or `TERMINAL`, or
+choice 1 of `GO PROFILE`) keeps them with your User ID, through
+CompuServe's own menus: TERMINAL SETTINGS/SERVICE OPTIONS, then
+PERMANENT SETTINGS with its Logon/Service, Display, Terminal and
+Transfer protocol groups. When you leave, you confirm the changes. The
+screens follow TAPCIS's ALT-P script (PARAMS.SCR, 1991), which sets a new
+member up through them.
+
+What the kept settings do:
+
+- PAGED, BRIEF, WIDTH and LINES take effect at each logon.
+- **Mail waiting: Go to MAIL** goes straight into Mail when letters wait.
+- **Online editor** sets Mail's line numbering when Mail has no setting
+  of its own.
+- **Protocol preference** (B, Quick B, XMODEM or Kermit) skips the
+  protocol menu.
+
+The rest are kept and shown, as scripts expect, but do nothing here:
+terminal type, parity, delays, first service, TOP goes to, forum mode and
+graphics support. Forums are always in command mode. Add `;TTY` to the
+User ID (`72000,1;TTY`) to log on with the defaults for once.
 
 ## Forums
 
@@ -212,13 +278,14 @@ so only callers using the same key read each other.
 
 | Done | Coming, in order |
 |---|---|
-| The logon, `ESC I`, the menus and articles (`internal/cis/pages.txt`), GO, FIND, SET | Forum JOIN and member options |
+| The logon, `ESC I`, the menus and articles (`internal/cis/pages.txt`), GO, FIND, SET, permanent settings (GO DEFAULT) | Forum JOIN and member options |
 | Forums on the message areas, with the forum command language | |
 | The CompuServe B, Quick B and B Plus protocols (`internal/xfer/cisb.go`) | B Plus resume (Tr) and file information (TI) |
 | Libraries on the file areas, with B+ downloads and uploads | |
 | CompuServe Mail on the BBS's private mail | A kept address book, binary mail |
 | The CB Simulator on the chat rooms | Forum conferences (CO) |
-| | CIM's HMI service |
+| CIM: Secure Login, the B Plus Transport Layer, HMI pages, menus, articles and Find | |
+| CIM: reading forums and Mail, library lists | CIM: sending mail, posting, downloads, CB |
 
 The research behind all this, with sources, is in
 [docs/cis](https://github.com/D-Modem/bbs/tree/main/docs/cis).

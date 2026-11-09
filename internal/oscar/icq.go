@@ -12,6 +12,7 @@ import (
 // length, the client's UIN, a type, a sequence number, the request.
 const (
 	icqOfflineReq  = 0x003c
+	icqOfflineMsg  = 0x0041
 	icqOfflineDone = 0x0042
 	icqOfflineAck  = 0x003e
 	icqMetaReq     = 0x07d0
@@ -48,7 +49,7 @@ func (r *lrd) str() string {
 	return strings.TrimRight(decodeText(r.take(int(r.u16())), csASCII), "\x00")
 }
 
-// icqMeta is family 0x15: offline messages (none are kept), and the
+// icqMeta is family 0x15: offline messages (those kept), and the
 // directory: users' info and searches.
 func (ss *session) icqMeta(h snacHeader, r *rd) {
 	if h.sub != 0x0002 {
@@ -69,14 +70,47 @@ func (ss *session) icqMeta(h snacHeader, r *rd) {
 	}
 	switch kind {
 	case icqOfflineReq:
-		var b le
-		b.u8(0) // none dropped
-		ss.icqReply(h.req, icqOfflineDone, seq, b, false)
+		ss.icqOffline(h.req, seq)
 	case icqOfflineAck:
 	case icqMetaReq:
 		sub := q.u16()
 		ss.icqDirectory(h, seq, sub, q)
 	}
+}
+
+// icqOffline sends the messages kept while the user was away, each with
+// its sender and time (GMT), then that there are no more.
+func (ss *session) icqOffline(req uint32, seq uint16) {
+	st := ss.s.B.Store
+	cs, err := st.KeptChats(ss.u.ID)
+	if err != nil {
+		ss.s.B.Log.Printf("node %d: kept messages: %v", ss.n.Num, err)
+	}
+	ids := make([]int64, 0, len(cs))
+	for _, c := range cs {
+		if o, err := st.UserByID(c.FromID); err == nil && ss.blocks(o) {
+			continue // kept back: they are blocked
+		}
+		t := c.Sent.UTC()
+		var b le
+		b.u32(uint32(ss.s.S.UINBase) + uint32(c.FromID))
+		b.u16(uint16(t.Year()))
+		b.u8(byte(t.Month()))
+		b.u8(byte(t.Day()))
+		b.u8(byte(t.Hour()))
+		b.u8(byte(t.Minute()))
+		b.u8(0x01) // a text message
+		b.u8(0)    // flags
+		b.str(c.Text)
+		ss.icqReply(req, icqOfflineMsg, seq, b, true)
+		ids = append(ids, c.ID)
+	}
+	if err := st.ChatsDelivered(ids); err != nil {
+		ss.s.B.Log.Printf("node %d: kept messages: %v", ss.n.Num, err)
+	}
+	var b le
+	b.u8(0) // none dropped
+	ss.icqReply(req, icqOfflineDone, seq, b, false)
 }
 
 // icqReply sends a reply of kind (with its sequence number) to the

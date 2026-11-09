@@ -12,7 +12,10 @@ var ChatHelp = []string{
 	"Type to talk.  Commands:",
 	"  /who            who is in this room      /rooms          the rooms in use",
 	"  /join ROOM      go to another room       /me ACTION      * you do something",
-	"  /msg NODE TEXT  a message to one node    /topic          this room's topic",
+	"  /msg WHO TEXT   to a user, kept if away  /topic          this room's topic",
+	"  /history [WHO]  your talks with a user   /friends        your friends list",
+	"  /friend WHO     put one on your list     /unfriend WHO   take one off it",
+	"  /block WHO      stop their messages      /unblock WHO    let them again",
 	"  /msg NICK TEXT  to someone on a linked IRC network",
 	"  /quit           leave the chat",
 	"Sysops:  /pages  callers paging   /answer [NODE]  answer one   /busy  pages on or off",
@@ -88,23 +91,106 @@ func (n *Node) ChatCommand(line string) (out []string, leave bool, err error) {
 			out = append(out, e.String())
 		}
 		return append(out, "You are in "+n.Room()+"."), false, nil
-	case "msg", "m":
+	case "msg", "m", "tell":
 		to, text, _ := strings.Cut(arg, " ")
-		num, err := strconv.Atoi(to)
-		if err != nil {
-			// a name: someone on a linked chat network
-			if err := n.MessageRemote(to, text, false, false); err != nil {
-				if err == ErrNoSuchNick {
-					return nil, false, fmt.Errorf("/msg NODE TEXT: a node's number, or a nick on a linked network")
-				}
+		if to == "" {
+			return nil, false, fmt.Errorf("/msg WHO TEXT: a user's name (or a node's number), then the message")
+		}
+		if num, err := strconv.Atoi(to); err == nil {
+			if err := n.Message(num, text); err != nil {
 				return nil, false, err
 			}
-			return []string{"Sent to " + to + "."}, false, nil
+			if o := n.b.node(num); o != nil {
+				n.Keep(o.User(), text, true)
+			}
+			return []string{fmt.Sprintf("Sent to node %d.", num)}, false, nil
 		}
-		if err := n.Message(num, text); err != nil {
+		u, err := n.b.Store.UserByName(to)
+		if err != nil {
+			// not one of ours: someone on a linked chat network?
+			if err := n.MessageRemote(to, text, false, false); err == nil {
+				return []string{"Sent to " + to + "."}, false, nil
+			} else if err != ErrNoSuchNick {
+				return nil, false, err
+			}
+			return nil, false, ErrNoUser
+		}
+		online, err := n.TellUser(u, text)
+		if err != nil {
 			return nil, false, err
 		}
-		return []string{fmt.Sprintf("Sent to node %d.", num)}, false, nil
+		if !online {
+			return []string{u.Name + " is away; they will have it when they next log in."}, false, nil
+		}
+		return []string{"Sent to " + u.Name + "."}, false, nil
+	case "history":
+		if arg == "" {
+			ps, err := n.Conversations()
+			if err != nil {
+				return nil, false, err
+			}
+			if len(ps) == 0 {
+				return []string{"You have no conversations yet (/msg WHO TEXT starts one)."}, false, nil
+			}
+			out = append(out, "Your conversations (/history WHO to read one):")
+			for _, p := range ps {
+				out = append(out, fmt.Sprintf("  %-20s %d lines, the last %s", p.Name, p.Lines, p.Last.Format("Jan 2 15:04")))
+			}
+			return out, false, nil
+		}
+		u, err := n.b.Store.UserByName(arg)
+		if err != nil {
+			return nil, false, ErrNoUser
+		}
+		cs, err := n.History(u, 50)
+		if err != nil {
+			return nil, false, err
+		}
+		if len(cs) == 0 {
+			return []string{"You and " + u.Name + " have not talked yet."}, false, nil
+		}
+		return HistoryLines(cs), false, nil
+	case "friends":
+		u := n.User()
+		if u == nil {
+			return nil, false, ErrNoUser
+		}
+		lines, err := n.b.FriendLines(u)
+		return lines, false, err
+	case "friend", "unfriend":
+		u := n.User()
+		if u == nil || arg == "" {
+			return nil, false, fmt.Errorf("/%s WHO: a user's name", strings.ToLower(cmd))
+		}
+		if strings.ToLower(cmd) == "friend" {
+			f, err := n.b.AddFriend(u, arg)
+			if err != nil {
+				return nil, false, err
+			}
+			return []string{f.Name + " is on your friends list."}, false, nil
+		}
+		f, err := n.b.RemoveFriend(u, arg)
+		if err != nil {
+			return nil, false, err
+		}
+		return []string{f.Name + " is off your friends list."}, false, nil
+	case "block", "unblock":
+		u := n.User()
+		if u == nil || arg == "" {
+			return nil, false, fmt.Errorf("/%s WHO: a user's name", strings.ToLower(cmd))
+		}
+		if strings.ToLower(cmd) == "block" {
+			f, err := n.b.Block(u, arg)
+			if err != nil {
+				return nil, false, err
+			}
+			return []string{f.Name + " is blocked: you will not get their messages."}, false, nil
+		}
+		f, err := n.b.Unblock(u, arg)
+		if err != nil {
+			return nil, false, err
+		}
+		return []string{f.Name + " is no longer blocked."}, false, nil
 	case "pages":
 		ps := n.b.Pages()
 		if len(ps) == 0 {

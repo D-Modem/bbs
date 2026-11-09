@@ -62,6 +62,7 @@ type Listener struct {
 	RIP           string // auto (ask a BBS terminal program), yes, no
 	VT            string // auto: ask terminals what they are (DA1, DA2, ESC Z ...); no
 	Header        bool   // read a session header first
+	Handoff       bool   // unix: the caller's line itself comes with the header (SCM_RIGHTS)
 	HeaderTimeout time.Duration
 	TrustUser     bool // the header's MODEM_USER (rlogin's server user) is logged in
 	CreateUsers   bool // and gets an account if it has none
@@ -118,6 +119,10 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}
 	for _, l := range s.Listeners {
+		if l.Frontend == "compuserve" {
+			// CIM's Secure Login needs a key made from each password
+			s.B.Store.SetKeepCIS(true)
+		}
 		if l.Kind == "ssh" {
 			if err := s.sshSetup(l); err != nil {
 				closeAll()
@@ -371,7 +376,25 @@ func (s *Server) handle(nc net.Conn, l *Listener) {
 		return
 	}
 	if l.Header {
-		h, err := ReadHeader(c, l.HeaderTimeout)
+		var h map[string]string
+		var err error
+		if uc, ok := nc.(*net.UnixConn); ok && l.Handoff {
+			var line *os.File
+			if h, line, err = ReadHeaderFD(uc, l.HeaderTimeout); err == nil && line != nil {
+				// the caller's line itself: the session on it, the
+				// connection only its life
+				lc, lerr := newLineConn(line, nc)
+				if lerr != nil {
+					s.B.Log.Printf("[listen %s] %s: %v", l.Name, remote, lerr)
+					return
+				}
+				defer lc.Close()
+				c = timedConn{lc}
+				s.B.Log.Printf("[listen %s] %s: the line handed over", l.Name, remote)
+			}
+		} else {
+			h, err = ReadHeader(c, l.HeaderTimeout)
+		}
 		if err != nil {
 			s.B.Log.Printf("[listen %s] %s: %v", l.Name, remote, err)
 			return
@@ -406,7 +429,7 @@ func (s *Server) handle(nc net.Conn, l *Listener) {
 	default:
 		err = s.text(c, c, l, node, "")
 	}
-	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) {
+	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) && !errors.Is(err, os.ErrClosed) {
 		s.B.Log.Printf("node %d: %v", node.Num, err)
 	}
 	s.B.Log.Printf("node %d: gone", node.Num)

@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/D-Modem/bbs/internal/sockets"
+	"github.com/D-Modem/bbs/internal/timesync"
 )
 
 // Bind binds every socket the configuration listens on (as root, before
 // the BBS becomes [general]'s user): the listeners, TCP and unix, and the
-// servers' ports.  They are handed down, each server taking its own.
+// servers' ports, TCP and UDP (NTP, PTP).  They are handed down, each
+// server taking its own.
 func Bind(cfg *Config) ([]sockets.Socket, error) {
 	var out []sockets.Socket
 	fail := func(err error) ([]sockets.Socket, error) {
@@ -80,6 +83,11 @@ func Bind(cfg *Config) ([]sockets.Socket, error) {
 	if cfg.NNTP != nil {
 		addrs = append(addrs, cfg.NNTP.Address)
 	}
+	for _, ms := range cfg.MailServers {
+		if !strings.HasPrefix(ms.Set.Address, "/") {
+			addrs = append(addrs, ms.Set.Address)
+		}
+	}
 	if i := cfg.IRC; i != nil {
 		addrs = append(addrs, i.Address, i.TLSAddress)
 	}
@@ -92,9 +100,56 @@ func Bind(cfg *Config) ([]sockets.Socket, error) {
 	if cfg.Binkp != nil {
 		addrs = append(addrs, cfg.Binkp.Address)
 	}
+	if t := cfg.Time; t != nil && t.NTS != nil {
+		addrs = append(addrs, t.NTS.Address)
+	}
 	for _, a := range addrs {
 		if err := tcp(a); err != nil {
 			return fail(err)
+		}
+	}
+	udp := func(addr string, prep func(*net.UDPConn) error) error {
+		a, err := net.ResolveUDPAddr("udp", addr)
+		if err != nil {
+			return fmt.Errorf("%s: %w", addr, err)
+		}
+		c, err := net.ListenUDP("udp", a)
+		if err != nil {
+			return fmt.Errorf("%s: %w", addr, err)
+		}
+		defer c.Close()
+		if prep != nil {
+			if err := prep(c); err != nil {
+				return fmt.Errorf("%s: %w", addr, err)
+			}
+		}
+		f, err := c.File()
+		if err != nil {
+			return err
+		}
+		out = append(out, sockets.Socket{Network: "udp", Address: addr, File: f})
+		return nil
+	}
+	if t := cfg.Time; t != nil {
+		if t.NTP != nil {
+			if err := udp(t.NTP.Address, nil); err != nil {
+				return fail(fmt.Errorf("[ntp] %w", err))
+			}
+		}
+		if p := t.PTP; p != nil {
+			ports := p.Ports()
+			// hardware timestamps are turned on now, as root (the network
+			// card's are CAP_NET_ADMIN's to change)
+			var prep func(*net.UDPConn) error
+			if p.Hardware {
+				prep = func(c *net.UDPConn) error { return timesync.EnableTimestamps(c, true, p.Interface) }
+			}
+			if err := udp(ports[0], prep); err != nil {
+				return fail(fmt.Errorf("[ptp] %w", err))
+			}
+			if err := udp(ports[1], nil); err != nil {
+				return fail(fmt.Errorf("[ptp] %w", err))
+			}
 		}
 	}
 	return out, nil

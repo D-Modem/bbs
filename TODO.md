@@ -2,6 +2,49 @@
 
 Ideas not yet started, with what is known of them.
 
+## An AOL front end
+
+*Status: started; FDO91 (`internal/aol/fdo`), P3 (`internal/aol/p3`) and
+the host's sign-on (`internal/aol`, `[aol]`) are done.*
+
+For AOL 3.0 and 4.0 for Windows, the real clients, over TCP (port 5190, the
+client's `AmericaOnline.aol.com`) and by modem.
+
+- **FDO91** (done): atom streams read and written, all eight encoding
+  styles and large atoms; a compiler from FDO91 source that matches
+  Ada32.dll byte for byte on AtomForge's corpus (1,889 forms, 74,369
+  single atoms, 44 live captures); a decompiler whose text compiles back
+  to the same bytes.
+- **P3** (done): packets (CRC-16/ARC, AOL 4.0's `**`), and the host's
+  end of a link: INIT acknowledged, DATA in order in and within a window
+  of 16 out, ACKs every 8 or soon after, NAKs and go-back-N resends,
+  heartbeats after 12 seconds, 10 of them and the link is down.
+- **Host** (started): `[aol]`, sharing 5190 with `[oscar]` through its P3
+  hook; `Dd` signs on with a BBS account (a node, as any caller), then
+  `async_online`, the client's main window (32-296) and the BBS's own
+  Welcome; `pE` answered with `XS`; other tokens with `uni_wait_off`.
+  Streams go as `aT`, or `at` pieces when long; the client's long ones
+  are put together.  Not yet tried with a real client.
+- **Chat and IMs** (done, untried with a real client): `CJ` into the
+  main room in the client's room window (32-117, 4.0's 43-22783), lines
+  as `AB`, comings and goings as `CA`/`CB`, `Aa` said; `iS`/`is` IMs as
+  BBS private messages (kept for one away), shown in 32-223 (4.0's
+  32-6736); `iO` asks who is on.
+- **Keywords and mail** (done, untried with a real client): `Kk` from
+  the Keyword window (de_data) or a host button (the word as it is) to
+  Help, Chat, Mail, Who; `m4` MIP mail (header and text in one stream or
+  two) to BBS mail; the mailbox, a mail and Who are host windows whose
+  buttons send keywords; new mail counted on the Welcome window.
+- **Tokens**, next: the client's own Read Mail list (`m7` and its MIP
+  answers), the room list (`LP`) and other rooms, message areas as
+  boards; the client asks for art it lacks (`fh`): none is served yet.
+- **Modem callers**: the client's CCL script expects a network's prompts
+  (SprintNet, Tymnet) before P3; emulate one, or ship a CCL that dials
+  straight in.
+- **To decide**: AOL 4.0's RSA handshake (revival servers turn it off in
+  the client); which client forms (32-xxxx) are in its own database and
+  which the host must send.
+
 ## Doors for 3270 callers: an ANSI to 3270 layer
 
 *Status: being thought about; other ways to solve it may win.*
@@ -42,36 +85,3 @@ layer between a door and a 3270 could show them:
   be tried by hand.
 - **Shape.**  An option on a `[door]` (`tn3270 = yes`) that shows the door
   on the 3270 Doors menu and puts this layer between them.
-
-## Email: POP3, IMAP and SMTP
-
-*Status: pinned; scope not chosen.*
-
-Private mail already lives in SQLite, one inbox per user with a read flag;
-NNTP and FTP already share the BBS's login, throttling and TLS modes, and
-`internal/news` already makes and safely decodes RFC 5322/MIME messages.
-
-- **POP3** (RFC 1939, STLS): small.  The inbox is the mailbox, a mail's id
-  its UIDL, DELE deletes.
-- **IMAP** (RFC 3501/9051): moderate, with emersion's go-imap server (v2
-  is beta: pin it).  INBOX is the inbox, \Seen the read flag; new: a Sent
-  folder (mail is kept only in the recipient's inbox today), stored flags,
-  UIDVALIDITY.
-- **SMTP**, three jobs:
-  - *submission* (587, AUTH required, so never an open relay) to BBS users
-    and FidoNet netmail: small, with emersion's go-smtp;
-  - *inbound from the internet*: easy code, hard operations (MX, port 25
-    often blocked, spam, SPF/DKIM/DMARC checks);
-  - *outbound to the internet*: queue, retries, bounces, DKIM, SPF/DMARC,
-    rDNS, IP reputation: most of the long-term trouble.
-- **Suggested shape**: phase 1, POP3 + IMAP + submission for BBS users;
-  phase 2, internet mail through Postfix: inbound delivered to the BBS by
-  LMTP (go-smtp does LMTP), outbound by a smarthost.  The BBS as its own
-  internet MTA is possible but not advised.
-- **To decide**: addresses for names with spaces (`alice.smith@domain`, as
-  news posters' already are) and collisions; attachments (kept whole for
-  POP/IMAP, text part plus a list of attachments on terminals, a size
-  limit); `user@domain` as a third recipient form beside user names and
-  FidoNet addresses (those have `:` and `/`); app passwords (optional).
-- **Testing**: Python's imaplib, poplib and smtplib; Postfix (Ubuntu) for
-  LMTP and the smarthost.
