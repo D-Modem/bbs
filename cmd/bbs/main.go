@@ -167,6 +167,14 @@ func usage() {
   bbs [-config FILE] chan board list | del DIR      del takes its posts and images too
   bbs [-config FILE] chan ban add ADDRESS DAYS [BOARD|-] [REASON...]   (0 days: for ever)
   bbs [-config FILE] chan ban list | del ID
+  bbs [-config FILE] feeds catalog                  the feeds [feeds] catalog = may name
+  bbs [-config FILE] feeds list                     the feeds configured
+  bbs [-config FILE] feeds read [NAME...]           read feeds into their areas now
+  bbs [-config FILE] quotes fetch [DATE]            the latest session's quotes from IEX's HIST
+                                                  files (some 16 GB, read as they come, not kept)
+  bbs [-config FILE] quotes load FILE               quotes from a TOPS capture (pcap, pcapng, .gz)
+  bbs [-config FILE] quotes show SYMBOL...          the quotes kept
+  bbs [-config FILE] quotes alpaca [SYMBOL...]     try [quotes]' Alpaca keys: the symbols now
   bbs [-config FILE] gemini cert [-force]          make the Gemini server's certificate (it asks
                                                   for host names, organization and years)
   bbs [-config FILE] acme [list]                   the ACME client's certificates: names, expiry
@@ -405,6 +413,10 @@ func main() {
 		geminiCmd(cfg, args)
 	case "acme":
 		acmeCmd(cfg, args)
+	case "feeds":
+		feedsCmd(cfg, args)
+	case "quotes":
+		quotesCmd(cfg, args)
 	default:
 		usage()
 	}
@@ -517,6 +529,7 @@ func serve(cfg *server.Config, path string) int {
 			}
 		}()
 	}
+	startNews(ctx, b, cfg)
 	svc := &nntp.Service{B: b, MaxArticle: int(cfg.MaxArticle)}
 	if cfg.NNTP != nil {
 		ns, err := nntp.NewServer(svc, *cfg.NNTP, cfg.Peers)

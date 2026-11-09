@@ -319,6 +319,16 @@ func (e *Editor) servicesMenu() page {
 			menu("News (NNTP)", e.onOff(sec("nntp")), func() error { return e.show(e.newsPage()) }),
 			menu("Web: API, forum, image boards", e.onOff(sec("http")), func() error { return e.show(e.webPage()) }),
 			menu("Certificates (ACME)", e.onOff(sec("acme")), func() error { return e.show(e.acmePage()) }),
+			heading("News, weather and quotes"),
+			e.single("News feeds", "feeds"),
+			menu("Feeds of your own", e.count("feed", nil, "feed"), func() error {
+				return e.show(e.listPage("Feeds of your own", "feed", "feed", nil, func(s confedit.Section) string {
+					u, _ := e.doc.Get(s, "url")
+					return u
+				}, nil))
+			}),
+			e.single("Weather", "weather"),
+			e.single("Stock quotes", "quotes"),
 		}
 	}}
 }

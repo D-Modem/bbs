@@ -22,6 +22,7 @@ import (
 	"github.com/D-Modem/bbs/internal/door"
 	"github.com/D-Modem/bbs/internal/email"
 	"github.com/D-Modem/bbs/internal/events"
+	"github.com/D-Modem/bbs/internal/feeds"
 	"github.com/D-Modem/bbs/internal/fido"
 	"github.com/D-Modem/bbs/internal/finger"
 	"github.com/D-Modem/bbs/internal/ftp"
@@ -44,6 +45,7 @@ import (
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
 	"github.com/D-Modem/bbs/internal/ui3270"
+	"github.com/D-Modem/bbs/internal/weather"
 	"github.com/D-Modem/bbs/internal/ymsg"
 )
 
@@ -59,35 +61,41 @@ type Config struct {
 	FTP          *ftp.Settings // nil: no FTP server
 	FTPAdvertise string        // the FTP server's address, as users are told it
 
-	News            bbs.NewsSettings
-	MaxArticle      int64
-	NNTP            *nntp.ServerSettings // nil: no NNTP server
-	Peers           []*nntp.Peer
-	Mail            *email.Settings // [mail]; nil: no e-mail
-	MailServers     []*MailServer
-	Fido            *fido.Settings // nil: not on FidoNet
-	QWKNets         []*qwknet.Net  // [qwknet NAME]: QWK networks this is a node of
-	Binkp           *BinkpSettings // nil: no binkp answering
-	Doors           []*door.Door
-	Finger          *finger.Settings  // nil: no finger server
-	IRC             *ircd.Settings    // nil: no IRC server
-	OSCAR           *oscar.Settings   // nil: no AIM/ICQ server
-	AOL             *aol.Settings     // nil: no host for AOL clients
-	MSN             *msn.Settings     // nil: no MSN Messenger server
-	Marvel          *marvel.Settings  // nil: no host for the MSN (1995) client over TCP
-	YMSG            *ymsg.Settings    // nil: no Yahoo! Messenger server
-	ACME            *acme.Settings    // nil: no ACME client; certificates are the sysop's files
-	MRC             *mrc.Settings     // nil: not on Multi Relay Chat
-	IRCLink         *irclink.Settings // nil: not linked to an IRC network
-	Screens         *screens.Set      // nil: no screens of the sysop's
-	ScriptsDir      string            // "": no scripts
-	Menus           map[string]*bbs.Menu
-	Text            map[string]string // [strings]
-	HTTP            *api.Settings     // nil: no HTTP API
-	Chan            imageboard.Settings
-	Gopher          *gopher.Settings // nil: no gopher server
-	Gemini          *gemini.Settings // nil: no Gemini server
-	Time            *TimeSettings    // nil: no [time], [ntp], [nts] or [ptp]
+	News        bbs.NewsSettings
+	MaxArticle  int64
+	NNTP        *nntp.ServerSettings // nil: no NNTP server
+	Peers       []*nntp.Peer
+	Mail        *email.Settings // [mail]; nil: no e-mail
+	MailServers []*MailServer
+	Fido        *fido.Settings // nil: not on FidoNet
+	QWKNets     []*qwknet.Net  // [qwknet NAME]: QWK networks this is a node of
+	Binkp       *BinkpSettings // nil: no binkp answering
+	Doors       []*door.Door
+	Finger      *finger.Settings  // nil: no finger server
+	IRC         *ircd.Settings    // nil: no IRC server
+	OSCAR       *oscar.Settings   // nil: no AIM/ICQ server
+	AOL         *aol.Settings     // nil: no host for AOL clients
+	MSN         *msn.Settings     // nil: no MSN Messenger server
+	Marvel      *marvel.Settings  // nil: no host for the MSN (1995) client over TCP
+	YMSG        *ymsg.Settings    // nil: no Yahoo! Messenger server
+	ACME        *acme.Settings    // nil: no ACME client; certificates are the sysop's files
+	MRC         *mrc.Settings     // nil: not on Multi Relay Chat
+	IRCLink     *irclink.Settings // nil: not linked to an IRC network
+	Screens     *screens.Set      // nil: no screens of the sysop's
+	ScriptsDir  string            // "": no scripts
+	Menus       map[string]*bbs.Menu
+	Text        map[string]string // [strings]
+	HTTP        *api.Settings     // nil: no HTTP API
+	Chan        imageboard.Settings
+	Gopher      *gopher.Settings  // nil: no gopher server
+	Gemini      *gemini.Settings  // nil: no Gemini server
+	Feeds       *feeds.Settings   // nil: no news feeds
+	Weather     *weather.Settings // nil: no weather
+	// WeatherAtLogin: callers are told of serious weather warnings where
+	// they are when they log in
+	WeatherAtLogin  bool
+	Quotes          *QuoteSettings // nil: no stock quotes
+	Time            *TimeSettings  // nil: no [time], [ntp], [nts] or [ptp]
 	Database        string
 	Log             string // syslog, stderr, none, or a file
 	Listeners       []*Listener
@@ -186,6 +194,9 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.timeSections(cf); err != nil {
 		return nil, err
 	}
+	if err := c.feedSections(cf); err != nil {
+		return nil, err
+	}
 	if err := c.infoSections(cf); err != nil {
 		return nil, err
 	}
@@ -254,6 +265,7 @@ func load(cf *config.File) (*Config, error) {
 	for _, s := range cf.Sections {
 		switch s.Kind {
 		case "general", "security", "acme", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "gemini", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "marvel", "ymsg", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
+			"feeds", "feed", "weather", "quotes",
 			"mail", "smarthost", "pop3", "imap", "smtp", "mx", "lmtp":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
