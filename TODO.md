@@ -25,8 +25,14 @@ client's `AmericaOnline.aol.com`) and by modem.
   Welcome; `pE` answered with `XS`; other tokens with `uni_wait_off`.
   Streams go as `aT`, or `at` pieces when long; the client's long ones
   are put together.  Not yet tried with a real client.
-- **Tokens**, next: chat (`Aa`), IMs (`iS`), mail (`m4`, MIP), keywords
-  (`k1`/`f1`) to areas; each answered with forms compiled from source.
+- **Chat and IMs** (done, untried with a real client): `CJ` into the
+  main room in the client's room window (32-117, 4.0's 43-22783), lines
+  as `AB`, comings and goings as `CA`/`CB`, `Aa` said; `iS`/`is` IMs as
+  BBS private messages (kept for one away), shown in 32-223 (4.0's
+  32-6736); `iO` asks who is on.
+- **Tokens**, next: mail (`m4`, MIP), keywords (`k1`/`f1`) to areas, the
+  room list (`LP`); each answered with forms compiled from source.  The
+  client asks for art it lacks (`fh`): none is served yet.
 - **Modem callers**: the client's CCL script expects a network's prompts
   (SprintNet, Tymnet) before P3; emulate one, or ship a CCL that dials
   straight in.

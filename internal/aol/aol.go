@@ -99,7 +99,7 @@ func (s *Server) Handle(c net.Conn) {
 		s.B.Log.Printf("aol: %s: %v", host, err)
 		return
 	}
-	ss := &session{s: s, l: l, host: host, init: l.Init(), parts: map[partKey][]byte{}}
+	ss := &session{s: s, l: l, host: host, init: l.Init(), parts: map[partKey][]byte{}, ims: map[string]int{}}
 	s.mu.Lock()
 	s.sessions[ss] = true
 	s.mu.Unlock()

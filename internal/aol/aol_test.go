@@ -328,3 +328,150 @@ func TestOSCARPort(t *testing.T) {
 		t.Errorf("online:\n%s", s)
 	}
 }
+
+// signedOn is a client signed on as name (the welcome passed over).
+func signedOn(t *testing.T, srv *Server, name string) *client {
+	t.Helper()
+	c := connect(t, srv)
+	c.send("Dd", signOnForm(name, "password1"))
+	c.stream()
+	c.stream()
+	return c
+}
+
+// chatLine is the next AB (a line in the room window), as "name: text".
+func (c *client) chatLine() string {
+	c.t.Helper()
+	for {
+		tok, d := c.token()
+		if tok != "AB" {
+			continue
+		}
+		if len(d) < 11 || d[10] != 0 || d[len(d)-1] != 0 {
+			c.t.Fatalf("AB % x", d)
+		}
+		return strings.TrimRight(string(d[:10]), " ") + ": " + string(d[11:len(d)-1])
+	}
+}
+
+// deData is a form's fields as the client sends them, after a stream id.
+func deData(fields ...string) []byte {
+	src := "uni_start_stream\n"
+	for _, f := range fields {
+		src += "  de_data <" + fdo.Quote(f) + ">\n"
+	}
+	return append([]byte{0, 1}, fdo.MustCompile(src+"uni_end_stream\n")...)
+}
+
+func TestChat(t *testing.T) {
+	srv, _ := newServer(t)
+	if _, err := srv.B.Store.CreateUser("bob", "password1", "There", false); err != nil {
+		t.Fatal(err)
+	}
+	a := signedOn(t, srv, "alice")
+	a.send("CJ", []byte{0, 1})
+	if s := a.stream(); !strings.Contains(s, "man_close") {
+		t.Errorf("close first:\n%s", s)
+	}
+	if s := a.stream(); !strings.Contains(s, "uni_invoke_local <32-117>") || !strings.Contains(s, "chat_add_user") ||
+		!strings.Contains(s, `man_preset_title <"main">`) {
+		t.Errorf("room:\n%s", s)
+	}
+	a.stream() // uni_wait_off
+	if l := a.chatLine(); l != `OnlineHost: *** You are in "main". ***` {
+		t.Error(l)
+	}
+
+	// bob on a terminal node comes in: CA
+	b := srv.B
+	u, _ := b.Store.UserByName("bob")
+	n, err := b.Enter(&bbs.Caller{Via: "telnet"}, func() {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	n.SetUser(u)
+	if _, err := n.JoinRoom("main"); err != nil {
+		t.Fatal(err)
+	}
+	if tok, d := a.token(); tok != "CA" || !bytes.Equal(d, []byte("\x02bob\x00")) {
+		t.Errorf("CA: %q % x", tok, d)
+	}
+	n.Say("hi alice", false)
+	if l := a.chatLine(); l != "bob: hi alice" {
+		t.Error(l)
+	}
+	// alice's line goes to the room, and back to her window
+	a.send("Aa", deData("hello bob"))
+	if l := a.chatLine(); l != "alice: hello bob" {
+		t.Error(l)
+	}
+	if e := waitEvent(t, n, "alice"); e.Kind != bbs.Said || e.From != "alice" || e.Text != "hello bob" {
+		t.Errorf("bob had %+v", e)
+	}
+	n.LeaveRoom()
+	if tok, d := a.token(); tok != "CB" || !bytes.Equal(d, []byte{2}) {
+		t.Errorf("CB: %q % x", tok, d)
+	}
+}
+
+func waitEvent(t *testing.T, n *bbs.Node, from string) bbs.Event {
+	t.Helper()
+	for i := 0; i < 300; i++ {
+		for _, e := range n.Pending() {
+			if (e.Kind == bbs.Said || e.Kind == bbs.Private) && e.From == from {
+				return e
+			}
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("no event")
+	return bbs.Event{}
+}
+
+func TestIM(t *testing.T) {
+	srv, _ := newServer(t)
+	for _, name := range []string{"bob", "Carol Ann"} {
+		if _, err := srv.B.Store.CreateUser(name, "password1", "There", false); err != nil {
+			t.Fatal(err)
+		}
+	}
+	a := signedOn(t, srv, "alice")
+	c := signedOn(t, srv, "CarolAnn") // her AOL name, without its space
+
+	// alice to Carol Ann: in Carol's IM window, and alice's own
+	a.send("iS", deData("CarolAnn", "hi there"))
+	if s := c.stream(); !strings.Contains(s, "uni_invoke_local <32-223>") ||
+		!strings.Contains(s, `"Instant Message From: alice"`) || !strings.Contains(s, `"alice:  hi there\r"`) {
+		t.Errorf("Carol's IM:\n%s", s)
+	}
+	if s := a.stream(); !strings.Contains(s, `"Instant Message From: Carol Ann"`) || !strings.Contains(s, `"alice:  hi there\r"`) {
+		t.Errorf("alice's own:\n%s", s)
+	}
+	// Carol answers in the same window (its global id kept)
+	c.send("iS", deData("alice", "<b>hello</b> back"))
+	if s := a.stream(); !strings.Contains(s, "man_preset_gid <50-0-1>") || !strings.Contains(s, `"Carol Ann:  hello back\r"`) {
+		t.Errorf("answer:\n%s", s)
+	}
+	c.stream()
+
+	// to bob, who is away: kept, and the sender told
+	a.send("iS", deData("bob", "see you"))
+	if s := a.stream(); !strings.Contains(s, "not signed on now") {
+		t.Errorf("away:\n%s", s)
+	}
+	a.stream()
+	b := signedOn(t, srv, "bob")
+	if s := b.stream(); !strings.Contains(s, "while you were away") || !strings.Contains(s, "see you") {
+		t.Errorf("kept:\n%s", s)
+	}
+
+	// to no one; and who is on
+	a.send("iS", deData("nobody", "x"))
+	if s := a.stream(); !strings.Contains(s, "nobody is not a member here") {
+		t.Errorf("nobody:\n%s", s)
+	}
+	a.send("iO", deData("bob"))
+	if s := a.stream(); !strings.Contains(s, "bob is online") {
+		t.Errorf("iO:\n%s", s)
+	}
+}
