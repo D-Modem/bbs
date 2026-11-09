@@ -1,7 +1,8 @@
 // Package irclink links the BBS's chat into an IRC network as a hub
 // server, by TS6: the server-to-server protocol of Solanum (Libera.Chat),
-// charybdis, ircd-ratbox and ircd-hybrid (EFnet).  It takes any number of
-// server links, in and out, and routes between them as a hub does.
+// charybdis, ircd-ratbox and ircd-hybrid (EFnet); or by P10, ircu's
+// (Undernet).  It takes any number of server links, in and out, of either,
+// and routes between them as a hub does.
 //
 // Every BBS user online, on a terminal, the web, IRC, AIM or any other way,
 // is a user on the network, whom anyone there can /msg and /whois.  The
@@ -44,6 +45,7 @@ type Settings struct {
 	TLSAddress  string // the same, by TLS
 	CertFile    string
 	KeyFile     string
+	Numeric     int // its P10 server numeric, 0 to 4095 (-1: none; needed for a P10 link)
 	Peers       []Peer
 	Retry       time.Duration // between tries of a link out (default 30s)
 }
@@ -58,6 +60,7 @@ type Peer struct {
 	AcceptPassword string // the password it must send us
 	Tag            string // its users' tag, beside a BBS user of the same nick
 	Hybrid         bool   // it is ircd-hybrid 8, whose TS6 differs (protocol = hybrid)
+	P10            bool   // it is ircu, of P10 (protocol = p10)
 }
 
 var (
@@ -90,6 +93,9 @@ func (s *Settings) Check(bbsName string) error {
 	if s.NickLen == 0 {
 		s.NickLen = 30
 	}
+	if s.Numeric > 4095 {
+		return errors.New("numeric: the P10 server numeric, 0 to 4095")
+	}
 	if s.Retry == 0 {
 		s.Retry = 30 * time.Second
 	}
@@ -114,6 +120,9 @@ func (s *Settings) Check(bbsName string) error {
 		}
 		if !tagRE.MatchString(p.Tag) {
 			return fmt.Errorf("[ircpeer %s] tag: 1 to 8 letters or digits", p.Name)
+		}
+		if p.P10 && s.Numeric < 0 {
+			return fmt.Errorf("[ircpeer %s] protocol = p10: [irclink] needs its numeric", p.Name)
 		}
 	}
 	return nil
@@ -154,6 +163,7 @@ type Hub struct {
 	local   map[string]*user // ours, by folded BBS name
 	killed  map[string]bool  // BBS users killed off the network, until they come on again
 	links   map[*link]bool
+	nums    *numerics // P10's numerics of the network's servers and users
 	nextUID int
 	started time.Time
 }
@@ -165,10 +175,14 @@ func New(b *bbs.BBS, s Settings) (*Hub, error) {
 	}
 	h := &Hub{B: b, S: s, servers: map[string]*server{}, names: map[string]*server{},
 		users: map[string]*user{}, nicks: map[string]*user{}, chans: map[string]*channel{},
-		local: map[string]*user{}, killed: map[string]bool{}, links: map[*link]bool{}, started: time.Now()}
+		local: map[string]*user{}, killed: map[string]bool{}, links: map[*link]bool{}, nums: newNumerics(),
+		started: time.Now()}
 	h.me = &server{sid: s.SID, name: s.ServerName, desc: s.Description, tag: s.Tag}
 	h.servers[h.me.sid] = h.me
 	h.names[fold(h.me.name)] = h.me
+	if s.Numeric >= 0 {
+		h.nums.set(h.me.sid, toB64(s.Numeric, 2))
+	}
 	return h, nil
 }
 

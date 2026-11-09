@@ -108,6 +108,12 @@ type env struct {
 // start is a BBS (alice and bob) with its hub, linking out to peers.
 func start(t *testing.T, peers ...*peerServer) *env {
 	t.Helper()
+	return startWith(t, nil, peers...)
+}
+
+// startWith is start, the settings changed first by change.
+func startWith(t *testing.T, change func(*Settings), peers ...*peerServer) *env {
+	t.Helper()
 	store.BcryptCost = 4
 	st, err := store.Open(filepath.Join(t.TempDir(), "bbs.db"))
 	if err != nil {
@@ -126,6 +132,9 @@ func start(t *testing.T, peers ...*peerServer) *env {
 	for i, p := range peers {
 		set.Peers = append(set.Peers, Peer{Name: names[i], Address: p.ln.Addr().String(),
 			SendPassword: "sendpw", AcceptPassword: "acceptpw"})
+	}
+	if change != nil {
+		change(&set)
 	}
 	h, err := New(b, set)
 	if err != nil {
