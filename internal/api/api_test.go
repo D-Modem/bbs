@@ -718,6 +718,22 @@ func TestAccess(t *testing.T) {
 	if u, _ := s.b.Store.UserByName("alice"); u.Prefs != "editor=line" {
 		t.Errorf("kept %q", u.Prefs)
 	}
+	// where they are: theirs to share (with a database to find it by)
+	s.b.Settings.PhoneCountry = "US"
+	if code, m, _ := s.do("PATCH", "/api/v1/me", alice, map[string]any{"share_location": true}); code != 200 ||
+		m["user"].(map[string]any)["geo"].(map[string]any)["shared"] != true {
+		t.Fatalf("share: %d %v", code, m)
+	}
+	if _, m, _ := s.do("GET", "/api/v1/users/alice", sysop, nil); m["geo"].(map[string]any)["shared"] != true {
+		t.Errorf("as the sysop sees it: %v", m)
+	}
+	if _, m, _ := s.do("GET", "/api/v1/users/alice", "", nil); m["geo"] != nil {
+		t.Errorf("as anyone sees it: %v", m)
+	}
+	s.do("PATCH", "/api/v1/me", alice, map[string]any{"share_location": false})
+	if u, _ := s.b.Store.UserByName("alice"); u.GeoShare {
+		t.Error("still shared")
+	}
 	// a sysop sets them
 	code, m, _ := s.do("PATCH", "/api/v1/admin/users/alice", sysop, map[string]any{"level": 5, "flags": "+F"})
 	if code != 200 || m["level"] != 5.0 || m["flags"] != "F" {

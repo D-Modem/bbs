@@ -300,16 +300,32 @@ func (s *session) register() (bool, error) {
 		}
 		break
 	}
-	loc, err := t.Input("Where are you calling from? ", bbs.MaxLocationLen)
+	guess := s.n.LocationGuess()
+	if guess != "" {
+		t.Println(t.C(Dim, "Filled in from where your connection says you are; change it as you like."))
+	}
+	t.Print("Where are you calling from? ")
+	l, err := t.ReadLine(LineOpts{Max: bbs.MaxLocationLen, Initial: guess})
 	if err != nil {
 		return false, err
 	}
-	u, err := s.n.Register(name, pw, loc)
+	u, err := s.n.Register(name, pw, strings.TrimSpace(l.Text))
 	if err != nil {
 		t.Println(t.C(Red, err.Error()+"."))
 		return false, nil
 	}
 	s.user = u
+	if s.b.GeoOffered() {
+		share, err := t.YesNo("May the sysop see where you call from (by your address or caller ID)?", false)
+		if err != nil {
+			return false, err
+		}
+		if share {
+			if err := s.n.SetGeoShare(true); err != nil {
+				s.b.Log.Printf("node %d: %v", s.n.Num, err)
+			}
+		}
+	}
 	return true, nil
 }
 

@@ -112,6 +112,16 @@ type userJSON struct {
 	Flags     string     `json:"flags,omitempty"`
 	QWKNode   bool       `json:"qwk_node,omitempty"` // to sysops
 	About     string     `json:"about,omitempty"`
+	Geo       *geoJSON   `json:"geo,omitempty"` // to sysops and the user
+}
+
+// geoJSON is where a user calls from, if they let the sysops see it.
+type geoJSON struct {
+	Shared  bool       `json:"shared"`
+	Country string     `json:"country,omitempty"`
+	Place   string     `json:"place,omitempty"`
+	By      string     `json:"by,omitempty"`
+	At      *time.Time `json:"at,omitempty"`
 }
 
 // userView is a user as the request's user may see them: their access
@@ -122,6 +132,12 @@ func (s *Server) userView(r *http.Request, u *store.User) userJSON {
 		level := u.Level
 		j.Level, j.Flags = &level, u.Flags
 		j.QWKNode = u.QWKNode
+		g := &geoJSON{Shared: u.GeoShare, Country: u.Geo.Country, Place: u.Geo.Place, By: u.Geo.By}
+		if !u.Geo.At.IsZero() {
+			at := u.Geo.At
+			g.At = &at
+		}
+		j.Geo = g
 	}
 	return j
 }
@@ -393,6 +409,7 @@ func (s *Server) patchMe(w http.ResponseWriter, r *http.Request) {
 		NewPassword string            `json:"new_password"`
 		Prefs       map[string]string `json:"prefs"`
 		About       *string           `json:"about"`
+		ShareGeo    *bool             `json:"share_location"`
 	}
 	if !s.decode(w, r, &req) {
 		return
@@ -425,6 +442,11 @@ func (s *Server) patchMe(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.About != nil {
 		err = errors.Join(err, s.B.Store.SetAbout(u.ID, bbs.Clean(*req.About, 60)))
+	}
+	if req.ShareGeo != nil && (*req.ShareGeo != u.GeoShare) && (s.B.GeoOffered() || !*req.ShareGeo) {
+		n := s.agent(r)
+		n.Caller.Source = "ip:" + hostOf(r)
+		err = errors.Join(err, n.SetGeoShare(*req.ShareGeo))
 	}
 	if err != nil {
 		s.B.Log.Printf("http: %s: changing their account: %v", u.Name, err)

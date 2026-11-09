@@ -238,4 +238,38 @@ thirteen area codes NANPA had in service). They were checked against
 libphonenumber's Go port (nyaruka/phonenumbers) on 34,000 numbers and gave
 the same country, kind and place for every one.
 
+### A modem call by VoIP without a caller ID
+
+When a call has no caller ID, the BBS falls back to the address the call
+came from over VoIP, if the modem server tells it (`DMODEM_PEER` in the
+session header: `203.0.113.5`, `203.0.113.5:5060` or `sip:...@203.0.113.5`
+all work). The address is looked up in `[general] geoip` like any other.
+This is a best guess: a call that came in through a VoIP provider gives the
+provider's address, not the caller's.
+
+### New users, and users who share where they are
+
+A new user's *Where are you calling from?* starts filled in with where
+their caller ID or address says they are (*San Francisco, CA, United
+States*, *London, England, United Kingdom*). They can change it or clear
+it. The web forum's sign-up form does the same. `geoip_prefill = no` turns
+this off.
+
+New users are then asked whether the sysop may see where they call from.
+The answer is no unless they say yes, and they can change it at any time
+in their profile (*Share where you are with the sysop*), or through the API
+(`PATCH /api/v1/me` with `share_location`). For a user who says yes, the
+BBS keeps the place at each login, with how it was found (caller ID,
+address, VoIP address) and the date. Sysops see it on the user's page (in
+the user list, in the sysop's user editor and in `bbs config`) and in the
+API's `geo`. A user who stops sharing has what was kept forgotten at once.
+`geoip_users = no` stops asking, and stops keeping it. The question is only
+asked when there is a way to find the place (`geoip` or `phone_country`).
+
+```ini
+[general]
+geoip_users = yes     ; ask users whether the sysop may see where they are
+geoip_prefill = yes   ; fill in a new user's location
+```
+
 **See also:** [Configuration](Configuration), [File transfers](File-Transfers)

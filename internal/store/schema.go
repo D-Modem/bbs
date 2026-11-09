@@ -32,7 +32,12 @@ CREATE TABLE IF NOT EXISTS users (
 	about      {str} NOT NULL DEFAULT '',
 	alias      {str} NOT NULL DEFAULT '',
 	signature  {str} NOT NULL DEFAULT '',
-	qwk_node   {bool} NOT NULL DEFAULT FALSE
+	qwk_node   {bool} NOT NULL DEFAULT FALSE,
+	geo_share  {bool} NOT NULL DEFAULT FALSE,
+	geo_code   {str} NOT NULL DEFAULT '',
+	geo_place  {str} NOT NULL DEFAULT '',
+	geo_by     {str} NOT NULL DEFAULT '',
+	geo_at     {int} NOT NULL DEFAULT 0
 )`, `
 CREATE TABLE IF NOT EXISTS areas (
 	id          {id},
@@ -525,6 +530,11 @@ var added = []struct{ table, column, decl string }{
 	{"mail", "message_id", "{key}"},
 	{"mail", "from_addr", "{str} NOT NULL DEFAULT ''"},
 	{"mail", "to_addr", "{str} NOT NULL DEFAULT ''"},
+	{"users", "geo_share", "{bool} NOT NULL DEFAULT FALSE"},
+	{"users", "geo_code", "{str} NOT NULL DEFAULT ''"},
+	{"users", "geo_place", "{str} NOT NULL DEFAULT ''"},
+	{"users", "geo_by", "{str} NOT NULL DEFAULT ''"},
+	{"users", "geo_at", "{int} NOT NULL DEFAULT 0"},
 }
 
 // migrate makes the schema, or brings an older database up to it.

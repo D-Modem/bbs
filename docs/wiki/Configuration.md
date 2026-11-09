@@ -53,7 +53,7 @@ whether terminals are asked what they are (see
 | `[http]` | the HTTP API, its WebSockets, the web forum, the web terminal and metrics | [HTTP API](HTTP-API), [Web forum](Web-Forum) |
 | `[chan]`, `chan` (in `[http]`) | the image boards | [Image boards](Image-Boards) |
 | `page_command` (in `[general]`) | telling the sysop of a page when they are not on | [Chat and paging](Chat-and-Paging) |
-| `geoip`, `geoip_credit`, `phone_country` (in `[general]`) | where callers are: a country database for addresses, the home country of caller IDs | [Modem callers](Modem-Callers#where-callers-are), [Web forum](Web-Forum#flags) |
+| `geoip`, `geoip_credit`, `phone_country`, `geoip_users`, `geoip_prefill` (in `[general]`) | where callers are: a country database for addresses, the home country of caller IDs; users who share theirs with the sysops; new users' locations filled in | [Modem callers](Modem-Callers#where-callers-are), [Web forum](Web-Forum#flags) |
 
 `bbs check` reads the file and reports what it found. It warns about
 anything risky, such as a password that may cross the network in the
@@ -156,7 +156,7 @@ for a restart:
 
 | Section | Keys that change at once |
 |---|---|
-| `[general]` | `name`, `sysop`, `location`, `postal_address`, `phone`, `addresses`, `banner`, `banner_file`, `motd`, `motd_file`, `goodbye`, `new_users`, `max_nodes`, `attempts`, `fail_delay`, `login_timeout`, `idle_timeout`, `throttle_failures`, `throttle_time`, `page_command`, `qwk_id`, `geoip`, `geoip_credit`, `geoip_credit_url`, `phone_country`, `new_user_level`, `validated_level` |
+| `[general]` | `name`, `sysop`, `location`, `postal_address`, `phone`, `addresses`, `banner`, `banner_file`, `motd`, `motd_file`, `goodbye`, `new_users`, `max_nodes`, `attempts`, `fail_delay`, `login_timeout`, `idle_timeout`, `throttle_failures`, `throttle_time`, `page_command`, `qwk_id`, `geoip`, `geoip_credit`, `geoip_credit_url`, `phone_country`, `geoip_users`, `geoip_prefill`, `new_user_level`, `validated_level` |
 | `[level N]` | all, and levels added or taken out |
 | `[backup]` | all ([Backups](Backups)) |
 | `[menu NAME]`, `[strings]` | all (a caller in a menu has it until they leave it) |

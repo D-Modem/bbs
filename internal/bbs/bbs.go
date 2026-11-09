@@ -53,6 +53,8 @@ type Settings struct {
 	GeoCredit     string        // the credit the database's licence asks for, on pages that show its data
 	GeoCreditURL  string        // and where it links
 	PhoneCountry  string        // the country (ISO 3166) whose national caller IDs these are ("": none)
+	GeoUsers      bool          // users are asked whether the sysops may see where they call from
+	GeoPrefill    bool          // a new user's location starts as where their address or caller ID says
 
 	// Line speeds for callers without a modem's (telnet, SSH, the web):
 	// whether they may slow what the BBS sends them to a modem's speed,
@@ -95,6 +97,8 @@ func Defaults() Settings {
 		ThrottleFails:  10,
 		ThrottleTime:   10 * time.Minute,
 		LineSpeeds:     true,
+		GeoUsers:       true,
+		GeoPrefill:     true,
 	}
 }
 
@@ -111,6 +115,7 @@ type Caller struct {
 	CallerID string // modem: the caller's number
 	Dialed   string // modem: the number dialed
 	Channel  string // modem: the Asterisk channel
+	Peer     string // modem: the address the call came from by VoIP (the SIP peer's), if told
 
 	// an upstream menu has logged the caller in already (a trusted
 	// header's MODEM_USER, a trusted rlogin's server user)
@@ -710,6 +715,11 @@ func (n *Node) loggedIn(u *store.User, how string) (*store.User, error) {
 	n.SetUser(u)
 	n.DeliverKept()
 	n.startClock(u)
+	if u.GeoShare && n.b.Conf().GeoUsers {
+		if err := n.keepGeo(u.ID); err != nil {
+			n.b.Log.Printf("node %d: where %s calls from: %v", n.Num, u.Name, err)
+		}
+	}
 	if err := n.b.Store.AddCall(&store.Call{UserID: u.ID, Name: u.Name, Location: u.Location,
 		Via: n.Caller.Via, Node: n.Num}); err != nil {
 		n.b.Log.Printf("node %d: the last callers: %v", n.Num, err)

@@ -78,6 +78,7 @@ var labels = map[string]string{
 	"general.line_speed_ask": "Ask the speed at each login",
 	"general.phone_country":  "Caller ID country", "general.geoip": "GeoIP database",
 	"general.geoip_credit": "GeoIP credit", "general.geoip_credit_url": "GeoIP credit link",
+	"general.geoip_users": "Users may share where they are", "general.geoip_prefill": "Fill in a new user's location",
 	"general.new_user_level": "New users' level", "general.validated_level": "Validated users' level",
 	"general.tn3270_symbols": "Programmed symbols (pictures, logo)", "general.tn3270_vector": "Vector graphics (pictures, logo)",
 	"general.tn3270_logo": "3270 logo (PNG)", "general.page_command": "Page command",

@@ -121,6 +121,14 @@ line_speed_ask = no
 ; A caller ID gives the country, the kind of number and, where the plan
 ; says, the place (by libphonenumber's tables, built in)
 ;phone_country = US
+; geoip_users: new users are asked, and may say in their profile, whether
+; the sysops may see where they call from (by geoip, or a modem's caller
+; ID); the place of each who says yes is kept at each login, for the
+; sysop's user pages.  It needs geoip or phone_country
+;geoip_users = yes
+; geoip_prefill: a new user's "Where are you calling from?" starts filled
+; in with where their address or caller ID says (they may change it)
+;geoip_prefill = yes
 
 ; A listener:
 ;   type = telnet        a telnet server; with tn3270 = yes (the default),

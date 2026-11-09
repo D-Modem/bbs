@@ -255,7 +255,7 @@ var liveKeys = map[string]map[string]bool{
 		"goodbye", "new_users", "max_nodes", "attempts", "fail_delay", "login_timeout",
 		"idle_timeout", "throttle_failures", "throttle_time", "page_command", "qwk_id",
 		"line_speeds", "line_speed", "line_speed_ask",
-		"geoip", "geoip_credit", "geoip_credit_url", "phone_country", "new_user_level",
+		"geoip", "geoip_credit", "geoip_credit_url", "phone_country", "geoip_users", "geoip_prefill", "new_user_level",
 		"validated_level"),
 	"http": set("forum_guests", "forum_theme", "forum_flags"),
 }
