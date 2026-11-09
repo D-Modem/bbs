@@ -161,7 +161,7 @@ The BBS answers `WHOIS`, `VERSION`, `MOTD`, `ADMIN`, `INFO`, `TIME` and
 
 `internal/irclink`'s `TestLive` links to a real ircd when one is set up:
 see the top of `live_test.go`. It has been run against Solanum (built from
-its main branch) and ircd-hybrid 8.2.43. The P10 link is tested against a
-server speaking ircu's lines as its source (`ircu2`'s `m_*.c`) has them.
+its main branch), ircd-hybrid 8.2.43 and ircu 2.10.12.19 (built from
+UndernetIRC's `ircu2`, linking both in and out, with `IRCLINK_LIVE_PROTOCOL=p10`).
 
 **See also:** [IRC](IRC), [Chat and paging](Chat-and-Paging), [MRC](MRC)

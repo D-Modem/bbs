@@ -244,7 +244,7 @@ func TestNumerics(t *testing.T) {
 	if ip := b64ToIP("CABA24_AAB"); ip != "2001:db8::1" {
 		t.Errorf("IPv6 %s", ip)
 	}
-	src, tok, params := parseP10("AFAAB P #retro :hi there")
+	src, tok, params := parseP10("@time=2026-11-09T02:49:12.000Z AFAAB P #retro :hi there")
 	if src != "AFAAB" || tok != "P" || len(params) != 2 || params[1] != "hi there" {
 		t.Errorf("parse %q %q %q", src, tok, params)
 	}

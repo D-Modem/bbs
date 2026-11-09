@@ -283,6 +283,11 @@ func p10Line(source, token string, trailing bool, params ...string) string {
 // parameters.
 func parseP10(raw string) (source, token string, params []string) {
 	s := strings.TrimLeft(raw, " ")
+	if strings.HasPrefix(s, "@") {
+		// message tags (ircu 2.10.12's @time): not wanted here
+		_, s, _ = strings.Cut(s, " ")
+		s = strings.TrimLeft(s, " ")
+	}
 	if strings.HasPrefix(s, ":") {
 		// an old-style :name prefix
 		i := strings.IndexByte(s, ' ')

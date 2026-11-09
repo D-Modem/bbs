@@ -72,7 +72,7 @@ func TestLive(t *testing.T) {
 	}
 	c.expect("PRIVMSG alice :hello back")
 	alice.Leave()
-	c.expect(":" + ours + "!bbs@irc.test.example PART #retro")
+	c.expect(":" + ours + "!bbs@irc.test.example PART ") // ircu: PART :#retro
 }
 
 // ircClient is a client of the live ircd.
