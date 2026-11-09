@@ -41,6 +41,7 @@
 - [MSN Classic (1995)](MSN-Classic)
 - [Yahoo! Messenger](Yahoo-Messenger)
 - [MRC](MRC)
+- [News, weather and quotes](News-Weather-and-Quotes)
 - [Finger, gopher and Gemini](Finger-and-Gopher)
 - [Time: NTP, NTS and PTP](Time)
 - [Web forum](Web-Forum)

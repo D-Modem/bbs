@@ -20,6 +20,7 @@ import (
 	"github.com/D-Modem/bbs/internal/door"
 	"github.com/D-Modem/bbs/internal/email"
 	"github.com/D-Modem/bbs/internal/events"
+	"github.com/D-Modem/bbs/internal/feeds"
 	"github.com/D-Modem/bbs/internal/fido"
 	"github.com/D-Modem/bbs/internal/finger"
 	"github.com/D-Modem/bbs/internal/ftp"
@@ -42,6 +43,7 @@ import (
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
 	"github.com/D-Modem/bbs/internal/ui3270"
+	"github.com/D-Modem/bbs/internal/weather"
 	"github.com/D-Modem/bbs/internal/ymsg"
 )
 
@@ -82,17 +84,23 @@ type Config struct {
 	Text        map[string]string // [strings]
 	HTTP        *api.Settings     // nil: no HTTP API
 	Chan        imageboard.Settings
-	Gopher      *gopher.Settings // nil: no gopher server
-	Gemini      *gemini.Settings // nil: no Gemini server
-	Time        *TimeSettings    // nil: no [time], [ntp], [nts] or [ptp]
-	Database    string
-	Log         string // syslog, stderr, none, or a file
-	Listeners   []*Listener
-	Warnings    []string
-	Guard       *guard.Guard     // [security]
-	RunAs       *sockets.Account // [general] user and group: who serve becomes, its ports bound (nil: as it is started)
-	MenuAuth    *MenuAuth        // [modemmenu]: passwords asked of modemmenu (nil: none)
-	Events      []*events.Event
+	Gopher      *gopher.Settings  // nil: no gopher server
+	Gemini      *gemini.Settings  // nil: no Gemini server
+	Feeds       *feeds.Settings   // nil: no news feeds
+	Weather     *weather.Settings // nil: no weather
+	// WeatherAtLogin: callers are told of serious weather warnings where
+	// they are when they log in
+	WeatherAtLogin bool
+	Quotes         *QuoteSettings // nil: no stock quotes
+	Time           *TimeSettings  // nil: no [time], [ntp], [nts] or [ptp]
+	Database       string
+	Log            string // syslog, stderr, none, or a file
+	Listeners      []*Listener
+	Warnings       []string
+	Guard          *guard.Guard     // [security]
+	RunAs          *sockets.Account // [general] user and group: who serve becomes, its ports bound (nil: as it is started)
+	MenuAuth       *MenuAuth        // [modemmenu]: passwords asked of modemmenu (nil: none)
+	Events         []*events.Event
 }
 
 // DefaultListeners are used when the file has no [listen] section: telnet
@@ -179,6 +187,9 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.timeSections(cf); err != nil {
 		return nil, err
 	}
+	if err := c.feedSections(cf); err != nil {
+		return nil, err
+	}
 	if err := c.infoSections(cf); err != nil {
 		return nil, err
 	}
@@ -246,6 +257,7 @@ func load(cf *config.File) (*Config, error) {
 	for _, s := range cf.Sections {
 		switch s.Kind {
 		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "gemini", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "marvel", "ymsg", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
+			"feeds", "feed", "weather", "quotes",
 			"mail", "smarthost", "pop3", "imap", "smtp", "mx", "lmtp":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)

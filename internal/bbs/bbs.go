@@ -22,7 +22,9 @@ import (
 	"time"
 
 	"github.com/D-Modem/bbs/internal/files"
+	"github.com/D-Modem/bbs/internal/quotes"
 	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/weather"
 )
 
 // Settings are the [general] options.
@@ -184,6 +186,19 @@ type BBS struct {
 	Guard *guard.Guard
 	// Events are the sysop's scheduled events (nil: none)
 	Events *events.Scheduler
+	// FeedAreas are the message areas news feeds post to (nil: none)
+	FeedAreas []string
+	// FeedStatus is how the feeds' readings have gone, for the sysop (nil:
+	// no feeds)
+	FeedStatus func() []FeedStatus
+	// Weather is the callers' weather (nil: none); WeatherAtLogin: serious
+	// warnings where a caller is are told them at the login
+	Weather        *weather.Service
+	WeatherAtLogin bool
+	// Quotes are the stock quotes (nil: none), QuoteDefault the symbols a
+	// caller with no list of their own sees
+	Quotes       *quotes.Board
+	QuoteDefault []string
 	// Stats count logins, posts and the like
 	Stats Stats
 	// sysopAway: the sysop is not to be paged (pages leave a message)
@@ -956,4 +971,12 @@ func (b *BBS) AreasFor(u *store.User) ([]AreaNew, error) {
 		out = append(out, AreaNew{a, n})
 	}
 	return out, nil
+}
+
+// FeedStatus is how a news feed's reading has gone.
+type FeedStatus struct {
+	Name, Area string
+	Last, Next time.Time // zero: not yet
+	Posted     int       // since the BBS started
+	Err        string    // the last reading's failure ("": it worked)
 }

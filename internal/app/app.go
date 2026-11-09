@@ -155,6 +155,7 @@ func (s *Session) welcome(shown bool) []view.Line {
 	if !u.Sysop && u.Level < s.B.Conf().ValidatedLevel {
 		out = append(out, view.T(view.Warn, "Your account waits for the sysop's validation; mail the sysop if you like."))
 	}
+	out = append(out, s.loginWeather()...)
 	if motd := s.B.MOTDText(); motd != "" {
 		out = append(out, view.L(""))
 		for _, l := range strings.Split(strings.TrimRight(motd, "\n"), "\n") {
@@ -188,6 +189,9 @@ func (s *Session) mainMenu(intro []view.Line) error {
 		}
 		if s.hasBoards() {
 			items = append(items, view.Item{Key: "B", Label: "Image boards"})
+		}
+		if s.hasNews() {
+			items = append(items, view.Item{Key: "N", Label: s.newsLabel()})
 		}
 		lvl := s.B.LevelOf(u)
 		if lvl.Chat {
@@ -230,6 +234,10 @@ func (s *Session) mainMenu(intro []view.Line) error {
 		case "B":
 			if s.hasBoards() {
 				err = s.imageBoards()
+			}
+		case "N":
+			if s.hasNews() {
+				err = s.newsMenu()
 			}
 		case "E":
 			err = s.mail()
@@ -394,6 +402,18 @@ func (s *Session) do(it *bbs.MenuItem, depth int) error {
 		return s.UI.Chat("", "")
 	case "callers":
 		return s.lastCallers()
+	case "news":
+		if !s.hasNews() {
+			s.UI.Say(view.Plain, "There is no news here.")
+			return nil
+		}
+		return s.newsMenu()
+	case "headlines":
+		return s.headlines()
+	case "weather":
+		return s.weather()
+	case "quotes":
+		return s.stockQuotes()
 	case "sysop":
 		if !s.User.Sysop {
 			s.UI.Say(view.Bad, "That is for the sysop.")

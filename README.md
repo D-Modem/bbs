@@ -36,6 +36,7 @@ Main menu
 - Terminals: ANSI, VT, PETSCII, RIPscrip, sixel and 3270 graphics
 - On the web: a forum, image boards, a web terminal and an HTTP API
 - Time: follows NTP, NTS and PTP servers, and serves all three
+- News, weather and quotes: news feeds as read-only areas, each caller's own weather (NWS, Open-Meteo, USGS earthquakes), stock quotes from IEX
 - SQLite, PostgreSQL, MySQL or MariaDB
 
 The full list is on the [wiki's home page](https://github.com/D-Modem/bbs/wiki/Home).

@@ -85,6 +85,8 @@ which is generated from `bbs.conf.sample`.
   for AIM and ICQ clients on the same chat, [MSN Messenger](MSN-Messenger)
   for MSN clients, [Yahoo! Messenger](Yahoo-Messenger) for Yahoo clients, and [MRC](MRC), the chat
   network shared with other BBSes
+- [News, weather and quotes](News-Weather-and-Quotes): news feeds as read-only
+  areas, each caller's weather, and stock quotes from IEX
 - [Finger, gopher and Gemini](Finger-and-Gopher)
 - [Time](Time): NTP, NTS and PTP, followed and served
 
@@ -147,6 +149,7 @@ which is generated from `bbs.conf.sample`.
 | [MSN Classic](MSN-Classic) | The Microsoft Network for Windows 95's client: sign-in, the areas as Categories, bulletin boards |
 | [Yahoo! Messenger](Yahoo-Messenger) | the Yahoo server: YMSG 9 to 16, buddies, IMs, chat rooms and conferences |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
+| [News, weather and quotes](News-Weather-and-Quotes) | news feeds, NWS and Open-Meteo weather, USGS earthquakes, IEX quotes |
 | [Finger, gopher and Gemini](Finger-and-Gopher) | who is on, and the BBS in gopherspace and Geminispace |
 | [Time](Time) | NTP, NTS and PTP: the clock following time servers, and serving time |
 | [Web forum](Web-Forum) | the message areas as a web forum |

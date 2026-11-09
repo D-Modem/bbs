@@ -924,6 +924,75 @@ address = 127.0.0.1:2513
 ; /users: look up a user, as finger tells of them
 ;users = yes
 
+; News, weather and quotes: the main menu's [N], as the online services
+; had them.  News feeds (RSS, Atom, JSON Feed) are posted to read-only
+; message areas, made when first needed, so they are read everywhere areas
+; are: the terminals, newsreaders (an area made a newsgroup), QWK, the web
+; forum, gopher.  An item is its headline, its summary and a link: what
+; feeds are published for.  bbs feeds catalog lists the feeds the BBS knows
+;[feeds]
+; a way to reach the sysop, sent to the sites read (the SEC refuses readers
+; without one, the National Weather Service asks for one)
+;contact = sysop@example.org
+; feeds of the catalogue: all, groups (news, business, technology,
+; science, government) or feeds by name
+;catalog = all
+; minutes between readings, and days items are kept (0: for ever), for
+; feeds that say none of their own
+;every = 30
+;keep_days = 30
+; the most items of a feed posted at one reading
+;max_items = 50
+
+; A feed of the sysop's, or changes to the catalogue's of that name
+; (enabled = no leaves it out)
+;[feed lobsters]
+;enabled = yes
+;url = https://lobste.rs/rss
+;title = Lobsters
+; the area (its name by default), and the group it is listed under
+;area = Lobsters
+;group = Technology
+;description = Lobsters: computing
+;every = 60
+;keep_days = 14
+
+; Each caller's weather, for where they say they are (a US ZIP code, a town
+; anywhere, or a latitude and longitude): the National Weather Service's
+; forecast and warnings in the US, Open-Meteo's forecast elsewhere
+; (free for non-commercial use, credited), and the USGS's earthquakes near
+;[weather]
+; as [feeds] contact (which it defaults to)
+;contact = sysop@example.org
+; forecasts outside the US, from Open-Meteo
+;international = yes
+; earthquakes within this many km, of this magnitude or more
+;quake_radius = 300
+;quake_min = 2.5
+; serious warnings (Severe, Extreme) where a caller is, told at the login
+;alerts_at_login = yes
+
+; Stock quotes from IEX (the Investors Exchange): its own trades and
+; quotes, not the whole market's.  bbs quotes fetch reads IEX's free HIST
+; file of the last session (some 16 GB, read as it comes: nothing is kept
+; but the quotes) into file; an [event] runs it each morning:
+;   [event quotes]
+;   command = /usr/local/bin/bbs -config /etc/bbs/bbs.conf quotes fetch
+;   at = 06:30
+;   timeout = 3600
+; The change from the day before needs that day's file first: bbs quotes
+; fetch YYYYMMDD of the session before, then bbs quotes fetch
+;[quotes]
+;file = /var/lib/bbs/quotes.json.gz
+; the symbols a caller sees before they choose their own
+;default = SPY DIA QQQ AAPL MSFT
+; a live TOPS feed (IEX's real-time feed, or its free delayed one; both need
+; a connection to IEX): its UDP address (a multicast group, joined on the
+; interface), and how far behind it is, for the callers
+;listen = 233.215.21.4:10378
+;interface = eth1
+;delay = 15 minutes
+
 ; Time.  The BBS's clock can follow time servers, and the BBS can be a
 ; time server itself: NTP, NTS (NTP made secure with TLS keys) and PTP.
 ; With no servers it tells of the system clock (kept by chrony, ntpd ...).
