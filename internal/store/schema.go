@@ -296,6 +296,12 @@ CREATE TABLE IF NOT EXISTS msn_keys (
 	digest   {str} NOT NULL,
 	bound    {str} NOT NULL
 )`, `
+CREATE TABLE IF NOT EXISTS ymsg_keys (
+	user_id  {int} NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+	pass     {str} NOT NULL,
+	crypt    {str} NOT NULL,
+	bound    {str} NOT NULL
+)`, `
 CREATE TABLE IF NOT EXISTS blocks (
 	user_id    {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	blocked_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -43,6 +43,7 @@ the file is laid out.
 | [`[ircpeer NAME]`](#ircpeer-name) | A server the BBS links with, one section each: [ircpeer ITS.NAME]. |
 | [`[aol]`](#aol) | AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP). |
 | [`[msn]`](#msn) | MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (MSNP2 to 7), beside IRC and AIM. |
+| [`[ymsg]`](#ymsg) | Yahoo! Messenger: the chat for Yahoo! Messenger clients (YMSG 9 to 16), beside IRC, AIM and MSN. |
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
 | [`[gopher]`](#gopher) | gopher: about the system, who is on, and what areas the sysop opens: no login, so anyone sees them. |
@@ -612,6 +613,23 @@ MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (
 | `max_per_ip` |  |  | each conversation is a connection of its own. Examples: `16`. |
 | `system` |  |  | the name the BBS's notices come from. Examples: `BBS`. |
 | `site` |  |  | a web address the clients' links (inbox, profiles) open. Examples: `https://bbs.example.org/`. |
+
+
+## `[ymsg]`
+
+Yahoo! Messenger: the chat for Yahoo! Messenger clients (YMSG 9 to 16), beside IRC, AIM and MSN.  Users sign in with their BBS names (without spaces) and passwords; the buddy list is their friends list and the ignore list their blocked list; an IM is a private message, kept for one away; Yahoo chat rooms are the chat rooms, and a conference a room of its own.  The clients must be pointed at this host (see the wiki page). See docs/wiki/Yahoo-Messenger.md.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:5050`. |
+| `http_address` |  |  | the web half, for Y!M 9 and later and the room list: point vcs1.msg.yahoo.com, vcs2.msg.yahoo.com and insider.msg.yahoo.com here. Examples: `:80`. |
+| `https_address` |  |  | Y!M 9's login, its password over HTTPS: point login.yahoo.com here, with a certificate for it the client trusts. Examples: `:443`. |
+| `tls_cert` |  |  | Y!M 9's login, its password over HTTPS: point login.yahoo.com here, with a certificate for it the client trusts. Examples: `/etc/bbs/login.yahoo.com.crt`. |
+| `tls_key` |  |  | Y!M 9's login, its password over HTTPS: point login.yahoo.com here, with a certificate for it the client trusts. Examples: `/etc/bbs/login.yahoo.com.key`. |
+| `host` |  |  | the pager's address the web half gives Y!M 9 (default: the address each one asked on; set it behind NAT) Examples: `203.0.113.5`. |
+| `max_clients` |  |  | the pager's address the web half gives Y!M 9 (default: the address each one asked on; set it behind NAT) Examples: `256`. |
+| `max_per_ip` |  |  | the pager's address the web half gives Y!M 9 (default: the address each one asked on; set it behind NAT) Examples: `4`. |
+| `system` |  |  | the Yahoo ID the BBS's notices come from. Examples: `bbs`. |
 
 
 ## `[mrc]`

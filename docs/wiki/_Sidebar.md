@@ -38,6 +38,7 @@
 - [AIM and ICQ](AIM-and-ICQ)
 - [AOL clients](AOL)
 - [MSN Messenger](MSN-Messenger)
+- [Yahoo! Messenger](Yahoo-Messenger)
 - [MRC](MRC)
 - [Finger and gopher](Finger-and-Gopher)
 - [Time: NTP, NTS and PTP](Time)

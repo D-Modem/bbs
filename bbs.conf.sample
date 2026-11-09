@@ -831,6 +831,31 @@ address = 127.0.0.1:2513
 ; a web address the clients' links (inbox, profiles) open
 ;site = https://bbs.example.org/
 
+; Yahoo! Messenger: the chat for Yahoo! Messenger clients (YMSG 9 to 16),
+; beside IRC, AIM and MSN.  Users sign in with their BBS names (without
+; spaces) and passwords; the buddy list is their friends list and the
+; ignore list their blocked list; an IM is a private message, kept for one
+; away; Yahoo chat rooms are the chat rooms, and a conference a room of
+; its own.  The clients must be pointed at this host (see the wiki page).
+; See docs/wiki/Yahoo-Messenger.md
+;[ymsg]
+;address = :5050
+; the web half, for Y!M 9 and later and the room list: point
+; vcs1.msg.yahoo.com, vcs2.msg.yahoo.com and insider.msg.yahoo.com here
+;http_address = :80
+; Y!M 9's login, its password over HTTPS: point login.yahoo.com here, with
+; a certificate for it the client trusts
+;https_address = :443
+;tls_cert = /etc/bbs/login.yahoo.com.crt
+;tls_key = /etc/bbs/login.yahoo.com.key
+; the pager's address the web half gives Y!M 9 (default: the address each
+; one asked on; set it behind NAT)
+;host = 203.0.113.5
+;max_clients = 256
+;max_per_ip = 4
+; the Yahoo ID the BBS's notices come from
+;system = bbs
+
 ; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
 ; beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike.
 ; See docs/wiki/MRC.md

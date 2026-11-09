@@ -40,6 +40,7 @@ import (
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
 	"github.com/D-Modem/bbs/internal/ui3270"
+	"github.com/D-Modem/bbs/internal/ymsg"
 )
 
 // Config is the whole configuration.
@@ -69,6 +70,7 @@ type Config struct {
 	OSCAR       *oscar.Settings   // nil: no AIM/ICQ server
 	AOL         *aol.Settings     // nil: no host for AOL clients
 	MSN         *msn.Settings     // nil: no MSN Messenger server
+	YMSG        *ymsg.Settings    // nil: no Yahoo! Messenger server
 	MRC         *mrc.Settings     // nil: not on Multi Relay Chat
 	IRCLink     *irclink.Settings // nil: not linked to an IRC network
 	Screens     *screens.Set      // nil: no screens of the sysop's
@@ -155,6 +157,9 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.aolSection(cf); err != nil {
 		return nil, err
 	}
+	if err := c.ymsgSection(cf); err != nil {
+		return nil, err
+	}
 	if err := c.msnSection(cf); err != nil {
 		return nil, err
 	}
@@ -233,7 +238,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
+		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "ymsg", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
 			"mail", "smarthost", "pop3", "imap", "smtp", "mx", "lmtp":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)

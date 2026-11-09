@@ -630,6 +630,7 @@ func (b *BBS) menuLogin(who, name, pw string) (*store.User, error) {
 	b.Store.KeepOSCARKeys(u.ID, pw) // for AIM's digest logins, if kept
 	b.Store.KeepCISKey(u.ID, pw)    // and CompuServe's
 	b.Store.KeepMSNKey(u.ID, pw)    // and MSN's
+	b.Store.KeepYMSGKeys(u.ID, pw)  // and Yahoo's
 	return u, nil
 }
 

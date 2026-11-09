@@ -32,7 +32,7 @@ Main menu
 - Message areas, private mail, chat, paging and doors (DOS doors in dosemu2, or Linux programs)
 - File areas with X/Y/ZMODEM, Kermit, IND$FILE and FTP
 - E-mail: IMAP, POP3 and SMTP, to and from the internet, directly or through a smarthost
-- Networks: FidoNet and other FTNs, QWK, NNTP newsgroups, IRC (and linking into an IRC network as a TS6 or P10 hub server), AIM and ICQ, MSN Messenger, and MRC
+- Networks: FidoNet and other FTNs, QWK, NNTP newsgroups, IRC (and linking into an IRC network as a TS6 or P10 hub server), AIM and ICQ, MSN Messenger, Yahoo! Messenger, and MRC
 - Terminals: ANSI, VT, PETSCII, RIPscrip, sixel and 3270 graphics
 - On the web: a forum, image boards, a web terminal and an HTTP API
 - Time: follows NTP, NTS and PTP servers, and serves all three
