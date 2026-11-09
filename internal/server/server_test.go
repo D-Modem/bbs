@@ -902,3 +902,47 @@ func TestMenuKeys(t *testing.T) {
 	d.send("l")
 	d.expect("Last callers")
 }
+
+// TestNewUserGeo: a modem caller's caller ID fills in their location,
+// they may change it, and they choose to let the sysop see where they
+// call from: kept with their account, by caller ID.
+func TestNewUserGeo(t *testing.T) {
+	e := start(t, func(s *bbs.Settings) { s.PhoneCountry = "US" },
+		&Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no", Header: true})
+	d := e.dial("modem.sock")
+	d.send("DMODEM_CALLERID=4155550123\nDMODEM_RATE=33600/31200\n\n")
+	d.expect("Name (or NEW): ")
+	d.send("new\r")
+	d.expect("give up): ")
+	d.send("Zed\r")
+	d.expect("Password (8 or more characters): ")
+	d.send("zedpassword\rzedpassword\r")
+	d.expect("calling from? San Francisco, CA, United States")
+	d.send("\x15Frisco\r") // ^U: their own words instead
+	d.expect("by your address or caller ID)? [y/N] ")
+	d.send("y")
+	d.expect("Welcome, Zed.")
+	u, err := e.b.Store.UserByName("zed")
+	if err != nil || u.Location != "Frisco" || !u.GeoShare ||
+		u.Geo != (store.Geo{Country: "US", Place: "San Francisco, CA, United States", By: "caller ID", At: u.Geo.At}) || u.Geo.At.IsZero() {
+		t.Errorf("Zed: %+v, %v", u, err)
+	}
+}
+
+// TestNewUserGeoOff: with geoip_prefill and geoip_users off nothing is
+// filled in or asked.
+func TestNewUserGeoOff(t *testing.T) {
+	e := start(t, func(s *bbs.Settings) { s.PhoneCountry = "US"; s.GeoPrefill = false; s.GeoUsers = false },
+		&Listener{Name: "modem", Kind: "raw", Address: "modem.sock", ANSI: "no", Header: true})
+	d := e.dial("modem.sock")
+	d.send("DMODEM_CALLERID=4155550123\n\n")
+	d.expect("Name (or NEW): ")
+	d.send("new\rZed\rzedpassword\rzedpassword\r")
+	d.expect("calling from? ")
+	d.send("Mars\r")
+	d.expect("Welcome, Zed.")
+	u, err := e.b.Store.UserByName("zed")
+	if err != nil || u.Location != "Mars" || u.GeoShare || u.Geo.Place != "" {
+		t.Errorf("Zed: %+v, %v", u, err)
+	}
+}

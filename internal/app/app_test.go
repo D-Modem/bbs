@@ -694,3 +694,30 @@ func TestCapital(t *testing.T) {
 		}
 	}
 }
+
+// TestGeoShare: a user shares where they call from in their profile (only
+// offered with a database to find it by); the sysop sees it on their
+// user page; they stop, and it is forgotten.
+func TestGeoShare(t *testing.T) {
+	b, alice, sysop := setup(t)
+	f := run(t, b, alice, "P", view.Back)
+	if strings.Contains(strings.Join(f.shown, "\n"), "Sysop sees:") {
+		t.Error("offered without a database")
+	}
+	b.Settings.GeoIP = filepath.Join("..", "geoip", "testdata", "test-city.mmdb")
+	alice.Caller.Source = "ip:81.2.69.160"
+	f = run(t, b, alice, "P", "geo", view.Back)
+	has(t, "screens", f.shown, "Sysop sees:not shared")
+	has(t, "said", f.said, "The sysop sees where you call from")
+	if u := alice.Refresh(); !u.GeoShare || u.Geo.Place != "London, England, United Kingdom" {
+		t.Errorf("shared: %+v", u)
+	}
+	f = run(t, b, sysop, "U", view.Choice{Action: view.Pick, Row: 0}, view.Back, view.Choice{Action: view.Back},
+		"*", "U", view.Choice{Action: view.Pick, Row: 0}, view.Back, view.Choice{Action: view.Back}, "Q")
+	has(t, "screens", f.shown, "Files:0 downloaded, 0 uploaded; GeoIP:London, England, United Kingdom (by address, ")
+	has(t, "screens", f.shown, "From:Here; GeoIP:London, England, United Kingdom (by address, ")
+	run(t, b, alice, "P", "geo", view.Back)
+	if u := alice.Refresh(); u.GeoShare || u.Geo.Place != "" {
+		t.Errorf("no longer shared: %+v", u)
+	}
+}

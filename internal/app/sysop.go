@@ -220,6 +220,7 @@ func (s *Session) editUser(id int64) error {
 		lvl := s.B.LevelOf(u)
 		p := &view.Panel{Title: u.Name, Lines: []view.Line{
 			view.V("From:", u.Location),
+			view.V("GeoIP:", bbs.GeoWords(u)),
 			view.V("Member:", fmt.Sprintf("since %s, %d calls, %d posts", u.Created.Format("2006-01-02"), u.Logins, u.Posts)),
 			view.V("Access:", fmt.Sprintf("level %d (%s), flags %q", u.Level, lvl.Name, u.Flags)),
 			view.V("Files:", fmt.Sprintf("%d downloaded, %d uploaded", u.Downloads, u.Uploads)),

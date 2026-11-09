@@ -56,6 +56,20 @@ type User struct {
 	// QWKNode: the account is another BBS's, exchanging QWK packets: what
 	// its REPs bring keeps its writers' names
 	QWKNode bool
+	// GeoShare: the user lets the sysops see where they call from (by the
+	// GeoIP database or their caller ID); Geo is where, as last found
+	GeoShare bool
+	Geo      Geo
+}
+
+// Geo is where a user was last found to call from: the country (ISO
+// 3166), the place in words, what said so ("address", "caller ID"), and
+// when.  Kept only while the user shares it.
+type Geo struct {
+	Country string
+	Place   string
+	By      string
+	At      time.Time
 }
 
 // Area is a message area.
@@ -227,6 +241,7 @@ func HashPassword(pw string) (string, error) {
 
 const userCols = `id, name, password, location, sysop, locked, created, last_login, logins, posts,
 	level, flags, time_day, time_used, dl_day, dl_count, prefs, downloads, about, alias, signature, qwk_node,
+	geo_share, geo_code, geo_place, geo_by, geo_at,
 	(SELECT COUNT(*) FROM files WHERE files.uploader_id = users.id)`
 
 // scanUser is the user in a row of userCols, and their password hash;
@@ -234,17 +249,18 @@ const userCols = `id, name, password, location, sysop, locked, created, last_log
 func scanUser(row interface{ Scan(...any) error }) (*User, string, error) {
 	var u User
 	var pw string
-	var created, last int64
+	var created, last, geoAt int64
 	err := row.Scan(&u.ID, &u.Name, &pw, &u.Location, &u.Sysop, &u.Locked,
 		&created, &last, &u.Logins, &u.Posts, &u.Level, &u.Flags, &u.TimeDay, &u.TimeUsed, &u.DLDay, &u.DLCount, &u.Prefs,
-		&u.Downloads, &u.About, &u.Alias, &u.Signature, &u.QWKNode, &u.Uploads)
+		&u.Downloads, &u.About, &u.Alias, &u.Signature, &u.QWKNode,
+		&u.GeoShare, &u.Geo.Country, &u.Geo.Place, &u.Geo.By, &geoAt, &u.Uploads)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, "", ErrNotFound
 	}
 	if err != nil {
 		return nil, "", err
 	}
-	u.Created, u.LastLogin = unix(created), unix(last)
+	u.Created, u.LastLogin, u.Geo.At = unix(created), unix(last), unix(geoAt)
 	u.External = pw == NoPassword
 	return &u, pw, nil
 }
@@ -340,6 +356,23 @@ func (s *Store) SetPassword(id int64, pw string) error {
 // SetLocation changes a user's location.
 func (s *Store) SetLocation(id int64, loc string) error {
 	return s.exec1(`UPDATE users SET location = ? WHERE id = ?`, loc, id)
+}
+
+// SetGeoShare lets the sysops see where a user calls from, or stops it:
+// what was kept of it is then forgotten.
+func (s *Store) SetGeoShare(id int64, share bool) error {
+	if share {
+		return s.exec1(`UPDATE users SET geo_share = ? WHERE id = ?`, true, id)
+	}
+	return s.exec1(`UPDATE users SET geo_share = ?, geo_code = '', geo_place = '', geo_by = '', geo_at = 0 WHERE id = ?`, false, id)
+}
+
+// SetGeo keeps where a user calls from, if they share it (else nothing
+// is kept).
+func (s *Store) SetGeo(id int64, g Geo) error {
+	_, err := s.db.Exec(`UPDATE users SET geo_code = ?, geo_place = ?, geo_by = ?, geo_at = ? WHERE id = ? AND geo_share = ?`,
+		g.Country, g.Place, g.By, g.At.Unix(), id, true)
+	return err
 }
 
 // SetPrefs sets a user's settings.

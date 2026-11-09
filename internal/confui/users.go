@@ -376,6 +376,8 @@ func (e *Editor) userPage(u *store.User) page {
 		if old {
 			out = append(out, item{Entry: view.Entry{Kind: view.EntryInfo, Label: "Calls, posts",
 				Value: fmt.Sprintf("%d, %d", u.Logins, u.Posts)}})
+			out = append(out, item{Entry: view.Entry{Kind: view.EntryInfo, Label: "Calling from (GeoIP)",
+				Value: bbs.GeoWords(u)}})
 		}
 		del := "Delete this user"
 		if d.deleted[u.ID] && old {

@@ -9,6 +9,8 @@
     <label class="field"><span>Password (8 or more)</span><input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
     <label class="field"><span>Password again</span><input type="password" name="password2" minlength="8" autocomplete="new-password" required></label>
     <label class="field"><span>Where you are (optional)</span><input type="text" name="location" value="{{$b.Location}}" maxlength="40"></label>
+    {{if $b.Guessed}}<p class="desc">Filled in from where your connection says you are; change it as you like.</p>{{end}}
+    {{if $b.Geo}}<label><input type="checkbox" name="share_location"{{if $b.Share}} checked{{end}}> Let the sysop see where I call from (by my address)</label>{{end}}
     <div class="editor-foot"><button class="button important">Create Account</button></div>
   </form>
 </div>

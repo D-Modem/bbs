@@ -668,7 +668,9 @@ func (s *Server) register(q *req) {
 		q.redirect(Base + "/")
 		return
 	}
-	form := map[string]any{}
+	n := s.B.Agent(nil, "web")
+	n.Caller.Source = "ip:" + q.host()
+	form := map[string]any{"Location": n.LocationGuess(), "Guessed": n.LocationGuess() != "", "Geo": s.B.GeoOffered()}
 	if q.r.Method == http.MethodPost {
 		f := q.r.PostForm
 		name, loc := strings.TrimSpace(f.Get("name")), strings.TrimSpace(f.Get("location"))
@@ -676,9 +678,12 @@ func (s *Server) register(q *req) {
 		if f.Get("password") != f.Get("password2") {
 			err = errors.New("the passwords differ")
 		} else {
-			n := s.B.Agent(nil, "web")
-			n.Caller.Source = "ip:" + q.host()
 			if _, err = n.Register(name, f.Get("password"), loc); err == nil {
+				if f.Get("share_location") != "" && s.B.GeoOffered() {
+					if gerr := n.SetGeoShare(true); gerr != nil {
+						s.B.Log.Printf("forum: %s: sharing where they are: %v", name, gerr)
+					}
+				}
 				var secret string
 				if secret, _, err = s.Sessions.Login(q.r, name, f.Get("password")); err == nil {
 					q.setCookie(secret)
@@ -688,7 +693,7 @@ func (s *Server) register(q *req) {
 			}
 		}
 		form["Error"] = capital(err.Error()) + "."
-		form["Name"], form["Location"] = name, loc
+		form["Name"], form["Location"], form["Guessed"], form["Share"] = name, loc, false, f.Get("share_location") != ""
 	}
 	q.render(http.StatusOK, "register.html", "Create Account", []crumb{{"Create Account", ""}}, form)
 }

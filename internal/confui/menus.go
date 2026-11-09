@@ -260,7 +260,8 @@ func (e *Editor) connectionsMenu() page {
 		out = append(out, heading("Passwords by modemmenu (its auth socket)"))
 		out = append(out, e.fields(sec("modemmenu"), "auth_socket", "create_users", "timeout")...)
 		out = append(out, heading("Caller ID and where callers are"))
-		out = append(out, e.fields(g, "phone_country", "geoip", "geoip_credit", "geoip_credit_url")...)
+		out = append(out, e.fields(g, "phone_country", "geoip", "geoip_credit", "geoip_credit_url",
+			"geoip_users", "geoip_prefill")...)
 		return out
 	}}
 }

@@ -124,7 +124,8 @@ func (s *Session) userDetail(u *store.User) error {
 		lvl := s.B.LevelOf(u)
 		p.Lines = append(p.Lines, view.V("Access:", fmt.Sprintf("level %d (%s), flags %q, %s",
 			u.Level, lvl.Name, u.Flags, map[bool]string{true: "locked", false: "not locked"}[u.Locked])),
-			view.V("Files:", fmt.Sprintf("%d downloaded, %d uploaded", u.Downloads, u.Uploads)))
+			view.V("Files:", fmt.Sprintf("%d downloaded, %d uploaded", u.Downloads, u.Uploads)),
+			view.V("GeoIP:", bbs.GeoWords(u)))
 	}
 	if u.ID != s.User.ID {
 		p.Actions = []view.Action{{ID: "mail", Label: "Mail them", Key: 'M', PF: 5, Short: "Mail"}}
@@ -267,6 +268,11 @@ func (s *Session) profile() error {
 		if u.Signature != "" {
 			p.Lines = append(p.Lines, view.V("Signature:", strings.ReplaceAll(u.Signature, "\n", " / ")))
 		}
+		if s.B.GeoOffered() || u.GeoShare {
+			p.Lines = append(p.Lines, view.V("Sysop sees:", bbs.GeoWords(u)))
+			p.Actions = append(p.Actions, view.Action{ID: "geo", Label: map[bool]string{true: "Stop sharing where you are",
+				false: "Share where you are with the sysop"}[u.GeoShare], Key: 'H', PF: 12, Short: "Where"})
+		}
 		p.Actions = append(p.Actions, view.Action{ID: "about", Label: "About you", Key: 'Y', PF: 4, Short: "About"},
 			view.Action{ID: "alias", Label: "Alias", Key: 'I', PF: 2},
 			view.Action{ID: "signature", Label: "Signature", Key: 'G', PF: 1, Short: "Sig"})
@@ -303,6 +309,15 @@ func (s *Session) profile() error {
 				if err := s.B.Store.SetLocation(u.ID, bbs.Clean(v["loc"], bbs.MaxLocationLen)); err != nil {
 					return err
 				}
+			}
+		case "geo":
+			if err := s.N.SetGeoShare(!u.GeoShare); err != nil {
+				return err
+			}
+			if u.GeoShare {
+				s.UI.Say(view.Good, "The sysop no longer sees where you call from.")
+			} else {
+				s.UI.Say(view.Good, "The sysop sees where you call from, as your address or caller ID says.")
 			}
 		case "about":
 			v, ok, err := s.UI.Form(&view.Form{Title: "About you", Submit: "Save", Fields: []view.Field{

@@ -70,6 +70,7 @@ func applyHeader(c *bbs.Caller, h map[string]string, trust bool) {
 	c.CallerID = pick(h, "DMODEM_CALLERID", "MODEM_CALLERID")
 	c.Dialed = pick(h, "DMODEM_DIALED", "MODEM_DIALED")
 	c.Channel = pick(h, "DMODEM_CHANNEL", "MODEM_CHANNEL")
+	c.Peer = pick(h, "DMODEM_PEER", "MODEM_PEER")
 	if c.Rate != "" || c.Channel != "" {
 		c.Via = "modem"
 	}

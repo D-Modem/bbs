@@ -400,8 +400,21 @@ func TestRegister(t *testing.T) {
 		t.Fatalf("register to %s", at)
 	}
 	has(t, "registered", body, "Your account is made", "Signed in as")
-	if u, err := s.b.Store.UserByName("newbie"); err != nil || u.Location != "Mars" {
+	if u, err := s.b.Store.UserByName("newbie"); err != nil || u.Location != "Mars" || u.GeoShare {
 		t.Errorf("user %+v %v", u, err)
+	}
+	// with a GeoIP database (or caller ID country) they may share where
+	// they are
+	if _, _, body := s.browser().get("/forum/register"); strings.Contains(body, "share_location") {
+		t.Error("sharing offered without a database")
+	}
+	s.b.Settings.PhoneCountry = "US"
+	br = s.browser()
+	_, _, body = br.get("/forum/register")
+	has(t, "share offered", body, `name="share_location"`)
+	br.post("", "/forum/register", url.Values{"name": {"sharer"}, "password": {"password9"}, "password2": {"password9"}, "share_location": {"on"}})
+	if u, err := s.b.Store.UserByName("sharer"); err != nil || !u.GeoShare {
+		t.Errorf("sharer %+v %v", u, err)
 	}
 	s.b.Settings.NewUsers = false
 	if code, _, _ := s.browser().get("/forum/register"); code != 403 {

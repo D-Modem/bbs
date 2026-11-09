@@ -320,6 +320,12 @@ func (c *Config) general(g *config.Section) error {
 	if u := s.GeoCreditURL; u != "" && !strings.HasPrefix(u, "https://") && !strings.HasPrefix(u, "http://") {
 		return fmt.Errorf("geoip_credit_url: an http(s) address, not %q", u)
 	}
+	if s.GeoUsers, err = g.Bool("geoip_users", s.GeoUsers); err != nil {
+		return err
+	}
+	if s.GeoPrefill, err = g.Bool("geoip_prefill", s.GeoPrefill); err != nil {
+		return err
+	}
 	if s.PhoneCountry = strings.ToUpper(g.String("phone_country", "")); s.PhoneCountry != "" && !phone.Known(s.PhoneCountry) {
 		return fmt.Errorf("phone_country: %q is not a country with a calling code (an ISO 3166 code: US, GB, DE)", s.PhoneCountry)
 	}
