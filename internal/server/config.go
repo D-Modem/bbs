@@ -340,6 +340,19 @@ func (c *Config) general(g *config.Section) error {
 	if s.NewUsers, err = g.Bool("new_users", s.NewUsers); err != nil {
 		return err
 	}
+	if s.LineSpeeds, err = g.Bool("line_speeds", true); err != nil {
+		return err
+	}
+	if v := g.String("line_speed", "off"); v != "" {
+		bps, ok := bbs.ParseLineSpeed(v)
+		if !ok {
+			return fmt.Errorf("line_speed: %q is not one of off, %s", v, lineSpeedList())
+		}
+		s.LineSpeedDefault = bps
+	}
+	if s.LineSpeedAsk, err = g.Bool("line_speed_ask", false); err != nil {
+		return err
+	}
 	if c.Graphics.Symbols, err = g.Bool("tn3270_symbols", true); err != nil {
 		return err
 	}
@@ -673,4 +686,13 @@ func loopback(addr string) bool {
 	}
 	ip := net.ParseIP(h)
 	return ip != nil && ip.IsLoopback()
+}
+
+// lineSpeedList is the line speeds there are, for an error.
+func lineSpeedList() string {
+	var out []string
+	for _, bps := range bbs.LineSpeeds {
+		out = append(out, strconv.Itoa(bps))
+	}
+	return strings.Join(out, ", ")
 }

@@ -240,3 +240,27 @@ func TestHandoffContrary(t *testing.T) {
 		t.Error("the terminal type asked for again after DONT")
 	}
 }
+
+// TestBreak: Break, Interrupt Process and Abort Output call SetOnBreak's
+// func, and are not data.
+func TestBreak(t *testing.T) {
+	a, b := net.Pipe()
+	defer a.Close()
+	defer b.Close()
+	c := New(a)
+	n := 0
+	c.SetOnBreak(func() { n++ })
+	go b.Write([]byte{'a', IAC, BRK, 'b', IAC, IP, IAC, AO, 'c'})
+	got := make([]byte, 0, 3)
+	buf := make([]byte, 16)
+	for len(got) < 3 {
+		k, err := c.Read(buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, buf[:k]...)
+	}
+	if string(got) != "abc" || n != 3 {
+		t.Errorf("data %q, %d breaks", got, n)
+	}
+}

@@ -60,6 +60,8 @@ func (s *session) run() error {
 	t := s.t
 	t.Clear()
 	t.PausePrompt = s.str("pause")
+	s.startLineSpeed()
+	defer func() { t.OnLineSpeedKey = nil }()
 	if err := s.logon(); err != nil {
 		return err
 	}
@@ -67,6 +69,9 @@ func (s *session) run() error {
 		return err
 	}
 	s.applyPrefs()
+	if err := s.applyLineSpeed(); err != nil {
+		return err
+	}
 	t.Notify = s.notify
 	defer func() { t.Notify = nil }()
 	err := app.Run(s.b, s.n, s)

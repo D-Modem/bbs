@@ -109,6 +109,21 @@ func (d *data) ops() []op {
 			out = append(out, op{fmt.Sprintf("user %s: locked %s", u.Name, yesno(u.Locked)),
 				func() error { return st.SetLocked(u.ID, u.Locked) }})
 		}
+		if bbs.ParsePrefs(u.Prefs)["baud"] != bbs.ParsePrefs(w.Prefs)["baud"] {
+			out = append(out, op{fmt.Sprintf("user %s: line speed %s", u.Name, speedWords(u.Prefs)),
+				func() error {
+					// the line speed alone: the user may have changed the rest since
+					cur, err := st.UserByID(u.ID)
+					if err != nil {
+						return err
+					}
+					p, err := bbs.ChangePrefs(cur.Prefs, map[string]string{"baud": bbs.ParsePrefs(u.Prefs)["baud"]})
+					if err != nil {
+						return err
+					}
+					return st.SetPrefs(u.ID, p)
+				}})
+		}
 		if pw, ok := d.passwords[u]; ok {
 			out = append(out, op{"user " + u.Name + ": a new password", func() error { return st.SetPassword(u.ID, pw) }})
 		}
@@ -334,9 +349,26 @@ func (e *Editor) userPage(u *store.User) page {
 			d.passwords[u] = v
 			return nil
 		}
+		speeds := []string{""}
+		for _, bps := range bbs.LineSpeeds {
+			speeds = append(speeds, strconv.Itoa(bps))
+		}
+		speeds = append(speeds, "off")
+		speed := item{Entry: view.Entry{ID: "baud", Kind: view.EntryChoice, Label: "Line speed (bit/s)",
+			Value: bbs.ParsePrefs(u.Prefs)["baud"], Default: "as [general] line_speed", Choices: speeds,
+			Changed: bbs.ParsePrefs(u.Prefs)["baud"] != bbs.ParsePrefs(w.Prefs)["baud"] && old,
+			Help:    "What the BBS sends this user at by telnet, SSH or the web, as a modem would (off: full speed). They can change it themselves."}}
+		speed.set = func(v string) error {
+			p, err := bbs.ChangePrefs(u.Prefs, map[string]string{"baud": v})
+			if err != nil {
+				return err
+			}
+			u.Prefs = p
+			return nil
+		}
 		out := []item{
 			{Entry: view.Entry{Kind: view.EntryInfo, Label: "Name", Value: u.Name}},
-			level, flags,
+			level, flags, speed,
 			boolItem("sysop", "Sysop", &u.Sysop, w.Sysop, "The sysop's tools, and every area and door."),
 			boolItem("locked", "Locked out", &u.Locked, w.Locked, "A locked account cannot log in."),
 			pw,
@@ -366,4 +398,16 @@ func (e *Editor) userPage(u *store.User) page {
 		out = append(out, da)
 		return out
 	}}
+}
+
+// speedWords is the line speed kept in prefs, in words.
+func speedWords(prefs string) string {
+	bps, ok := bbs.ParsePrefs(prefs).LineSpeed()
+	switch {
+	case !ok:
+		return "as the BBS's"
+	case bps == 0:
+		return "full"
+	}
+	return strconv.Itoa(bps) + " bit/s"
 }

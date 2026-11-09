@@ -54,6 +54,14 @@ type Settings struct {
 	GeoCreditURL  string        // and where it links
 	PhoneCountry  string        // the country (ISO 3166) whose national caller IDs these are ("": none)
 
+	// Line speeds for callers without a modem's (telnet, SSH, the web):
+	// whether they may slow what the BBS sends them to a modem's speed,
+	// the speed they get until they choose (0: full speed), and whether
+	// they are asked at each login
+	LineSpeeds       bool
+	LineSpeedDefault int
+	LineSpeedAsk     bool
+
 	Backup BackupSettings // [backup]
 
 	Levels         []Level // [level N], by number
@@ -86,6 +94,7 @@ func Defaults() Settings {
 		IdleTimeout:    10 * time.Minute,
 		ThrottleFails:  10,
 		ThrottleTime:   10 * time.Minute,
+		LineSpeeds:     true,
 	}
 }
 

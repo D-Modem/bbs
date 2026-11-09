@@ -33,7 +33,7 @@ Main menu
 - File areas with X/Y/ZMODEM, Kermit, IND$FILE and FTP
 - E-mail: IMAP, POP3 and SMTP, to and from the internet, directly or through a smarthost
 - Networks: FidoNet and other FTNs, QWK, NNTP newsgroups, IRC (and linking into an IRC network as a TS6 or P10 hub server), AIM and ICQ, MSN Messenger, Yahoo! Messenger, and MRC
-- Terminals: ANSI, VT, PETSCII, RIPscrip, sixel and 3270 graphics
+- Terminals: ANSI, VT, PETSCII, RIPscrip, sixel and 3270 graphics, and for telnet, SSH and web callers a modem's line speed (300 to 115200 bit/s) if they like
 - On the web: a forum, image boards, a web terminal and an HTTP API
 - Time: follows NTP, NTS and PTP servers, and serves all three
 - Certificates: its own ACME client gets and renews them from Let's Encrypt, ZeroSSL and others, for every TLS server

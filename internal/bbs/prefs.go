@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -22,11 +23,20 @@ var prefValues = map[string][]string{
 	"width":    {"40", "80"},     // a Commodore's columns
 	"editor":   {"full", "line"}, // the full-screen editor, or the line editor
 	"expert":   {"on", "off"},    // menus as their prompt alone (? for the rest)
+	"baud":     nil,              // the line speed (LineSpeeds, or off): lineSpeedValues
 
 	// CompuServe Mail's options (SET at "Mail!"), kept when the caller says
 	"cis-mailmode": {"menu", "prompt", "command"},
 	"cis-mailedit": {"line", "noline"},
 	"cis-mailpage": {"on", "off"},
+}
+
+func init() {
+	vs := []string{"off"}
+	for _, s := range LineSpeeds {
+		vs = append(vs, strconv.Itoa(s))
+	}
+	prefValues["baud"] = vs
 }
 
 // prefChecks are settings registered by a front end (RegisterPref), each

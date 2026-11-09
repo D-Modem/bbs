@@ -24,11 +24,18 @@ func (s *session) TerminalInfo() error {
 // Terminal is the terminal's line on the profile.
 func (s *session) Terminal() string {
 	t := s.t
+	speed := ""
+	if s.lineSpeeds() {
+		speed = ", line speed full"
+		if bps := t.LineSpeed(); bps > 0 {
+			speed = ", line speed " + strconv.Itoa(bps) + " bit/s"
+		}
+	}
 	switch {
 	case t.PETSCII:
-		return fmt.Sprintf("Commodore, %dx%d", t.Cols, t.Rows)
+		return fmt.Sprintf("Commodore, %dx%d%s", t.Cols, t.Rows, speed)
 	case t.VT52:
-		return fmt.Sprintf("VT52, %dx%d", t.Cols, t.Rows)
+		return fmt.Sprintf("VT52, %dx%d%s", t.Cols, t.Rows, speed)
 	}
 	onOff := map[bool]string{true: "on", false: "off"}
 	ident := ""
@@ -45,18 +52,22 @@ func (s *session) Terminal() string {
 	}
 	pictures := map[string]string{picNone: "off", picKitty: "kitty", picSixel: "sixel", picITerm: "iTerm2",
 		picBlocks: "blocks"}[t.PictureMode()]
-	return fmt.Sprintf("%s%dx%d, ANSI %s, UTF-8 %s%s, sixel %s, RIP %s%s, pictures %s", ident, t.Cols, t.Rows,
-		onOff[t.ANSI], onOff[t.UTF8], charset, onOff[t.Sixel], onOff[t.RIP], editor, pictures)
+	return fmt.Sprintf("%s%dx%d, ANSI %s, UTF-8 %s%s, sixel %s, RIP %s%s, pictures %s%s", ident, t.Cols, t.Rows,
+		onOff[t.ANSI], onOff[t.UTF8], charset, onOff[t.Sixel], onOff[t.RIP], editor, pictures, speed)
 }
 
 // TerminalActions are what the caller may switch on the profile.
 func (s *session) TerminalActions() []view.Action {
+	var speed []view.Action
+	if s.lineSpeeds() {
+		speed = []view.Action{{ID: "baud", Label: "Baud: line speed (or Ctrl-B)", Key: 'B'}}
+	}
 	t := s.t
 	switch {
 	case t.PETSCII:
-		return []view.Action{{ID: "width", Label: "Width 40/80", Key: 'W'}}
+		return append([]view.Action{{ID: "width", Label: "Width 40/80", Key: 'W'}}, speed...)
 	case t.VT52:
-		return nil
+		return speed
 	}
 	acts := []view.Action{{ID: "ansi", Label: "ANSI on/off", Key: 'A'},
 		{ID: "utf8", Label: "8-bit UTF-8 on/off", Key: '8'},
@@ -66,7 +77,7 @@ func (s *session) TerminalActions() []view.Action {
 	if t.ANSI {
 		acts = append(acts, view.Action{ID: "editor", Label: "Editor full/line", Key: 'E'})
 	}
-	return acts
+	return append(acts, speed...)
 }
 
 // applyPrefs treats the terminal as the user said to last time: ANSI and
@@ -136,6 +147,12 @@ func (s *session) savePrefs(id string) error {
 
 // TerminalAction switches what was chosen, and keeps it for next time.
 func (s *session) TerminalAction(id string) error {
+	if id == "baud" {
+		if !s.lineSpeeds() {
+			return nil
+		}
+		return s.pickSpeed(false)
+	}
 	if err := s.switchTerminal(id); err != nil {
 		return err
 	}

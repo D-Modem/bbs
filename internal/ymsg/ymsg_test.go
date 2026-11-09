@@ -574,8 +574,14 @@ func TestConference(t *testing.T) {
 		t.Errorf("invite: %v", inv.pairs)
 	}
 	// Carol Ann, not on Yahoo, has it as a private message
+	// (the invitations go out one by one: bob's can come before hers is kept)
 	carol, _ := e.st.UserByName("Carol Ann")
-	if cs, _ := e.st.KeptChats(carol.ID); len(cs) != 1 || !strings.Contains(cs[0].Text, "yc-alice-1234") {
+	cs, _ := e.st.KeptChats(carol.ID)
+	for end := time.Now().Add(2 * time.Second); len(cs) == 0 && time.Now().Before(end); {
+		time.Sleep(10 * time.Millisecond)
+		cs, _ = e.st.KeptChats(carol.ID)
+	}
+	if len(cs) != 1 || !strings.Contains(cs[0].Text, "yc-alice-1234") {
 		t.Errorf("Carol Ann's invitation: %+v", cs)
 	}
 	bob.send(svcConfLogon, 0, kv(1, "bob"), kv(3, "alice"), kv(57, "alice-1234"))

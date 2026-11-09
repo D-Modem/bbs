@@ -49,13 +49,13 @@ func (s *session) OpenDoor(d *door.Door) error {
 		limit = left
 	}
 	t.Println(t.C(Green, fmt.Sprintf("Opening %s (%d minutes)...", d.Name, int(limit/time.Minute))))
-	port, err := t.Port()
+	port, err := t.DoorPort()
 	if err != nil {
 		return err
 	}
 	in := &door.Info{Node: s.n.Num, UserID: u.ID, UserName: u.Name, Location: u.Location,
 		Sysop: u.Sysop, Logins: u.Logins, Posts: u.Posts, LastLogin: u.LastLogin,
-		ANSI: t.ANSI, Rows: t.Rows, Cols: t.Cols, Baud: baud(s.c),
+		ANSI: t.ANSI, Rows: t.Rows, Cols: t.Cols, Baud: s.doorBaud(),
 		BBSName: s.b.Conf().Name, SysopName: s.b.Conf().Sysop, Level: u.Level}
 	if left, ok := s.n.TimeLeft(); ok {
 		in.TimeLeft = max(left, time.Minute)
@@ -90,4 +90,13 @@ func (s *session) OpenDoor(d *door.Door) error {
 	}
 	t.Println(t.C(Green, "Back on "+s.b.Conf().Name+"."))
 	return nil
+}
+
+// doorBaud is the speed a door is told: the line speed the caller chose,
+// or the modem's.
+func (s *session) doorBaud() int {
+	if bps := s.t.LineSpeed(); bps > 0 {
+		return bps
+	}
+	return baud(s.c)
 }
