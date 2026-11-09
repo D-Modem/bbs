@@ -318,6 +318,7 @@ func (e *Editor) servicesMenu() page {
 			e.single("FTP", "ftp"),
 			menu("News (NNTP)", e.onOff(sec("nntp")), func() error { return e.show(e.newsPage()) }),
 			menu("Web: API, forum, image boards", e.onOff(sec("http")), func() error { return e.show(e.webPage()) }),
+			menu("Certificates (ACME)", e.onOff(sec("acme")), func() error { return e.show(e.acmePage()) }),
 		}
 	}}
 }
@@ -445,6 +446,23 @@ func (e *Editor) timeMenu() page {
 			e.single("NTS-KE server (secure NTP)", "nts"),
 			e.single("PTP grandmaster", "ptp"),
 		}
+	}}
+}
+
+// acmePage is Certificates (ACME): the ACME client, and its [acme NAME]
+// certificates.
+func (e *Editor) acmePage() page {
+	named := func(s confedit.Section) bool { return s.Name != "" }
+	return page{title: "Certificates (ACME)", items: func() []item {
+		out := []item{e.enabled(sec("acme"), "ACME client")}
+		out = append(out, e.sectionFields(sec("acme"))...)
+		out = append(out, heading("More certificates"), menu("Certificates", e.count("acme", named, "certificate"), func() error {
+			return e.show(e.listPage("Certificates", "acme", "certificate", named, func(s confedit.Section) string {
+				d, _ := e.doc.Get(s, "domains")
+				return d
+			}, map[string]string{"domains": "mail.example.org"}))
+		}))
+		return out
 	}}
 }
 

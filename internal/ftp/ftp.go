@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/files"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
@@ -72,11 +73,11 @@ func New(b *bbs.BBS, set Settings) (*Server, error) {
 	}
 	s := &Server{B: b, Set: set, perIP: map[string]int{}}
 	if set.TLS != TLSNo {
-		cert, err := tls.LoadX509KeyPair(set.CertFile, set.KeyFile)
+		cfg, err := certs.Config(set.CertFile, set.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("ftp: certificate: %w", err)
 		}
-		s.tlsConfig = &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12}
+		s.tlsConfig = cfg
 	}
 	return s, nil
 }

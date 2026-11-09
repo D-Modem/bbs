@@ -119,7 +119,7 @@ func (c *Config) mailSections(cf *config.File) error {
 		if s == nil {
 			continue
 		}
-		srv, err := mailServer(s, ms.kind, ms.addr, ms.tls, certFile, keyFile)
+		srv, err := c.mailServer(s, ms.kind, ms.addr, ms.tls, certFile, keyFile)
 		if err != nil {
 			return fmt.Errorf("[%s] %w", ms.kind, err)
 		}
@@ -135,7 +135,7 @@ func (c *Config) mailSections(cf *config.File) error {
 }
 
 // mailServer reads a mail server's section.
-func mailServer(s *config.Section, kind, addr, tls, certFile, keyFile string) (*MailServer, error) {
+func (c *Config) mailServer(s *config.Section, kind, addr, tls, certFile, keyFile string) (*MailServer, error) {
 	ms := &MailServer{Kind: kind, Set: email.ServerSettings{Address: s.String("address", addr),
 		TLS: strings.ToLower(s.String("tls", tls)), CertFile: s.String("cert_file", certFile), KeyFile: s.String("key_file", keyFile)}}
 	set := &ms.Set
@@ -152,8 +152,11 @@ func mailServer(s *config.Section, kind, addr, tls, certFile, keyFile string) (*
 	default:
 		return nil, fmt.Errorf("tls: %q is not no, optional, required or implicit", set.TLS)
 	}
-	if set.TLS != email.TLSNo && (set.CertFile == "" || set.KeyFile == "") {
-		return nil, errors.New("cert_file and key_file are needed for TLS (here or in [mail]), or tls = no")
+	if set.TLS != email.TLSNo {
+		var err error
+		if set.CertFile, set.KeyFile, err = c.tlsFiles(set.CertFile, set.KeyFile); err != nil {
+			return nil, fmt.Errorf("TLS %v (here or in [mail]), or tls = no", err)
+		}
 	}
 	var err error
 	if set.MaxClients, err = s.Int("max_clients", 64, 1, 10000); err != nil {

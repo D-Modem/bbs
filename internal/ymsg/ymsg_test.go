@@ -619,7 +619,7 @@ func TestOldTLS(t *testing.T) {
 		t.Fatal(err)
 	}
 	cert := tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}
-	ln, err := tls.Listen("tcp", "127.0.0.1:0", tlsConfig(cert))
+	ln, err := tls.Listen("tcp", "127.0.0.1:0", tlsConfig(func(*tls.ClientHelloInfo) (*tls.Certificate, error) { return &cert, nil }))
 	if err != nil {
 		t.Fatal(err)
 	}

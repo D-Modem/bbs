@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/ircd/isupport"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/tcpserv"
@@ -57,7 +58,7 @@ func New(b *bbs.BBS, s Settings) (*Server, error) {
 		return nil, errors.New("irc: no address to listen on")
 	}
 	if s.TLSAddress != "" {
-		if _, err := tls.LoadX509KeyPair(s.CertFile, s.KeyFile); err != nil {
+		if _, err := certs.New(s.CertFile, s.KeyFile); err != nil {
 			return nil, fmt.Errorf("irc: certificate: %w", err)
 		}
 	}
@@ -124,13 +125,13 @@ func (s *Server) Run(ctx context.Context) error {
 		lns = append(lns, ln)
 	}
 	if s.S.TLSAddress != "" {
-		cert, err := tls.LoadX509KeyPair(s.S.CertFile, s.S.KeyFile)
+		cfg, err := certs.Config(s.S.CertFile, s.S.KeyFile)
 		if err != nil {
 			return fmt.Errorf("irc: certificate: %w", err)
 		}
 		ln, err := sockets.Listen("tcp", s.S.TLSAddress)
 		if err == nil {
-			ln = tls.NewListener(ln, &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12})
+			ln = tls.NewListener(ln, cfg)
 		}
 		if err != nil {
 			for _, l := range lns {

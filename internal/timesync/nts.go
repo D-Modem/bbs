@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/facebook/time/ntp/ntske"
 	ntp "github.com/facebook/time/ntp/protocol"
 )
@@ -93,6 +94,14 @@ type KEServer struct {
 // TLSConfig is the server's TLS: 1.3, ntske/1, the certificate read again
 // when its file changes (a renewal).
 func (s *KEServer) TLSConfig() (*tls.Config, error) {
+	if certs.IsACME(s.CertFile) {
+		src, err := certs.New(s.CertFile, s.KeyFile)
+		if err != nil {
+			return nil, err
+		}
+		return &tls.Config{MinVersion: tls.VersionTLS13, NextProtos: []string{alpn},
+			GetCertificate: src.GetCertificate}, nil
+	}
 	if _, err := s.certificate(); err != nil {
 		return nil, err
 	}

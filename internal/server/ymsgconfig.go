@@ -1,12 +1,12 @@
 package server
 
 import (
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 	"strings"
 
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/config"
 	"github.com/D-Modem/bbs/internal/ymsg"
 )
@@ -34,10 +34,10 @@ func (c *Config) ymsgSection(cf *config.File) error {
 			return errors.New("address: where the pager listens (:5050)")
 		}
 		if y.HTTPSAddress != "" {
-			if y.CertFile == "" || y.KeyFile == "" {
-				return errors.New("https_address needs tls_cert and tls_key")
+			if y.CertFile == "" || y.KeyFile == "" && !certs.IsACME(y.CertFile) {
+				return errors.New("https_address needs tls_cert and tls_key (one for login.yahoo.com: not a name a CA will sign for this host)")
 			}
-			if _, err := tls.LoadX509KeyPair(y.CertFile, y.KeyFile); err != nil {
+			if err := certs.Check(y.CertFile, y.KeyFile, c.acmeNames()); err != nil {
 				return fmt.Errorf("tls_cert, tls_key: %v", err)
 			}
 		}
