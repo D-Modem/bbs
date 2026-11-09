@@ -163,6 +163,8 @@ func usage() {
   bbs [-config FILE] chan board list | del DIR      del takes its posts and images too
   bbs [-config FILE] chan ban add ADDRESS DAYS [BOARD|-] [REASON...]   (0 days: for ever)
   bbs [-config FILE] chan ban list | del ID
+  bbs [-config FILE] gemini cert [-force]          make the Gemini server's certificate (it asks
+                                                  for host names, organization and years)
 `)
 	os.Exit(2)
 }
@@ -317,7 +319,7 @@ func main() {
 		}
 		if g := cfg.Gemini; g != nil {
 			fmt.Printf("gemini: %s, areas %q, files %v, users %v\n", g.Address, g.Areas, g.Files, g.Users)
-			fmt.Printf("gemini certificate %s: %s\n", g.CertFile, gemini.CertInfo(g.CertFile, g.MakeCert))
+			fmt.Printf("gemini certificate %s: %s\n", g.CertFile, gemini.CertInfo(g.CertFile))
 		}
 		for _, d := range cfg.Doors {
 			if r := d.Remote; r != nil {
@@ -376,6 +378,8 @@ func main() {
 		timeCmd(cfg, args)
 	case "chan":
 		chanCmd(cfg, args)
+	case "gemini":
+		geminiCmd(cfg, args)
 	default:
 		usage()
 	}

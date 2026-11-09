@@ -29,10 +29,9 @@ import (
 // Settings are the [gemini] section's.
 type Settings struct {
 	Address    string
-	Host       string // the name the certificate is made for
+	Host       string // the name bbs gemini cert offers for a certificate
 	CertFile   string // the certificate and its key (PEM)
 	KeyFile    string
-	MakeCert   bool   // made, self-signed, if not there (no cert_file given)
 	Areas      string // wildmat of the message areas shown ("": none)
 	Files      bool   // file areas listed and downloadable
 	Users      bool   // /users: finger's answer for a user
@@ -65,7 +64,7 @@ const MaxRequest = 1024
 
 // Run listens until ctx is done.
 func (s *Server) Run(ctx context.Context) error {
-	cert, err := LoadCert(s.S.CertFile, s.S.KeyFile, s.S.Host, s.S.MakeCert)
+	cert, err := LoadCert(s.S.CertFile, s.S.KeyFile)
 	if err != nil {
 		return fmt.Errorf("gemini: %w", err)
 	}

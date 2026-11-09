@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/files"
@@ -58,7 +60,11 @@ func setup(t *testing.T, areas string, withFiles bool) *site {
 	if s.file, err = up.Commit(); err != nil {
 		t.Fatal(err)
 	}
-	cert, err := LoadCert(filepath.Join(dir, "c.pem"), filepath.Join(dir, "k.pem"), "gemini.test", true)
+	cf, kf := filepath.Join(dir, "c.pem"), filepath.Join(dir, "k.pem")
+	if err := MakeCert(cf, kf, CertRequest{Names: []string{"gemini.test"}, Years: 1}); err != nil {
+		t.Fatal(err)
+	}
+	cert, err := LoadCert(cf, kf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,33 +185,48 @@ func TestGemini(t *testing.T) {
 	}
 }
 
-// TestCert: a certificate is made once and then kept; with mk unset, none
-// is made; a key alone is not overwritten.
+// TestCert: nothing is made by loading; a certificate has the names,
+// organization and years asked for; one there is never overwritten; bad
+// requests are refused.
 func TestCert(t *testing.T) {
 	dir := t.TempDir()
 	c, k := filepath.Join(dir, "c.pem"), filepath.Join(dir, "k.pem")
-	if _, err := LoadCert(c, k, "bbs.example.org", false); err == nil {
-		t.Error("loaded nothing")
+	if _, err := LoadCert(c, k); err == nil || !strings.Contains(err.Error(), "bbs gemini cert") {
+		t.Errorf("no certificate: %v", err)
 	}
-	if got := CertInfo(c, true); !strings.Contains(got, "none yet") {
+	if got := CertInfo(c); !strings.Contains(got, "bbs gemini cert") {
 		t.Errorf("info %q", got)
 	}
-	a, err := LoadCert(c, k, "bbs.example.org", true)
+	req := CertRequest{Names: []string{"bbs.example.org", "gemini.example.org", "192.0.2.7"}, Org: "Test BBS", Years: 5}
+	if err := MakeCert(c, k, req); err != nil {
+		t.Fatal(err)
+	}
+	cert, err := LoadCert(c, k)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := LoadCert(c, k, "bbs.example.org", true)
-	if err != nil || !bytes.Equal(a.Certificate[0], b.Certificate[0]) {
-		t.Errorf("made again: %v", err)
+	x, _ := x509.ParseCertificate(cert.Certificate[0])
+	if x.Subject.CommonName != "bbs.example.org" || strings.Join(x.DNSNames, ",") != "bbs.example.org,gemini.example.org" ||
+		len(x.IPAddresses) != 1 || x.Subject.Organization[0] != "Test BBS" || x.NotAfter.Year() != time.Now().Year()+5 {
+		t.Errorf("certificate %v %v %v %v %v", x.Subject, x.DNSNames, x.IPAddresses, x.Subject.Organization, x.NotAfter)
 	}
-	if got := CertInfo(c, true); !strings.HasPrefix(got, "bbs.example.org until ") || !strings.Contains(got, "SHA-256 ") {
+	if got := CertInfo(c); !strings.HasPrefix(got, "bbs.example.org, gemini.example.org, 192.0.2.7 until ") ||
+		!strings.Contains(got, "SHA-256 "+Fingerprint(x.Raw)) {
 		t.Errorf("info %q", got)
 	}
 	if fi, _ := os.Stat(k); fi.Mode().Perm() != 0600 {
 		t.Errorf("key mode %v", fi.Mode())
 	}
-	os.Remove(c)
-	if _, err := LoadCert(c, k, "bbs.example.org", true); err == nil {
-		t.Error("made a certificate for a key left alone")
+	if err := MakeCert(c, k, req); err == nil {
+		t.Error("made over one there")
+	}
+	if again, _ := LoadCert(c, k); !bytes.Equal(again.Certificate[0], cert.Certificate[0]) {
+		t.Error("changed")
+	}
+	for _, bad := range []CertRequest{{Years: 1}, {Names: []string{"a b"}, Years: 1}, {Names: []string{"x"}, Years: 0},
+		{Names: []string{"x"}, Years: 101}} {
+		if err := MakeCert(filepath.Join(dir, "c2"), filepath.Join(dir, "k2"), bad); err == nil {
+			t.Errorf("%+v made", bad)
+		}
 	}
 }

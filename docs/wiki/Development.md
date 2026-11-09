@@ -139,7 +139,7 @@ and answering, the page command (and that it runs no shell); two callers
 chatting and paging on the text BBS; a 3270 (s3270) chatting with a text
 caller and getting a node message on its message line. Finger,
 gopher and Gemini: their answers and refusals, with the finger program and
-curl as clients, and Gemini's certificate made once and kept. Customization: finding display files by terminal, SAUCE,
+curl as clients, and `bbs gemini cert` asking before it makes a certificate. Customization: finding display files by terminal, SAUCE,
 @-codes and widths, colour tags; menus and strings in the configuration
 and what it refuses; a text caller through an ANSI logon (CP437 as it
 is), the strings, a welcome screen, the sysop's menus and submenus, a

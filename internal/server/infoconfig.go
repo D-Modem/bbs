@@ -75,9 +75,8 @@ func (c *Config) infoSections(cf *config.File) error {
 		case g.CertFile == "" && g.KeyFile == "":
 			g.CertFile = filepath.Join(c.DataDir(), "gemini-cert.pem")
 			g.KeyFile = filepath.Join(c.DataDir(), "gemini-key.pem")
-			g.MakeCert = true
 		case g.CertFile == "" || g.KeyFile == "":
-			return errors.New("[gemini] cert_file and key_file go together (or neither, for a certificate made here)")
+			return errors.New("[gemini] cert_file and key_file go together (or neither, for one made by bbs gemini cert)")
 		}
 		g.Areas = s.String("areas", "")
 		if g.Files, err = s.Bool("files", false); err != nil {

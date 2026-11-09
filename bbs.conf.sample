@@ -870,11 +870,12 @@ address = 127.0.0.1:2513
 ; no login, so anyone sees them.  Port 1965 needs no privilege
 ;[gemini]
 ;address = :1965
-; the name a certificate made here is for
+; the host name bbs gemini cert offers for a new certificate
 ;hostname = bbs.example.org
-; the certificate and key (PEM); with neither, a self-signed one is made
-; beside the database (gemini-cert.pem, gemini-key.pem) at the first start
-; and kept: clients trust it on first use and warn if it ever changes
+; the certificate and key (PEM); with neither, gemini-cert.pem and
+; gemini-key.pem beside the database, which bbs gemini cert makes (it asks
+; for the host names, organization and years first).  Clients trust it on
+; first use and warn if it ever changes
 ;cert_file = /etc/bbs/gemini-cert.pem
 ;key_file = /etc/bbs/gemini-key.pem
 ; message areas shown (a wildmat of area names; "": none)

@@ -77,8 +77,8 @@ $ lynx gopher://bbs.example.org
 ```
 [gemini]
 address = :1965
-hostname = bbs.example.org   ; the name a certificate made here is for
-;cert_file = /etc/bbs/gemini-cert.pem   ; or neither, for one made here
+hostname = bbs.example.org   ; offered by bbs gemini cert
+;cert_file = /etc/bbs/gemini-cert.pem   ; or neither, for bbs gemini cert's
 ;key_file = /etc/bbs/gemini-key.pem
 areas = general,announcements ; as gopher's
 files = no
@@ -99,12 +99,38 @@ a link or a heading. A file goes as it is, typed by its name
 
 Gemini clients trust a capsule's certificate the first time they see it
 and warn if it ever changes, so self-signed certificates are the usual
-thing. With no `cert_file` and `key_file`, the BBS makes one for
-`hostname` at its first start, beside the database (`gemini-cert.pem`,
-`gemini-key.pem`), and keeps it; `bbs check` shows its SHA-256
-fingerprint. Keep those two files with your backups: a new certificate
-makes every client that has been before warn. A certificate from a
-certificate authority (Let's Encrypt's, say) works too.
+thing. The BBS never makes one by itself: with no `cert_file` and
+`key_file`, make one with `bbs gemini cert` before starting it. It asks
+what goes in the certificate, shows it, and makes it only when you say
+yes:
+
+```
+$ bbs -config /etc/bbs/bbs.conf gemini cert
+A certificate for the Gemini server, made here and signed by itself.
+Clients trust it the first time they connect and warn if it ever changes:
+make it once, and keep it (and its key) with your backups.
+Host names callers use, by commas [bbs.example.org]: bbs.example.org, gemini.example.org
+Organization (- for none) [D-Modem BBS]:
+Years it is good for [20]:
+
+For:      bbs.example.org, gemini.example.org
+Org:      D-Modem BBS
+Until:    2046-11-09
+Files:    /var/lib/bbs/gemini-cert.pem, /var/lib/bbs/gemini-key.pem
+Make it? (yes/no) [no]: yes
+Made: bbs.example.org, gemini.example.org until 2046-11-09, SHA-256 3F2A...
+```
+
+The first host name is the certificate's common name; addresses (IPv4 or
+IPv6) can be listed too. The files go beside the database
+(`gemini-cert.pem`, `gemini-key.pem`). Keep them with your backups: a new
+certificate makes every client that has been before warn, which is why
+`bbs gemini cert` will not replace one without `-force` (and then keeps
+the old one as `.old`). `bbs check` shows the certificate's names, expiry
+and SHA-256 fingerprint, or that there is none yet; without one, `bbs
+serve` stops and says to make it. A certificate from a certificate
+authority (Let's Encrypt's, say) works too: set `cert_file` and
+`key_file`.
 
 What gopher shows anyone, Gemini shows anyone: no areas and no files by
 default, `bbs check` warns when `areas` or `files` is set, and file areas

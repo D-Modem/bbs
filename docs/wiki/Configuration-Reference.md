@@ -662,9 +662,9 @@ gemini: gopher's capsule over Gemini (gemini://, TLS): about the system, who is 
 | key | default | live | what it does |
 |---|---|---|---|
 | `address` |  |  | See the section above. Examples: `:1965`. |
-| `hostname` |  |  | the name a certificate made here is for. Examples: `bbs.example.org`. |
-| `cert_file` |  |  | the certificate and key (PEM); with neither, a self-signed one is made beside the database (gemini-cert.pem, gemini-key.pem) at the first start and kept: clients trust it on first use and warn if it ever changes. Examples: `/etc/bbs/gemini-cert.pem`. |
-| `key_file` |  |  | the certificate and key (PEM); with neither, a self-signed one is made beside the database (gemini-cert.pem, gemini-key.pem) at the first start and kept: clients trust it on first use and warn if it ever changes. Examples: `/etc/bbs/gemini-key.pem`. |
+| `hostname` |  |  | the host name bbs gemini cert offers for a new certificate. Examples: `bbs.example.org`. |
+| `cert_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes. Examples: `/etc/bbs/gemini-cert.pem`. |
+| `key_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes. Examples: `/etc/bbs/gemini-key.pem`. |
 | `areas` |  |  | message areas shown (a wildmat of area names; "": none) Examples: `general,announcements`. |
 | `files` |  |  | file areas listed and downloadable. Examples: `no`. |
 | `users` |  |  | /users: look up a user, as finger tells of them. Examples: `yes`. |

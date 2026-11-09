@@ -47,7 +47,7 @@ files = yes
 		t.Errorf("defaults %+v %v", c.Gopher, err)
 	}
 	c, err = load("[general]\ndatabase = /var/lib/bbs/bbs.db\n[gemini]\nareas = *\n")
-	if g := c.Gemini; err != nil || g.Address != ":1965" || !g.MakeCert || !g.Users || g.Areas != "*" ||
+	if g := c.Gemini; err != nil || g.Address != ":1965" || !g.Users || g.Areas != "*" ||
 		g.CertFile != "/var/lib/bbs/gemini-cert.pem" || g.KeyFile != "/var/lib/bbs/gemini-key.pem" {
 		t.Errorf("gemini %+v %v", g, err)
 	}
@@ -55,7 +55,7 @@ files = yes
 		t.Errorf("no gemini warning: %v", c.Warnings)
 	}
 	c, err = load("[gemini]\naddress = :1966\ncert_file = /etc/c.pem\nkey_file = /etc/k.pem\nusers = no\n")
-	if g := c.Gemini; err != nil || g.MakeCert || g.Users || g.CertFile != "/etc/c.pem" || len(c.Warnings) != 0 {
+	if g := c.Gemini; err != nil || g.Users || g.CertFile != "/etc/c.pem" || len(c.Warnings) != 0 {
 		t.Errorf("gemini %+v %v %v", g, err, c.Warnings)
 	}
 	for body, want := range map[string]string{
