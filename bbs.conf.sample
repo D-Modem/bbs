@@ -160,7 +160,10 @@ throttle_time = 600
 ;   socket_group = ...   and its group
 ;   frontend = bbs       what callers get: the BBS, or compuserve: the
 ;                        CompuServe Information Service (telnet and raw
-;                        listeners; no 3270).  See the wiki's CompuServe
+;                        listeners; no 3270).  See the wiki's CompuServe.
+;                        Or marvel: The Microsoft Network, for the MSN
+;                        client of Windows 95 dialing in (telnet and raw).
+;                        See the wiki's MSN-Classic
 ;   connect = 9600       compuserve: the CONNECT line before Host Name:
 ;                        (telnet: 9600; raw: none, the modem says its own)
 
@@ -830,6 +833,17 @@ address = 127.0.0.1:2513
 ;system = BBS
 ; a web address the clients' links (inbox, profiles) open
 ;site = https://bbs.example.org/
+
+; The Microsoft Network of 1995 to 1998, for the MSN client that came with
+; Windows 95: users sign in with their BBS names and passwords, the
+; message areas are its Categories, and each area is an MSN bulletin
+; board to read and post in.  Over TCP its port is 569, which the client
+; can't be told otherwise; modem callers come through a listener with
+; frontend = marvel.  See docs/wiki/MSN-Classic.md
+;[marvel]
+;address = :569
+;max_clients = 64
+;max_per_ip = 4
 
 ; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
 ; beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike.

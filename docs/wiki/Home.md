@@ -144,6 +144,7 @@ which is generated from `bbs.conf.sample`.
 | [IRC server linking](IRC-Linking) | The BBS as a hub server on an IRC network (TS6 or P10): every user reachable there |
 | [AOL clients](AOL) | a host for AOL's own clients (3.0, 4.0): sign-on with BBS accounts |
 | [MSN Messenger](MSN-Messenger) | the MSN server: MSN Messenger 1.0 to 4.7, contacts and IMs |
+| [MSN Classic](MSN-Classic) | The Microsoft Network for Windows 95's client: sign-in, the areas as Categories, bulletin boards |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
 | [Time](Time) | NTP, NTS and PTP: the clock following time servers, and serving time |

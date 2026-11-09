@@ -43,6 +43,10 @@ func TestCompuServeMail(t *testing.T) {
 	d.expect("Mail!")
 	d.send("ADD\r")
 	d.expect("!")
+	d.send("INSERT Jane\r") // kept: the user's own address book
+	d.expect("Address: ")
+	d.send("jane@example.com\r")
+	d.expect("!")
 	d.send("NAME\r")
 	d.expect("  Old: alice\r\n  New: ")
 	d.send("Alice A. [TAPCIS]\r")
@@ -69,6 +73,11 @@ func TestCompuServeMail(t *testing.T) {
 	d.expect("Mail!")
 	d.send("OFF\r")
 	d.expect("Thank you for using CompuServe!")
+
+	alice, _ := e.b.Store.UserByName("alice")
+	if book, _ := e.b.Store.Addresses(alice.ID); len(book) != 1 || book[0].Name != "Jane" || book[0].Addr != "jane@example.com" {
+		t.Errorf("alice's address book: %+v", book)
+	}
 
 	d = cisLogin(e, "72000,2", "sysoppass1")
 	d.expect("") // the banner came before the menu

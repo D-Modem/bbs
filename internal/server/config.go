@@ -29,6 +29,7 @@ import (
 	"github.com/D-Modem/bbs/internal/ircd"
 	"github.com/D-Modem/bbs/internal/irclink"
 	"github.com/D-Modem/bbs/internal/logo"
+	"github.com/D-Modem/bbs/internal/marvel"
 	"github.com/D-Modem/bbs/internal/mrc"
 	"github.com/D-Modem/bbs/internal/msn"
 	"github.com/D-Modem/bbs/internal/nntp"
@@ -69,6 +70,7 @@ type Config struct {
 	OSCAR       *oscar.Settings   // nil: no AIM/ICQ server
 	AOL         *aol.Settings     // nil: no host for AOL clients
 	MSN         *msn.Settings     // nil: no MSN Messenger server
+	Marvel      *marvel.Settings  // nil: no host for the MSN (1995) client over TCP
 	MRC         *mrc.Settings     // nil: not on Multi Relay Chat
 	IRCLink     *irclink.Settings // nil: not linked to an IRC network
 	Screens     *screens.Set      // nil: no screens of the sysop's
@@ -158,6 +160,9 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.msnSection(cf); err != nil {
 		return nil, err
 	}
+	if err := c.marvelSection(cf); err != nil {
+		return nil, err
+	}
 	if err := c.mrcSection(cf); err != nil {
 		return nil, err
 	}
@@ -233,7 +238,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
+		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "marvel", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
 			"mail", "smarthost", "pop3", "imap", "smtp", "mx", "lmtp":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
@@ -580,11 +585,19 @@ func listener(sec *config.Section) (*Listener, error) {
 			return nil, errors.New("tn3270: not with frontend = compuserve")
 		}
 		l.TN3270 = false
+	case "marvel":
+		if l.Kind != "telnet" && l.Kind != "raw" {
+			return nil, errors.New("frontend: marvel is for telnet and raw listeners")
+		}
+		if sec.Has("tn3270") && l.TN3270 {
+			return nil, errors.New("tn3270: not with frontend = marvel")
+		}
+		l.TN3270 = false
 	default:
-		return nil, fmt.Errorf("frontend: %q is not bbs or compuserve", l.Frontend)
+		return nil, fmt.Errorf("frontend: %q is not bbs, compuserve or marvel", l.Frontend)
 	}
 	l.Connect = sec.String("connect", map[bool]string{true: "9600", false: ""}[l.Kind == "telnet"])
-	if sec.Has("connect") && l.Frontend == "" {
+	if sec.Has("connect") && l.Frontend != "compuserve" {
 		return nil, errors.New("connect: only for frontend = compuserve")
 	}
 	mode := sec.String("socket_mode", "0660")

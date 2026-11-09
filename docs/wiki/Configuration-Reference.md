@@ -43,6 +43,7 @@ the file is laid out.
 | [`[ircpeer NAME]`](#ircpeer-name) | A server the BBS links with, one section each: [ircpeer ITS.NAME]. |
 | [`[aol]`](#aol) | AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP). |
 | [`[msn]`](#msn) | MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (MSNP2 to 7), beside IRC and AIM. |
+| [`[marvel]`](#marvel) | The Microsoft Network of 1995 to 1998, for the MSN client that came with Windows 95: users sign in with their BBS names and passwords, the message areas are its Categories, and each area is an MSN bulletin board to read and post in. |
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
 | [`[gopher]`](#gopher) | gopher: about the system, who is on, and what areas the sysop opens: no login, so anyone sees them. |
@@ -126,7 +127,7 @@ There may be any number of these, each with its own NAME.
 | `create_users` | `no` |  | yes, with trust_user: a user unknown here gets an account (with no password of its own) Examples: `yes`. |
 | `socket_mode` | `0660` |  | a unix socket's permissions. |
 | `socket_group` | `...` |  | and its group. Examples: `asterisk`. |
-| `frontend` | `bbs` |  | what callers get: the BBS, or compuserve: the CompuServe Information Service (telnet and raw listeners; no 3270). See the wiki's CompuServe. Examples: `compuserve`. |
+| `frontend` | `bbs` |  | what callers get: the BBS, or compuserve: the CompuServe Information Service (telnet and raw listeners; no 3270). See the wiki's CompuServe. Or marvel: The Microsoft Network, for the MSN client of Windows 95 dialing in (telnet and raw). See the wiki's MSN-Classic. Examples: `compuserve`. |
 | `connect` | `9600` |  | compuserve: the CONNECT line before Host Name: (telnet: 9600; raw: none, the modem says its own) |
 | `tn3270` |  |  | See the section above. Examples: `yes`. |
 | `tls_cert` |  |  | See the section above. Examples: `/etc/bbs/cert.pem`. |
@@ -612,6 +613,17 @@ MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (
 | `max_per_ip` |  |  | each conversation is a connection of its own. Examples: `16`. |
 | `system` |  |  | the name the BBS's notices come from. Examples: `BBS`. |
 | `site` |  |  | a web address the clients' links (inbox, profiles) open. Examples: `https://bbs.example.org/`. |
+
+
+## `[marvel]`
+
+The Microsoft Network of 1995 to 1998, for the MSN client that came with Windows 95: users sign in with their BBS names and passwords, the message areas are its Categories, and each area is an MSN bulletin board to read and post in.  Over TCP its port is 569, which the client can't be told otherwise; modem callers come through a listener with frontend = marvel.  See docs/wiki/MSN-Classic.md.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:569`. |
+| `max_clients` |  |  | See the section above. Examples: `64`. |
+| `max_per_ip` |  |  | See the section above. Examples: `4`. |
 
 
 ## `[mrc]`

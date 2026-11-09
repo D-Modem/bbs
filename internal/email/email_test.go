@@ -73,7 +73,7 @@ type site struct {
 	b     *bbs.BBS
 	svc   *Service
 	st    *store.Store
-	log   *bytes.Buffer
+	log   *syncWriter
 	addrs map[string]string
 	users map[string]*store.User
 }
@@ -87,7 +87,7 @@ func newSite(t *testing.T, domain string, dns *fakeDNS, users []string, kinds ..
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { st.Close() })
-	s := &site{st: st, log: &bytes.Buffer{}, addrs: map[string]string{}, users: map[string]*store.User{}}
+	s := &site{st: st, log: &syncWriter{w: &bytes.Buffer{}}, addrs: map[string]string{}, users: map[string]*store.User{}}
 	for _, name := range users {
 		u, err := st.CreateUser(name, "password1", "", name == "sysop")
 		if err != nil {
@@ -97,7 +97,7 @@ func newSite(t *testing.T, domain string, dns *fakeDNS, users []string, kinds ..
 	}
 	set := bbs.Defaults()
 	set.FailDelay = 0
-	s.b = bbs.New(set, st, log.New(&syncWriter{w: s.log}, domain+": ", 0))
+	s.b = bbs.New(set, st, log.New(s.log, domain+": ", 0))
 	ms := Defaults(domain, "mail."+domain)
 	ms.Resolver = dns
 	s.svc = New(s.b, ms)
@@ -153,6 +153,13 @@ func (w *syncWriter) Write(p []byte) (int, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	return w.w.Write(p)
+}
+
+// String is what has been written, read under the same lock.
+func (w *syncWriter) String() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.w.String()
 }
 
 // submit sends a mail by SMTP submission, as name.

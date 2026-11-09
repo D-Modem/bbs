@@ -1,6 +1,8 @@
 package store
 
 import (
+	"bytes"
+	"encoding/hex"
 	"path/filepath"
 	"testing"
 )
@@ -78,5 +80,65 @@ func TestBlocks(t *testing.T) {
 	of, _ := s.FriendOf(a.ID)
 	if len(of) != 2 || of[0].Name != "bob" || of[0].Group != "Pals" || of[1].Name != "carol" {
 		t.Errorf("friend of %+v", of)
+	}
+}
+
+func TestAddressBook(t *testing.T) {
+	BcryptCost = 4
+	s, err := Open(filepath.Join(t.TempDir(), "bbs.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	u, err := s.CreateUser("alice", "password1", "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.PutAddress(u.ID, "Jane", "jane@example.com")
+	s.PutAddress(u.ID, "bob", "Bob")
+	s.PutAddress(u.ID, "JANE", "jane@example.org") // the same name, another address
+	s.PutAddress(u.ID, "", "nobody")
+	book, err := s.Addresses(u.ID)
+	if err != nil || len(book) != 2 || book[0].Name != "bob" || book[1].Name != "Jane" || book[1].Addr != "jane@example.org" {
+		t.Fatalf("book: %+v %v", book, err)
+	}
+	s.RemoveAddress(u.ID, "jane")
+	if book, _ := s.Addresses(u.ID); len(book) != 1 {
+		t.Fatalf("after removing: %+v", book)
+	}
+}
+
+func TestNTLMKeys(t *testing.T) {
+	// the hashes of "password", as every NTLM write-up gives them
+	if got := hex.EncodeToString(LMHash("password")); got != "e52cac67419a9a224a3b108f3fa6cb6d" {
+		t.Errorf("LM: %s", got)
+	}
+	if got := hex.EncodeToString(NTHash("password")); got != "8846f7eaee8fb117ad06bdd830b7586c" {
+		t.Errorf("NT: %s", got)
+	}
+	BcryptCost = 4
+	s, err := Open(filepath.Join(t.TempDir(), "bbs.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	u, _ := s.CreateUser("alice", "password", "", false)
+	if _, _, ok, _ := s.NTLMKey(u.ID); ok {
+		t.Fatal("kept without SetKeepNTLM")
+	}
+	s.SetKeepNTLM(true)
+	s.CheckPassword("alice", "password")
+	lm, nt, ok, err := s.NTLMKey(u.ID)
+	if err != nil || !ok || !bytes.Equal(lm, LMHash("password")) || !bytes.Equal(nt, NTHash("password")) {
+		t.Fatalf("kept: %x %x %v %v", lm, nt, ok, err)
+	}
+	// a password changed where it isn't seen leaves them stale
+	s.db.Exec(`UPDATE users SET password = 'x' WHERE id = ?`, u.ID)
+	if _, _, ok, _ := s.NTLMKey(u.ID); ok {
+		t.Fatal("stale hashes used")
+	}
+	s.SetPassword(u.ID, "another1")
+	if lm, _, ok, _ := s.NTLMKey(u.ID); !ok || !bytes.Equal(lm, LMHash("another1")) {
+		t.Fatal("not kept on a new password")
 	}
 }

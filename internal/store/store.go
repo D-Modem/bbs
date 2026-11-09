@@ -130,6 +130,8 @@ type Store struct {
 	keepCIS atomic.Bool
 	// keepMSN: and their MSN MD5 login digests (msn.go)
 	keepMSN atomic.Bool
+	// keepNTLM: and their LM and NT hashes, for MSN Classic's 1996 client (ntlm.go)
+	keepNTLM atomic.Bool
 }
 
 // Open opens (and makes, if need be) the database at addr: a file's path
@@ -268,6 +270,7 @@ func (s *Store) CreateUser(name, password, location string, sysop bool) (*User, 
 		s.KeepOSCARKeys(id, password)
 		s.KeepCISKey(id, password)
 		s.KeepMSNKey(id, password)
+		s.KeepNTLMKey(id, password)
 	}
 	return s.UserByID(id)
 }
@@ -302,6 +305,7 @@ func (s *Store) CheckPassword(name, pw string) (*User, error) {
 	s.KeepOSCARKeys(u.ID, pw) // best effort: the login stands without them
 	s.KeepCISKey(u.ID, pw)
 	s.KeepMSNKey(u.ID, pw)
+	s.KeepNTLMKey(u.ID, pw)
 	return u, nil
 }
 
@@ -318,6 +322,9 @@ func (s *Store) SetPassword(id int64, pw string) error {
 		return err
 	}
 	if err := s.KeepMSNKey(id, pw); err != nil {
+		return err
+	}
+	if err := s.KeepNTLMKey(id, pw); err != nil {
 		return err
 	}
 	return s.KeepOSCARKeys(id, pw)
