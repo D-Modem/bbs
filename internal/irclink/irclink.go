@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/ircd"
 	"github.com/D-Modem/bbs/internal/sockets"
 )
@@ -208,7 +209,7 @@ func (h *Hub) Run(ctx context.Context) error {
 		lns = append(lns, ln)
 	}
 	if h.S.TLSAddress != "" {
-		cert, err := tls.LoadX509KeyPair(h.S.CertFile, h.S.KeyFile)
+		cfg, err := certs.Config(h.S.CertFile, h.S.KeyFile)
 		if err != nil {
 			return fmt.Errorf("irclink: certificate: %w", err)
 		}
@@ -216,7 +217,7 @@ func (h *Hub) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("irclink: %w", err)
 		}
-		lns = append(lns, tls.NewListener(ln, &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12}))
+		lns = append(lns, tls.NewListener(ln, cfg))
 	}
 	var wg sync.WaitGroup
 	for _, ln := range lns {

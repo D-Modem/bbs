@@ -17,6 +17,7 @@ the file is laid out.
 | [`[security]`](#security) | keeping callers out: a file of addresses and networks refused, one of names no new user may take (* wildcards), the hack log, and how long an address throttled for failed logins is banned outright. |
 | [`[event NAME]`](#event-name) | scheduled events: a program (no shell), daily at a time or every N minutes; see the wiki's Sysop tools. |
 | [`[backup]`](#backup) | Backups: this file, the database (a SQLite file, whatever the engine, taken whole at one moment while callers are on) and the files' directories (file areas, image boards, FidoNet, screens, scripts), one archive (bbs-YYYYMMDD-HHMMSS.tar.gz) a backup. |
+| [`[acme NAME]`](#acme-name) | Certificates from Let's Encrypt, ZeroSSL or any ACME CA, got and renewed by the BBS itself (in the manner of acme.sh), for every TLS server here: one given no cert_file (or tls_cert) and key_file uses them, the one whose names cover the name the client asks for, or the first. |
 | [`[modemmenu]`](#modemmenu) | modemmenu's auth socket ([authd] there): the accounts modemmenu logs in (no password here) log in by telnet, SSH, the web ... |
 | [`[http]`](#http) | The HTTP API (REST, server-sent events, and WebSockets in JSON and protobuf): see docs/wiki/HTTP-API.md. |
 | [`[chan]`](#chan) | How the image boards are run. |
@@ -175,6 +176,34 @@ Backups: this file, the database (a SQLite file, whatever the engine, taken whol
 | `files` |  | yes | the files' directories too (no: the configuration, database and SSH host keys alone) Examples: `yes`. |
 
 
+## `[acme NAME]`
+
+Certificates from Let's Encrypt, ZeroSSL or any ACME CA, got and renewed by the BBS itself (in the manner of acme.sh), for every TLS server here: one given no cert_file (or tls_cert) and key_file uses them, the one whose names cover the name the client asks for, or the first.  cert_file = acme says so outright; cert_file = acme:NAME picks an [acme NAME].  Gemini (its pinned certificate) and Yahoo! Messenger (login.yahoo.com's) keep their own unless told.  They are kept in acme/ beside the database, renewed 30 days before they run out (or when the CA says), and read again by every server as they change.  bbs acme list shows them; bbs acme renew gets them now.  See docs/wiki/Certificates.md.
+
+There may be any number of these, each with its own NAME.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `email` |  |  | the account's contact: the CA writes here of a certificate not renewed. Examples: `sysop@example.org`. |
+| `ca` |  |  | letsencrypt, letsencrypt-staging (for trying it out), zerossl, buypass, google, sslcom, or a directory's URL. Examples: `letsencrypt`. |
+| `eab_kid` |  |  | External Account Binding, for CAs that need it (Google's; ZeroSSL's is got by email if not given) Examples: `kid-from-the-ca`. |
+| `eab_hmac_key` |  |  | External Account Binding, for CAs that need it (Google's; ZeroSSL's is got by email if not given) Examples: `base64url-key`. |
+| `domains` |  |  | the names of [acme]'s own certificate (named default); more in [acme NAME]. Examples: `bbs.example.org, www.bbs.example.org`, `mail.example.org, imap.example.org, smtp.example.org`. |
+| `challenge` |  |  | how the CA is shown the names are this host's: http (a token on port 80), tls-alpn (a certificate on port 443, from any TLS server of the BBS's there) or dns (a TXT record; the only one for *.wildcards) Examples: `http`, `tls-alpn`. |
+| `http_address` |  |  | HTTP-01's port 80 (by default :80 when a certificate uses it, unless a web server here is on port 80 already, which answers it then; no: none) Examples: `:80`. |
+| `dns` |  |  | DNS-01's provider: cloudflare, route53, digitalocean, hetzner, gandiv5, ovh, namecheap, porkbun, godaddy, desec, duckdns, pdns, rfc2136, acme-dns, httpreq; exec:PROGRAM (run as PROGRAM present\|cleanup NAME VALUE); or acmesh:dns_xx, one of acme.sh's 150 dnsapi scripts (needs acmesh) Examples: `cloudflare`. |
+| `dns_env_file` |  |  | KEY=value lines: the provider's credentials, as lego names them for its providers (CF_DNS_API_TOKEN=...) or acme.sh for its (CF_Token=...) Examples: `/etc/bbs/acme-dns.env`. |
+| `acmesh` |  |  | acme.sh, for dns = acmesh:..., and its home if not beside it (where its account.conf keeps the credentials it saved) Examples: `/home/bbs/.acme.sh/acme.sh`. |
+| `acmesh_home` |  |  | acme.sh, for dns = acmesh:..., and its home if not beside it (where its account.conf keeps the credentials it saved) Examples: `/home/bbs/.acme.sh`. |
+| `dns_resolvers` |  |  | DNS servers asked whether the record is out yet (default: the system's) Examples: `1.1.1.1:53, 8.8.8.8:53`. |
+| `dns_check` |  |  | how: authoritative (the zone's own servers), resolvers (dns_resolvers) or no (just wait dns_wait seconds, as acme.sh's --dnssleep) Examples: `authoritative`. |
+| `dns_wait` |  |  | how: authoritative (the zone's own servers), resolvers (dns_resolvers) or no (just wait dns_wait seconds, as acme.sh's --dnssleep) Examples: `0`. |
+| `key_type` |  |  | the key: ec256, ec384, rsa2048, rsa3072 or rsa4096 (Windows XP's clients know only RSA) Examples: `ec256`. |
+| `renew_days` |  |  | renew this many days before the end. Examples: `30`. |
+| `hook` |  |  | run (by sh) after each new certificate, with CERT_NAME, CERT_FILE, KEY_FILE and CERT_DOMAINS set: to hand it to other programs. Examples: `systemctl reload nginx`. |
+| `dir` |  |  | where the account and certificates are kept (default acme/ beside the database) Examples: `/var/lib/bbs/acme`. |
+
+
 ## `[modemmenu]`
 
 modemmenu's auth socket ([authd] there): the accounts modemmenu logs in (no password here) log in by telnet, SSH, the web ... with their modemmenu password, asked of modemmenu's backends.  See docs/wiki/Modem-Callers.md.
@@ -193,8 +222,8 @@ The HTTP API (REST, server-sent events, and WebSockets in JSON and protobuf): se
 | key | default | live | what it does |
 |---|---|---|---|
 | `address` |  |  | See the section above. Examples: `:8443`. |
-| `cert_file` |  |  | TLS is the default; tls = no only on 127.0.0.1 behind a proxy that has it. Examples: `/etc/bbs/tls/cert.pem`. |
-| `key_file` |  |  | TLS is the default; tls = no only on 127.0.0.1 behind a proxy that has it. Examples: `/etc/bbs/tls/key.pem`. |
+| `cert_file` |  |  | TLS is the default; tls = no only on 127.0.0.1 behind a proxy that has it. With no cert_file and key_file, the [acme] certificates. Examples: `/etc/bbs/tls/cert.pem`. |
+| `key_file` |  |  | TLS is the default; tls = no only on 127.0.0.1 behind a proxy that has it. With no cert_file and key_file, the [acme] certificates. Examples: `/etc/bbs/tls/key.pem`. |
 | `trusted_proxies` |  |  | behind a reverse proxy (nginx, Caddy): its addresses (or ranges), which are believed when they say whose a request is (X-Forwarded-For, Forwarded, X-Real-IP), for rate limits, logs, bans and the deny lists. secure_cookies: logins' cookies over HTTPS only (the default with tls = yes; say yes when the proxy has TLS) Examples: `127.0.0.1, ::1`. |
 | `secure_cookies` |  |  | behind a reverse proxy (nginx, Caddy): its addresses (or ranges), which are believed when they say whose a request is (X-Forwarded-For, Forwarded, X-Real-IP), for rate limits, logs, bans and the deny lists. secure_cookies: logins' cookies over HTTPS only (the default with tls = yes; say yes when the proxy has TLS) Examples: `yes`. |
 | `anonymous` |  |  | anonymous callers may see /system and /who. Examples: `yes`. |
@@ -528,13 +557,13 @@ IRC: the chat rooms as channels (#main ...), for IRC clients.  Users log in with
 | key | default | live | what it does |
 |---|---|---|---|
 | `address` |  |  | See the section above. Examples: `:6667`. |
-| `tls_address` |  |  | IRC over TLS (and address = none for TLS only) Examples: `:6697`. |
-| `tls_cert` |  |  | IRC over TLS (and address = none for TLS only) Examples: `/etc/bbs/tls.crt`. |
-| `tls_key` |  |  | IRC over TLS (and address = none for TLS only) Examples: `/etc/bbs/tls.key`. |
-| `server_name` |  |  | IRC over TLS (and address = none for TLS only) Examples: `irc.example.org`. |
-| `network` |  |  | IRC over TLS (and address = none for TLS only) Examples: `DModem`. |
-| `max_clients` |  |  | IRC over TLS (and address = none for TLS only) Examples: `64`. |
-| `max_per_ip` |  |  | IRC over TLS (and address = none for TLS only) Examples: `4`. |
+| `tls_address` |  |  | IRC over TLS (and address = none for TLS only); with no tls_cert and tls_key, the [acme] certificates. Examples: `:6697`. |
+| `tls_cert` |  |  | IRC over TLS (and address = none for TLS only); with no tls_cert and tls_key, the [acme] certificates. Examples: `/etc/bbs/tls.crt`. |
+| `tls_key` |  |  | IRC over TLS (and address = none for TLS only); with no tls_cert and tls_key, the [acme] certificates. Examples: `/etc/bbs/tls.key`. |
+| `server_name` |  |  | IRC over TLS (and address = none for TLS only); with no tls_cert and tls_key, the [acme] certificates. Examples: `irc.example.org`. |
+| `network` |  |  | IRC over TLS (and address = none for TLS only); with no tls_cert and tls_key, the [acme] certificates. Examples: `DModem`. |
+| `max_clients` |  |  | IRC over TLS (and address = none for TLS only); with no tls_cert and tls_key, the [acme] certificates. Examples: `64`. |
+| `max_per_ip` |  |  | IRC over TLS (and address = none for TLS only); with no tls_cert and tls_key, the [acme] certificates. Examples: `4`. |
 | `service` |  |  | the services bot's nick: /msg BBSServ HELP (your account's settings) Examples: `BBSServ`. |
 
 
@@ -693,8 +722,8 @@ gemini: gopher's capsule over Gemini (gemini://, TLS): about the system, who is 
 |---|---|---|---|
 | `address` |  |  | See the section above. Examples: `:1965`. |
 | `hostname` |  |  | the host name bbs gemini cert offers for a new certificate. Examples: `bbs.example.org`. |
-| `cert_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes. Examples: `/etc/bbs/gemini-cert.pem`. |
-| `key_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes. Examples: `/etc/bbs/gemini-key.pem`. |
+| `cert_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes, so an ACME one (cert_file = acme) is for capsules whose visitors check it against a CA. Examples: `/etc/bbs/gemini-cert.pem`. |
+| `key_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes, so an ACME one (cert_file = acme) is for capsules whose visitors check it against a CA. Examples: `/etc/bbs/gemini-key.pem`. |
 | `areas` |  |  | message areas shown (a wildmat of area names; "": none) Examples: `general,announcements`. |
 | `files` |  |  | file areas listed and downloadable. Examples: `no`. |
 | `users` |  |  | /users: look up a user, as finger tells of them. Examples: `yes`. |
@@ -728,7 +757,7 @@ an NTP server (UDP).  Port 123 needs CAP_NET_BIND_SERVICE.
 
 ## `[nts]`
 
-an NTS-KE server (RFC 8915): TLS 1.3, its clients' keys and cookies for [ntp], which then answers NTS-secured requests too.  The certificate is read again when its file changes (a renewal)
+an NTS-KE server (RFC 8915): TLS 1.3, its clients' keys and cookies for [ntp], which then answers NTS-secured requests too.  The certificate is read again when its file changes (a renewal); with no tls_cert and tls_key, the [acme] certificates.
 
 | key | default | live | what it does |
 |---|---|---|---|

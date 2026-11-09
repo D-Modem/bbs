@@ -143,7 +143,14 @@ tls_key = /etc/bbs/key.pem
 A telnet or raw listener with `tls_cert` and `tls_key` accepts TLS (1.2 or
 later) and then telnet (or TN3270) as usual. SyncTERM (TelnetS) and
 `c3270 L:host:992` both speak it. A client has 15 seconds to finish the
-handshake.
+handshake. `tls_cert = acme` uses the [ACME client's](Certificates)
+certificate instead of files.
+
+## Certificates
+
+Every TLS server reads its certificate again when the file changes, so a
+renewal needs no restart. The BBS's own [ACME client](Certificates) gets
+and renews certificates from Let's Encrypt or ZeroSSL for all of them.
 
 **See also:** [SSH](SSH), [Configuration](Configuration), [Sysop tools](Sysop-Tools)
 

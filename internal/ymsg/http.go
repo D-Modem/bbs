@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/sockets"
 )
 
@@ -35,7 +36,7 @@ func (s *Server) serveWeb(ctx context.Context) error {
 		if cfg != nil {
 			ln = tls.NewListener(ln, cfg)
 		}
-		hs := &http.Server{Handler: s, ReadHeaderTimeout: 30 * time.Second, WriteTimeout: time.Minute,
+		hs := &http.Server{Handler: certs.WrapHTTP(s), ReadHeaderTimeout: 30 * time.Second, WriteTimeout: time.Minute,
 			ErrorLog: nil}
 		srvs = append(srvs, hs)
 		go func() {
@@ -51,11 +52,11 @@ func (s *Server) serveWeb(ctx context.Context) error {
 		}
 	}
 	if s.S.HTTPSAddress != "" {
-		cert, err := tls.LoadX509KeyPair(s.S.CertFile, s.S.KeyFile)
+		src, err := certs.New(s.S.CertFile, s.S.KeyFile)
 		if err != nil {
 			return fmt.Errorf("ymsg: tls_cert, tls_key: %w", err)
 		}
-		if err := start(s.S.HTTPSAddress, tlsConfig(cert)); err != nil {
+		if err := start(s.S.HTTPSAddress, tlsConfig(src.GetCertificate)); err != nil {
 			return err
 		}
 	}
@@ -75,8 +76,8 @@ func (s *Server) serveWeb(ctx context.Context) error {
 
 // tlsConfig takes the old clients: Windows XP's TLS 1.0, with RSA key
 // exchange and 3DES or RC4 (all it has), as well as current ones.
-func tlsConfig(cert tls.Certificate) *tls.Config {
-	return &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS10,
+func tlsConfig(get func(*tls.ClientHelloInfo) (*tls.Certificate, error)) *tls.Config {
+	return &tls.Config{GetCertificate: get, MinVersion: tls.VersionTLS10,
 		CipherSuites: []uint16{
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,

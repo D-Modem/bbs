@@ -62,4 +62,5 @@ nav:
     - "HTTP API": HTTP-API.md
   - More:
     - "Security": Security.md
+    - "Certificates (ACME)": Certificates.md
     - "Development": Development.md

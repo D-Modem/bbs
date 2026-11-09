@@ -1,7 +1,6 @@
 package server
 
 import (
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -39,11 +38,9 @@ func (c *Config) ircSection(cf *config.File) error {
 			return errors.New("address or tls_address: somewhere to listen")
 		}
 		if i.TLSAddress != "" {
-			if i.CertFile == "" || i.KeyFile == "" {
-				return errors.New("tls_address needs tls_cert and tls_key")
-			}
-			if _, err := tls.LoadX509KeyPair(i.CertFile, i.KeyFile); err != nil {
-				return fmt.Errorf("tls_cert, tls_key: %v", err)
+			var err error
+			if i.CertFile, i.KeyFile, err = c.tlsFiles(i.CertFile, i.KeyFile); err != nil {
+				return fmt.Errorf("tls_address: tls_cert, tls_key: %v", err)
 			}
 		}
 		var err error

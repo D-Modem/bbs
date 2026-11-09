@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/sockets"
 )
 
@@ -40,11 +41,11 @@ func tlsConfig(set ServerSettings) (*tls.Config, error) {
 	if set.TLS == "" || set.TLS == TLSNo {
 		return nil, nil
 	}
-	cert, err := tls.LoadX509KeyPair(set.CertFile, set.KeyFile)
+	cfg, err := certs.Config(set.CertFile, set.KeyFile)
 	if err != nil {
 		return nil, fmt.Errorf("certificate: %w", err)
 	}
-	return &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12}, nil
+	return cfg, nil
 }
 
 // isUnix reports whether an address is a unix socket's path.

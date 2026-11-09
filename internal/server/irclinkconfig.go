@@ -51,8 +51,10 @@ func (c *Config) irclinkSection(cf *config.File) error {
 				return fmt.Errorf("%s: %v", a.key, err)
 			}
 		}
-		if l.TLSAddress != "" && (l.CertFile == "" || l.KeyFile == "") {
-			return errors.New("tls_address needs tls_cert and tls_key")
+		if l.TLSAddress != "" {
+			if l.CertFile, l.KeyFile, err = c.tlsFiles(l.CertFile, l.KeyFile); err != nil {
+				return fmt.Errorf("tls_address: tls_cert, tls_key: %v", err)
+			}
 		}
 		if l.Network == "" {
 			l.Network = c.Settings.Name

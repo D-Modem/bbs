@@ -60,9 +60,11 @@ import (
 
 	"golang.org/x/term"
 
+	"github.com/D-Modem/bbs/internal/acme"
 	"github.com/D-Modem/bbs/internal/aol"
 	"github.com/D-Modem/bbs/internal/api"
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/email"
 	"github.com/D-Modem/bbs/internal/events"
 	"github.com/D-Modem/bbs/internal/fido"
@@ -167,6 +169,8 @@ func usage() {
   bbs [-config FILE] chan ban list | del ID
   bbs [-config FILE] gemini cert [-force]          make the Gemini server's certificate (it asks
                                                   for host names, organization and years)
+  bbs [-config FILE] acme [list]                   the ACME client's certificates: names, expiry
+  bbs [-config FILE] acme renew [-force] [NAME...] get them now: those due, all (-force) or those named
 `)
 	os.Exit(2)
 }
@@ -327,7 +331,18 @@ func main() {
 		}
 		if g := cfg.Gemini; g != nil {
 			fmt.Printf("gemini: %s, areas %q, files %v, users %v\n", g.Address, g.Areas, g.Files, g.Users)
-			fmt.Printf("gemini certificate %s: %s\n", g.CertFile, gemini.CertInfo(g.CertFile))
+			if certs.IsACME(g.CertFile) {
+				fmt.Printf("gemini certificate: the ACME client's (%s)\n", g.CertFile)
+			} else {
+				fmt.Printf("gemini certificate %s: %s\n", g.CertFile, gemini.CertInfo(g.CertFile))
+			}
+		}
+		if a := cfg.ACME; a != nil {
+			if m, err := acme.New(*a, log.New(io.Discard, "", 0)); err != nil {
+				fmt.Printf("acme: %v\n", err)
+			} else {
+				acmeList(m, os.Stdout)
+			}
 		}
 		for _, d := range cfg.Doors {
 			if r := d.Remote; r != nil {
@@ -388,6 +403,8 @@ func main() {
 		chanCmd(cfg, args)
 	case "gemini":
 		geminiCmd(cfg, args)
+	case "acme":
+		acmeCmd(cfg, args)
 	default:
 		usage()
 	}
@@ -485,6 +502,21 @@ func serve(cfg *server.Config, path string) int {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
+	if a := cfg.ACME; a != nil {
+		// first, so the TLS servers find the ACME client's certificates
+		am, err := acme.New(*a, lg)
+		if err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+		certs.SetManager(am)
+		go func() {
+			if err := am.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
 	svc := &nntp.Service{B: b, MaxArticle: int(cfg.MaxArticle)}
 	if cfg.NNTP != nil {
 		ns, err := nntp.NewServer(svc, *cfg.NNTP, cfg.Peers)

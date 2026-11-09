@@ -105,8 +105,9 @@ which is generated from `bbs.conf.sample`.
   prompts, and [scripting](Scripting) in JavaScript
 - [SQLite, PostgreSQL, MySQL or MariaDB](Databases), with `bbs db copy`
   between them
-- [Backups](Backups) while callers are on, and [security](Security)
-  settings to keep callers out
+- [Backups](Backups) while callers are on, [security](Security)
+  settings to keep callers out, and [certificates](Certificates) from
+  Let's Encrypt and other ACME CAs, got and renewed
 
 ## All pages
 
@@ -153,6 +154,7 @@ which is generated from `bbs.conf.sample`.
 | [Image boards](Image-Boards) | anonymous image boards, in the style of kusaba x and 4chan |
 | [HTTP API](HTTP-API) | REST, events, WebSockets in JSON and protobuf, tokens, metrics |
 | [Security](Security) | what is guarded, and how |
+| [Certificates](Certificates) | the ACME client: Let's Encrypt and ZeroSSL certificates for every TLS server, renewed |
 | [Development](Development) | the source's layout, the shared screens, the tests |
 
 ## More

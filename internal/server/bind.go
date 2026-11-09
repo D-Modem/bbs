@@ -106,6 +106,9 @@ func Bind(cfg *Config) ([]sockets.Socket, error) {
 	if t := cfg.Time; t != nil && t.NTS != nil {
 		addrs = append(addrs, t.NTS.Address)
 	}
+	if a := cfg.ACME; a != nil && a.HTTPAddress != "" {
+		addrs = append(addrs, a.HTTPAddress)
+	}
 	for _, a := range addrs {
 		if err := tcp(a); err != nil {
 			return fail(err)

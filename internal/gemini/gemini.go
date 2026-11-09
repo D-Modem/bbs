@@ -19,6 +19,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/finger"
 	"github.com/D-Modem/bbs/internal/gopher"
 	"github.com/D-Modem/bbs/internal/sockets"
@@ -63,23 +64,39 @@ const (
 const MaxRequest = 1024
 
 // Run listens until ctx is done.
+// The certificate is its own pinned one (bbs gemini cert), or with
+// cert_file = acme the ACME client's.
 func (s *Server) Run(ctx context.Context) error {
-	cert, err := LoadCert(s.S.CertFile, s.S.KeyFile)
-	if err != nil {
-		return fmt.Errorf("gemini: %w", err)
+	var cfg *tls.Config
+	if certs.IsACME(s.S.CertFile) {
+		c, err := certs.Config(s.S.CertFile, s.S.KeyFile)
+		if err != nil {
+			return fmt.Errorf("gemini: %w", err)
+		}
+		cfg = c
+	} else {
+		cert, err := LoadCert(s.S.CertFile, s.S.KeyFile)
+		if err != nil {
+			return fmt.Errorf("gemini: %w", err)
+		}
+		cfg = &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12}
 	}
 	ln, err := sockets.Listen("tcp", s.S.Address)
 	if err != nil {
 		return fmt.Errorf("gemini: %w", err)
 	}
-	return s.Serve(ctx, ln, cert)
+	return s.serve(ctx, ln, cfg)
 }
 
 // Serve answers on ln, with TLS by cert, until ctx is done.
 func (s *Server) Serve(ctx context.Context, ln net.Listener, cert tls.Certificate) error {
+	return s.serve(ctx, ln, &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12})
+}
+
+func (s *Server) serve(ctx context.Context, ln net.Listener, cfg *tls.Config) error {
 	s.g = &gopher.Server{B: s.B, S: gopher.Settings{Areas: s.S.Areas, Files: s.S.Files}}
 	s.f = &finger.Server{B: s.B, S: finger.Settings{Users: true}}
-	tl := tls.NewListener(ln, &tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12})
+	tl := tls.NewListener(ln, cfg)
 	ts := &tcpserv.Server{Name: "gemini", MaxClients: s.S.MaxClients, MaxPerIP: s.S.MaxPerIP,
 		Refuse:  func(c net.Conn) bool { return s.B.Refuse("gemini", c.RemoteAddr()) },
 		Timeout: 5 * time.Minute, Log: s.B.Log, Handle: s.handle,
