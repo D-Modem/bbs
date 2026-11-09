@@ -50,6 +50,7 @@ nav:
     - "FidoNet": FidoNet.md
     - "Chat and paging": Chat-and-Paging.md
     - "IRC": IRC.md
+    - "IRC server linking": IRC-Linking.md
     - "AIM and ICQ": AIM-and-ICQ.md
     - "MSN Messenger": MSN-Messenger.md
     - "MRC": MRC.md

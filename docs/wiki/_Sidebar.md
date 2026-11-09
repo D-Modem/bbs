@@ -34,6 +34,7 @@
 - [FidoNet](FidoNet)
 - [Chat and paging](Chat-and-Paging)
 - [IRC](IRC)
+- [IRC server linking](IRC-Linking)
 - [AIM and ICQ](AIM-and-ICQ)
 - [AOL clients](AOL)
 - [MSN Messenger](MSN-Messenger)

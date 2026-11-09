@@ -27,6 +27,7 @@ import (
 	"github.com/D-Modem/bbs/internal/guard"
 	"github.com/D-Modem/bbs/internal/imageboard"
 	"github.com/D-Modem/bbs/internal/ircd"
+	"github.com/D-Modem/bbs/internal/irclink"
 	"github.com/D-Modem/bbs/internal/logo"
 	"github.com/D-Modem/bbs/internal/mrc"
 	"github.com/D-Modem/bbs/internal/msn"
@@ -63,14 +64,15 @@ type Config struct {
 	QWKNets     []*qwknet.Net  // [qwknet NAME]: QWK networks this is a node of
 	Binkp       *BinkpSettings // nil: no binkp answering
 	Doors       []*door.Door
-	Finger      *finger.Settings // nil: no finger server
-	IRC         *ircd.Settings   // nil: no IRC server
-	OSCAR       *oscar.Settings  // nil: no AIM/ICQ server
-	AOL         *aol.Settings    // nil: no host for AOL clients
-	MSN         *msn.Settings    // nil: no MSN Messenger server
-	MRC         *mrc.Settings    // nil: not on Multi Relay Chat
-	Screens     *screens.Set     // nil: no screens of the sysop's
-	ScriptsDir  string           // "": no scripts
+	Finger      *finger.Settings  // nil: no finger server
+	IRC         *ircd.Settings    // nil: no IRC server
+	OSCAR       *oscar.Settings   // nil: no AIM/ICQ server
+	AOL         *aol.Settings     // nil: no host for AOL clients
+	MSN         *msn.Settings     // nil: no MSN Messenger server
+	MRC         *mrc.Settings     // nil: not on Multi Relay Chat
+	IRCLink     *irclink.Settings // nil: not linked to an IRC network
+	Screens     *screens.Set      // nil: no screens of the sysop's
+	ScriptsDir  string            // "": no scripts
 	Menus       map[string]*bbs.Menu
 	Text        map[string]string // [strings]
 	HTTP        *api.Settings     // nil: no HTTP API
@@ -159,6 +161,9 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.mrcSection(cf); err != nil {
 		return nil, err
 	}
+	if err := c.irclinkSection(cf); err != nil {
+		return nil, err
+	}
 	if err := c.timeSections(cf); err != nil {
 		return nil, err
 	}
@@ -228,7 +233,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "mrc", "menu", "strings", "http", "level", "chan",
+		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
 			"mail", "smarthost", "pop3", "imap", "smtp", "mx", "lmtp":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)

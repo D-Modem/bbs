@@ -11,6 +11,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"log"
 	"math/big"
 	"net"
@@ -463,6 +464,71 @@ func TestRelayedLines(t *testing.T) {
 	c.expect(":carol_Far_BBS!mrc@far_bbs PRIVMSG #mrc-lobby :\x01ACTION dances\x01")
 	e.b.RelayEvent(bbs.Event{Kind: bbs.Notice, Room: "mrc-lobby", Text: "- dave has arrived."})
 	c.expect(":irc.test NOTICE #mrc-lobby :- dave has arrived.")
+}
+
+// network is a linked network as the BBS's relays see one: dave in its
+// rooms (net-), the lines sent to him kept.
+type network struct {
+	mu   sync.Mutex
+	sent []string
+}
+
+func (n *network) Carries(room string) bool                 { return strings.HasPrefix(room, "net-") }
+func (n *network) Allows(room string, u *store.User) bool   { return true }
+func (n *network) Joined(room, user string)                 {}
+func (n *network) Left(room, user string)                   {}
+func (n *network) Said(room, user, text string, emote bool) {}
+func (n *network) Command(room, user, line string)          {}
+func (n *network) Members(room string) []bbs.RoomMember {
+	return []bbs.RoomMember{{Name: "dave", Via: "~dv", Host: "far.example"}}
+}
+func (n *network) Lookup(nick string) (bbs.RemoteUser, bool) {
+	if !strings.EqualFold(nick, "dave") {
+		return bbs.RemoteUser{}, false
+	}
+	return bbs.RemoteUser{Nick: "dave", User: "~dv", Host: "far.example", Server: "hub.far.example",
+		Network: "FarNet", Real: "Dave", Account: "dave"}, true
+}
+func (n *network) SendPrivate(from, to, text string, notice, emote bool) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.sent = append(n.sent, fmt.Sprintf("%s>%s %v %v: %s", from, to, notice, emote, text))
+	return nil
+}
+
+// TestLinkedNetwork: a linked network's users in a room's NAMES and WHO,
+// in WHOIS and ISON; PRIVMSGs to them (an ACTION too) sent by the relay;
+// and their lines named as the network names them.
+func TestLinkedNetwork(t *testing.T) {
+	e := start(t)
+	net := &network{}
+	e.b.AddRelay(net)
+	c := e.dial(t)
+	c.login("alice", "alice")
+	c.send("JOIN #net-retro")
+	if l := c.expect(" 353 "); !strings.Contains(l, "dave") {
+		t.Errorf("names %q", l)
+	}
+	c.send("WHO #net-retro")
+	c.expect(" 352 alice #net-retro ~dv far.example irc.test dave H")
+	c.send("WHOIS dave")
+	c.expect(" 311 alice dave ~dv far.example * :Dave")
+	c.expect(" 312 alice dave hub.far.example :on FarNet")
+	c.expect(" 330 alice dave dave")
+	c.send("ISON dave nobody")
+	c.expect(" 303 alice :dave")
+	c.send("PRIVMSG dave :hello", "PRIVMSG dave :\x01ACTION waves\x01", "PRIVMSG nobody :hm")
+	c.expect(" 401 alice nobody")
+	net.mu.Lock()
+	sent := strings.Join(net.sent, "|")
+	net.mu.Unlock()
+	if sent != "alice>dave false false: hello|alice>dave false true: waves" {
+		t.Errorf("sent %q", sent)
+	}
+	e.b.RelayEvent(bbs.Event{Kind: bbs.Said, Room: "net-retro", From: "dave", Mask: "dave!~dv@far.example", Text: "hi"})
+	c.expect(":dave!~dv@far.example PRIVMSG #net-retro :hi")
+	e.b.RelayPrivate("alice", bbs.Event{From: "dave", Mask: "dave!~dv@far.example", Text: "psst"})
+	c.expect(":dave!~dv@far.example PRIVMSG alice :psst")
 }
 
 // TestKeptMessages: a PRIVMSG to a user not on is kept (301 says so), and

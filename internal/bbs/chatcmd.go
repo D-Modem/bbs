@@ -16,6 +16,7 @@ var ChatHelp = []string{
 	"  /history [WHO]  your talks with a user   /friends        your friends list",
 	"  /friend WHO     put one on your list     /unfriend WHO   take one off it",
 	"  /block WHO      stop their messages      /unblock WHO    let them again",
+	"  /msg NICK TEXT  to someone on a linked IRC network",
 	"  /quit           leave the chat",
 	"Sysops:  /pages  callers paging   /answer [NODE]  answer one   /busy  pages on or off",
 	"         /topic TEXT  set a permanent room's topic",
@@ -106,6 +107,12 @@ func (n *Node) ChatCommand(line string) (out []string, leave bool, err error) {
 		}
 		u, err := n.b.Store.UserByName(to)
 		if err != nil {
+			// not one of ours: someone on a linked chat network?
+			if err := n.MessageRemote(to, text, false, false); err == nil {
+				return []string{"Sent to " + to + "."}, false, nil
+			} else if err != ErrNoSuchNick {
+				return nil, false, err
+			}
 			return nil, false, ErrNoUser
 		}
 		online, err := n.TellUser(u, text)
