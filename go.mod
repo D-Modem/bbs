@@ -1,8 +1,8 @@
 module github.com/D-Modem/bbs
 
-go 1.24.0
+go 1.26.0
 
-toolchain go1.24.7
+toolchain go1.26.10
 
 require (
 	blitiri.com.ar/go/spf v1.5.1
@@ -16,16 +16,18 @@ require (
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
 	github.com/emersion/go-smtp v0.25.1
 	github.com/ergochat/irc-go v0.7.0
+	github.com/facebook/time v0.0.0-20261106180548-d4b419b4eef5
 	github.com/fclairamb/ftpserverlib v0.30.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/jlaffaye/ftp v0.2.0
 	github.com/spf13/afero v1.15.0
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.52.0
 	golang.org/x/image v0.23.0
-	golang.org/x/sys v0.40.0
-	golang.org/x/term v0.27.0
-	golang.org/x/text v0.28.0
+	golang.org/x/net v0.55.0
+	golang.org/x/sys v0.45.0
+	golang.org/x/term v0.43.0
+	golang.org/x/text v0.37.0
 	google.golang.org/protobuf v1.36.6
 	modernc.org/sqlite v1.33.1
 )
@@ -46,7 +48,8 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	golang.org/x/sync v0.16.0 // indirect
+	github.com/tink-crypto/tink-go/v2 v2.4.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
 	modernc.org/gc/v3 v3.0.0-20240107210532-573471604cb6 // indirect
 	modernc.org/libc v1.55.3 // indirect
 	modernc.org/mathutil v1.6.0 // indirect

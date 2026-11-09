@@ -80,19 +80,40 @@
 
  There is no membership support fee.
 
-:DEFAULT TERMINAL PROFILE
+:DEFAULT TERMINAL
 =TERMINAL SETTINGS
- Your settings for this session are set with the SET command:
+ TERMINAL SETTINGS/SERVICE OPTIONS
+
+ GO DEFAULT from a terminal changes your terminal type and parameters
+ and your service options, for this session or permanently: PAGED,
+ BRIEF, WIDTH, LINES, Mail waiting, the online editor and the transfer
+ protocol.  SET changes the session's:
 
    SET BRIEF ON     brief "!" prompts (expert mode)
-   SET BRIEF OFF    full prompts ("Enter choice !")
    SET PAGED ON     stop at each screen ("Press <CR> for more !")
-   SET PAGED OFF    no stops (for offline readers)
    SET WIDTH n      the screen's width (40 to 132)
    SET LINES n      lines per screen, when paged
 
- Permanent settings are not kept yet: each logon starts with BRIEF
- OFF, PAGED OFF and WIDTH 80.
+ Append ;TTY to your User ID at logon to override the permanent ones.
+
+:PROFILE
+=CompuServe
+ CHANGE YOUR USER PROFILE
+
+ 1 Terminal Settings > DEFAULT
+ 2 Change Your Password > LGN-1
+ 3 Password Security Guidelines > PWSECURITY
+ 4 Change Your Billing Options > RATES
+ 5 Change Your Billing Address > RATES
+
+:PWSECURITY
+=CompuServe
+ PASSWORD SECURITY GUIDELINES
+
+ Never tell anyone your password, not even someone who says they are
+ from CompuServe or the BBS.  Choose a password that is not a word,
+ and change it now and then.  CIM's Secure Login never sends your
+ password over the line.
 
 :LGN-1 SIGNUP JOIN PASSWORD
 =CompuServe

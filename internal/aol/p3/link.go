@@ -79,6 +79,7 @@ type Link struct {
 	out     []sent // DATA sent, not yet acknowledged
 	pending int    // DATA taken in, not yet acknowledged
 	nakked  bool   // a NAK is out for the gap in what came in
+	noCRC   bool   // the client has sent "**" for a CRC (AOL 4.0 and on)
 	hbTries int    // HEARTBEATs since the last acknowledgement
 	ackDue  bool   // an ACK is to go if nothing else does first
 	resent  time.Time
@@ -196,6 +197,14 @@ func (l *Link) WriteToken(token string, data []byte) error {
 		return fmt.Errorf("p3: token %q is not two letters", token)
 	}
 	return l.Write(append([]byte(token), data...))
+}
+
+// NoCRC is whether the client has sent "**" for a CRC, as AOL 4.0 and
+// later do over TCP once the link is up.
+func (l *Link) NoCRC() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.noCRC
 }
 
 // Unacked is how many DATA packets the client has yet to acknowledge.
@@ -378,6 +387,9 @@ func (l *Link) take(p Packet) []byte {
 		l.room.Broadcast()
 		l.send(ACK, nil)
 		return nil
+	}
+	if p.NoCRC {
+		l.noCRC = true
 	}
 	heartbeat := l.hbTries > 0
 	l.acked(p.RX)

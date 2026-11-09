@@ -44,6 +44,10 @@ the file is laid out.
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
 | [`[gopher]`](#gopher) | gopher: about the system, who is on, and what areas the sysop opens: no login, so anyone sees them. |
+| [`[time]`](#time) | Time. |
+| [`[ntp]`](#ntp) | an NTP server (UDP). |
+| [`[nts]`](#nts) | an NTS-KE server (RFC 8915): TLS 1.3, its clients' keys and cookies for [ntp], which then answers NTS-secured requests too. |
+| [`[ptp]`](#ptp) | a PTP grandmaster (IEEE 1588, UDP ports 319 and 320, as root): two-step, end to end. |
 | [`[menu NAME]`](#menu-name) | A menu of the sysop's: [menu main] takes the place of the built-in main menu; others are reached from it (menu:NAME). |
 | [`[strings]`](#strings) | The prompts and messages, with @-codes and tags. |
 
@@ -607,6 +611,66 @@ gopher: about the system, who is on, and what areas the sysop opens: no login, s
 | `port` |  |  | the name and port menus send clients back to. Examples: `70`. |
 | `areas` |  |  | message areas shown (a wildmat of area names; "": none) Examples: `general,announcements`. |
 | `files` |  |  | file areas listed and downloadable. Examples: `no`. |
+
+
+## `[time]`
+
+Time.  The BBS's clock can follow time servers, and the BBS can be a time server itself: NTP, NTS (NTP made secure with TLS keys) and PTP. With no servers it tells of the system clock (kept by chrony, ntpd ...).
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `servers` |  |  | servers followed: KIND HOST, by commas. ntp HOST[:PORT], nts HOST[:PORT] (its NTS-KE port, 4460 if none), ptp HOST (unicast; ports 319 and 320) Examples: `nts time.cloudflare.com, nts nts.netnod.se, ntp pool.ntp.org`. |
+| `poll` |  |  | seconds between asking them (16 at least) Examples: `64`. |
+| `set_clock` |  |  | set the system clock (Linux; root, or CAP_SYS_TIME kept: with [general] user, systemd's AmbientCapabilities=CAP_SYS_TIME). No: the BBS keeps the offset and serves corrected time, leaving the system clock alone. Examples: `no`. |
+| `stratum` |  |  | with no servers: the stratum told (0: 3 while the kernel says the clock is synchronised, else unsynchronised), and stratum 1's reference (GPS, PPS) Examples: `0`. |
+| `refid` |  |  | with no servers: the stratum told (0: 3 while the kernel says the clock is synchronised, else unsynchronised), and stratum 1's reference (GPS, PPS) Examples: `GPS`. |
+| `root_cas` |  |  | a PEM file NTS-KE servers' certificates are checked against ("": the system's) Examples: `/etc/bbs/nts-ca.pem`. |
+| `utc_offset` |  |  | TAI - UTC, in seconds, for PTP (37 since 2017) Examples: `37`. |
+
+
+## `[ntp]`
+
+an NTP server (UDP).  Port 123 needs CAP_NET_BIND_SERVICE.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:123`. |
+| `rate` |  |  | requests a second an address may make (0: no limit), and at once. Examples: `2`. |
+| `burst` |  |  | requests a second an address may make (0: no limit), and at once. Examples: `16`. |
+
+
+## `[nts]`
+
+an NTS-KE server (RFC 8915): TLS 1.3, its clients' keys and cookies for [ntp], which then answers NTS-secured requests too.  The certificate is read again when its file changes (a renewal)
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | See the section above. Examples: `:4460`. |
+| `tls_cert` |  |  | See the section above. Examples: `/etc/bbs/cert.pem`. |
+| `tls_key` |  |  | See the section above. Examples: `/etc/bbs/key.pem`. |
+| `ntp_host` |  |  | the NTP server clients are told to use ("": this one) Examples: `time.example.org`. |
+| `max_clients` |  |  | the NTP server clients are told to use ("": this one) Examples: `64`. |
+| `max_per_ip` |  |  | the NTP server clients are told to use ("": this one) Examples: `8`. |
+
+
+## `[ptp]`
+
+a PTP grandmaster (IEEE 1588, UDP ports 319 and 320, as root): two-step, end to end.  Multicast to 224.0.1.129 on interface, and unicast to the clients that ask (linuxptp's unicast_master_table, ptp4u's clients)
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | the address bound ("": all) |
+| `interface` |  |  | multicast's interface, and hardware timestamps' ("": no multicast) Examples: `eth0`. |
+| `multicast` |  |  | multicast's interface, and hardware timestamps' ("": no multicast) Examples: `yes`. |
+| `unicast` |  |  | multicast's interface, and hardware timestamps' ("": no multicast) Examples: `yes`. |
+| `domain` |  |  | multicast's interface, and hardware timestamps' ("": no multicast) Examples: `0`. |
+| `priority1` |  |  | multicast's interface, and hardware timestamps' ("": no multicast) Examples: `128`. |
+| `priority2` |  |  | multicast's interface, and hardware timestamps' ("": no multicast) Examples: `128`. |
+| `log_sync_interval` |  |  | intervals, as powers of two seconds: multicast syncs (0: 1 s) and announcements (1: 2 s); the shortest a unicast client is granted (-4: 1/16 s) Examples: `0`. |
+| `log_announce_interval` |  |  | intervals, as powers of two seconds: multicast syncs (0: 1 s) and announcements (1: 2 s); the shortest a unicast client is granted (-4: 1/16 s) Examples: `1`. |
+| `log_min_interval` |  |  | intervals, as powers of two seconds: multicast syncs (0: 1 s) and announcements (1: 2 s); the shortest a unicast client is granted (-4: 1/16 s) Examples: `-4`. |
+| `max_clients` |  |  | unicast clients at once. Examples: `256`. |
+| `timestamping` |  |  | software (the kernel's stamps) or hardware (the network card's: its clock kept on the system's, phc2sys -s CLOCK_REALTIME -c eth0 -O 0) Examples: `software`. |
 
 
 ## `[menu NAME]`

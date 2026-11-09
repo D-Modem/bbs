@@ -153,6 +153,8 @@ func usage() {
   bbs [-config FILE] file add AREA PATH [DESCRIPTION]   (as the first sysop)
   bbs [-config FILE] file list AREA
   bbs [-config FILE] file del AREA NAME
+  bbs [-config FILE] time [KIND HOST]               ask the time servers ([time] servers, or one:
+                                                  ntp, nts or ptp HOST) the offset of this clock
   bbs [-config FILE] chan board add DIR TITLE [DESCRIPTION] [-nsfw] [-forced-anon] [-text-only] [-locked] [-login] [-oekaki]
                      [-ids] [-flags]
   bbs [-config FILE] chan board set DIR KEY VALUE   (pages, per_page, mods, nsfw, login, captcha, options, files, sound...: files webm,mp4,pdf,swf,flv)
@@ -305,6 +307,9 @@ func main() {
 		if cfg.Finger != nil {
 			fmt.Printf("finger: %s (online %v, users %v)\n", cfg.Finger.Address, cfg.Finger.Online, cfg.Finger.Users)
 		}
+		if t := cfg.Time; t != nil {
+			fmt.Println(t)
+		}
 		if g := cfg.Gopher; g != nil {
 			fmt.Printf("gopher: %s as %s:%d, areas %q, files %v\n", g.Address, g.Host, g.Port, g.Areas, g.Files)
 		}
@@ -361,6 +366,8 @@ func main() {
 		fileAreaCmd(cfg, args)
 	case "file":
 		fileCmd(cfg, args)
+	case "time":
+		timeCmd(cfg, args)
 	case "chan":
 		chanCmd(cfg, args)
 	default:
@@ -588,6 +595,10 @@ func serve(cfg *server.Config, path string) int {
 				stop()
 			}
 		}()
+	}
+	if err := startTime(ctx, b, cfg.Time, lg, stop); err != nil {
+		lg.Printf("%v", err)
+		return 1
 	}
 	if cfg.Gopher != nil {
 		gs := &gopher.Server{B: b, S: *cfg.Gopher}

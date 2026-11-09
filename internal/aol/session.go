@@ -24,9 +24,13 @@ type session struct {
 	host string
 	init p3.Init
 
-	mu sync.Mutex
-	u  *store.User // signed on as
-	n  *bbs.Node
+	mu       sync.Mutex
+	u        *store.User // signed on as
+	n        *bbs.Node
+	room     string          // the chat room its room window shows ("": none)
+	slots    map[string]byte // the room window's people, by lower-case name
+	nextSlot byte
+	ims      map[string]int // IM windows, by lower-case partner
 
 	parts map[partKey][]byte // streams the client has sent part of
 }
@@ -90,6 +94,16 @@ func (ss *session) token(tok string, body []byte) {
 		ss.logf("token %q before signing on", tok)
 	case tok == "pE":
 		ss.signOff()
+	case tok == "CJ":
+		ss.enterChat()
+	case tok == "Aa":
+		ss.say(atoms)
+	case tok == "CL":
+		ss.leaveChat()
+	case tok == "iS" || tok == "is":
+		ss.sendIM(atoms)
+	case tok == "iO":
+		ss.available(atoms)
 	default:
 		ss.logf("token %q (not served yet)", tok)
 		// never leave the client waiting on an answer that won't come
@@ -232,6 +246,9 @@ func (ss *session) signOn(atoms []byte) {
 			"your name and password.", b.Conf().Name))
 		return
 	}
+	if u := ss.member(name); u != nil {
+		name = u.Name // a screen name has no spaces: "CarolAnn" is Carol Ann
+	}
 	u, err := b.Authenticate("aol", "ip:"+ss.host, name, pw)
 	if err != nil {
 		ss.logf("%s: %v", name, err)
@@ -259,6 +276,43 @@ func (ss *session) signOn(atoms []byte) {
 	b.Log.Printf("node %d: %s on AOL (%s, %s)", n.Num, u.Name, ss.host, ss.init)
 	ss.send(onlineForm)
 	ss.send(welcomeForm(b.Conf().Name, u.Name, len(b.Nodes())))
+	for _, e := range n.Kept() {
+		ss.event(e)
+	}
+	go ss.events()
+}
+
+// events shows the client what its node is told, until the link is down.
+func (ss *session) events() {
+	for {
+		select {
+		case <-ss.l.Done():
+			return
+		case <-ss.n.Wake():
+			for _, e := range ss.n.Pending() {
+				ss.event(e)
+			}
+		}
+	}
+}
+
+// event shows the client one thing its node is told.
+func (ss *session) event(e bbs.Event) {
+	switch e.Kind {
+	case bbs.Said, bbs.Emoted, bbs.Joined, bbs.Left, bbs.Topic:
+		ss.roomEvent(e)
+	case bbs.Private:
+		ss.privateEvent(e)
+	case bbs.Mail:
+		ss.alert(fmt.Sprintf("You have new mail from %s: %s", e.From, e.Text))
+	case bbs.Notice, bbs.Paged:
+		ss.alert(e.String())
+	}
+}
+
+// alert is a message box in the client.
+func (ss *session) alert(text string) {
+	ss.send(alertForm(text))
 }
 
 // refuse tells the client why it can't sign on, and has it hang up.

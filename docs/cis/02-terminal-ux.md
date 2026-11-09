@@ -265,6 +265,14 @@ PERMANENT SETTINGS
 
 Each change ends with a confirm screen: `CHANGE PERMANENT SETTINGS 1 Confirm 2 Cancel`.
 
+**As built** (`internal/cis/profile.go`, test `TestCompuServeDefault`, which replays PARAMS.SCR's sends and waits):
+- The menus, their order, the bracketed values (right-aligned at column 40) and the setting screens are PARAMS.SCR's.
+- Screens the script never shows are ours: Instructions, the two Explanations, Show session vs. permanent, Change current session settings, CLEAR/BLANK/LF, FEEDS/TABS, the GIF/NAPLPS/RLE screens, and the number prompts (which end in `:`, as the script waits for).
+- `<CR>` goes up a level. A command typed at any prompt leaves DEFAULT with the changes unsaved, then runs the command.
+- After Confirm or Cancel the host shows `GO PROFILE`, as in the script.
+- Choosing a terminal type sets WIDTH 80, LINES 24, PARITY EVEN and ERASE NO, as the transcript shows.
+- Values are kept as prefs: `cis-paged`, `cis-width` and so on.
+
 Other notes:
 - "Micro inquiry sequence at logon" is the setting that sends `ESC I` at login (doc 03 §5).
 - **Compatibility minimum** [V, S10]: TAPCIS requires PAGED=NO and COMMAND mode in forums and Mail ("COMMAND mode is essential. TAPCIS will not work in any other"). Navigator for the Mac needs "TOP goes to MAIN".

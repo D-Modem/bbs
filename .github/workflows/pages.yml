@@ -22,7 +22,7 @@ jobs:
   site:
     uses: D-Modem/brand/.github/workflows/site.yml@main
     with:
-      go-version: "1.24"
+      go-version: "1.26"
       prepare: |
         go run ./internal/confedit/refdoc
         git diff --exit-code docs/wiki/Configuration-Reference.md || { echo "::error::docs/wiki/Configuration-Reference.md is out of date: go generate ./internal/confedit"; exit 1; }

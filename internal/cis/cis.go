@@ -64,6 +64,7 @@ type session struct {
 	menus   []*Page // menus gone through, for M
 	more    []string
 	firstGo string // /GO:word at the User ID
+	tty     bool   // ;TTY at the User ID: not the kept terminal settings
 	byName  bool   // logged on with a BBS name, not a User ID
 	fpage   *Page  // the FORUMS menu, as last made
 	mail    *mailState
@@ -99,6 +100,7 @@ func (s *session) run() error {
 			return err
 		}
 		s.user = u
+		s.loadSettings(s.tty)
 		if err := s.identify(); err != nil {
 			return err
 		}

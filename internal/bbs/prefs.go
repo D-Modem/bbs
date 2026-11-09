@@ -29,10 +29,27 @@ var prefValues = map[string][]string{
 	"cis-mailpage": {"on", "off"},
 }
 
+// prefChecks are settings registered by a front end (RegisterPref), each
+// with what its values may be.
+var prefChecks = map[string]func(string) bool{}
+
+// RegisterPref adds a setting whose values ok accepts: a front end's own
+// (CompuServe's terminal settings).  It is for package init: settings
+// are read without a lock.
+func RegisterPref(key string, ok func(string) bool) {
+	if _, dup := prefValues[key]; dup {
+		panic("bbs: setting " + key + " twice")
+	}
+	prefChecks[key] = ok
+}
+
 // PrefKeys are the settings' names, sorted.
 func PrefKeys() []string {
 	var out []string
 	for k := range prefValues {
+		out = append(out, k)
+	}
+	for k := range prefChecks {
 		out = append(out, k)
 	}
 	sort.Strings(out)
@@ -41,6 +58,12 @@ func PrefKeys() []string {
 
 // CheckPref says what is wrong with a setting, or nil.
 func CheckPref(key, value string) error {
+	if ok := prefChecks[key]; ok != nil {
+		if !ok(value) || strings.ContainsAny(value, " =") || value == "" {
+			return fmt.Errorf("%q is not a value of %s", value, key)
+		}
+		return nil
+	}
 	vs, ok := prefValues[key]
 	if !ok {
 		return fmt.Errorf("there is no setting %q", key)
@@ -89,7 +112,7 @@ func ChangePrefs(kept string, changes map[string]string) (string, error) {
 	p := ParsePrefs(kept)
 	for k, v := range changes {
 		if v == "" {
-			if _, ok := prefValues[k]; !ok {
+			if _, ok := prefValues[k]; !ok && prefChecks[k] == nil {
 				return "", fmt.Errorf("there is no setting %q", k)
 			}
 			delete(p, k)

@@ -50,3 +50,26 @@ func welcomeForm(bbsName, user string, online int) string {
 uni_end_stream
 `, fdo.Quote("Welcome, "+user+"!"), fdo.Quote(text))
 }
+
+// waitOff ends the client's wait for an answer (its hourglass).
+const waitOff = "uni_start_stream\n  uni_wait_off\nuni_end_stream\n"
+
+// closeForm closes the host's window with a global id, if it is open: a
+// stream of its own, since a close takes effect when its stream ends.
+func closeForm(gid string) string {
+	return fmt.Sprintf("uni_start_stream\n  man_set_context_globalid <%s>\n  man_close\n  man_update_display\nuni_end_stream\n", gid)
+}
+
+// roomForm opens the client's own room window (form) as a room, with
+// the people in it.
+func roomForm(form, room string, users []string) string {
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "uni_start_stream\n  man_preset_title <%s>\n  man_preset_gid <%s>\n  uni_invoke_local <%s>\n",
+		fdo.Quote(room), chatWindow, form)
+	sb.WriteString("  var_number_set <A, 1>\n  var_number_save <A, 65537>\n  man_update_display\n  chat_room_open\n")
+	for _, u := range users {
+		fmt.Fprintf(&sb, "  chat_add_user <%s>\n", fdo.Quote(u))
+	}
+	sb.WriteString("  man_update_display\nuni_end_stream\n")
+	return sb.String()
+}
