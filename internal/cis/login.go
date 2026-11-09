@@ -178,6 +178,7 @@ func (s *session) login() (*store.User, error) {
 			if id.Go != "" {
 				s.firstGo = id.Go
 			}
+			s.tty = id.TTY
 			return u, nil
 		case errors.Is(err, bbs.ErrBadLogin) && id.Secure:
 			s.out("No.\n") // CIM's script says "Incorrect User ID or password"
