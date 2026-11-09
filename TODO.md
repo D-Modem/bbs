@@ -55,11 +55,15 @@ client's `AmericaOnline.aol.com`) and by modem.
   the keywords Rooms and Room *name* to any chat room; message areas as
   boards (topics, posts, a post window whose Send is `de_ez_send_form`
   with token `Zp`), all host windows.
-- **Tokens**, next: the client's own Read Mail list (`m7` and its MIP
-  answers); the client asks for art it lacks (`fh`): none is served yet.
-- **Modem callers**: the client's CCL script expects a network's prompts
-  (SprintNet, Tymnet) before P3; emulate one, or ship a CCL that dials
-  straight in.
+- **Read Mail** (done, untried with a real client): the client's own
+  New, Old and Sent Mail lists (`m7`, `m9`, `m8`) as MIP lists, `m3`
+  opens one, `m2` Ignore / Keep As New / Delete. The order of the atoms
+  in a list entry is a guess from the mail tool's code.
+- **Modem callers** (done in menu, untried with a real modem): modemmenu
+  plays AOLnet, SprintNet or Tymnet as the client's CCL script expects,
+  then joins the line to the host.
+- **Tokens**, next: the client asks for art it lacks (`fh`): none is
+  served yet.
 - **To decide**: AOL 4.0's RSA handshake (revival servers turn it off in
   the client); which client forms (32-xxxx) are in its own database and
   which the host must send.
