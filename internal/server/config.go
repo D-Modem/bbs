@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/D-Modem/bbs/internal/aol"
 	"github.com/D-Modem/bbs/internal/api"
 	"net"
 	"os"
@@ -62,6 +63,7 @@ type Config struct {
 	Finger     *finger.Settings // nil: no finger server
 	IRC        *ircd.Settings   // nil: no IRC server
 	OSCAR      *oscar.Settings  // nil: no AIM/ICQ server
+	AOL        *aol.Settings    // nil: no host for AOL clients
 	MSN        *msn.Settings    // nil: no MSN Messenger server
 	MRC        *mrc.Settings    // nil: not on Multi Relay Chat
 	Screens    *screens.Set     // nil: no screens of the sysop's
@@ -142,6 +144,9 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.oscarSection(cf); err != nil {
 		return nil, err
 	}
+	if err := c.aolSection(cf); err != nil {
+		return nil, err
+	}
 	if err := c.msnSection(cf); err != nil {
 		return nil, err
 	}
@@ -217,7 +222,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "time", "ntp", "nts", "ptp", "irc", "oscar", "msn", "mrc", "menu", "strings", "http", "level", "chan":
+		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "mrc", "menu", "strings", "http", "level", "chan":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}

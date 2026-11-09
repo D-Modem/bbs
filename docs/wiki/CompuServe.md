@@ -109,6 +109,30 @@ testing.
 
 Commands chain with `;`, as in `SET BRI ON;GO RATES`.
 
+## Terminal settings (GO DEFAULT)
+
+`SET` changes the session's settings. `GO DEFAULT` (or `TERMINAL`, or
+choice 1 of `GO PROFILE`) keeps them with your User ID, through
+CompuServe's own menus: TERMINAL SETTINGS/SERVICE OPTIONS, then
+PERMANENT SETTINGS with its Logon/Service, Display, Terminal and
+Transfer protocol groups. When you leave, you confirm the changes. The
+screens follow TAPCIS's ALT-P script (PARAMS.SCR, 1991), which sets a new
+member up through them.
+
+What the kept settings do:
+
+- PAGED, BRIEF, WIDTH and LINES take effect at each logon.
+- **Mail waiting: Go to MAIL** goes straight into Mail when letters wait.
+- **Online editor** sets Mail's line numbering when Mail has no setting
+  of its own.
+- **Protocol preference** (B, Quick B, XMODEM or Kermit) skips the
+  protocol menu.
+
+The rest are kept and shown, as scripts expect, but do nothing here:
+terminal type, parity, delays, first service, TOP goes to, forum mode and
+graphics support. Forums are always in command mode. Add `;TTY` to the
+User ID (`72000,1;TTY`) to log on with the defaults for once.
+
 ## Forums
 
 `GO FORUMS` lists the forums. Each forum is a group of the BBS's message
@@ -254,7 +278,7 @@ so only callers using the same key read each other.
 
 | Done | Coming, in order |
 |---|---|
-| The logon, `ESC I`, the menus and articles (`internal/cis/pages.txt`), GO, FIND, SET | Forum JOIN and member options |
+| The logon, `ESC I`, the menus and articles (`internal/cis/pages.txt`), GO, FIND, SET, permanent settings (GO DEFAULT) | Forum JOIN and member options |
 | Forums on the message areas, with the forum command language | |
 | The CompuServe B, Quick B and B Plus protocols (`internal/xfer/cisb.go`) | B Plus resume (Tr) and file information (TI) |
 | Libraries on the file areas, with B+ downloads and uploads | |

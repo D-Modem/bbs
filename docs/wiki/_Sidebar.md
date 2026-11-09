@@ -34,6 +34,7 @@
 - [Chat and paging](Chat-and-Paging)
 - [IRC](IRC)
 - [AIM and ICQ](AIM-and-ICQ)
+- [AOL clients](AOL)
 - [MSN Messenger](MSN-Messenger)
 - [MRC](MRC)
 - [Finger and gopher](Finger-and-Gopher)

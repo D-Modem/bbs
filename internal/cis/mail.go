@@ -61,6 +61,10 @@ func (s *session) mailSettings() *mailState {
 		m.mode = p[prefMailMode]
 	}
 	m.lineEdit = p[prefMailEdit] == "line"
+	if p[prefMailEdit] == "" {
+		// none of Mail's own: the permanent online editor
+		m.lineEdit = s.keptSetting(setEditor) == "linedit"
+	}
 	m.paged = p[prefMailPage] == "on"
 	s.mail = m
 	return m
