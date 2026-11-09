@@ -17,12 +17,13 @@ import (
 	"syscall"
 )
 
-// env is how sockets are handed down: "3 tcp :23\n4 unix /run/bbs/x.sock".
+// env is how sockets are handed down: "3 tcp :23\n4 unix /run/bbs/x.sock\n5 udp :123".
 const env = "BBS_SOCKETS"
 
 var (
 	mu        sync.Mutex
-	inherited = map[string]net.Listener{} // by key: "tcp :23"
+	inherited = map[string]net.Listener{}   // by key: "tcp :23"
+	packets   = map[string]net.PacketConn{} // by key: "udp :123"
 )
 
 // key is how an inherited socket is found: "tcp :23".
@@ -45,6 +46,15 @@ func Inherit() error {
 		}
 		syscall.CloseOnExec(fd)
 		f := os.NewFile(uintptr(fd), k)
+		if strings.HasPrefix(k, "udp ") {
+			pc, err := net.FilePacketConn(f)
+			f.Close()
+			if err != nil {
+				return fmt.Errorf("the socket for %s: %w", k, err)
+			}
+			packets[k] = pc
+			continue
+		}
 		ln, err := net.FileListener(f)
 		f.Close() // FileListener has its own
 		if err != nil {
@@ -73,6 +83,30 @@ func Listen(network, address string) (net.Listener, error) {
 	return net.Listen(network, address)
 }
 
+// TakePacket is the UDP socket handed down for an address (nil: none).
+func TakePacket(address string) *net.UDPConn {
+	mu.Lock()
+	defer mu.Unlock()
+	k := key("udp", address)
+	pc := packets[k]
+	delete(packets, k)
+	u, _ := pc.(*net.UDPConn)
+	return u
+}
+
+// ListenUDP is net.ListenPacket("udp", address), but for an address whose
+// socket was handed down.
+func ListenUDP(address string) (*net.UDPConn, error) {
+	if u := TakePacket(address); u != nil {
+		return u, nil
+	}
+	a, err := net.ResolveUDPAddr("udp", address)
+	if err != nil {
+		return nil, err
+	}
+	return net.ListenUDP("udp", a)
+}
+
 // Left are the sockets handed down that nothing took (the configuration
 // changed between the two: they are closed).
 func Left() []string {
@@ -83,6 +117,11 @@ func Left() []string {
 		out = append(out, k)
 		ln.Close()
 		delete(inherited, k)
+	}
+	for k, pc := range packets {
+		out = append(out, k)
+		pc.Close()
+		delete(packets, k)
 	}
 	return out
 }

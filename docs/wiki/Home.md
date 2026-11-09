@@ -83,6 +83,7 @@ which is generated from `bbs.conf.sample`.
   for MSN clients, and [MRC](MRC), the chat
   network shared with other BBSes
 - [Finger and gopher](Finger-and-Gopher)
+- [Time](Time): NTP, NTS and PTP, followed and served
 
 **On the web**
 
@@ -140,6 +141,7 @@ which is generated from `bbs.conf.sample`.
 | [MSN Messenger](MSN-Messenger) | the MSN server: MSN Messenger 1.0 to 4.7, contacts and IMs |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [Finger and gopher](Finger-and-Gopher) | who is on, and the BBS in gopherspace |
+| [Time](Time) | NTP, NTS and PTP: the clock following time servers, and serving time |
 | [Web forum](Web-Forum) | the message areas as a web forum |
 | [Image boards](Image-Boards) | anonymous image boards, in the style of kusaba x and 4chan |
 | [HTTP API](HTTP-API) | REST, events, WebSockets in JSON and protobuf, tokens, metrics |

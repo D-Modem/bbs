@@ -73,6 +73,7 @@ type Config struct {
 	HTTP       *api.Settings     // nil: no HTTP API
 	Chan       imageboard.Settings
 	Gopher     *gopher.Settings // nil: no gopher server
+	Time       *TimeSettings    // nil: no [time], [ntp], [nts] or [ptp]
 	Database   string
 	Log        string // syslog, stderr, none, or a file
 	Listeners  []*Listener
@@ -152,6 +153,9 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.mrcSection(cf); err != nil {
 		return nil, err
 	}
+	if err := c.timeSections(cf); err != nil {
+		return nil, err
+	}
 	if err := c.infoSections(cf); err != nil {
 		return nil, err
 	}
@@ -218,7 +222,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "irc", "oscar", "aol", "msn", "mrc", "menu", "strings", "http", "level", "chan":
+		case "general", "security", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "mrc", "menu", "strings", "http", "level", "chan":
 		default:
 			return nil, fmt.Errorf("line %d: unknown section [%s]", s.Line, s.Kind)
 		}

@@ -69,3 +69,37 @@ func TestLookup(t *testing.T) {
 		t.Error("a group that is not there")
 	}
 }
+
+// TestInheritUDP: a UDP socket handed down is taken by ListenUDP.
+func TestInheritUDP(t *testing.T) {
+	u, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, _ := u.File()
+	addr := u.LocalAddr().String()
+	u.Close()
+	os.Setenv(env, fmt.Sprintf("%d udp %s", f.Fd(), addr))
+	if err := Inherit(); err != nil {
+		t.Fatal(err)
+	}
+	c, err := ListenUDP(addr)
+	if err != nil || c.LocalAddr().String() != addr {
+		t.Fatalf("%v %v", c, err)
+	}
+	defer c.Close()
+	if TakePacket(addr) != nil {
+		t.Error("taken twice")
+	}
+	s, _ := net.Dial("udp", addr)
+	s.Write([]byte("hi"))
+	s.Close()
+	buf := make([]byte, 8)
+	n, _, err := c.ReadFrom(buf)
+	if err != nil || string(buf[:n]) != "hi" {
+		t.Errorf("%q %v", buf[:n], err)
+	}
+	if left := Left(); len(left) != 0 {
+		t.Errorf("left %q", left)
+	}
+}
