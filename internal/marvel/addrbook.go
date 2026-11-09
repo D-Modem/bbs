@@ -2,14 +2,18 @@ package marvel
 
 import (
 	"encoding/binary"
+	"sort"
 	"strings"
 
+	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/store"
 )
 
 // MOSABP is the MSN address book: Exchange's list of members, the names
 // typed into To: resolved, and the Member Properties sheet.  Its members
-// are the BBS's users.
+// are the BBS's users, and with them the caller's own saved addresses
+// (store.Addresses, which CompuServe's Address Book shares and the mail
+// they send from Exchange adds to).
 type addrBook struct{ c *conn }
 
 const abIface = 0x01
@@ -49,7 +53,7 @@ func (a *addrBook) call(h hostBlock) ([]byte, bool) {
 	}
 	switch h.Method {
 	case abContainers:
-		users := a.members("")
+		users := a.entries("")
 		rec := make([]byte, 0xDC)
 		binary.LittleEndian.PutUint32(rec, 1)
 		copy(rec[0x08:0x08+0x40], ansi(a.c.s.B.Conf().Name+" members"))
@@ -73,7 +77,7 @@ func (a *addrBook) call(h hostBlock) ([]byte, bool) {
 		if u == nil {
 			return reply{}.dword(mapiNotFound).blob(nil), true
 		}
-		return reply{}.dword(0).blob(a.row(u, tags)), true
+		return reply{}.dword(0).blob(a.row(memberEntry(u), tags)), true
 	case abCloseTable:
 		return status(0), true
 	case abQueryRows, abQueryRestrict, abQueryMore:
@@ -105,12 +109,12 @@ func (a *addrBook) call(h hostBlock) ([]byte, bool) {
 		if h.Method == abQueryMore {
 			return rowsReply(nil, 0), true // every list goes in one page
 		}
-		users := a.members(name)
+		users := a.entries(name)
 		if h.Method == abQueryRestrict {
 			// the one a name is, if there is one; else all it begins
-			for _, u := range users {
-				if strings.EqualFold(u.Name, strings.TrimSpace(name)) {
-					users = []*store.User{u}
+			for _, e := range users {
+				if strings.EqualFold(e.name, strings.TrimSpace(name)) {
+					users = []abEntry{e}
 					break
 				}
 			}
@@ -167,6 +171,70 @@ func anrOf(b []byte) string {
 	return unansi(b[32 : 32+n])
 }
 
+// abEntry is a row of the address book: a member, or a saved address.
+type abEntry struct {
+	name, email, typ string
+	u                *store.User // a member's (a saved address's: the member it is, if one)
+}
+
+func memberEntry(u *store.User) abEntry {
+	return abEntry{name: u.Name, email: u.Name, typ: addrTypeMSN, u: u}
+}
+
+// entries are the members and saved addresses a name begins (all, for
+// none), by name.
+func (a *addrBook) entries(prefix string) []abEntry {
+	var out []abEntry
+	for _, u := range a.members(prefix) {
+		out = append(out, memberEntry(u))
+	}
+	p := strings.ToLower(strings.TrimSpace(prefix))
+	for _, e := range a.saved() {
+		if p == "" || strings.HasPrefix(strings.ToLower(e.name), p) {
+			out = append(out, e)
+		}
+	}
+	sort.SliceStable(out, func(i, j int) bool { return strings.ToLower(out[i].name) < strings.ToLower(out[j].name) })
+	return out
+}
+
+// saved is the caller's own address book, those of its addresses MSN
+// mail can go to: an internet address, or a member.
+func (a *addrBook) saved() []abEntry {
+	u := a.c.signedOn()
+	if u == nil {
+		return nil
+	}
+	book, err := a.c.s.B.Store.Addresses(u.ID)
+	if err != nil {
+		a.c.logf("address book: %v", err)
+	}
+	var out []abEntry
+	for _, b := range book {
+		addr := savedAddr(b.Addr)
+		switch m := a.member(addr); {
+		case bbs.IsEmailAddress(addr):
+			out = append(out, abEntry{name: b.Name, email: addr, typ: "INTERNET"})
+		case m != nil && !m.QWKNode:
+			out = append(out, abEntry{name: b.Name, email: m.Name, typ: addrTypeMSN, u: m})
+		}
+	}
+	return out
+}
+
+// savedAddr is a saved address without CompuServe's dressing ("Jane
+// >INTERNET:jane@example.com").
+func savedAddr(s string) string {
+	if i := strings.Index(s, ">"); i >= 0 {
+		s = s[i+1:]
+	}
+	s = strings.TrimSpace(s)
+	if len(s) > 9 && strings.EqualFold(s[:9], "INTERNET:") {
+		s = strings.TrimSpace(s[9:])
+	}
+	return s
+}
+
 // members are the users a name begins (all, for none), by name.
 func (a *addrBook) members(prefix string) []*store.User {
 	all, err := a.c.s.B.Store.Users()
@@ -208,8 +276,12 @@ func (a *addrBook) member(name string) *store.User {
 // row is a member's values for the tags, in their order: one for every
 // tag, an empty one where there is nothing (the client counts them, and
 // can't be told which is missing).
-func (a *addrBook) row(u *store.User, tags []uint32) []byte {
-	first, last, _ := strings.Cut(u.Name, " ")
+func (a *addrBook) row(e abEntry, tags []uint32) []byte {
+	first, last, _ := strings.Cut(e.name, " ")
+	var city, about string
+	if e.u != nil {
+		city, about = e.u.Location, e.u.About
+	}
 	b := binary.LittleEndian.AppendUint32(nil, uint32(len(tags)))
 	for _, t := range tags {
 		var v any
@@ -218,20 +290,20 @@ func (a *addrBook) row(u *store.User, tags []uint32) []byte {
 			v = uint32(mapiMailUser)
 		case tagDisplayType:
 			v = uint32(0) // DT_MAILUSER
-		case tagDisplayName, tagEmailAddress:
-			v = u.Name
-		case tagDisplayNameW, tagEmailAddressW:
-			v = u.Name
+		case tagDisplayName, tagDisplayNameW:
+			v = e.name
+		case tagEmailAddress, tagEmailAddressW:
+			v = e.email
 		case tagAddrType:
-			v = addrTypeMSN
+			v = e.typ
 		case tagCity:
-			v = u.Location
+			v = city
 		case tagFirstName:
 			v = first
 		case tagLastName:
 			v = last
 		case tagInterests:
-			v = u.About
+			v = about
 		default:
 			v = zeroValue(t)
 		}

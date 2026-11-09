@@ -69,7 +69,13 @@ Point the client's phone number at the line that reaches that listener.
   that didn't. Deleting a message moves it to the BBS's trash.
 - **The address book**: the BBS's members (not locked accounts or QWK
   nodes), for Exchange's member list, for names typed into To:, and for
-  the Member Properties sheet (name, location and the About text).
+  the Member Properties sheet (name, location and the About text). With
+  them come the caller's own saved addresses, so a saved name typed into
+  To: finds its address on any PC. The saved addresses are the same ones
+  as CompuServe's Address Book, and an internet address the caller mails
+  from Exchange is added to them (unless its name or address is there
+  already). Exchange's own Personal Address Book stays on the caller's
+  PC: the client never tells the server what it adds there.
 - **Chat**: the Chat folder (go word `chat`, in MSN Central and in
   Categories) lists the main room, the permanent rooms and those in use,
   with each one's topic and how many are in it. Opening one joins it in

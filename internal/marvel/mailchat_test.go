@@ -122,9 +122,16 @@ func TestMail(t *testing.T) {
 		t.Fatalf("after the last: %#x", v[0])
 	}
 
-	// a message sent: to bob, and to someone there is no such user as
+	// a message sent: to bob, to an internet address, and to someone there
+	// is no such user as
+	var emailed []string
+	srv.B.Email = func(u *store.User, to, subject, body string, reply *store.Message) error {
+		emailed = append(emailed, to)
+		return nil
+	}
 	msg := propList([]mprop{{tagSubject, "Re: Hi"}, {tagMessageClass, "IPM.Note"}})
-	msg = binary.LittleEndian.AppendUint32(msg, 2)
+	msg = binary.LittleEndian.AppendUint32(msg, 3)
+	msg = append(msg, propList([]mprop{{tagDisplayName, "Jane Doe"}, {tagAddrType, "SMTP"}, {tagEmailAddress, "jane@example.com"}})...)
 	msg = append(msg, propList([]mprop{{tagDisplayName, "bob"}, {tagAddrType, "MSN"}, {tagEmailAddress, "bob"}})...)
 	msg = append(msg, propList([]mprop{{tagDisplayName, "carol"}, {tagAddrType, "MSN"}, {tagEmailAddress, "carol"}})...)
 	msg = append(msg, propList([]mprop{{tagBody, "Hello back\r\nBye"}})...)
@@ -138,6 +145,13 @@ func TestMail(t *testing.T) {
 	box, _ := st.Inbox(bob.ID)
 	if len(box) != 1 || box[0].Subject != "Re: Hi" || box[0].From != "alice" || box[0].Body != "Hello back\nBye" {
 		t.Fatalf("bob's mail: %+v", box)
+	}
+	if strings.Join(emailed, ",") != "jane@example.com" {
+		t.Fatalf("e-mailed: %q", emailed)
+	}
+	// the internet address is saved in alice's own address book, once
+	if book, _ := st.Addresses(alice.ID); len(book) != 1 || book[0].Name != "Jane Doe" || book[0].Addr != "jane@example.com" {
+		t.Fatalf("alice's address book: %+v", book)
 	}
 	box, _ = st.Inbox(alice.ID)
 	var note *store.Message
@@ -165,13 +179,18 @@ func TestAddressBook(t *testing.T) {
 	if _, err := st.CreateUser("bob", "password2", "There", false); err != nil {
 		t.Fatal(err)
 	}
+	alice, _ := st.UserByName("alice")
+	st.PutAddress(alice.ID, "Jane", "jane@example.com")
+	st.PutAddress(alice.ID, "Pal", "BOB")
+	st.PutAddress(alice.ID, "Carl", "Carl C >INTERNET:carl@example.org") // CompuServe's way
+	st.PutAddress(alice.ID, "Fax", "FAX:301-555-1212")                   // not one MSN mail takes
 	c := signedOn(t, srv, "alice", "password1")
 	c.open(3, "MOSABP")
 
 	v, rest := static(t, c.call(3, abIface, abContainers))
 	rec := dynamic(t, rest)
 	if v[1] != 1 || len(rec) != 0xDC || unansi(bytes.TrimRight(rec[8:0x48], "\x00")) != "Test BBS members" ||
-		binary.LittleEndian.Uint32(rec[0xD0:]) != 2 {
+		binary.LittleEndian.Uint32(rec[0xD0:]) != 5 {
 		t.Fatalf("containers: %v %x", v, rec)
 	}
 
@@ -189,9 +208,32 @@ func TestAddressBook(t *testing.T) {
 		t.Fatalf("no such member: %#x", v[0])
 	}
 
-	v, rest = static(t, c.call(3, abIface, abQueryRows, vparam([]byte{0}), dparam(0), dparam(0), dparam(50), vparam(tb[:4])))
-	if len(v) != 5 || v[3] != 2 {
+	if got := c.abRows(t, abQueryRows, ""); got != "alice:alice:MSN,bob:bob:MSN,Carl:carl@example.org:INTERNET,Jane:jane@example.com:INTERNET,Pal:bob:MSN" {
+		t.Fatalf("members: %q", got)
+	}
+	// a name typed into To:, saved or a member's
+	if got := c.abRows(t, abQueryRestrict, "jane"); got != "Jane:jane@example.com:INTERNET" {
+		t.Fatalf("jane: %q", got)
+	}
+	if got := c.abRows(t, abQueryRestrict, "bo"); got != "bob:bob:MSN" {
+		t.Fatalf("bo: %q", got)
+	}
+}
+
+// abRows lists the address book's rows (display name, address, type) for
+// a name.
+func (c *client) abRows(t *testing.T, method byte, name string) string {
+	t.Helper()
+	var tb []byte
+	for _, x := range []uint32{tagDisplayName, tagEmailAddress, tagAddrType} {
+		tb = binary.LittleEndian.AppendUint32(tb, x)
+	}
+	v, rest := static(t, c.call(3, abIface, method, dparam(0), vparam(append([]byte(name), 0)), dparam(0), dparam(50), dparam(3), vparam(tb)))
+	if len(v) != 5 || v[0] != 0 {
 		t.Fatalf("rows: %v", v)
+	}
+	if v[3] == 0 {
+		return ""
 	}
 	z := dynamic(t, rest)
 	if string(z[:2]) != "CK" {
@@ -202,14 +244,20 @@ func TestAddressBook(t *testing.T) {
 		t.Fatal(err)
 	}
 	var got []string
-	for len(rows) > 0 {
-		n := int(binary.LittleEndian.Uint32(rows[4:]))
-		got = append(got, string(rows[8:8+n]))
-		rows = rows[8+n:]
+	for i := uint32(0); i < v[3]; i++ {
+		var f []string
+		rows = rows[4:]
+		for j := 0; j < 3; j++ {
+			n := int(binary.LittleEndian.Uint32(rows))
+			f = append(f, string(rows[4:4+n]))
+			rows = rows[4+n:]
+		}
+		got = append(got, strings.Join(f, ":"))
 	}
-	if strings.Join(got, ",") != "alice,bob" {
-		t.Fatalf("members: %q", got)
+	if len(rows) != 0 {
+		t.Fatalf("%d bytes after the rows", len(rows))
 	}
+	return strings.Join(got, ",")
 }
 
 // abRow reads a row of string and dword values (a dword if four bytes

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/store"
 )
 
@@ -254,6 +255,33 @@ func (m *mailbox) submit() error {
 	return m.send(raw)
 }
 
+// remember puts an internet address the caller mailed in their own
+// address book, unless it (or its name) is there already: Exchange keeps
+// its Personal Address Book on the caller's PC, and never says what it
+// adds.
+func (m *mailbox) remember(name, addr string) {
+	u := m.c.signedOn()
+	if u == nil {
+		return
+	}
+	if name = strings.TrimSpace(name); name == "" || strings.Trim(name, "'\"") == addr {
+		name = addr
+	}
+	book, err := m.c.s.B.Store.Addresses(u.ID)
+	if err != nil {
+		m.c.logf("address book: %v", err)
+		return
+	}
+	for _, b := range book {
+		if strings.EqualFold(b.Name, name) || strings.EqualFold(savedAddr(b.Addr), addr) {
+			return
+		}
+	}
+	if err := m.c.s.B.Store.PutAddress(u.ID, name, addr); err != nil {
+		m.c.logf("address book: %v", err)
+	}
+}
+
 type recipient struct {
 	name, addr, typ string
 }
@@ -338,6 +366,9 @@ func (m *mailbox) send(raw []byte) error {
 			continue
 		}
 		sent++
+		if bbs.IsEmailAddress(addr) {
+			m.remember(r.name, addr)
+		}
 	}
 	if len(failed) == 0 {
 		return nil

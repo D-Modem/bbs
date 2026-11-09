@@ -310,6 +310,13 @@ CREATE TABLE IF NOT EXISTS friends (
 	added     {int} NOT NULL,
 	PRIMARY KEY (user_id, friend_id)
 )`, `
+CREATE TABLE IF NOT EXISTS address_book (
+	user_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	name    {name} NOT NULL,
+	addr    {str} NOT NULL,
+	added   {int} NOT NULL,
+	PRIMARY KEY (user_id, name)
+)`, `
 CREATE TABLE IF NOT EXISTS oscar_buddies (
 	user_id   {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	friend_id {int} NOT NULL REFERENCES users(id) ON DELETE CASCADE,

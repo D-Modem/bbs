@@ -80,3 +80,28 @@ func TestBlocks(t *testing.T) {
 		t.Errorf("friend of %+v", of)
 	}
 }
+
+func TestAddressBook(t *testing.T) {
+	BcryptCost = 4
+	s, err := Open(filepath.Join(t.TempDir(), "bbs.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	u, err := s.CreateUser("alice", "password1", "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.PutAddress(u.ID, "Jane", "jane@example.com")
+	s.PutAddress(u.ID, "bob", "Bob")
+	s.PutAddress(u.ID, "JANE", "jane@example.org") // the same name, another address
+	s.PutAddress(u.ID, "", "nobody")
+	book, err := s.Addresses(u.ID)
+	if err != nil || len(book) != 2 || book[0].Name != "bob" || book[1].Name != "Jane" || book[1].Addr != "jane@example.org" {
+		t.Fatalf("book: %+v %v", book, err)
+	}
+	s.RemoveAddress(u.ID, "jane")
+	if book, _ := s.Addresses(u.ID); len(book) != 1 {
+		t.Fatalf("after removing: %+v", book)
+	}
+}
