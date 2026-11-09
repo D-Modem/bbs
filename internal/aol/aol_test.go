@@ -715,3 +715,83 @@ func TestBoards(t *testing.T) {
 		t.Errorf("999:\n%s", s)
 	}
 }
+
+func TestReadMail(t *testing.T) {
+	srv, _ := newServer(t)
+	st := srv.B.Store
+	if _, err := st.CreateUser("Carol Ann", "password1", "There", false); err != nil {
+		t.Fatal(err)
+	}
+	a := signedOn(t, srv, "alice")
+	a.send("m4", mailForm("CarolAnn", "Lunch", "Are you free?\r\nNoon?", false)[0])
+	a.stream()
+	a.send("m4", mailForm("CarolAnn", "Later", "Or tea", false)[0])
+	a.stream()
+	u, _ := st.UserByName("Carol Ann")
+	inbox, _ := st.Inbox(u.ID)
+	if len(inbox) != 2 {
+		t.Fatalf("inbox %v", inbox)
+	}
+	c := signedOn(t, srv, "CarolAnn")
+
+	// the New Mail list: both, newest first, each a message of its own
+	c.send("m7", nil)
+	s := c.stream()
+	if strings.Count(s, "mip_start_message") != 3 || strings.Count(s, "mip_start_block") != 2 ||
+		!strings.Contains(s, hexText("alice")) || strings.Index(s, hexText("Later")) > strings.Index(s, hexText("Lunch")) {
+		t.Errorf("new mail:\n%s", s)
+	}
+	c.send("m9", nil)
+	if s := c.stream(); !strings.Contains(s, "You have no old mail.") {
+		t.Errorf("old mail:\n%s", s)
+	}
+
+	// reading one, with and without a stream id before the atoms
+	m3 := func(id int64) []byte {
+		return fdo.MustCompile(fmt.Sprintf("mip_preset_message_id <%d>\nmip_read_mail <1>\n", id))
+	}
+	c.send("m3", m3(inbox[0].ID))
+	s = c.stream()
+	if !strings.Contains(s, hexText("Lunch")) || !strings.Contains(s, hexText("Are you free?\r\nNoon?")) || !strings.Contains(s, "mip_end_message") {
+		t.Errorf("read:\n%s", s)
+	}
+	c.send("m3", append([]byte{0, 9}, m3(inbox[1].ID)...))
+	if s := c.stream(); !strings.Contains(s, hexText("Or tea")) {
+		t.Errorf("read with a stream id:\n%s", s)
+	}
+	if n, _ := st.UnreadMail(u.ID); n != 0 {
+		t.Errorf("%d unread after reading both", n)
+	}
+	c.send("m9", nil)
+	if s := c.stream(); strings.Count(s, "mip_start_block") != 2 {
+		t.Errorf("old mail:\n%s", s)
+	}
+	// a mail not in her mailbox, nor sent by her
+	a.send("m3", m3(inbox[1].ID+100))
+	if s := a.stream(); !strings.Contains(s, "not in your mailbox") {
+		t.Errorf("no such mail:\n%s", s)
+	}
+	// but alice sees what she sent
+	a.send("m8", nil)
+	if s := a.stream(); !strings.Contains(s, hexText("Carol Ann")) || strings.Count(s, "mip_start_block") != 2 {
+		t.Errorf("sent mail:\n%s", s)
+	}
+
+	// Keep As New for the first, Delete for the second
+	c.send("m2", fdo.MustCompile(fmt.Sprintf("mip_preset_message_id <%d>\nmip_change_message_status <2>\n"+
+		"mip_preset_message_id <%d>\nmip_change_message_status <4>\n", inbox[0].ID, inbox[1].ID)))
+	c.stream()
+	left, _ := st.Inbox(u.ID)
+	if len(left) != 1 || left[0].ID != inbox[0].ID || left[0].Read {
+		t.Errorf("after m2: %+v", left)
+	}
+}
+
+// hexText is text as the decompiler shows a raw atom's data.
+func hexText(s string) string {
+	var parts []string
+	for _, c := range []byte(s) {
+		parts = append(parts, fmt.Sprintf("%02xx", c))
+	}
+	return strings.Join(parts, ", ")
+}

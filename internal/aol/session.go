@@ -96,6 +96,21 @@ func (ss *session) token(tok string, body []byte) {
 		}
 		return
 	}
+	switch tok {
+	case "m7", "m8", "m9", "m3", "m2": // the mail tool's buffers: no stream to piece together
+		if !ss.signedOn() {
+			return
+		}
+		switch tok {
+		case "m3":
+			ss.readMIP(body)
+		case "m2":
+			ss.changeMail(body)
+		default:
+			ss.mailList(tok)
+		}
+		return
+	}
 	sid, atoms := splitStream(tok, body)
 	if atoms = ss.whole(tok, sid, atoms); atoms == nil {
 		return // more to come
