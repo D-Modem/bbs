@@ -2,6 +2,22 @@
 
 Ideas not yet started, with what is known of them.
 
+## An MSN Classic front end
+
+*Status: started; the link, the RPC, sign-in, the directory, bulletin
+boards, e-mail and its address book, chat, Find, file downloads and
+the 1996 client's NTLM sign-in (`internal/marvel`, `[marvel]`,
+`frontend = marvel`) are done.  Not yet tried with a real client.*
+
+For the MSN client of Windows 95 (MSN 1.0 to 1.3), over TCP (port 569) and
+by modem, from the marvel-msn project's protocol notes.  Next:
+
+- **Uploads**: a file library as an MSN BBS whose messages carry the
+  files as attachments (MOSAF objects in a rich-text body, MOS2 packed),
+  which also lets a file be saved where the caller says rather than
+  opened from the temporary folder.
+- **MSN Today**: the Media Viewer title (MEDVIEW), a page of news.
+
 ## An AOL front end
 
 *Status: started; FDO91 (`internal/aol/fdo`), P3 (`internal/aol/p3`) and
@@ -35,9 +51,12 @@ client's `AmericaOnline.aol.com`) and by modem.
   Help, Chat, Mail, Who; `m4` MIP mail (header and text in one stream or
   two) to BBS mail; the mailbox, a mail and Who are host windows whose
   buttons send keywords; new mail counted on the Welcome window.
+- **Rooms and boards** (done, untried with a real client): `LP` and
+  the keywords Rooms and Room *name* to any chat room; message areas as
+  boards (topics, posts, a post window whose Send is `de_ez_send_form`
+  with token `Zp`), all host windows.
 - **Tokens**, next: the client's own Read Mail list (`m7` and its MIP
-  answers), the room list (`LP`) and other rooms, message areas as
-  boards; the client asks for art it lacks (`fh`): none is served yet.
+  answers); the client asks for art it lacks (`fh`): none is served yet.
 - **Modem callers**: the client's CCL script expects a network's prompts
   (SprintNet, Tymnet) before P3; emulate one, or ship a CCL that dials
   straight in.

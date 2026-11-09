@@ -38,6 +38,7 @@
 - [AIM and ICQ](AIM-and-ICQ)
 - [AOL clients](AOL)
 - [MSN Messenger](MSN-Messenger)
+- [MSN Classic (1995)](MSN-Classic)
 - [MRC](MRC)
 - [Finger, gopher and Gemini](Finger-and-Gopher)
 - [Time: NTP, NTS and PTP](Time)

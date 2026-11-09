@@ -223,7 +223,7 @@ are kept too. In command mode the prompt is `Mail!`.
 | `UPLOAD [/PRO:B] [/TYP:ASCII\|LATIN1]` | a message's text by a protocol, then the same questions (TAPCIS's `UPL/PRO:B/TYP:ASCII MAIL%.TMP`) |
 | `DOWNLOAD [n\|ALL\|SAVED] [/PROTO:x]` | messages as one text file, by a protocol |
 | `DELETE n` | delete a message |
-| `ADDRESS` | the address book, and `NAME` for your Mail name (both for this session only) |
+| `ADDRESS` | the address book, which is kept (and is the same one MSN Classic's Exchange uses), and `NAME` for your Mail name (for this session only) |
 | `SET`, `SET MODE x`, `SET EDIT x`, `SET PAGE x`, `MODE` | the options |
 | `EXIT`, `T`, `GO x`, `OFF` | leave Mail |
 
@@ -282,7 +282,7 @@ so only callers using the same key read each other.
 | Forums on the message areas, with the forum command language | |
 | The CompuServe B, Quick B and B Plus protocols (`internal/xfer/cisb.go`) | B Plus resume (Tr) and file information (TI) |
 | Libraries on the file areas, with B+ downloads and uploads | |
-| CompuServe Mail on the BBS's private mail | A kept address book, binary mail |
+| CompuServe Mail on the BBS's private mail | Binary mail |
 | The CB Simulator on the chat rooms | Forum conferences (CO) |
 | CIM: Secure Login, the B Plus Transport Layer, HMI pages, menus, articles and Find | |
 | CIM: reading forums and Mail, library lists | CIM: sending mail, posting, downloads, CB |

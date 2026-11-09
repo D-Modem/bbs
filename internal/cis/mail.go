@@ -35,7 +35,7 @@ type mailState struct {
 	paged    bool
 	retain   bool
 	name     string            // the Mail name (ADDRESS NAME), for this session
-	book     map[string]string // the address book: name to address, for this session
+	book     map[string]string // the address book (the user's own, kept): name to address
 	list     []*store.Message  // the messages as last listed, numbered from 1
 }
 
@@ -68,6 +68,13 @@ func (s *session) mailSettings() *mailState {
 		m.lineEdit = s.keptSetting(setEditor) == "linedit"
 	}
 	m.paged = p[prefMailPage] == "on"
+	book, err := s.b.Store.Addresses(s.user.ID)
+	if err != nil {
+		s.b.Log.Printf("address book: %v", err)
+	}
+	for _, a := range book {
+		m.book[strings.ToUpper(a.Name)] = a.Addr
+	}
 	s.mail = m
 	return m
 }
@@ -925,7 +932,8 @@ func (s *session) addressBook() error {
 }
 
 // addressCommand is an Address Book command (ADDRESS NAME, ...).  The
-// book and the name last for the session.
+// book is kept (the user's own, which other front ends share); the name
+// lasts for the session.
 func (s *session) addressCommand(c string) error {
 	m := s.mail
 	verb, arg := splitVerb(c)
@@ -970,6 +978,9 @@ func (s *session) addressCommand(c string) error {
 		}
 		if strings.TrimSpace(name) != "" && strings.TrimSpace(addr) != "" {
 			m.book[strings.ToUpper(strings.TrimSpace(name))] = strings.TrimSpace(addr)
+			if err := s.b.Store.PutAddress(s.user.ID, name, addr); err != nil {
+				s.b.Log.Printf("address book: %v", err)
+			}
 		}
 	case is(verb, "DELETE", 3):
 		name := strings.TrimSpace(arg)
@@ -980,6 +991,9 @@ func (s *session) addressCommand(c string) error {
 			}
 		}
 		delete(m.book, strings.ToUpper(strings.TrimSpace(name)))
+		if err := s.b.Store.RemoveAddress(s.user.ID, name); err != nil {
+			s.b.Log.Printf("address book: %v", err)
+		}
 	case is(verb, "LIST", 2):
 		if len(m.book) == 0 {
 			s.out("Your Address Book is empty.\n")
