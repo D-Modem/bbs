@@ -627,6 +627,7 @@ The Microsoft Network of 1995 to 1998, for the MSN client that came with Windows
 | `max_clients` |  |  | See the section above. Examples: `64`. |
 | `max_per_ip` |  |  | See the section above. Examples: `4`. |
 
+
 ## `[ymsg]`
 
 Yahoo! Messenger: the chat for Yahoo! Messenger clients (YMSG 9 to 16), beside IRC, AIM and MSN.  Users sign in with their BBS names (without spaces) and passwords; the buddy list is their friends list and the ignore list their blocked list; an IM is a private message, kept for one away; Yahoo chat rooms are the chat rooms, and a conference a room of its own.  The clients must be pointed at this host (see the wiki page). See docs/wiki/Yahoo-Messenger.md.
