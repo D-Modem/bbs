@@ -74,18 +74,9 @@ func (s *Server) serveWeb(ctx context.Context) error {
 	return nil
 }
 
-// tlsConfig takes the old clients: Windows XP's TLS 1.0, with RSA key
-// exchange and 3DES or RC4 (all it has), as well as current ones.
+// tlsConfig takes the old clients as well as current ones.
 func tlsConfig(get func(*tls.ClientHelloInfo) (*tls.Certificate, error)) *tls.Config {
-	return &tls.Config{GetCertificate: get, MinVersion: tls.VersionTLS10,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305, tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_128_CBC_SHA, tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA, tls.TLS_RSA_WITH_RC4_128_SHA,
-		}}
+	return certs.Legacy(get)
 }
 
 // ServeHTTP answers the web half.

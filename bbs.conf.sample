@@ -901,8 +901,8 @@ address = 127.0.0.1:2513
 ;max_clients = 256
 ;max_per_ip = 4
 
-; MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows
-; Messenger 4.x (MSNP2 to 7), beside IRC and AIM.  Users sign in as
+; MSN Messenger: the chat for MSN Messenger 1.0 to 7.5 and Windows
+; Messenger 4.x (MSNP2 to 12), beside IRC and AIM.  Users sign in as
 ; name@domain with their BBS passwords; contacts are their friends list;
 ; an IM is a private message (a PRIVMSG on IRC), kept for one away.  The
 ; clients must be pointed at this host (see the wiki page).
@@ -922,6 +922,19 @@ address = 127.0.0.1:2513
 ;system = BBS
 ; a web address the clients' links (inbox, profiles) open
 ;site = https://bbs.example.org/
+; MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is
+; that server too when https_address is set.  The machine running the
+; client sends nexus.passport.com, login.passport.com and login.live.com
+; to the BBS (its hosts file) and trusts tls_cert for those names (make a
+; small certificate authority of your own).  See the wiki page.
+;https_address = :443
+;tls_cert = /etc/bbs/passport.crt
+;tls_key = /etc/bbs/passport.key
+; where the clients log in, host[:port] (default: the name they asked
+; the nexus at)
+;passport_host = login.passport.com
+; or without TLS, behind a proxy that does it
+;http_address = 127.0.0.1:8863
 
 ; The Microsoft Network of 1995 to 1998, for the MSN client that came with
 ; Windows 95: users sign in with their BBS names and passwords, the

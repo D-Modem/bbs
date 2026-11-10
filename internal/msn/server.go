@@ -4,10 +4,10 @@
 // a private message (a PRIVMSG to an IRC user, a line on a caller's
 // terminal, an IM on AIM), kept for one away.
 //
-// It speaks MSNP2 to MSNP7: MSN Messenger 1.0 to 4.7 and Windows
+// It speaks MSNP2 to MSNP12: MSN Messenger 1.0 to 4.7 and Windows
 // Messenger 4.x, which sign in by MD5 (or, MSN 1.0, by the password in
-// the clear) over plain TCP.  Later versions sign in by Passport over
-// HTTPS, not served here yet.
+// the clear) over plain TCP, and MSN Messenger 5.0 to 7.5, which sign in
+// by Passport over HTTPS (passport.go), served when https_address is set.
 //
 // One port (1863) serves the whole of it: the dispatch and notification
 // server (a client's first command is VER) and the switchboards, the
@@ -45,7 +45,7 @@ const (
 // the protocol versions served
 const (
 	minVersion = 2
-	maxVersion = 7
+	maxVersion = 12
 )
 
 // Settings are the [msn] section's.
@@ -64,6 +64,16 @@ type Settings struct {
 	// Site is a web address for the client's links (its inbox, its
 	// profile pages); "": none
 	Site string
+	// HTTPSAddress is where the Passport server listens (MSN 5.0 and
+	// later sign in there); "": MSN 1.0 to 4.7 only
+	HTTPSAddress      string
+	CertFile, KeyFile string
+	// HTTPAddress is where it listens without TLS (behind a proxy that
+	// does it); "": not
+	HTTPAddress string
+	// PassportHost is where clients are sent to log in (host[:port]);
+	// "": the host they asked the nexus at
+	PassportHost string
 }
 
 // Server serves MSNP.
@@ -77,6 +87,7 @@ type Server struct {
 	sbs     map[string]*switchboard // by id
 	cookies map[string]*sbCookie
 	nextSB  int
+	tickets map[string]*ticket // Passport's
 }
 
 // New checks the settings and makes the server.
@@ -98,8 +109,12 @@ func New(b *bbs.BBS, s Settings) (*Server, error) {
 	if s.MaxClients == 0 {
 		s.MaxClients = 256
 	}
+	if s.HTTPSAddress != "" && s.CertFile == "" {
+		return nil, errors.New("msn: https_address needs tls_cert and tls_key")
+	}
 	return &Server{B: b, S: s, ns: map[*nsSession]bool{}, byNode: map[int]*nsSession{},
-		sbs: map[string]*switchboard{}, cookies: map[string]*sbCookie{}, nextSB: 1}, nil
+		sbs: map[string]*switchboard{}, cookies: map[string]*sbCookie{}, nextSB: 1,
+		tickets: map[string]*ticket{}}, nil
 }
 
 // Run listens until ctx is done.
@@ -118,6 +133,16 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	defer stop()
 	stopFriends := s.B.WatchFriends(s.friendsChanged)
 	defer stopFriends()
+	if s.passportOn() {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		go func() {
+			if err := s.serveWeb(ctx); err != nil {
+				s.B.Log.Printf("%v", err)
+				ln.Close()
+			}
+		}()
+	}
 	ts := &tcpserv.Server{Name: "msn", MaxClients: s.S.MaxClients, MaxPerIP: s.S.MaxPerIP, Log: s.B.Log,
 		Handle: s.handle,
 		Refuse: func(c net.Conn) bool { return s.B.Refuse("msn", c.RemoteAddr()) }}
