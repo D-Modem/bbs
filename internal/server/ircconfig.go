@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/D-Modem/bbs/internal/config"
 	"github.com/D-Modem/bbs/internal/ircd"
@@ -19,9 +20,12 @@ func (c *Config) ircSection(cf *config.File) error {
 		i := &ircd.Settings{Address: s.String("address", ":6667"), TLSAddress: s.String("tls_address", ""),
 			CertFile: s.String("tls_cert", ""), KeyFile: s.String("tls_key", ""),
 			ServerName: s.String("server_name", ""), Network: s.String("network", ""),
-			Service: s.String("service", "BBSServ")}
+			Service: s.String("service", "BBSServ"), ChanServ: s.String("chanserv", "ChanServ")}
 		if !ircd.ValidNick(i.Service) {
 			return errors.New("service: the bot's nick, a letter then letters, digits, - and _")
+		}
+		if !ircd.ValidNick(i.ChanServ) || strings.EqualFold(i.ChanServ, i.Service) {
+			return errors.New("chanserv: the rooms' bot's nick, a letter then letters, digits, - and _ (not service's)")
 		}
 		if i.Address == "none" { // TLS only
 			i.Address = ""
@@ -48,6 +52,9 @@ func (c *Config) ircSection(cf *config.File) error {
 			return err
 		}
 		if i.MaxPerIP, err = s.Int("max_per_ip", 4, 0, 1000); err != nil {
+			return err
+		}
+		if i.ChanServExpire, err = s.Int("chanserv_expire", 90, 0, 100000); err != nil {
 			return err
 		}
 		if i.Address != "" && i.TLSAddress == "" {

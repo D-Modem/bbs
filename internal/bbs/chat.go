@@ -27,6 +27,8 @@ const (
 	Notice                   // from the system
 	Mail                     // a new mail for the caller
 	Topic                    // a room's topic (set, or shown on coming in)
+	Mode                     // ops or voice given or taken (Text "+o", Target whose)
+	Kicked                   // Target put out of the room by From (Text: why)
 )
 
 // Event is something for a node to show its caller.
@@ -44,6 +46,23 @@ type Event struct {
 	// the sender as an IRC network names them (nick!user@host), for one
 	// from a linked IRC network ("": none)
 	Mask string
+	// whom a Mode or Kicked is about, and (Kicked) a node of theirs
+	Target     string
+	TargetNode int
+}
+
+// Plain is a Mode or Kicked as the events a front end that knows only
+// the older ones shows: a notice in the room, and for a kick the one put
+// out leaving it.  Other events: nil.
+func Plain(e Event) []Event {
+	switch e.Kind {
+	case Mode:
+		return []Event{{Kind: Notice, Room: e.Room, Text: e.String(), Time: e.Time}}
+	case Kicked:
+		return []Event{{Kind: Notice, Room: e.Room, Text: e.String(), Time: e.Time},
+			{Kind: Left, Room: e.Room, From: e.Target, Node: e.TargetNode, Text: e.Text, Time: e.Time}}
+	}
+	return nil
 }
 
 // String is the event as a line for the caller.
@@ -64,6 +83,21 @@ func (e Event) String() string {
 		return fmt.Sprintf("Message from %s (node %d): %s", e.From, e.Node, e.Text)
 	case Mail:
 		return "New mail from " + e.From + ": " + e.Text
+	case Mode:
+		what := map[string]string{
+			"+o": "made %s an operator", "-o": "took operator from %s",
+			"+v": "gave %s a voice", "-v": "took the voice from %s",
+		}[e.Text]
+		if what == "" {
+			return fmt.Sprintf("%s set %s %s", e.From, e.Text, e.Target)
+		}
+		return e.From + " " + fmt.Sprintf(what, e.Target) + " in " + e.Room
+	case Kicked:
+		s := e.From + " put " + e.Target + " out of " + e.Room
+		if e.Text != "" {
+			s += ": " + e.Text
+		}
+		return s
 	case Topic:
 		if e.From != "" {
 			return e.From + " set the topic: " + e.Text
@@ -109,12 +143,16 @@ type room struct {
 	history   []Event
 	permanent bool   // kept open when empty (store's chat_rooms)
 	topic     string // a permanent room's
+	// in a registered room, the users given ops or voice (stOp, stVoice)
+	status map[int64]uint8
 }
 
 // hub is the BBS's chat: its rooms.
 type hub struct {
 	mu    sync.Mutex
 	rooms map[string]*room
+	regs  map[string]*store.RoomReg // the registered rooms (ChanServ's)
+	swept time.Time                 // when unused registrations were last dropped
 }
 
 // ErrChat are refusals of chat.
@@ -132,13 +170,23 @@ var roomName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,19}$`)
 // store.
 func (b *BBS) hub() *hub {
 	b.hubOnce.Do(func() {
-		b.chat = &hub{rooms: map[string]*room{}}
+		b.chat = &hub{rooms: map[string]*room{}, regs: map[string]*store.RoomReg{}}
 		rs, err := b.Store.ChatRooms()
 		if err != nil {
 			b.Log.Printf("chat: the permanent rooms: %v", err)
 		}
 		for _, r := range rs {
 			b.chat.rooms[r.Name] = &room{members: map[*Node]bool{}, permanent: true, topic: r.Topic}
+		}
+		regs, err := b.Store.RoomRegs()
+		if err != nil {
+			b.Log.Printf("chat: the registered rooms: %v", err)
+		}
+		for _, r := range regs {
+			b.chat.regs[r.Name] = r
+			if r.Has("guard") && b.chat.rooms[r.Name] == nil {
+				b.chat.rooms[r.Name] = &room{members: map[*Node]bool{}}
+			}
 		}
 	})
 	return b.chat
@@ -234,6 +282,9 @@ func (n *Node) mayJoin(name string) (string, error) {
 	if r := n.b.relayFor(name); r != nil && !r.Allows(name, u) {
 		return "", ErrNotAllowed
 	}
+	if n.b.banned(name, u) {
+		return "", ErrBanned
+	}
 	return name, nil
 }
 
@@ -308,16 +359,30 @@ func (b *BBS) RoomMembers(name string) []RoomMember {
 	h := b.hub()
 	h.mu.Lock()
 	var ns []*Node
-	if r := h.rooms[name]; r != nil {
+	status := map[int64]uint8{}
+	r := h.rooms[name]
+	if r != nil {
 		ns = r.membersList()
+		for id, st := range r.status {
+			status[id] = st
+		}
 	}
+	registered := h.regs[name] != nil
 	h.mu.Unlock()
 	out := make([]RoomMember, 0, len(ns))
 	for _, m := range ns {
 		b.mu.Lock()
-		via := m.Caller.Via
+		via, u := m.Caller.Via, m.user
 		b.mu.Unlock()
-		out = append(out, RoomMember{Name: m.name(), Node: m.Num, Via: via, Handle: m.Handle()})
+		rm := RoomMember{Name: m.name(), Node: m.Num, Via: via, Handle: m.Handle()}
+		switch {
+		case u == nil:
+		case registered:
+			rm.Op, rm.Voice = status[u.ID]&stOp != 0, status[u.ID]&stVoice != 0
+		default:
+			rm.Op = u.Sysop
+		}
+		out = append(out, rm)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Node < out[j].Node })
 	return append(out, b.remoteMembers(name)...)
@@ -330,6 +395,8 @@ type RoomMember struct {
 	Via    string // how they came (for one elsewhere, the network's ident)
 	Handle string // a CB handle ("": none)
 	Host   string // for one elsewhere, their host
+	Op     bool   // an operator in the room (a sysop, in one not registered)
+	Voice  bool   // given a voice in a registered room
 }
 
 // enter puts the node in a room's members, tells the others, and gives
@@ -345,8 +412,8 @@ func (n *Node) enter(name string) []Event {
 	others := r.membersList()
 	r.members[n] = true
 	var hist []Event
-	if r.topic != "" {
-		hist = append(hist, Event{Kind: Topic, Room: name, Text: r.topic, Time: time.Now()})
+	if topic := h.topicOf(name, r); topic != "" {
+		hist = append(hist, Event{Kind: Topic, Room: name, Text: topic, Time: time.Now()})
 	}
 	hist = append(hist, r.history...)
 	h.mu.Unlock()
@@ -357,6 +424,9 @@ func (n *Node) enter(name string) []Event {
 	if r := n.b.relayFor(name); r != nil {
 		r.Joined(name, n.name())
 	}
+	// ops and voice by the access list, after the room's lines
+	hist = append(hist, n.arrive(name, n.User())...)
+	go n.b.expire()
 	return hist
 }
 
@@ -383,6 +453,7 @@ func (n *Node) LeaveRoom() {
 
 // exit takes the node out of a room's members, and tells the others.
 func (n *Node) exit(name string) {
+	u := n.User()
 	h := n.b.hub()
 	h.mu.Lock()
 	r := h.rooms[name]
@@ -390,11 +461,19 @@ func (n *Node) exit(name string) {
 	if r != nil {
 		delete(r.members, n)
 		others = r.membersList()
-		if len(r.members) == 0 && !r.permanent {
+		if len(r.members) == 0 && !h.kept(name, r) {
 			delete(h.rooms, name)
 		}
 	}
 	h.mu.Unlock()
+	if u != nil && !n.b.inRoom(name, u.ID) {
+		// a user's status goes with their last node there
+		h.mu.Lock()
+		if r != nil && r.status != nil {
+			delete(r.status, u.ID)
+		}
+		h.mu.Unlock()
+	}
 	e := Event{Kind: Left, Room: name, From: n.name(), Node: n.Num, Time: time.Now(), Handle: n.Handle()}
 	for _, o := range others {
 		o.deliver(e)
@@ -489,6 +568,8 @@ type RoomInfo struct {
 	Users     []string
 	Permanent bool // kept open when empty
 	Topic     string
+	// Registered: the room is a user's (ChanServ's REGISTER)
+	Registered bool
 }
 
 // Rooms lists the chat rooms in use (private ones only to sysops and
@@ -508,7 +589,7 @@ func (b *BBS) rooms(u *store.User, node int) []RoomInfo {
 		if strings.HasPrefix(name, "sysop-") && (node == 0 || name != pageRoom(node)) && (u == nil || !u.Sysop) {
 			continue
 		}
-		ri := RoomInfo{Name: name, Permanent: r.permanent, Topic: r.topic}
+		ri := RoomInfo{Name: name, Permanent: r.permanent, Topic: h.topicOf(name, r), Registered: h.regs[name] != nil}
 		for m := range r.members {
 			ri.Users = append(ri.Users, fmt.Sprintf("%s (%d)", m.name(), m.Num))
 		}

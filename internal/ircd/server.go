@@ -38,6 +38,10 @@ type Settings struct {
 	MaxClients int
 	MaxPerIP   int
 	Service    string // the services bot's nick (default BBSServ)
+	ChanServ   string // the rooms' service's nick (default ChanServ)
+	// ChanServExpire: days a registered room may go unused before it is
+	// dropped (0: never)
+	ChanServExpire int
 }
 
 // Server serves IRC.
@@ -48,6 +52,7 @@ type Server struct {
 	created time.Time
 	support *isupport.List
 	svc     *service // BBSServ
+	cs      *service // ChanServ
 	mu      sync.Mutex
 	clients map[*client]bool
 }
@@ -82,7 +87,14 @@ func New(b *bbs.BBS, s Settings) (*Server, error) {
 	if !ValidNick(s.Service) {
 		return nil, fmt.Errorf("irc: service %q: a nick is letters, digits, - and _", s.Service)
 	}
-	srv := &Server{B: b, S: s, created: time.Now(), clients: map[*client]bool{}, svc: newBBSServ(s.Service)}
+	if s.ChanServ == "" {
+		s.ChanServ = "ChanServ"
+	}
+	if !ValidNick(s.ChanServ) || fold(s.ChanServ) == fold(s.Service) {
+		return nil, fmt.Errorf("irc: chanserv %q: a nick is letters, digits, - and _, and not the other service's", s.ChanServ)
+	}
+	b.SetChanServ(s.ChanServ, time.Duration(s.ChanServExpire)*24*time.Hour)
+	srv := &Server{B: b, S: s, created: time.Now(), clients: map[*client]bool{}, svc: newBBSServ(s.Service), cs: newChanServ(s.ChanServ)}
 	srv.support = isupport.NewList()
 	for k, v := range map[string]string{
 		"CASEMAPPING": "ascii",
@@ -91,9 +103,9 @@ func New(b *bbs.BBS, s Settings) (*Server, error) {
 		"CHANLIMIT":   "#:20",
 		"NICKLEN":     strconv.Itoa(bbs.MaxNameLen),
 		"NETWORK":     s.Network,
-		"PREFIX":      "(o)@",
+		"PREFIX":      "(ov)@+",
 		"CHANMODES":   ",,,nt",
-		"MODES":       "1",
+		"MODES":       "4",
 		"TOPICLEN":    "0",
 		"TARGMAX":     "PRIVMSG:1,NOTICE:1,JOIN:,PART:,NAMES:1,WHOIS:1",
 		"LINELEN":     "512",
@@ -163,14 +175,16 @@ func (s *Server) Clients() int {
 
 // Nick is a BBS name as an IRC nick: what nicks may not have (spaces,
 // dots) as underscores.
-func Nick(name string) string {
-	return strings.Map(func(r rune) rune {
-		switch {
-		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-', r == '_':
-			return r
+func Nick(name string) string { return bbs.Nick(name) }
+
+// service is the services bot of a nick (nil: none).
+func (s *Server) service(nick string) *service {
+	for _, svc := range []*service{s.svc, s.cs} {
+		if fold(nick) == fold(svc.Name) {
+			return svc
 		}
-		return '_'
-	}, name)
+	}
+	return nil
 }
 
 // numerics ergo's list lacks

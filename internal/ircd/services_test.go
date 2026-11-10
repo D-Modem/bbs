@@ -182,7 +182,7 @@ func TestPermanentChannels(t *testing.T) {
 	a.send("TOPIC #lobby")
 	a.expect("331 alice #lobby :No topic is set")
 	a.send("JOIN #other", "TOPIC #other :x")
-	a.expect(" 482 alice #other :Only permanent rooms have topics")
+	a.expect(" 482 alice #other :Only permanent and registered rooms have topics")
 
 	// a caller on the BBS sees it too
 	bob := e.caller(t, "bob")

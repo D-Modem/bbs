@@ -333,6 +333,12 @@ func (ss *session) events() {
 
 // event shows the client one thing its node is told.
 func (ss *session) event(e bbs.Event) {
+	if plain := bbs.Plain(e); plain != nil { // ops and kicks: as notices and leaving
+		for _, x := range plain {
+			ss.event(x)
+		}
+		return
+	}
 	switch e.Kind {
 	case bbs.Said, bbs.Emoted, bbs.Joined, bbs.Left, bbs.Topic:
 		ss.roomEvent(e)

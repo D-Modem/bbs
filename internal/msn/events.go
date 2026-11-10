@@ -9,6 +9,12 @@ import (
 // event is something the node is told: a private message, as an IM from
 // its sender; anything else as an IM from the BBS.
 func (ns *nsSession) event(e bbs.Event) {
+	if plain := bbs.Plain(e); plain != nil { // ops and kicks: as notices and leaving
+		for _, x := range plain {
+			ns.event(x)
+		}
+		return
+	}
 	switch e.Kind {
 	case bbs.Private:
 		text := e.Text

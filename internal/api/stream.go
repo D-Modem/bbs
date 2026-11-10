@@ -28,6 +28,7 @@ var kinds = map[bbs.EventKind]pb.Event_Kind{
 	bbs.Said: pb.Event_SAID, bbs.Emoted: pb.Event_EMOTED, bbs.Joined: pb.Event_JOINED,
 	bbs.Left: pb.Event_LEFT, bbs.Private: pb.Event_PRIVATE, bbs.Paged: pb.Event_PAGED,
 	bbs.Notice: pb.Event_NOTICE, bbs.Mail: pb.Event_MAIL, bbs.Topic: pb.Event_NOTICE,
+	bbs.Mode: pb.Event_NOTICE, bbs.Kicked: pb.Event_NOTICE,
 }
 
 // pbEvent is e as the API's Event, with its line as a terminal shows it.

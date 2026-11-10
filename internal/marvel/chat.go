@@ -341,7 +341,10 @@ func (ch *chat) relay(n *bbs.Node, stop chan struct{}) {
 				from := ch.participantID(e.From, e.Node)
 				ch.mu.Unlock()
 				ch.event(evJoined, from, rec)
-			case bbs.Left:
+			case bbs.Left, bbs.Kicked:
+				if e.Kind == bbs.Kicked {
+					e.From, e.Node = e.Target, e.TargetNode
+				}
 				ch.mu.Lock()
 				from := ch.participantID(e.From, e.Node)
 				delete(ch.ids, strings.ToLower(e.From))

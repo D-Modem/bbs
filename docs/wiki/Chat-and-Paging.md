@@ -22,7 +22,9 @@ last caller leaves, unless the sysop has made it
 | `/friends` | your [friends list](#friends), and who on it is on |
 | `/friend WHO`, `/unfriend WHO` | put a user on your friends list, or take them off |
 | `/block WHO`, `/unblock WHO` | refuse a user's private messages, or take them again ([blocking](#blocking)) |
-| `/topic [TEXT]` | the room's topic; the sysop sets a [permanent room](IRC#permanent-rooms)'s |
+| `/topic [TEXT]` | the room's topic; a [registered room](IRC#chanserv)'s ops set it, the sysop a [permanent room](IRC#permanent-rooms)'s |
+| `/cs COMMAND` | ChanServ: [register a room](IRC#chanserv), its access list (`/cs HELP`) |
+| `/kick WHO [WHY]` | put one out of the room (a registered room's ops; `Carol_Ann` for Carol Ann) |
 | `/quit` | leave the chat |
 | `/help` | these |
 
