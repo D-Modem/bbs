@@ -389,6 +389,14 @@ func (s *session) edit(lines []string) ([]string, error) {
 	}
 }
 
+// HoldIdle: no idle timeout until the func returned is called (the
+// sysop's configuration); the login's deadline still holds.
+func (s *session) HoldIdle() func() {
+	old := s.t.Idle
+	s.t.Idle = 0
+	return func() { s.t.Idle = old }
+}
+
 // Console is the screens on a terminal of the machine's own, with no
 // login: for bbs config's screens (internal/confui), which want a
 // view.UI and nothing of a caller's.

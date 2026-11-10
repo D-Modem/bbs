@@ -93,6 +93,13 @@ type SheetEnder interface {
 	EndSheets()
 }
 
+// Unhurried is a front end whose idle timeout can be held off, for the
+// sysop's own screens (the configuration): HoldIdle lifts it, and the
+// func it returns puts it back.  The login's hard limit still holds.
+type Unhurried interface {
+	HoldIdle() (restore func())
+}
+
 // SheetUI is a front end that draws sheets full-screen.
 type SheetUI interface {
 	Sheet(s *Sheet) (SheetResult, error)

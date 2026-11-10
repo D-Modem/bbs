@@ -27,6 +27,9 @@ import (
 // ErrIdle: the caller typed nothing for too long.
 var ErrIdle = errors.New("idle timeout")
 
+// noIdle: how long a read waits with no Idle (as good as for ever)
+const noIdle = 100 * 365 * 24 * time.Hour
+
 // ErrPETSCII: while WatchPETSCII, a key only a Commodore sends.
 var ErrPETSCII = errors.New("a Commodore's key")
 
@@ -382,7 +385,7 @@ var fkeys = map[string]rune{"11": KeyF1, "12": KeyF1 + 1, "13": KeyF1 + 2, "14":
 func (t *Term) EditKey() (rune, error) { return t.read(true) }
 
 // read reads a key for readRune (keys false) or EditKey (true), waiting
-// at most Idle (or to the deadline, if sooner): ErrIdle then.  A LF after
+// at most Idle (0: no limit) or to the deadline, if sooner: ErrIdle then.  A LF after
 // a CR is dropped; an escape sequence is dropped, or, for EditKey, the
 // key it is.
 func (t *Term) read(keys bool) (rune, error) {
@@ -392,8 +395,12 @@ func (t *Term) read(keys bool) (rune, error) {
 	t.line.skip.Store(false) // a skipped screen ends at its prompt
 	t.line.noPoll.Store(false)
 	start := time.Now()
+	idle := t.Idle
+	if idle <= 0 {
+		idle = noIdle
+	}
 	for {
-		limit := start.Add(t.Idle)
+		limit := start.Add(idle)
 		if !t.deadline.IsZero() && t.deadline.Before(limit) {
 			limit = t.deadline
 		}

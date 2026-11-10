@@ -67,6 +67,7 @@ type ui struct {
 	o        Options
 	user     *store.User
 	deadline time.Time // the login's limit
+	noIdle   bool      // no idle timeout (HoldIdle: the sysop's configuration)
 	logo     *logo     // nil: no graphics logo
 	logoAt   [2]int    // where the vector logo goes on this screen
 	drawn    bool      // vector graphics are on the screen
@@ -146,7 +147,10 @@ func (u *ui) show(scr go3270.Screen, vals map[string]string) (go3270.Response, m
 		}
 		u.g.n = 0
 		d := time.Now().Add(u.b.Conf().IdleTimeout)
-		if !u.deadline.IsZero() && u.deadline.Before(d) {
+		if u.noIdle {
+			d = time.Time{} // none
+		}
+		if !u.deadline.IsZero() && (d.IsZero() || u.deadline.Before(d)) {
 			d = u.deadline
 		}
 		u.g.SetReadDeadline(d)
@@ -499,4 +503,12 @@ func (u *ui) listColored(title, heading string, lines []string, colors []go3270.
 			}
 		}
 	}
+}
+
+// HoldIdle: no idle timeout until the func returned is called (the
+// sysop's configuration); the login's deadline still holds.
+func (u *ui) HoldIdle() func() {
+	old := u.noIdle
+	u.noIdle = true
+	return func() { u.noIdle = old }
 }

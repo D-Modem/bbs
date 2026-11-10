@@ -59,6 +59,9 @@ func (e *Editor) Run() error {
 	if se, ok := e.UI.(view.SheetEnder); ok {
 		defer se.EndSheets()
 	}
+	if u, ok := e.UI.(view.Unhurried); ok {
+		defer u.HoldIdle()() // the sysop is never timed out of the setup
+	}
 	if ok, err := e.load(); err != nil || !ok {
 		return err
 	}
