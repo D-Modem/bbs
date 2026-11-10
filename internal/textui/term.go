@@ -907,6 +907,38 @@ func (t *Term) DetectANSI(timeout time.Duration) (bool, error) {
 	return false, nil
 }
 
+// DetectUTF8 writes é (two bytes in UTF-8) at the start of the line and
+// asks where the cursor is: one column on is UTF-8, two is a terminal of
+// single bytes.  ok is false when the terminal does not answer within
+// timeout.
+func (t *Term) DetectUTF8(timeout time.Duration) (utf8, ok bool, err error) {
+	t.w.WriteString("\r\xc3\xa9\x1b[6n")
+	if err := t.Flush(); err != nil {
+		return false, false, err
+	}
+	var got []byte
+	end := time.Now().Add(timeout)
+	for time.Now().Before(end) && len(got) < 64 {
+		t.c.SetReadDeadline(end)
+		b, err := t.r.ReadByte()
+		t.c.SetReadDeadline(time.Time{})
+		if err != nil {
+			if errors.Is(err, os.ErrDeadlineExceeded) {
+				break
+			}
+			return false, false, err
+		}
+		got = append(got, b)
+		if m := cprPattern.FindSubmatch(got); m != nil {
+			col, _ := strconv.Atoi(string(m[2]))
+			ok, utf8 = true, col == 2
+			break
+		}
+	}
+	t.w.WriteString("\r   \r")
+	return utf8, ok, t.Flush()
+}
+
 var (
 	daPattern   = regexp.MustCompile(`\x1b\[\?([0-9;]*)c`)
 	cellPattern = regexp.MustCompile(`\x1b\[6;(\d+);(\d+)t`)

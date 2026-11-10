@@ -68,3 +68,23 @@ func TestCode(t *testing.T) {
 		t.Errorf("ANSI: %q", got)
 	}
 }
+
+// TestDetectUTF8: é one column on is UTF-8, two on is a byte terminal.
+func TestDetectUTF8(t *testing.T) {
+	for _, c := range []struct {
+		answer   string
+		utf8, ok bool
+	}{
+		{"\x1b[5;2R", true, true},
+		{"\x1b[5;3R", false, true},
+	} {
+		kc := &keyConn{in: bytes.NewReader([]byte(c.answer))}
+		u, ok, err := NewTerm(kc).DetectUTF8(time.Second)
+		if err != nil || u != c.utf8 || ok != c.ok {
+			t.Errorf("%q: %v %v %v, want %v %v", c.answer, u, ok, err, c.utf8, c.ok)
+		}
+		if out := kc.out.String(); !strings.HasPrefix(out, "\r\xc3\xa9\x1b[6n") {
+			t.Errorf("%q: sent %q", c.answer, out)
+		}
+	}
+}
