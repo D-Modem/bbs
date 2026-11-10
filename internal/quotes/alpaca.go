@@ -40,6 +40,7 @@ type Alpaca struct {
 	StreamURL   string // AlpacaStream if "" (the feed is added)
 	DataURL     string // AlpacaData if ""
 	Log         func(format string, args ...any)
+	Now         func() time.Time // the clock (time.Now if nil): what session it is, how fresh a snapshot is
 
 	mu      sync.Mutex
 	wanted  map[string]time.Time // when each symbol was last wanted
@@ -47,6 +48,13 @@ type Alpaca struct {
 	subbed  map[string]bool      // those on the stream now
 	kick    chan struct{}
 	err     error // the stream's last failure (nil: connected)
+}
+
+func (a *Alpaca) now() time.Time {
+	if a.Now != nil {
+		return a.Now()
+	}
+	return time.Now()
 }
 
 func (a *Alpaca) init() {
@@ -100,7 +108,7 @@ func (a *Alpaca) Err() error {
 func (a *Alpaca) Want(ctx context.Context, syms []string) {
 	a.mu.Lock()
 	a.init()
-	now := time.Now()
+	now := a.now()
 	var fetch []string
 	for _, s := range syms {
 		if s = Normalize(s); s == "" {
@@ -255,7 +263,7 @@ func (a *Alpaca) fetch(ctx context.Context, syms []string) error {
 	if err := json.Unmarshal(body, &snaps); err != nil {
 		return fmt.Errorf("Alpaca: %w", err)
 	}
-	now := time.Now()
+	now := a.now()
 	a.mu.Lock()
 	for _, s := range syms {
 		a.fetched[s] = now
@@ -358,7 +366,7 @@ func (a *Alpaca) clock(ctx context.Context) {
 	defer t.Stop()
 	n := 0
 	for {
-		a.Book.Clock(time.Now())
+		a.Book.Clock(a.now())
 		if n++; n%5 == 0 {
 			var syms []string
 			for s := range a.following() {
