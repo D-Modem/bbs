@@ -943,8 +943,10 @@ address = 127.0.0.1:2513
 ; See docs/wiki/Yahoo-Messenger.md
 ;[ymsg]
 ;address = :5050
-; the web half, for Y!M 9 and later and the room list: point
-; vcs1.msg.yahoo.com, vcs2.msg.yahoo.com and insider.msg.yahoo.com here
+; the web half, for Y!M 9 and later, the room list and file transfer: point
+; vcs1.msg.yahoo.com, vcs2.msg.yahoo.com, insider.msg.yahoo.com,
+; relay.msg.yahoo.com and filetransfer.msg.yahoo.com here.  File transfer
+; needs it on port 80
 ;http_address = :80
 ; Y!M 9's login, its password over HTTPS: point login.yahoo.com here, with
 ; a certificate for it the client trusts
@@ -958,6 +960,10 @@ address = 127.0.0.1:2513
 ;max_per_ip = 4
 ; the Yahoo ID the BBS's notices come from
 ;system = bbs
+; the largest file users may send each other, in MB (0: no file transfer)
+;max_file_mb = 16
+; give Y!M 6 to 8 Y!M 5's login instead of their own
+;old_login = no
 
 ; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
 ; beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike.

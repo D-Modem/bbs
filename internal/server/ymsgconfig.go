@@ -54,6 +54,14 @@ func (c *Config) ymsgSection(cf *config.File) error {
 		if y.MaxPerIP, err = s.Int("max_per_ip", 4, 0, 1000); err != nil {
 			return err
 		}
+		if y.OldLogin, err = s.Bool("old_login", false); err != nil {
+			return err
+		}
+		mb, err := s.Int("max_file_mb", 16, 0, 4096)
+		if err != nil {
+			return err
+		}
+		y.MaxFileSize = int64(mb) << 20
 		c.YMSG = y
 		return nil
 	}()

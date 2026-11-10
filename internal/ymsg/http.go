@@ -23,6 +23,8 @@ import (
 //	/config/pwtoken_get, /config/pwtoken_login (login.yahoo.com, HTTPS):
 //	    the YMSG 16 login: the password, then the token it gave
 //	/ycontent/ (insider.msg.yahoo.com): the chat room list
+//	/relay (relay.msg.yahoo.com): Y!M 7's file transfer relay
+//	/notifyft, /ft/ (filetransfer.msg.yahoo.com): Y!M 5 and 6's file uploads
 
 // serveWeb serves the web half until ctx is done.
 func (s *Server) serveWeb(ctx context.Context) error {
@@ -105,6 +107,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.pwtokenLogin(w, r)
 	case strings.HasPrefix(r.URL.Path, "/ycontent"):
 		s.roomList(w, r)
+	case r.URL.Path == "/relay":
+		s.relay(w, r)
+	case r.URL.Path == "/notifyft":
+		s.notifyFT(w, r)
+	case strings.HasPrefix(r.URL.Path, "/ft/"):
+		s.ft(w, r)
 	default:
 		http.NotFound(w, r)
 	}

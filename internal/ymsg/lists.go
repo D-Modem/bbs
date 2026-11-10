@@ -101,6 +101,7 @@ func (ss *session) sendLists() {
 		}
 	}
 	y, t := ss.cookies()
+	ss.noteCookie(t)
 	p.add(89, ss.id).add(59, "Y\t"+y+"; expires=Thu, 15 Apr 2030 20:00:00 GMT; path=/; domain=.yahoo.com").
 		add(59, "T\t"+t+"; expires=Thu, 15 Apr 2030 20:00:00 GMT; path=/; domain=.yahoo.com").
 		add(90, "1").add(100, "0").add(101, "").add(102, "").add(93, "86400").add(3, ss.id)

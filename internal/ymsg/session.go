@@ -62,6 +62,7 @@ type session struct {
 	chats     map[string]string      // its chat rooms: BBS room -> name as the client calls it
 	confs     map[string]string      // its conferences: BBS room -> conference name
 	keptSent  bool
+	tcookies  []string // T cookies it was given, for /notifyft
 }
 
 // handle serves a pager connection: the sign-in, then its packets.
@@ -126,6 +127,7 @@ func (ss *session) signIn() (initial uint32, ok bool) {
 	s := ss.s
 	k := ss.k
 	var seed string
+	var key1 [4]byte
 	authType := 0
 	for range 8 {
 		p, err := k.read()
@@ -143,10 +145,14 @@ func (ss *session) signIn() (initial uint32, ok bool) {
 				return 0, false
 			}
 			k.session = randomSession()
-			if ss.ver >= 16 {
+			switch {
+			case ss.ver >= 16:
 				authType = 2
 				seed = randomString(24)
-			} else {
+			case ss.ver >= 10 && !s.S.OldLogin:
+				authType = 1
+				seed, key1 = newChallenge1()
+			default:
 				seed = randomString(24)
 			}
 			k.send(svcAuth, stServerAck, kv(1, ss.id), kv(94, seed), kn(13, int64(authType)))
@@ -156,10 +162,17 @@ func (ss *session) signIn() (initial uint32, ok bool) {
 			}
 			var u *store.User
 			var err error
-			if authType == 2 {
+			switch authType {
+			case 2:
 				u, err = ss.tokenLogin(p, seed)
-			} else {
-				u, err = ss.challengeLogin(p, seed)
+			case 1:
+				u, err = ss.challengeLogin(p, func(k store.YMSGKeys, _ string) (string, string) {
+					return challengeAnswers1(k, key1)
+				})
+			default:
+				u, err = ss.challengeLogin(p, func(k store.YMSGKeys, user string) (string, string) {
+					return challengeAnswers(k, user, seed)
+				})
 			}
 			if err == nil {
 				err = s.may(u)
@@ -184,7 +197,9 @@ func (ss *session) signIn() (initial uint32, ok bool) {
 
 // challengeLogin checks auth type 0's answers (keys 6 and 96) against the
 // account's kept digests.
-func (ss *session) challengeLogin(p *packet, seed string) (*store.User, error) {
+// challengeLogin checks an auth type 0 or 1 answer. answers gives the
+// expected keys 6 and 96 for an account's digests and the ID as typed.
+func (ss *session) challengeLogin(p *packet, answers func(store.YMSGKeys, string) (string, string)) (*store.User, error) {
 	s := ss.s
 	user := p.get(0)
 	if user == "" {
@@ -211,7 +226,7 @@ func (ss *session) challengeLogin(p *packet, seed string) (*store.User, error) {
 			stale = true
 			return nil, store.ErrNotFound
 		}
-		want6, want96 := challengeAnswers(keys, user, seed)
+		want6, want96 := answers(keys, user)
 		got6, got96 := p.get(6), p.get(96)
 		if got6 == "" || subtle.ConstantTimeCompare([]byte(want6), []byte(got6)) != 1 {
 			return nil, store.ErrNotFound
@@ -421,11 +436,15 @@ func (ss *session) packet(p *packet) {
 		ss.chatLogout()
 	case svcChatAddInvite:
 		ss.chatInvite(p)
-	case svcFileTransfer, svcP2PFileXfer, svcFileTrans15, svcFileTransInfo15, svcFileTransAcc15, svcPeerToPeer:
-		if to := p.get(5); to != "" && p.service != svcPeerToPeer {
-			ss.system("Sending files by Yahoo! Messenger isn't available here: upload the file to " +
-				"the BBS's file areas instead.")
-		}
+	case svcFileTrans15:
+		ss.fileTrans15(p)
+	case svcFileTransInfo15:
+		ss.fileTransInfo15(p)
+	case svcFileTransAcc15:
+		ss.fileTransAcc15(p)
+	case svcP2PFileXfer, svcPeerToPeer:
+		// direct connections between clients: not passed on, so the
+		// clients fall back to the relay or the upload
 	}
 }
 
