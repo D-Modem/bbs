@@ -121,8 +121,8 @@ func configScreens(path string) {
 	}
 	t := textui.NewTerm(newTTY(os.Stdin, os.Stdout))
 	t.ANSI = os.Getenv("TERM") != "" && os.Getenv("TERM") != "dumb"
-	t.UTF8 = utf8Locale()
 	t.Clean8 = true
+	localCharset(t)
 	t.Idle = 24 * time.Hour
 	if cols, rows, err := term.GetSize(out); err == nil && cols > 0 {
 		t.Cols, t.Rows = cols, rows
@@ -180,6 +180,26 @@ func configScreens(path string) {
 	fmt.Println()
 	if err != nil {
 		fatal(err)
+	}
+}
+
+// localCharset gives t the console's characters: UTF-8 where the locale
+// says so, or where the terminal shows é as one column (a locale may be
+// unset, as under sudo or in a bare WSL, on a terminal that is UTF-8);
+// otherwise a VT's line drawing on an xterm, a VT, screen or tmux, and code
+// page 437 on any other (the Linux console's, SyncTERM's).
+func localCharset(t *textui.Term) {
+	t.UTF8 = utf8Locale()
+	if t.UTF8 || !t.ANSI {
+		return
+	}
+	if u, ok, err := t.DetectUTF8(500 * time.Millisecond); err == nil && ok && u {
+		t.UTF8 = true
+		return
+	}
+	switch tt := os.Getenv("TERM"); {
+	case strings.HasPrefix(tt, "xterm"), strings.HasPrefix(tt, "vt"), strings.HasPrefix(tt, "screen"), strings.HasPrefix(tt, "tmux"):
+		t.SetDEC(false)
 	}
 }
 
