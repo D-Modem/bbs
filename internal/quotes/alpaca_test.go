@@ -121,8 +121,11 @@ func TestAlpacaSnapshots(t *testing.T) {
 func TestAlpacaStream(t *testing.T) {
 	srv, subs := fakeAlpaca(t)
 	ws := "ws" + strings.TrimPrefix(srv.URL, "http") + "/v2/"
+	// Monday before the open, whenever the test is run: the session not
+	// over, so no close yet
+	monday := time.Date(2026, 11, 9, 9, 0, 0, 0, eastern)
 	a := &Alpaca{Key: "KEY", Secret: "SECRET", Book: NewBook(nil), Pinned: []string{"AAPL"},
-		DataURL: srv.URL + "/v2/", StreamURL: ws}
+		DataURL: srv.URL + "/v2/", StreamURL: ws, Now: func() time.Time { return monday }}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go a.Run(ctx)
