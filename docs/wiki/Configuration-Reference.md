@@ -679,7 +679,7 @@ Yahoo! Messenger: the chat for Yahoo! Messenger clients (YMSG 9 to 16), beside I
 | key | default | live | what it does |
 |---|---|---|---|
 | `address` |  |  | See the section above. Examples: `:5050`. |
-| `http_address` |  |  | the web half, for Y!M 9 and later and the room list: point vcs1.msg.yahoo.com, vcs2.msg.yahoo.com and insider.msg.yahoo.com here. Examples: `:80`. |
+| `http_address` |  |  | the web half, for Y!M 9 and later, the room list and file transfer: point vcs1.msg.yahoo.com, vcs2.msg.yahoo.com, insider.msg.yahoo.com, relay.msg.yahoo.com and filetransfer.msg.yahoo.com here. File transfer needs it on port 80. Examples: `:80`. |
 | `https_address` |  |  | Y!M 9's login, its password over HTTPS: point login.yahoo.com here, with a certificate for it the client trusts. Examples: `:443`. |
 | `tls_cert` |  |  | Y!M 9's login, its password over HTTPS: point login.yahoo.com here, with a certificate for it the client trusts. Examples: `/etc/bbs/login.yahoo.com.crt`. |
 | `tls_key` |  |  | Y!M 9's login, its password over HTTPS: point login.yahoo.com here, with a certificate for it the client trusts. Examples: `/etc/bbs/login.yahoo.com.key`. |
@@ -687,6 +687,8 @@ Yahoo! Messenger: the chat for Yahoo! Messenger clients (YMSG 9 to 16), beside I
 | `max_clients` |  |  | the pager's address the web half gives Y!M 9 (default: the address each one asked on; set it behind NAT) Examples: `256`. |
 | `max_per_ip` |  |  | the pager's address the web half gives Y!M 9 (default: the address each one asked on; set it behind NAT) Examples: `4`. |
 | `system` |  |  | the Yahoo ID the BBS's notices come from. Examples: `bbs`. |
+| `max_file_mb` |  |  | the largest file users may send each other, in MB (0: no file transfer) Examples: `16`. |
+| `old_login` |  |  | give Y!M 6 to 8 Y!M 5's login instead of their own. Examples: `no`. |
 
 
 ## `[mrc]`

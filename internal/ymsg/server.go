@@ -56,6 +56,12 @@ type Settings struct {
 	MaxPerIP   int
 	// System is the Yahoo ID the BBS's notices come from
 	System string
+	// OldLogin offers Y!M 6 to 8 (YMSG 10 to 15) the Y!M 5 challenge
+	// login (auth type 0) instead of their own (auth type 1)
+	OldLogin bool
+	// MaxFileSize is the largest file users may send each other (0: no
+	// file transfer). It needs the web half on port 80.
+	MaxFileSize int64
 }
 
 // Server serves YMSG.
@@ -68,6 +74,7 @@ type Server struct {
 	byNode   map[int]*session
 	tokens   map[string]*token // pwtoken_get's, by token
 	cookies  map[string]*token // pwtoken_login's, by T cookie
+	xfers    map[string]*xfer  // files on their way, by token
 }
 
 // token is a YMSG 16 login in progress: the user whose password was
@@ -91,7 +98,7 @@ func New(b *bbs.BBS, s Settings) (*Server, error) {
 		s.MaxClients = 256
 	}
 	return &Server{B: b, S: s, sessions: map[*session]bool{}, byNode: map[int]*session{},
-		tokens: map[string]*token{}, cookies: map[string]*token{}}, nil
+		tokens: map[string]*token{}, cookies: map[string]*token{}, xfers: map[string]*xfer{}}, nil
 }
 
 // Run listens until ctx is done: the pager, and the web half if set.

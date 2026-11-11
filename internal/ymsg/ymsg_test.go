@@ -63,7 +63,10 @@ func freeAddr(t *testing.T) string {
 
 // start is a BBS (alice, bob, Carol Ann and sysop, all password1; old,
 // made before Yahoo digests were kept) with a Yahoo server.
-func start(t *testing.T) *env {
+func start(t *testing.T) *env { t.Helper(); return startWith(t, nil) }
+
+// startWith is start, with settings changed by set.
+func startWith(t *testing.T, set func(*Settings)) *env {
 	t.Helper()
 	store.BcryptCost = 4
 	st, err := store.Open(filepath.Join(t.TempDir(), "bbs.db"))
@@ -85,7 +88,11 @@ func start(t *testing.T) *env {
 	logs := &syncBuf{}
 	b := bbs.New(s, st, log.New(logs, "", 0))
 	e := &env{b: b, st: st, addr: freeAddr(t), web: freeAddr(t)}
-	srv, err := New(b, Settings{Address: e.addr, HTTPAddress: e.web, MaxPerIP: 50, Host: "127.0.0.1"})
+	ss := Settings{Address: e.addr, HTTPAddress: e.web, MaxPerIP: 50, Host: "127.0.0.1", MaxFileSize: 1 << 20}
+	if set != nil {
+		set(&ss)
+	}
+	srv, err := New(b, ss)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,6 +131,9 @@ type client struct {
 	session uint32
 	id      string
 	ch      chan *packet
+
+	oldLogin bool    // the server offers auth type 0 to all
+	list     *packet // the LIST it was sent at sign-in
 }
 
 func dial(t *testing.T, e *env, ver uint16) *client {
@@ -133,7 +143,8 @@ func dial(t *testing.T, e *env, ver uint16) *client {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { c.Close() })
-	cl := &client{t: t, c: c, r: bufio.NewReader(c), ver: ver, ch: make(chan *packet, 256)}
+	cl := &client{t: t, c: c, r: bufio.NewReader(c), ver: ver, ch: make(chan *packet, 256),
+		oldLogin: e.srv.S.OldLogin}
 	go func() {
 		defer close(cl.ch)
 		for {
@@ -235,10 +246,19 @@ func (cl *client) login(user, pw string) (code string, ok bool) {
 	cl.expect(svcVerify, nil)
 	cl.send(svcAuth, 0, kv(1, user))
 	a := cl.expect(svcAuth, nil)
-	if a.get(13) != "0" || len(a.get(94)) < 16 {
+	want := "0"
+	if cl.ver >= 10 && !cl.oldLogin {
+		want = "1"
+	}
+	if a.get(13) != want || len(a.get(94)) < 16 {
 		cl.t.Fatalf("auth: %v", a.pairs)
 	}
-	r6, r96 := answers(user, pw, a.get(94))
+	var r6, r96 string
+	if want == "1" {
+		r6, r96 = answers1(cl.t, pw, a.get(94))
+	} else {
+		r6, r96 = answers(user, pw, a.get(94))
+	}
 	cl.send(svcAuthResp, 0, kv(0, user), kv(6, r6), kv(96, r96), kv(1, user))
 	for {
 		select {
@@ -250,6 +270,7 @@ func (cl *client) login(user, pw string) (code string, ok bool) {
 				return p.get(66), false
 			}
 			if p.service == svcList {
+				cl.list = p
 				return "", true
 			}
 		case <-time.After(3 * time.Second):

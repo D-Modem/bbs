@@ -15,23 +15,30 @@ http_address = :80
 | Setting | Default | What it sets |
 |---|---|---|
 | `address` | `:5050` | where the pager listens |
-| `http_address` | none | the web half (the capacity lookup and the room list), plain HTTP |
+| `http_address` | none | the web half (the capacity lookup, the room list and file transfer), plain HTTP; port 80 for file transfer |
 | `https_address` | none | the web half over HTTPS: the login of Y!M 9 and later |
 | `tls_cert`, `tls_key` | none | the certificate for `https_address` (for `login.yahoo.com`) |
 | `host` | the address each client asked on | the pager's address the capacity lookup gives; set it behind NAT |
 | `max_clients` | `256` | connections at once |
 | `max_per_ip` | `4` | from one address |
 | `system` | `bbs` | the Yahoo ID the BBS's notices come from |
+| `max_file_mb` | `16` | the largest file users may send each other, in MB; `0` turns file transfer off |
+| `old_login` | `no` | `yes` gives Y!M 6 to 8 the Y!M 5 login instead of their own |
 
 ## Versions served
 
-YMSG 9 to 16. Two logins are served:
+YMSG 9 to 16. Three logins are served:
 
-- **The challenge login** (YMSG 9 to 15): Yahoo! Messenger 5.x, and
-  third-party clients of that time (Gaim, Kopete, libyahoo2's), which
-  take the login type the server offers. Yahoo! Messenger 6 to 8 used a
-  later challenge ("auth type 1") that is not served; whether they take
-  the older one when it is offered has not been tried yet.
+- **The Y!M 5 challenge login** ("auth type 0", YMSG 9): Yahoo!
+  Messenger 5.x.
+- **The Y!M 6 to 8 challenge login** ("auth type 1", YMSG 10 to 15):
+  Yahoo! Messenger 6, 7 and 8, and the third-party clients of that time
+  (Gaim, Kopete, libyahoo2's), which take whichever login the server
+  offers. Yahoo's version of this login ran the challenge through a set
+  of lookup tables; the BBS writes its challenges so that the client
+  runs through the tables zero times, so it needs no copy of them. If a
+  client turns out not to take these challenges, `old_login = yes`
+  offers it the Y!M 5 login instead.
 - **The token login** (YMSG 16): Yahoo! Messenger 9 and later, and
   the later Pidgin 2.x releases. The client sends the password over HTTPS to
   `login.yahoo.com`, gets a token, and proves it on the pager. This
@@ -113,8 +120,30 @@ get it when they next log in. Lines kept for a Yahoo user come when they
 sign in, marked with when they were sent. The BBS's notices (new mail, a
 page for the sysop, errors) come from the `system` ID.
 
-Sending files is not served: the client is told to use the BBS's file
-areas.
+## Sending files
+
+Files go between Yahoo! Messenger users, through the BBS. They are held
+in a temporary file only until the receiver has fetched them (an hour
+at most) and are never put in the file areas. A file to someone who
+isn't on Yahoo! Messenger at the time is declined, and the sender is
+told to use the BBS's [file areas](Files-and-FTP) instead. So is a file
+over `max_file_mb`, or to someone who blocks the sender.
+
+This needs `http_address` on port 80, with these names sent to the BBS
+(as for the other names above):
+
+- `relay.msg.yahoo.com` (and `relay.yahoo.com`): Yahoo! Messenger 7 and
+  later. The sender offers the file, the receiver accepts, and both
+  connect to the relay: the sender uploads, the receiver downloads.
+  Set `host` if the BBS is behind NAT, as the receiver is given that
+  address for the relay.
+- `filetransfer.msg.yahoo.com`: Yahoo! Messenger 5 and 6. The sender
+  uploads the file and the receiver is sent a link to fetch it from.
+
+Neither way has been tried with the real clients yet, only with
+scripted ones that do what libyahoo2 does. Direct connections between
+two clients are not passed on, so clients that try one first fall back
+to the relay or the upload.
 
 ## Chat rooms and conferences
 
