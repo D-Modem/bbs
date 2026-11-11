@@ -181,7 +181,8 @@ func usage() {
                                                   for host names, organization and years)
   bbs [-config FILE] ca [show]                     the BBS's certificate authority: fingerprint, what it signs
   bbs [-config FILE] ca init [-sha1]               make it (-sha1: for Windows before XP SP3)
-  bbs [-config FILE] ca issue [-out DIR] NAME...   a certificate it signs, for a TLS proxy
+  bbs [-config FILE] ca subca NAME                 a sub-CA for a program beside it (proxy: a TLS proxy's)
+  bbs [-config FILE] ca issue [-ca NAME] [-out DIR] NAME...  a certificate a sub-CA signs
   bbs [-config FILE] ca package [-out FILE]        the zip that installs it on callers' machines
   bbs [-config FILE] acme [list]                   the ACME client's certificates: names, expiry
   bbs [-config FILE] acme renew [-force] [NAME...] get them now: those due, all (-force) or those named

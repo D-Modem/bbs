@@ -22,6 +22,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -34,11 +35,8 @@ const CertFile = "ca"
 // IsCA: a cert_file is the BBS's CA's.
 func IsCA(certFile string) bool { return certFile == CertFile }
 
-// file names in the CA's directory
-const (
-	caCert = "ca.crt"
-	caKey  = "ca.key"
-)
+// the root's certificate, in the CA's directory
+const caCert = "ca.crt"
 
 // LeafDays is how long a certificate the CA signs is good for: under the
 // 398 days current browsers take, for a TLS proxy's too.
@@ -53,6 +51,8 @@ type CA struct {
 	Cert *x509.Certificate
 	Key  crypto.Signer
 	PEM  []byte // the certificate
+	// Name is a sub-CA's name (services, proxy ...); "" for the root
+	Name string
 	// SHA1: certificates are signed with SHA-1 (as the CA's own is), for
 	// Windows 95 to 2000 and XP before SP3, which know no SHA-256
 	SHA1 bool
@@ -67,9 +67,17 @@ func Exists(dir string) bool {
 	return err == nil
 }
 
-// Init makes a CA in dir, named name (the BBS's), good for 20 years:
-// RSA 2048, signed with SHA-1 when sha1 is set (for Windows before XP SP3).
-// An existing one is an error.
+// The CAs: a root, the one callers' machines trust (ca.crt, ca.key), which
+// signs only sub-CAs (NAME-ca.crt, NAME-ca.key beside it): Services, which
+// signs the certificates of the servers the BBS runs, and others for
+// programs beside it (a TLS proxy's, say), each its own key.
+
+// Services is the sub-CA that signs the BBS's own servers' certificates.
+const Services = "services"
+
+// Init makes a root CA in dir, named name (the BBS's), good for 20 years,
+// and its Services sub-CA: RSA 2048, signed with SHA-1 when sha1 is set
+// (for Windows before XP SP3).  An existing one is an error.
 func Init(dir, name string, sha1 bool) (*CA, error) {
 	if Exists(dir) {
 		return nil, fmt.Errorf("%s already has a CA", dir)
@@ -93,7 +101,7 @@ func Init(dir, name string, sha1 bool) (*CA, error) {
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
 		BasicConstraintsValid: true,
 		IsCA:                  true,
-		MaxPathLenZero:        true,
+		MaxPathLen:            1, // sub-CAs, which sign only servers
 	}
 	if sha1 {
 		tmpl.SignatureAlgorithm = x509.SHA1WithRSA
@@ -102,33 +110,126 @@ func Init(dir, name string, sha1 bool) (*CA, error) {
 	if err != nil {
 		return nil, err
 	}
-	kp := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
-	if err := os.WriteFile(filepath.Join(dir, caKey), kp, 0o600); err != nil {
+	if err := writePair(dir, "ca", der, key); err != nil {
 		return nil, err
 	}
-	cp := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
-	if err := os.WriteFile(filepath.Join(dir, caCert), cp, 0o644); err != nil {
+	root, err := Load(dir)
+	if err != nil {
 		return nil, err
 	}
-	return Load(dir)
+	if _, _, err := root.Sub(Services); err != nil {
+		return nil, err
+	}
+	return root, nil
 }
 
-// Load reads the CA in dir.
-func Load(dir string) (*CA, error) {
-	cp, err := os.ReadFile(filepath.Join(dir, caCert))
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, fmt.Errorf("no CA in %s (bbs ca init makes one)", dir)
+// writePair writes base.crt and base.key in dir (the key first, private).
+func writePair(dir, base string, der []byte, key *rsa.PrivateKey) error {
+	kp := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	if err := os.WriteFile(filepath.Join(dir, base+".key"), kp, 0o600); err != nil {
+		return err
+	}
+	cp := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	return os.WriteFile(filepath.Join(dir, base+".crt"), cp, 0o644)
+}
+
+var subName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,31}$`)
+
+// Sub is the root's sub-CA name (services, proxy ...), made now if there
+// is none (made: true): NAME-ca.crt and NAME-ca.key in the root's
+// directory, good as long as the root, signing only servers' certificates.
+func (root *CA) Sub(name string) (sub *CA, made bool, err error) {
+	if root.Name != "" {
+		return nil, false, errors.New("a sub-CA makes no sub-CAs")
+	}
+	if !subName.MatchString(name) || name == "ca" {
+		return nil, false, fmt.Errorf("sub-CA %q: lower-case letters, digits and dashes", name)
+	}
+	base := name + "-ca"
+	if _, err := os.Stat(filepath.Join(root.Dir, base+".crt")); err == nil {
+		sub, err := loadPair(root.Dir, base)
+		if err != nil {
+			return nil, false, err
 		}
+		sub.Name = name
+		return sub, false, nil
+	}
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, false, err
+	}
+	org := root.Cert.Subject.CommonName
+	if len(root.Cert.Subject.Organization) > 0 {
+		org = root.Cert.Subject.Organization[0]
+	}
+	tmpl := &x509.Certificate{
+		SerialNumber:          serial(),
+		Subject:               pkix.Name{CommonName: org + " " + strings.ToUpper(name[:1]) + name[1:] + " CA", Organization: []string{org}},
+		NotBefore:             time.Now().Add(-24 * time.Hour),
+		NotAfter:              root.Cert.NotAfter.Add(-24 * time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+		MaxPathLenZero:        true,
+	}
+	if root.SHA1 {
+		tmpl.SignatureAlgorithm = x509.SHA1WithRSA
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, root.Cert, &key.PublicKey, root.Key)
+	if err != nil {
+		return nil, false, err
+	}
+	if err := writePair(root.Dir, base, der, key); err != nil {
+		return nil, false, err
+	}
+	sub, err = loadPair(root.Dir, base)
+	if err != nil {
+		return nil, false, err
+	}
+	sub.Name = name
+	return sub, true, nil
+}
+
+// Subs are the names of the root's sub-CAs there are.
+func (root *CA) Subs() []string {
+	files, _ := filepath.Glob(filepath.Join(root.Dir, "*-ca.crt"))
+	var out []string
+	for _, f := range files {
+		out = append(out, strings.TrimSuffix(filepath.Base(f), "-ca.crt"))
+	}
+	return out
+}
+
+// Load reads the root CA in dir.
+func Load(dir string) (*CA, error) {
+	if !Exists(dir) {
+		return nil, fmt.Errorf("no CA in %s (bbs ca init makes one)", dir)
+	}
+	root, err := loadPair(dir, "ca")
+	if err != nil {
 		return nil, err
 	}
-	kp, err := os.ReadFile(filepath.Join(dir, caKey))
+	if root.Cert.MaxPathLenZero || root.Cert.MaxPathLen == 0 {
+		return nil, fmt.Errorf("the CA in %s signs no sub-CAs (an earlier BBS's): move %s away, "+
+			"and the BBS makes a new one", dir, dir)
+	}
+	return root, nil
+}
+
+// loadPair reads base.crt and base.key in dir.
+func loadPair(dir, base string) (*CA, error) {
+	certName, keyName := base+".crt", base+".key"
+	cp, err := os.ReadFile(filepath.Join(dir, certName))
+	if err != nil {
+		return nil, err
+	}
+	kp, err := os.ReadFile(filepath.Join(dir, keyName))
 	if err != nil {
 		return nil, err
 	}
 	b, _ := pem.Decode(cp)
 	if b == nil {
-		return nil, fmt.Errorf("%s: not a PEM certificate", caCert)
+		return nil, fmt.Errorf("%s: not a PEM certificate", certName)
 	}
 	cert, err := x509.ParseCertificate(b.Bytes)
 	if err != nil {
@@ -136,7 +237,7 @@ func Load(dir string) (*CA, error) {
 	}
 	kb, _ := pem.Decode(kp)
 	if kb == nil {
-		return nil, fmt.Errorf("%s: not a PEM key", caKey)
+		return nil, fmt.Errorf("%s: not a PEM key", keyName)
 	}
 	key, err := x509.ParsePKCS1PrivateKey(kb.Bytes)
 	if err != nil {
@@ -145,7 +246,7 @@ func Load(dir string) (*CA, error) {
 	return &CA{Dir: dir, Cert: cert, Key: key, PEM: cp, SHA1: cert.SignatureAlgorithm == x509.SHA1WithRSA}, nil
 }
 
-// LoadOrInit is the CA in dir, made first if there is none.
+// LoadOrInit is the root CA in dir, made first if there is none.
 func LoadOrInit(dir, name string) (*CA, bool, error) {
 	if Exists(dir) {
 		ca, err := Load(dir)
@@ -162,6 +263,9 @@ func LoadOrInit(dir, name string) (*CA, bool, error) {
 func (ca *CA) Issue(names []string, days int, key *rsa.PrivateKey) (certPEM, keyPEM []byte, err error) {
 	if len(names) == 0 {
 		return nil, nil, errors.New("no names")
+	}
+	if ca.Name == "" {
+		return nil, nil, errors.New("the root CA signs only sub-CAs: sign with one of them")
 	}
 	if days <= 0 {
 		days = LeafDays
@@ -198,7 +302,8 @@ func (ca *CA) Issue(names []string, days int, key *rsa.PrivateKey) (certPEM, key
 		return nil, nil, err
 	}
 	certPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
-	// the chain: the CA's after it, for clients that want it sent
+	// the chain: the sub-CA's certificate after it, which clients need sent
+	// (they have only the root)
 	certPEM = append(certPEM, ca.PEM...)
 	keyPEM = pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
 	return certPEM, keyPEM, nil

@@ -223,7 +223,16 @@ cert_file = ca
 `tls_cert = ca` (`cert_file = ca` for Gemini) needs no key file. At its
 start `bbs serve` makes the CA if there is none (in `ca/` beside the
 database), signs each server a certificate for its names, and looks again
-daily:
+daily.
+
+The CA is a root and sub-CAs under it, each with its own key. The root
+(`ca/ca.crt`) is the one callers' machines trust, and it signs only the
+sub-CAs. The services sub-CA (`ca/services-ca.crt`) signs the BBS's own
+servers' certificates, and a program beside the BBS, such as a TLS proxy,
+gets a sub-CA of its own (`bbs ca subca proxy`). Each certificate is sent
+with its sub-CA's after it, so clients need only the root. A sub-CA's key
+signs nothing but servers' certificates, and the root's key stays with the
+BBS. The BBS's servers sign with:
 
 | Server | Names |
 |---|---|
@@ -270,20 +279,36 @@ that old.
 
 ### A TLS proxy
 
-The same CA signs a certificate for a TLS proxy in front of anything
-(stunnel, nginx, an SSL-stripping proxy for old browsers): `bbs ca issue
--out /etc/stunnel login.example.com 192.168.77.20` writes
-`login.example.com.crt` (with the CA's after it) and `login.example.com.key`.
-Callers who installed the CA trust it as they do the BBS's own.
+A TLS proxy in front of anything (stunnel, nginx, WebOne, an
+SSL-stripping proxy for old browsers) is given a sub-CA of its own,
+rather than the root or the services sub-CA:
+
+```sh
+bbs ca subca proxy
+```
+
+This makes `ca/proxy-ca.crt` and `ca/proxy-ca.key` (made once, then shown).
+A proxy that makes its certificates as it goes, WebOne's port for one,
+takes those two and sends `proxy-ca.crt` after each certificate it
+signs. For a proxy that wants fixed files, `bbs ca issue -ca proxy -out
+/etc/stunnel login.example.com 192.168.77.20` writes
+`login.example.com.crt` (with the proxy CA's after it) and
+`login.example.com.key`. Callers who installed the CA trust both, as they
+do the BBS's own servers. Without `-ca`, `bbs ca issue` signs with the
+services sub-CA.
 
 ### Commands
 
 ```
-bbs ca                 the CA: its fingerprint, until when, what it signs
-bbs ca init [-sha1]    make it now (and its zip)
-bbs ca issue [-out DIR] [-days N] NAME...   a certificate for a proxy
+bbs ca                 the CA: its fingerprint, until when, its sub-CAs, what it signs
+bbs ca init [-sha1]    make it now (the root, the services sub-CA, the zip)
+bbs ca subca NAME      a sub-CA for a program beside the BBS (proxy), made if none
+bbs ca issue [-ca NAME] [-out DIR] [-days N] NAME...   a certificate a sub-CA signs
 bbs ca package [-out FILE]                  the zip again
 ```
 
-Keep `ca/ca.key` with your backups, and private: anyone with it can make
-certificates the callers' machines trust.
+Keep `ca/` with your backups, and its `.key` files private: anyone with
+one can make certificates the callers' machines trust. A CA made by an
+earlier BBS, before the sub-CAs, signed servers itself; the BBS refuses
+it and says so. Move `ca/` away and it makes a new one, and callers
+install the new `install-ca.zip`.
