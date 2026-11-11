@@ -57,6 +57,7 @@ nav:
     - "MRC": MRC.md
     - "Finger, gopher and Gemini": Finger-and-Gopher.md
     - "Time: NTP, NTS and PTP": Time.md
+    - "DNS for callers": DNS.md
     - "Web forum": Web-Forum.md
     - "Image boards": Image-Boards.md
     - "HTTP API": HTTP-API.md

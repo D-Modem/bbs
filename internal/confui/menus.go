@@ -319,6 +319,7 @@ func (e *Editor) servicesMenu() page {
 			e.single("Gopher", "gopher"),
 			e.single("Gemini", "gemini"),
 			e.single("FTP", "ftp"),
+			e.single("DNS for callers", "dns"),
 			menu("News (NNTP)", e.onOff(sec("nntp")), func() error { return e.show(e.newsPage()) }),
 			menu("Web: API, forum, image boards", e.onOff(sec("http")), func() error { return e.show(e.webPage()) }),
 			menu("Certificates (ACME)", e.onOff(sec("acme")), func() error { return e.show(e.acmePage()) }),

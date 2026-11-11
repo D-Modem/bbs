@@ -546,7 +546,7 @@ func (p *PTP) follow(host string) (*ptpUpstream, error) {
 	if v4 := ip.To4(); v4 != nil {
 		ip = v4
 	}
-	u := &ptpUpstream{p: p, host: host, ip: ip, syncs: map[uint16]time.Time{}, reqs: map[uint16]time.Time{}}
+	u := &ptpUpstream{p: p, host: host, ip: ip, syncs: map[uint16]time.Time{}, follows: map[uint16]time.Time{}, reqs: map[uint16]*delayReq{}}
 	p.mu.Lock()
 	if p.clients == nil {
 		p.clients = map[string]*ptpUpstream{}
@@ -566,9 +566,12 @@ type ptpUpstream struct {
 	ann     *ptp.Announce
 	granted time.Time            // the sync grant's end
 	syncs   map[uint16]time.Time // a Sync's arrival, by sequence, till its Follow_Up
-	t1, t2  time.Time            // the last sync's: when it went (TAI) and came
+	// a Follow_Up's origin time, by sequence, come before its Sync: they
+	// come on two sockets, read apart
+	follows map[uint16]time.Time
+	t1, t2  time.Time // the last sync's: when it went (TAI) and came
 	reqSeq  uint16
-	reqs    map[uint16]time.Time // a Delay_Req's sending, by sequence
+	reqs    map[uint16]*delayReq // Delay_Reqs sent, by sequence
 	sigSeq  uint16
 	samples []Sample
 }
@@ -677,12 +680,14 @@ func (u *ptpUpstream) handle(b []byte, rx time.Time) {
 			go u.delayReq()
 			return
 		}
-		u.syncs[s.SequenceID] = rx
-		for k := range u.syncs {
-			if k != s.SequenceID && s.SequenceID-k < 0x8000 && s.SequenceID-k > 8 {
-				delete(u.syncs, k)
-			}
+		if t1, ok := u.follows[s.SequenceID]; ok {
+			delete(u.follows, s.SequenceID)
+			u.t1, u.t2 = t1, rx
+			go u.delayReq()
+			return
 		}
+		u.syncs[s.SequenceID] = rx
+		prune(u.syncs, s.SequenceID)
 	case ptp.MessageFollowUp:
 		var f ptp.FollowUp
 		if f.UnmarshalBinary(b) != nil {
@@ -690,12 +695,15 @@ func (u *ptpUpstream) handle(b []byte, rx time.Time) {
 		}
 		u.mu.Lock()
 		defer u.mu.Unlock()
+		t1 := f.PreciseOriginTimestamp.Time().Add(f.CorrectionField.Duration())
 		t2, ok := u.syncs[f.SequenceID]
 		if !ok {
+			u.follows[f.SequenceID] = t1
+			prune(u.follows, f.SequenceID)
 			return
 		}
 		delete(u.syncs, f.SequenceID)
-		u.t1, u.t2 = f.PreciseOriginTimestamp.Time().Add(f.CorrectionField.Duration()), t2
+		u.t1, u.t2 = t1, t2
 		go u.delayReq()
 	case ptp.MessageDelayResp:
 		var d ptp.DelayResp
@@ -707,40 +715,69 @@ func (u *ptpUpstream) handle(b []byte, rx time.Time) {
 		}
 		u.mu.Lock()
 		defer u.mu.Unlock()
-		t3, ok := u.reqs[d.SequenceID]
-		if !ok || u.t1.IsZero() {
+		r, ok := u.reqs[d.SequenceID]
+		if !ok || u.t1.IsZero() || !r.t4.IsZero() {
 			return
 		}
-		delete(u.reqs, d.SequenceID)
-		t4 := d.ReceiveTimestamp.Time().Add(-d.CorrectionField.Duration())
-		u.measure(t3, t4)
+		r.t4 = d.ReceiveTimestamp.Time().Add(-d.CorrectionField.Duration())
+		if !r.t3.IsZero() {
+			delete(u.reqs, d.SequenceID)
+			u.measure(r.t3, r.t4)
+		}
+		// else the answer came before delayReq had its sending time: it
+		// measures when it has
+	}
+}
+
+// prune drops the entries more than 8 sequence numbers before seq.
+func prune(m map[uint16]time.Time, seq uint16) {
+	for k := range m {
+		if k != seq && seq-k < 0x8000 && seq-k > 8 {
+			delete(m, k)
+		}
 	}
 }
 
 // delayReq sends a Delay_Req, after a sync.
 func (u *ptpUpstream) delayReq() {
+	r := &delayReq{}
 	u.mu.Lock()
 	seq := u.reqSeq
 	u.reqSeq++
-	u.mu.Unlock()
-	r := ptp.SyncDelayReq{Header: u.p.header(ptp.MessageDelayReq, syncLen, seq, ptp.FlagUnicast, 0x7f)}
-	b, err := ptp.Bytes(&r)
-	if err != nil {
-		return
-	}
-	t3, err := u.p.sendEvent(b, u.ip)
-	if err != nil {
-		return
-	}
-	u.mu.Lock()
-	u.reqs[seq] = t3
+	// kept before it is sent: on a busy machine the answer can be handled
+	// before sendEvent returns
+	u.reqs[seq] = r
 	for k := range u.reqs {
 		if seq-k > 8 {
 			delete(u.reqs, k)
 		}
 	}
 	u.mu.Unlock()
+	m := ptp.SyncDelayReq{Header: u.p.header(ptp.MessageDelayReq, syncLen, seq, ptp.FlagUnicast, 0x7f)}
+	b, err := ptp.Bytes(&m)
+	if err != nil {
+		return
+	}
+	t3, err := u.p.sendEvent(b, u.ip)
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	if u.reqs[seq] != r {
+		return
+	}
+	if err != nil {
+		delete(u.reqs, seq)
+		return
+	}
+	r.t3 = t3
+	if !r.t4.IsZero() {
+		delete(u.reqs, seq)
+		u.measure(r.t3, r.t4)
+	}
 }
+
+// delayReq is a Delay_Req sent: its sending time (t3) and the server's
+// receiving it (t4), whichever is known first.
+type delayReq struct{ t3, t4 time.Time }
 
 // measure makes a sample of the last sync and a delay request's answer
 // (t1, t4 the server's, TAI; t2, t3 the system clock's), held.

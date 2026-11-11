@@ -24,8 +24,8 @@ host = aim.example.org:5190
 | `tls_host` | `host`'s name at `tls_address`'s port | where clients that ask for TLS are sent (`host:port`); a TLS proxy's, when one is in front |
 
 Point the client at the BBS: in AIM up to 6.1, the "Host" under Connection
-settings (`login.oscar.aol.com` was AOL's, so a hosts file entry also
-works); in Pidgin, the server and port of an AIM or ICQ account, with "Use
+settings (`login.oscar.aol.com` was AOL's, so a hosts file entry, or the
+BBS's [DNS server](DNS), also works); in Pidgin, the server and port of an AIM or ICQ account, with "Use
 clientLogin" unticked and encryption off, or see [later AIM
 versions](#later-aim-versions) to use clientLogin. The deny list and bans in
 `[security]` apply as they do everywhere else.

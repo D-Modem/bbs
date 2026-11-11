@@ -32,6 +32,14 @@ const ACME = "acme"
 // ALPNProto is TLS-ALPN-01's protocol (RFC 8737).
 const ALPNProto = "acme-tls/1"
 
+// CA is cert_file's value for a certificate the BBS's own certificate
+// authority signs (internal/bbsca): made and renewed by bbs serve, which
+// names the files before the server starts.
+const CA = "ca"
+
+// IsCA reports whether a cert_file is the BBS's CA's.
+func IsCA(certFile string) bool { return certFile == CA }
+
 // IsACME reports whether a cert_file is the ACME client's.
 func IsACME(certFile string) bool {
 	return certFile == ACME || strings.HasPrefix(certFile, ACME+":")
@@ -87,6 +95,9 @@ func Default(certFile, keyFile string, acme bool) (string, string) {
 // loading, or the ACME client's (acmeNames: the [acme NAME]s there are,
 // nil: no [acme]).
 func Check(certFile, keyFile string, acmeNames []string) error {
+	if IsCA(certFile) {
+		return nil // signed when the BBS starts
+	}
 	if IsACME(certFile) {
 		if acmeNames == nil {
 			return errors.New("cert_file = acme needs an [acme] section")
@@ -117,6 +128,9 @@ type Source struct {
 // they are files.
 func New(certFile, keyFile string) (*Source, error) {
 	s := &Source{CertFile: certFile, KeyFile: keyFile}
+	if IsCA(certFile) {
+		return nil, errors.New("cert_file = ca, but the BBS's CA has not signed it (bbs serve does)")
+	}
 	if IsACME(certFile) {
 		if manager() == nil {
 			return nil, errors.New("cert_file = acme, but the ACME client is not running")

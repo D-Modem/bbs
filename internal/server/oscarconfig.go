@@ -50,7 +50,7 @@ func (c *Config) oscarSection(cf *config.File) error {
 			if _, _, err := net.SplitHostPort(o.TLSAddress); err != nil {
 				return fmt.Errorf("tls_address: %v", err)
 			}
-			if o.TLSCert == "" || o.TLSKey == "" && !certs.IsACME(o.TLSCert) {
+			if o.TLSCert == "" || o.TLSKey == "" && !certs.IsACME(o.TLSCert) && !certs.IsCA(o.TLSCert) {
 				return errors.New("tls_address needs tls_cert and tls_key")
 			}
 			if err := certs.Check(o.TLSCert, o.TLSKey, c.acmeNames()); err != nil {

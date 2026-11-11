@@ -49,6 +49,8 @@ YMSG 9 to 16. Three logins are served:
 The clients were made for Yahoo's servers, so each must be pointed at
 the BBS. None of this has been tried with the real clients yet.
 
+- With the BBS's [DNS server](DNS) (`[dns]`), the callers' machines that
+  use it are sent here for all of these names, with no hosts file.
 - Yahoo! Messenger 5 to 8: under `HKEY_CURRENT_USER\Software\Yahoo\Pager`
   in the registry, set the string values `socket server` and
   `IPLookup` to the BBS's host (community guides also set `Conn Server`

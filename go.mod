@@ -22,10 +22,12 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/jlaffaye/ftp v0.2.0
+	github.com/miekg/dns v1.1.72
 	github.com/spf13/afero v1.15.0
 	golang.org/x/crypto v0.52.0
 	golang.org/x/image v0.23.0
 	golang.org/x/net v0.55.0
+	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.45.0
 	golang.org/x/term v0.43.0
 	golang.org/x/text v0.37.0
@@ -77,7 +79,6 @@ require (
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/mattn/go-isatty v0.0.21 // indirect
-	github.com/miekg/dns v1.1.72 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/nrdcg/desec v0.11.1 // indirect
 	github.com/nrdcg/goacmedns v0.2.0 // indirect
@@ -89,7 +90,6 @@ require (
 	github.com/tink-crypto/tink-go/v2 v2.4.0 // indirect
 	golang.org/x/mod v0.35.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/tools v0.44.0 // indirect
 	gopkg.in/ini.v1 v1.67.1 // indirect
 	modernc.org/gc/v3 v3.0.0-20240107210532-573471604cb6 // indirect

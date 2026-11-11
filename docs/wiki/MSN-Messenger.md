@@ -57,6 +57,8 @@ scripted ones.
 The clients were made for Microsoft's servers, so each must be pointed
 at the BBS:
 
+- With the BBS's [DNS server](DNS) (`[dns]`), the callers' machines that
+  use it are sent here for all of these names, with no hosts file.
 - All of them: the server is `messenger.hotmail.com`, so a hosts file
   entry sending it to the BBS points any of them here.
 - MSN Messenger 1.0 to 4.7: the `Server` value (a string) under

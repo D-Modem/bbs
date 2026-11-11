@@ -64,7 +64,8 @@ Sending mail, posting to forums, downloads and the CB are not in CIM yet.
 WinCIM sends mail and forum messages through transactions of its own,
 which nobody has recovered yet. Use a terminal program for those for now.
 
-Point WinCIM at the listener over TCP. In CIS.INI, the connector's
+Point WinCIM at the listener over TCP (with the BBS's [DNS
+server](DNS), `HostIPAddress` may be `compuserve.com`). In CIS.INI, the connector's
 `CommType=WINSOCK`, `WinsockCommType=Local` and `HostIPAddress` set
 this. CompuServe's own port for that was 4144:
 

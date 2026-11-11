@@ -73,6 +73,8 @@ func (c *Config) infoSections(cf *config.File) error {
 		g.Host = s.String("hostname", host)
 		g.CertFile, g.KeyFile = s.String("cert_file", ""), s.String("key_file", "")
 		switch {
+		case certs.IsCA(g.CertFile):
+			// signed by the BBS's CA for hostname when the BBS starts
 		case certs.IsACME(g.CertFile):
 			if err := certs.Check(g.CertFile, g.KeyFile, c.acmeNames()); err != nil {
 				return fmt.Errorf("[gemini] %v", err)

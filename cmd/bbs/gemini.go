@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/gemini"
 	"github.com/D-Modem/bbs/internal/server"
 )
@@ -27,6 +28,9 @@ func geminiCmd(cfg *server.Config, args []string) {
 	g := cfg.Gemini
 	if g == nil {
 		fatal(errors.New("no [gemini] section in the configuration"))
+	}
+	if certs.IsCA(g.CertFile) {
+		fatal(errors.New("[gemini] cert_file = ca: the BBS's CA signs it when the BBS starts (bbs ca show)"))
 	}
 	if err := geminiCert(g, cfg.Settings.Name, *force, os.Stdin, os.Stderr); err != nil {
 		fatal(err)
