@@ -1,6 +1,7 @@
 package confui
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/confedit"
 	"github.com/D-Modem/bbs/internal/forum"
+	"github.com/D-Modem/bbs/internal/vhost"
 	"github.com/D-Modem/bbs/internal/view"
 )
 
@@ -141,15 +143,40 @@ func (e *Editor) field(s confedit.Section, key string, label ...string) item {
 		if it.Kind == view.EntryChoice && nv != "" && !contains(it.Choices, nv) {
 			return fmt.Errorf("%s: one of %s", it.Label, strings.Join(it.Choices, ", "))
 		}
+		old, had := e.doc.Get(s, key)
+		wasMixed := e.refuseMixed() != nil
 		if nv == "" {
 			e.doc.Unset(s, key)
 		} else if err := e.doc.Set(s, key, nv); err != nil {
+			return err
+		}
+		if err := e.refuseMixed(); err != nil && !wasMixed {
+			// put it back: the BBS could not listen on both
+			if had {
+				e.doc.Set(s, key, old)
+			} else {
+				e.doc.Unset(s, key)
+			}
 			return err
 		}
 		e.checkDoc()
 		return nil
 	}
 	return it
+}
+
+// refuseMixed is the error, if the file now has one port both on every
+// address and on an IP of its own (the chat's HTTPS services: an IP each,
+// or all on one), for the edit that made it to be refused.  A file that
+// had it already is left to be put right an edit at a time.
+func (e *Editor) refuseMixed() error {
+	if e.Tools.Check == nil {
+		return nil
+	}
+	if _, err := e.Tools.Check(e.doc.Bytes()); errors.Is(err, vhost.ErrMixedAddresses) {
+		return err
+	}
+	return nil
 }
 
 // isBool is whether a key is a yes or no: its default and examples are all

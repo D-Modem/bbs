@@ -320,9 +320,13 @@ func (c *Config) SharedPorts() ([]SharedPort, error) {
 		for _, q := range out[i+1:] {
 			qh, qp, _ := net.SplitHostPort(vhost.Normal(q.Address))
 			if pp == qp && ph != qh && (ph == "" || qh == "") {
-				return nil, fmt.Errorf("port %s is on every address for [%s] and on %s for [%s]: give each "+
-					"front end an IP of its own (all of them), or the same address", pp, strings.Join(p.Members, "], ["),
-					q.Address, strings.Join(q.Members, "], ["))
+				all, own := p, q
+				if qh == "" {
+					all, own = q, p
+				}
+				return nil, fmt.Errorf("%w: port %s is on every address for [%s] and on %s for [%s]: give each "+
+					"front end an IP of its own (all of them), or the same address", vhost.ErrMixedAddresses, pp,
+					strings.Join(all.Members, "], ["), own.Address, strings.Join(own.Members, "], ["))
 			}
 		}
 	}

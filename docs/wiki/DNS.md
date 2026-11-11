@@ -176,7 +176,10 @@ which is their PPP link's far end.
 
 One port can't be both on every address and on an IP of its own: with
 `https_address = 192.168.77.11:443` for one front end, give the others an
-IP of their own too (not `:443`). `bbs check` refuses the mix.
+IP of their own too (not `:443`). `bbs check` refuses the mix, and the
+configuration editor (`bbs config`, and the sysop's menu) won't take an
+edit that makes it: the old value is put back and the reason shown. The
+editor has the DNS server under Internet services, "DNS for callers".
 
 ## Who may use it
 

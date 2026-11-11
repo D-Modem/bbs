@@ -311,6 +311,12 @@ func (l *connListener) Close() error {
 
 func (l *connListener) Addr() net.Addr { return &net.TCPAddr{} }
 
+// ErrMixedAddresses is a port on every address for one front end and on
+// an IP of its own for another, which can't both be listened on: each
+// HTTPS service on an IP of its own (a certificate of its own each) means
+// all of them on one.
+var ErrMixedAddresses = errors.New("a port on every address and on an IP of its own")
+
 // claimed are the addresses a Port serves, which the front ends leave
 // alone.
 var (
