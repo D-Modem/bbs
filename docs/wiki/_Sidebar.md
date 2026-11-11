@@ -45,6 +45,7 @@
 - [News, weather and quotes](News-Weather-and-Quotes)
 - [Finger, gopher and Gemini](Finger-and-Gopher)
 - [Time: NTP, NTS and PTP](Time)
+- [DNS for callers](DNS)
 - [Web forum](Web-Forum)
 - [Image boards](Image-Boards)
 - [HTTP API](HTTP-API)

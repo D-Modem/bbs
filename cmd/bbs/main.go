@@ -65,6 +65,7 @@ import (
 	"github.com/D-Modem/bbs/internal/api"
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/certs"
+	"github.com/D-Modem/bbs/internal/dnsd"
 	"github.com/D-Modem/bbs/internal/email"
 	"github.com/D-Modem/bbs/internal/events"
 	"github.com/D-Modem/bbs/internal/fido"
@@ -88,6 +89,7 @@ import (
 	"github.com/D-Modem/bbs/internal/server"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/vhost"
 	"github.com/D-Modem/bbs/internal/ymsg"
 	"github.com/D-Modem/menu/authd"
 )
@@ -337,6 +339,15 @@ func main() {
 		}
 		if t := cfg.Time; t != nil {
 			fmt.Println(t)
+		}
+		if d := cfg.DNS; d != nil {
+			fmt.Println(d)
+		}
+		if ports, err := cfg.SharedPorts(); err == nil {
+			for _, p := range ports {
+				fmt.Printf("shared: %s (TLS %v) by %s, by the names asked for\n", p.Address, p.TLS,
+					strings.Join(p.Members, ", "))
+			}
 		}
 		if g := cfg.Gopher; g != nil {
 			fmt.Printf("gopher: %s as %s:%d, areas %q, files %v\n", g.Address, g.Host, g.Port, g.Areas, g.Files)
@@ -627,6 +638,20 @@ func serve(cfg *server.Config, path string) int {
 			}
 		}()
 	}
+	// the front ends' shared web ports (443 for MSN's Passport, Yahoo!'s
+	// login and AIM's TLS, say): claimed before they start, so they leave
+	// them to the ports that hand them their connections
+	shared, err := cfg.SharedPorts()
+	if err != nil {
+		lg.Printf("%v", err)
+		return 1
+	}
+	for _, p := range shared {
+		vhost.Claim(p.Address)
+	}
+	var osrv *oscar.Server
+	var msnSrv *msn.Server
+	var ysrv *ymsg.Server
 	var asrv *aol.Server
 	if cfg.AOL != nil {
 		if asrv, err = aol.New(b, *cfg.AOL); err != nil {
@@ -635,7 +660,7 @@ func serve(cfg *server.Config, path string) int {
 		}
 	}
 	if cfg.OSCAR != nil {
-		osrv, err := oscar.New(b, *cfg.OSCAR)
+		osrv, err = oscar.New(b, *cfg.OSCAR)
 		if err != nil {
 			lg.Printf("%v", err)
 			return 1
@@ -660,13 +685,13 @@ func serve(cfg *server.Config, path string) int {
 		}()
 	}
 	if cfg.MSN != nil {
-		msrv, err := msn.New(b, *cfg.MSN)
+		msnSrv, err = msn.New(b, *cfg.MSN)
 		if err != nil {
 			lg.Printf("%v", err)
 			return 1
 		}
 		go func() {
-			if err := msrv.Run(ctx); err != nil {
+			if err := msnSrv.Run(ctx); err != nil {
 				lg.Printf("%v", err)
 				stop()
 			}
@@ -686,13 +711,39 @@ func serve(cfg *server.Config, path string) int {
 		}()
 	}
 	if cfg.YMSG != nil {
-		ysrv, err := ymsg.New(b, *cfg.YMSG)
+		ysrv, err = ymsg.New(b, *cfg.YMSG)
 		if err != nil {
 			lg.Printf("%v", err)
 			return 1
 		}
 		go func() {
 			if err := ysrv.Run(ctx); err != nil {
+				lg.Printf("%v", err)
+				stop()
+			}
+		}()
+	}
+	for _, p := range shared {
+		vp, err := sharedPort(b, cfg, p, msnSrv, ysrv, osrv)
+		if err != nil {
+			lg.Printf("%v", err)
+			return 1
+		}
+		go func() {
+			ln, err := sockets.Listen("tcp", p.Address)
+			if err == nil {
+				err = vp.Serve(ctx, ln)
+			}
+			if err != nil {
+				lg.Printf("shared %s: %v", p.Address, err)
+				stop()
+			}
+		}()
+	}
+	if cfg.DNS != nil {
+		ds := dnsd.New(*cfg.DNS, b.Log)
+		go func() {
+			if err := ds.Run(ctx); err != nil {
 				lg.Printf("%v", err)
 				stop()
 			}

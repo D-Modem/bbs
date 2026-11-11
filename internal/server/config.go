@@ -19,6 +19,7 @@ import (
 
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/config"
+	"github.com/D-Modem/bbs/internal/dnsd"
 	"github.com/D-Modem/bbs/internal/door"
 	"github.com/D-Modem/bbs/internal/email"
 	"github.com/D-Modem/bbs/internal/events"
@@ -96,6 +97,7 @@ type Config struct {
 	WeatherAtLogin  bool
 	Quotes          *QuoteSettings // nil: no stock quotes
 	Time            *TimeSettings  // nil: no [time], [ntp], [nts] or [ptp]
+	DNS             *dnsd.Settings // nil: no DNS server
 	Database        string
 	Log             string // syslog, stderr, none, or a file
 	Listeners       []*Listener
@@ -263,9 +265,15 @@ func load(cf *config.File) (*Config, error) {
 		c.Listeners = DefaultListeners()
 	}
 	c.acmeHTTP()
+	if err := c.dnsSection(cf); err != nil {
+		return nil, err
+	}
+	if err := c.sharedPortsCheck(); err != nil {
+		return nil, err
+	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "acme", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "gemini", "time", "ntp", "nts", "ptp", "irc", "oscar", "aol", "msn", "marvel", "ymsg", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
+		case "general", "security", "acme", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "gemini", "time", "ntp", "nts", "ptp", "dns", "irc", "oscar", "aol", "msn", "marvel", "ymsg", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
 			"feeds", "feed", "weather", "quotes",
 			"mail", "smarthost", "pop3", "imap", "smtp", "mx", "lmtp":
 		default:

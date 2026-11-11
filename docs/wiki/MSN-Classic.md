@@ -27,7 +27,8 @@ address = :569
 The client can't be told a port: it is always 569. It connects to the name
 in its Dial-Up Networking settings for "The Microsoft Network" (by default
 `gateway.moswest.msn.net`): point that name at the BBS in the hosts file of
-the client's machine (`C:\Windows\hosts`).
+the client's machine (`C:\Windows\hosts`), or give the machine the BBS's
+[DNS server](DNS).
 
 ## By modem
 

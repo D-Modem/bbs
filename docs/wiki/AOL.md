@@ -25,7 +25,8 @@ client's goes to the AOL host, and everything else stays with OSCAR.
 The client's TCP connection (`TCP.CCL` in its folder) dials
 `AmericaOnline.aol.com` on port 5190. Either point that name at the BBS in
 the hosts file of the client's machine
-(`C:\Windows\hosts` on Windows 95 and 98), or change the name in `TCP.CCL`.
+(`C:\Windows\hosts` on Windows 95 and 98), or give the machine the BBS's
+[DNS server](DNS), or change the name in `TCP.CCL`.
 Then pick "TCP/IP" as the connection in the client's Setup.
 
 ## Signing on

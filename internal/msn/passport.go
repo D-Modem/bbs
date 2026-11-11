@@ -17,6 +17,7 @@ import (
 	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/vhost"
 )
 
 // Passport: MSN Messenger 5.0 and later sign in by giving the password to
@@ -90,6 +91,9 @@ func (s *Server) serveWeb(ctx context.Context) error {
 	errs := make(chan error, 2)
 	var srvs []*http.Server
 	start := func(addr string, cfg *tls.Config) error {
+		if vhost.Claimed(addr) {
+			return nil // a port shared with other front ends, which hands us ours
+		}
 		ln, err := sockets.Listen("tcp", addr)
 		if err != nil {
 			return fmt.Errorf("msn: %w", err)

@@ -919,7 +919,7 @@ address = 127.0.0.1:2513
 ; on with their BBS names and passwords and get the BBS's Welcome window.
 ; The client's port is 5190: with [oscar] there too, the two share it.  The
 ; client finds its host as AmericaOnline.aol.com (point that name here in
-; its machine's hosts file, or edit its TCP.CCL).
+; its machine's hosts file, or edit its TCP.CCL, or give it [dns]).
 ;[aol]
 ;address = :5190
 ;max_clients = 256
@@ -950,7 +950,9 @@ address = 127.0.0.1:2513
 ; that server too when https_address is set.  The machine running the
 ; client sends nexus.passport.com, login.passport.com and login.live.com
 ; to the BBS (its hosts file) and trusts tls_cert for those names (make a
-; small certificate authority of your own).  See the wiki page.
+; small certificate authority of your own).  [dns] sends those names here
+; for dial-up users.  Sharing 443 with [ymsg] and [oscar] TLS, give them
+; one certificate with all their names.  See the wiki page.
 ;https_address = :443
 ;tls_cert = /etc/bbs/passport.crt
 ;tls_key = /etc/bbs/passport.key
@@ -1001,6 +1003,53 @@ address = 127.0.0.1:2513
 ;max_file_mb = 16
 ; give Y!M 6 to 8 Y!M 5's login instead of their own
 ;old_login = no
+
+; DNS: a resolving, caching DNS server for callers (dial-up users above
+; all: give it to them as their DNS server, as pppd's ms-dns).  The names
+; of the old services' servers whose front ends are set up here (MSN
+; Messenger's messenger.hotmail.com and Passport, AIM's
+; login.oscar.aol.com, Yahoo!'s scs.msg.yahoo.com and login.yahoo.com,
+; AOL's AmericaOnline.aol.com, MSN Classic's gateway, compuserve.com) are
+; answered with the BBS's own address, so the clients of the time come
+; here with no hosts file.  Every other name is asked of the host's DNS
+; servers, or a primary and backup of the sysop's, and kept as long as its
+; TTL says.  The front ends must be on the old services' ports (1863,
+; 5050, 5190, 569; 443 for the logins, 80 for Yahoo!'s web half): those
+; that share 443 or 80 are told apart by the name asked for.  Port 53
+; needs root (bound before the BBS becomes [general] user).
+; See docs/wiki/DNS.md
+;[dns]
+; UDP and TCP (systemd-resolved has 127.0.0.53:53: give an address here,
+; the PPP side's, if :53 is taken)
+;address = :53
+; the servers names are asked of, by IP address (port 53 unless said);
+; none: the host's (its /etc/resolv.conf, or systemd-resolved's own list)
+;primary = 1.1.1.1
+;backup = 8.8.8.8
+; the address the services' names are given (default: the BBS's address as
+; each caller reaches it: the PPP link's for a dial-up user); answer6 for
+; IPv6 (default: likewise, for a caller that came by IPv6)
+;answer = 192.168.77.1
+;answer6 =
+; whose names: auto (the front ends set up here), none, or some of msn,
+; marvel, oscar, aol, ymsg, compuserve
+;services = auto
+; more names answered with the BBS's address (*.domain: every name under it)
+;names = bbs.example.org
+; the networks that may resolve other names (default: this machine and
+; private networks).  The services' names are answered to anyone
+;allow = 127.0.0.0/8, 192.168.77.0/24
+; answers kept; the longest one is kept, and a "no such name", in seconds
+;cache_size = 10000
+;max_ttl = 86400
+;negative_ttl = 300
+; the TTL given with the services' names
+;ttl = 60
+; seconds for each server to answer before the next is asked
+;timeout = 2
+; UDP queries a second one address may make (0: no limit), and at once
+;rate = 50
+;burst = 200
 
 ; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
 ; beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike.

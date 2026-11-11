@@ -31,6 +31,7 @@ import (
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
 	"github.com/D-Modem/bbs/internal/tcpserv"
+	"github.com/D-Modem/bbs/internal/vhost"
 )
 
 // timeouts
@@ -125,7 +126,9 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	defer s.stopWeb()
 	refuse := func(c net.Conn) bool { return s.B.Refuse("oscar", c.RemoteAddr()) }
 	errs := make(chan error, 1)
-	if s.S.TLSAddress != "" {
+	// on a port shared with other front ends, that hands us ours (HandleConn)
+	ownTLS := s.S.TLSAddress != "" && !vhost.Claimed(s.S.TLSAddress)
+	if ownTLS {
 		src, err := certs.New(s.S.TLSCert, s.S.TLSKey)
 		if err != nil {
 			return fmt.Errorf("oscar: tls_cert, tls_key: %w", err)
@@ -169,7 +172,7 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	ts := &tcpserv.Server{Name: "oscar", MaxClients: s.S.MaxClients, MaxPerIP: s.S.MaxPerIP, Log: s.B.Log,
 		Handle: s.handle, Refuse: refuse}
 	err := ts.Serve(ctx, ln)
-	if s.S.TLSAddress != "" {
+	if ownTLS {
 		<-errs
 	}
 	return err
@@ -189,6 +192,15 @@ type peeked struct {
 }
 
 func (p *peeked) Read(b []byte) (int, error) { return p.r.Read(b) }
+
+// HandleConn serves a connection that came to a port shared with other
+// front ends (decrypted, if it came by TLS): as one to Address.
+func (s *Server) HandleConn(c net.Conn) {
+	if s.B.Refuse("oscar", c.RemoteAddr()) {
+		return
+	}
+	s.handle(c)
+}
 
 // handle serves a connection: P3 to Server.P3, or OSCAR: a login, a BOS
 // connection, or a service's.

@@ -46,6 +46,7 @@ the file is laid out.
 | [`[msn]`](#msn) | MSN Messenger: the chat for MSN Messenger 1.0 to 7.5 and Windows Messenger 4.x (MSNP2 to 12), beside IRC and AIM. |
 | [`[marvel]`](#marvel) | The Microsoft Network of 1995 to 1998, for the MSN client that came with Windows 95: users sign in with their BBS names and passwords, the message areas are its Categories, and each area is an MSN bulletin board to read and post in. |
 | [`[ymsg]`](#ymsg) | Yahoo! Messenger: the chat for Yahoo! Messenger clients (YMSG 9 to 16), beside IRC, AIM and MSN. |
+| [`[dns]`](#dns) | DNS: a resolving, caching DNS server for callers (dial-up users above all: give it to them as their DNS server, as pppd's ms-dns). |
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
 | [`[gopher]`](#gopher) | gopher: about the system, who is on, and what areas the sysop opens: no login, so anyone sees them. |
@@ -638,7 +639,7 @@ There may be any number of these, each with its own NAME.
 
 ## `[aol]`
 
-AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP).  Users sign on with their BBS names and passwords and get the BBS's Welcome window. The client's port is 5190: with [oscar] there too, the two share it.  The client finds its host as AmericaOnline.aol.com (point that name here in its machine's hosts file, or edit its TCP.CCL).
+AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP).  Users sign on with their BBS names and passwords and get the BBS's Welcome window. The client's port is 5190: with [oscar] there too, the two share it.  The client finds its host as AmericaOnline.aol.com (point that name here in its machine's hosts file, or edit its TCP.CCL, or give it [dns]).
 
 | key | default | live | what it does |
 |---|---|---|---|
@@ -660,9 +661,9 @@ MSN Messenger: the chat for MSN Messenger 1.0 to 7.5 and Windows Messenger 4.x (
 | `max_per_ip` |  |  | each conversation is a connection of its own. Examples: `16`. |
 | `system` |  |  | the name the BBS's notices come from. Examples: `BBS`. |
 | `site` |  |  | a web address the clients' links (inbox, profiles) open. Examples: `https://bbs.example.org/`. |
-| `https_address` |  |  | MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is that server too when https_address is set. The machine running the client sends nexus.passport.com, login.passport.com and login.live.com to the BBS (its hosts file) and trusts tls_cert for those names (make a small certificate authority of your own). See the wiki page. Examples: `:443`. |
-| `tls_cert` |  |  | MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is that server too when https_address is set. The machine running the client sends nexus.passport.com, login.passport.com and login.live.com to the BBS (its hosts file) and trusts tls_cert for those names (make a small certificate authority of your own). See the wiki page. Examples: `/etc/bbs/passport.crt`. |
-| `tls_key` |  |  | MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is that server too when https_address is set. The machine running the client sends nexus.passport.com, login.passport.com and login.live.com to the BBS (its hosts file) and trusts tls_cert for those names (make a small certificate authority of your own). See the wiki page. Examples: `/etc/bbs/passport.key`. |
+| `https_address` |  |  | MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is that server too when https_address is set. The machine running the client sends nexus.passport.com, login.passport.com and login.live.com to the BBS (its hosts file) and trusts tls_cert for those names (make a small certificate authority of your own). [dns] sends those names here for dial-up users. Sharing 443 with [ymsg] and [oscar] TLS, give them one certificate with all their names. See the wiki page. Examples: `:443`. |
+| `tls_cert` |  |  | MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is that server too when https_address is set. The machine running the client sends nexus.passport.com, login.passport.com and login.live.com to the BBS (its hosts file) and trusts tls_cert for those names (make a small certificate authority of your own). [dns] sends those names here for dial-up users. Sharing 443 with [ymsg] and [oscar] TLS, give them one certificate with all their names. See the wiki page. Examples: `/etc/bbs/passport.crt`. |
+| `tls_key` |  |  | MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is that server too when https_address is set. The machine running the client sends nexus.passport.com, login.passport.com and login.live.com to the BBS (its hosts file) and trusts tls_cert for those names (make a small certificate authority of your own). [dns] sends those names here for dial-up users. Sharing 443 with [ymsg] and [oscar] TLS, give them one certificate with all their names. See the wiki page. Examples: `/etc/bbs/passport.key`. |
 | `passport_host` |  |  | where the clients log in, host[:port] (default: the name they asked the nexus at) Examples: `login.passport.com`. |
 | `http_address` |  |  | or without TLS, behind a proxy that does it. Examples: `127.0.0.1:8863`. |
 
@@ -695,6 +696,29 @@ Yahoo! Messenger: the chat for Yahoo! Messenger clients (YMSG 9 to 16), beside I
 | `system` |  |  | the Yahoo ID the BBS's notices come from. Examples: `bbs`. |
 | `max_file_mb` |  |  | the largest file users may send each other, in MB (0: no file transfer) Examples: `16`. |
 | `old_login` |  |  | give Y!M 6 to 8 Y!M 5's login instead of their own. Examples: `no`. |
+
+
+## `[dns]`
+
+DNS: a resolving, caching DNS server for callers (dial-up users above all: give it to them as their DNS server, as pppd's ms-dns).  The names of the old services' servers whose front ends are set up here (MSN Messenger's messenger.hotmail.com and Passport, AIM's login.oscar.aol.com, Yahoo!'s scs.msg.yahoo.com and login.yahoo.com, AOL's AmericaOnline.aol.com, MSN Classic's gateway, compuserve.com) are answered with the BBS's own address, so the clients of the time come here with no hosts file.  Every other name is asked of the host's DNS servers, or a primary and backup of the sysop's, and kept as long as its TTL says.  The front ends must be on the old services' ports (1863, 5050, 5190, 569; 443 for the logins, 80 for Yahoo!'s web half): those that share 443 or 80 are told apart by the name asked for.  Port 53 needs root (bound before the BBS becomes [general] user). See docs/wiki/DNS.md.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `address` |  |  | UDP and TCP (systemd-resolved has 127.0.0.53:53: give an address here, the PPP side's, if :53 is taken) Examples: `:53`. |
+| `primary` |  |  | the servers names are asked of, by IP address (port 53 unless said); none: the host's (its /etc/resolv.conf, or systemd-resolved's own list) Examples: `1.1.1.1`. |
+| `backup` |  |  | the servers names are asked of, by IP address (port 53 unless said); none: the host's (its /etc/resolv.conf, or systemd-resolved's own list) Examples: `8.8.8.8`. |
+| `answer` |  |  | the address the services' names are given (default: the BBS's address as each caller reaches it: the PPP link's for a dial-up user); answer6 for IPv6 (default: likewise, for a caller that came by IPv6) Examples: `192.168.77.1`. |
+| `answer6` |  |  | the address the services' names are given (default: the BBS's address as each caller reaches it: the PPP link's for a dial-up user); answer6 for IPv6 (default: likewise, for a caller that came by IPv6) |
+| `services` |  |  | whose names: auto (the front ends set up here), none, or some of msn, marvel, oscar, aol, ymsg, compuserve. Examples: `auto`. |
+| `names` |  |  | more names answered with the BBS's address (*.domain: every name under it) Examples: `bbs.example.org`. |
+| `allow` |  |  | the networks that may resolve other names (default: this machine and private networks). The services' names are answered to anyone. Examples: `127.0.0.0/8, 192.168.77.0/24`. |
+| `cache_size` |  |  | answers kept; the longest one is kept, and a "no such name", in seconds. Examples: `10000`. |
+| `max_ttl` |  |  | answers kept; the longest one is kept, and a "no such name", in seconds. Examples: `86400`. |
+| `negative_ttl` |  |  | answers kept; the longest one is kept, and a "no such name", in seconds. Examples: `300`. |
+| `ttl` |  |  | the TTL given with the services' names. Examples: `60`. |
+| `timeout` |  |  | seconds for each server to answer before the next is asked. Examples: `2`. |
+| `rate` |  |  | UDP queries a second one address may make (0: no limit), and at once. Examples: `50`. |
+| `burst` |  |  | UDP queries a second one address may make (0: no limit), and at once. Examples: `200`. |
 
 
 ## `[mrc]`

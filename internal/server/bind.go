@@ -8,6 +8,7 @@ import (
 
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/timesync"
+	"github.com/D-Modem/bbs/internal/vhost"
 )
 
 // Bind binds every socket the configuration listens on (as root, before
@@ -27,7 +28,9 @@ func Bind(cfg *Config) ([]sockets.Socket, error) {
 			return nil
 		}
 		for _, s := range out {
-			if s.Network == "tcp" && s.Address == addr {
+			// ":443" and "0.0.0.0:443" are one port (the chat's front
+			// ends share theirs: the first's address is the one asked for)
+			if s.Network == "tcp" && vhost.Normal(s.Address) == vhost.Normal(addr) {
 				return nil
 			}
 		}
@@ -109,6 +112,32 @@ func Bind(cfg *Config) ([]sockets.Socket, error) {
 	if a := cfg.ACME; a != nil && a.HTTPAddress != "" {
 		addrs = append(addrs, a.HTTPAddress)
 	}
+	// the chat's front ends, at the old services' ports (443, 80, 569 ...),
+	// their shared web ports first, in SharedPorts' order
+	if m := cfg.MSN; m != nil {
+		addrs = append(addrs, m.HTTPSAddress, m.HTTPAddress)
+	}
+	if y := cfg.YMSG; y != nil {
+		addrs = append(addrs, y.HTTPSAddress, y.HTTPAddress)
+	}
+	if o := cfg.OSCAR; o != nil {
+		addrs = append(addrs, o.TLSAddress, o.Address)
+	}
+	if a := cfg.AOL; a != nil && !(cfg.OSCAR != nil && samePort(a.Address, cfg.OSCAR.Address)) {
+		addrs = append(addrs, a.Address) // else OSCAR's port takes AOL's clients
+	}
+	if m := cfg.MSN; m != nil {
+		addrs = append(addrs, m.Address)
+	}
+	if m := cfg.Marvel; m != nil {
+		addrs = append(addrs, m.Address)
+	}
+	if y := cfg.YMSG; y != nil {
+		addrs = append(addrs, y.Address)
+	}
+	if d := cfg.DNS; d != nil {
+		addrs = append(addrs, d.Address)
+	}
 	for _, a := range addrs {
 		if err := tcp(a); err != nil {
 			return fail(err)
@@ -136,6 +165,11 @@ func Bind(cfg *Config) ([]sockets.Socket, error) {
 		out = append(out, sockets.Socket{Network: "udp", Address: addr, File: f})
 		return nil
 	}
+	if d := cfg.DNS; d != nil {
+		if err := udp(d.Address, nil); err != nil {
+			return fail(fmt.Errorf("[dns] %w", err))
+		}
+	}
 	if t := cfg.Time; t != nil {
 		if t.NTP != nil {
 			if err := udp(t.NTP.Address, nil); err != nil {
@@ -159,4 +193,11 @@ func Bind(cfg *Config) ([]sockets.Socket, error) {
 		}
 	}
 	return out, nil
+}
+
+// samePort: two addresses have one port.
+func samePort(a, b string) bool {
+	_, ap, err1 := net.SplitHostPort(a)
+	_, bp, err2 := net.SplitHostPort(b)
+	return err1 == nil && err2 == nil && ap == bp
 }

@@ -40,9 +40,11 @@ func isHTTP(b byte) bool { return b == 'G' || b == 'P' || b == 'H' || b == 'O' }
 
 // web is the HTTP server the sniffed connections are handed to.
 type web struct {
-	once sync.Once
-	ln   *connListener
-	hs   *http.Server
+	handlerOnce sync.Once
+	handler     http.Handler
+	once        sync.Once
+	ln          *connListener
+	hs          *http.Server
 }
 
 // connListener is a listener of connections handed to it.
@@ -104,6 +106,12 @@ func (s *Server) stopWeb() {
 		s.web.ln.Close()
 		s.web.hs.Close()
 	}
+}
+
+// WebHandler answers the logins, for a port shared with other front ends.
+func (s *Server) WebHandler() http.Handler {
+	s.web.handlerOnce.Do(func() { s.web.handler = s.webHandler() })
+	return s.web.handler
 }
 
 // webHandler answers the logins.
