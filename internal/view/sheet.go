@@ -52,18 +52,27 @@ const (
 
 // Entry is a sheet's line.
 type Entry struct {
-	ID       string
-	Kind     EntryKind
-	Label    string
-	Value    string   // as it is now ("": not set)
-	Default  string   // shown, dim, when Value is ""
-	Choices  []string // EntryChoice's
-	Secret   bool     // shown as stars, typed unseen
-	Changed  bool     // not saved yet: marked
-	Note     string   // at the line's end: "restart", "not available yet"
-	Help     string   // at the foot while the cursor is on it
-	Disabled bool     // shown, not chosen
-	Width    int      // the most a value may be (0: 255)
+	ID      string
+	Kind    EntryKind
+	Label   string
+	Value   string   // as it is now ("": not set)
+	Default string   // shown, dim, when Value is ""
+	Choices []string // EntryChoice's
+	// ChoiceNotes are a word beside each of Choices, where it helps ("the
+	// [acme] certificate", "level 20: Member"); shorter than Choices: none
+	// for the rest
+	ChoiceNotes []string
+	// Open is an EntryChoice whose Choices are what the file has to offer,
+	// a value of one's own typed as well
+	Open bool
+	// Multi is an EntryChoice of some of Choices at once, by commas
+	Multi    bool
+	Secret   bool   // shown as stars, typed unseen
+	Changed  bool   // not saved yet: marked
+	Note     string // at the line's end: "restart", "not available yet"
+	Help     string // at the foot while the cursor is on it
+	Disabled bool   // shown, not chosen
+	Width    int    // the most a value may be (0: 255)
 }
 
 // Sheet results' actions beyond Pick and Back, and the keys' own IDs.
@@ -128,6 +137,33 @@ func (e Entry) Shown() string {
 		return "********"
 	}
 	return e.Value
+}
+
+// ChoiceNote is the word beside the choice i ("" for none).
+func (e Entry) ChoiceNote(i int) string {
+	if i < len(e.ChoiceNotes) {
+		return e.ChoiceNotes[i]
+	}
+	return ""
+}
+
+// Picked is the choices a Multi entry's value has: its comma-separated
+// parts, trimmed.
+func (e Entry) Picked() []string {
+	var out []string
+	for _, p := range strings.Split(e.Value, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// Listed is whether an EntryChoice's choices are better picked from a
+// list than turned over one at a time: Open or Multi ones, or more than
+// four.
+func (e Entry) Listed() bool {
+	return e.Kind == EntryChoice && (e.Open || e.Multi || len(e.Choices) > 4)
 }
 
 // Next is the value an EntryBool or EntryChoice turns to.
@@ -230,7 +266,18 @@ func LineSheet(ui UI, s *Sheet) (SheetResult, error) {
 			switch e.Kind {
 			case EntryMenu, EntryAction:
 				return SheetResult{Action: Pick, Entry: i}, nil
-			case EntryBool, EntryChoice:
+			case EntryChoice:
+				if !e.Listed() {
+					return SheetResult{Action: SheetSet, Entry: i, Values: map[string]string{e.ID: e.Next()}}, nil
+				}
+				v, ok, err := PickChoice(ui, e)
+				if err != nil {
+					return SheetResult{}, err
+				}
+				if ok && v != e.Value {
+					return SheetResult{Action: SheetSet, Entry: i, Values: map[string]string{e.ID: v}}, nil
+				}
+			case EntryBool:
 				return SheetResult{Action: SheetSet, Entry: i, Values: map[string]string{e.ID: e.Next()}}, nil
 			case EntryText:
 				if e.Help != "" {
@@ -249,4 +296,109 @@ func LineSheet(ui UI, s *Sheet) (SheetResult, error) {
 			return SheetResult{Action: c.Action, Entry: -1}, nil
 		}
 	}
+}
+
+// ChoiceLabel is how a choice reads: "" as "(default)".
+func ChoiceLabel(c string) string {
+	if c == "" {
+		return "(default)"
+	}
+	return c
+}
+
+// PickChoice is an EntryChoice's value picked from a table of its choices
+// (a number each, its note beside it, * by those it has now): for Multi
+// ones a number turns one on or off until Done; for Open ones O types a
+// value of one's own.  ok false: left as it was.
+func PickChoice(ui UI, e Entry) (string, bool, error) {
+	picked := map[string]bool{}
+	if e.Multi {
+		for _, p := range e.Picked() {
+			picked[p] = true
+		}
+	}
+	for {
+		t := &Table{Title: e.Label, Pick: "Number",
+			Columns: []Column{{Title: "", Width: 2}, {Title: "Value", Width: 28}, {Title: "", Width: 0, Wide: true}}}
+		if e.Help != "" {
+			t.Note = []Line{T(Dim, e.Help)}
+		}
+		if e.Value != "" && (e.Multi || !contains(e.Choices, e.Value)) {
+			t.Note = append(t.Note, L("Now: "+e.Value))
+		}
+		for i, c := range e.Choices {
+			on := c == e.Value || c == "" && e.Value == ""
+			if e.Multi {
+				on = picked[c]
+			}
+			mark := ""
+			if on {
+				mark = "*"
+			}
+			t.Rows = append(t.Rows, Row{Num: strconv.Itoa(i + 1), Cells: []string{mark, ChoiceLabel(c), e.ChoiceNote(i)}, Hot: on})
+		}
+		if e.Multi {
+			t.Actions = append(t.Actions, Action{ID: "done", Label: "Done", Key: 'D', PF: 5})
+		}
+		if e.Open {
+			t.Actions = append(t.Actions, Action{ID: "other", Label: "Other value", Key: 'O', PF: 4})
+		}
+		c, err := ui.Table(t)
+		if err != nil {
+			return "", false, err
+		}
+		switch c.Action {
+		case Pick:
+			if c.Row < 0 || c.Row >= len(e.Choices) {
+				continue
+			}
+			v := e.Choices[c.Row]
+			if !e.Multi {
+				return v, true, nil
+			}
+			if v == "" {
+				picked = map[string]bool{}
+				continue
+			}
+			picked[v] = !picked[v]
+		case "done":
+			return JoinPicked(e, picked), true, nil
+		case "other":
+			f, ok, err := ui.Form(&Form{Title: e.Label, Fields: []Field{{Name: "v", Label: e.Label,
+				Width: e.Width, Value: e.Value, Edit: true}}, Submit: "Set"})
+			if err != nil || !ok {
+				return "", false, err
+			}
+			return strings.TrimSpace(f["v"]), true, nil
+		default:
+			return "", false, nil
+		}
+	}
+}
+
+// JoinPicked is a Multi entry's value of the choices picked: in the order
+// of its Choices, then any of its own it had, by commas.
+func JoinPicked(e Entry, picked map[string]bool) string {
+	var out []string
+	for _, c := range e.Choices {
+		if c != "" && picked[c] {
+			out = append(out, c)
+		}
+	}
+	for _, p := range e.Picked() {
+		if picked[p] && !contains(e.Choices, p) {
+			out = append(out, p)
+		}
+	}
+	return strings.Join(out, ", ")
+}
+
+// contains is whether s is one of ss.
+func contains(ss []string, s string) bool {
+	for _, x := range ss {
+		if x == s {
+			return true
+		}
+	}
+	return false
 }

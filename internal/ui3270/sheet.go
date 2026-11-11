@@ -25,7 +25,7 @@ func (u *ui) Sheet(sh *view.Sheet) (view.SheetResult, error) {
 		nw = max(nw, len(e.Note))
 	}
 	nw = min(nw, u.cols/5)
-	keys := "S+Enter=Open PF1=Help PF3=Back PF7/8=Page PF9=Quit PF10=Save+exit"
+	keys := "S+Enter=Open/pick PF1=Help PF3=Back PF7/8=Page PF9=Quit PF10=Save+exit"
 	if k := pfKeys(sh.Keys, "  "); k != "" {
 		keys = k + "  " + keys
 	}
@@ -88,6 +88,12 @@ func (u *ui) Sheet(sh *view.Sheet) (view.SheetResult, error) {
 				scr = append(scr, go3270.Field{Row: row, Col: 2, Autoskip: true})
 				scr = append(scr, u.text(row, vcol, bbs.Trunc(e.Value, vw-4)+" ...", go3270.White, false))
 			default:
+				if e.Listed() {
+					// S by it: its choices to pick from (or type over the value)
+					scr = append(scr, go3270.Field{Row: row, Col: 0, Write: true, Name: "s" + id,
+						Color: go3270.Green, Highlighting: go3270.Underscore})
+					scr = append(scr, go3270.Field{Row: row, Col: 2, Autoskip: true})
+				}
 				scr = append(scr, go3270.Field{Row: row, Col: vcol, Write: true, Name: "v" + id,
 					Hidden: e.Secret, Color: go3270.Turquoise, Highlighting: go3270.Underscore})
 				if !e.Secret {
@@ -135,6 +141,16 @@ func (u *ui) Sheet(sh *view.Sheet) (view.SheetResult, error) {
 					continue
 				}
 				e := sh.Entries[i]
+				if e.Listed() {
+					nv, ok, err := view.PickChoice(u, e)
+					if err != nil {
+						return view.SheetResult{}, err
+					}
+					if ok && nv != e.Value {
+						return view.SheetResult{Action: view.SheetSet, Entry: i, Values: map[string]string{e.ID: nv}}, nil
+					}
+					break
+				}
 				if !long[i] {
 					return view.SheetResult{Action: view.Pick, Entry: i}, nil
 				}

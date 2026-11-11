@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/confedit"
 	"github.com/D-Modem/bbs/internal/forum"
 	"github.com/D-Modem/bbs/internal/vhost"
@@ -131,6 +132,13 @@ func (e *Editor) field(s confedit.Section, key string, label ...string) item {
 	}
 	if cs, ok := choices[s.Kind+"."+key]; ok {
 		it.Kind, it.Choices = view.EntryChoice, cs
+	} else if o, ok := e.offerFor(s, key); ok && it.Kind != view.EntryBool {
+		it.Kind, it.Choices, it.ChoiceNotes, it.Open, it.Multi = view.EntryChoice, o.values, o.notes, o.open, o.multi
+	}
+	if isKeyKey(key) {
+		if c, _ := e.doc.Get(s, certOf(key)); certs.IsACME(c) || certs.IsCA(c) {
+			it.Default = "not needed with " + c
+		}
 	}
 	if !confedit.Live(s.Kind, key) {
 		it.Note = "restart"
@@ -140,8 +148,16 @@ func (e *Editor) field(s confedit.Section, key string, label ...string) item {
 		if it.Kind == view.EntryBool && nv != "" && nv != "yes" && nv != "no" {
 			return fmt.Errorf("%s: yes or no", it.Label)
 		}
-		if it.Kind == view.EntryChoice && nv != "" && !contains(it.Choices, nv) {
-			return fmt.Errorf("%s: one of %s", it.Label, strings.Join(it.Choices, ", "))
+		if it.Kind == view.EntryChoice && !it.Open && nv != "" {
+			vals := []string{nv}
+			if it.Multi {
+				vals = strings.Split(nv, ",")
+			}
+			for _, v := range vals {
+				if !contains(it.Choices, strings.TrimSpace(v)) {
+					return fmt.Errorf("%s: one of %s", it.Label, strings.Join(nonEmpty(it.Choices), ", "))
+				}
+			}
 		}
 		old, had := e.doc.Get(s, key)
 		wasMixed := e.refuseMixed() != nil
@@ -194,6 +210,17 @@ func isBool(x *confedit.Key) bool {
 		}
 	}
 	return n > 0
+}
+
+// nonEmpty is ss without "".
+func nonEmpty(ss []string) []string {
+	var out []string
+	for _, s := range ss {
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // contains is whether s is one of ss.
@@ -401,6 +428,9 @@ func (e *Editor) instancePage(s confedit.Section, noun string) page {
 			}
 			out := []item{name}
 			out = append(out, e.sectionFields(cur)...)
+			if k := e.cat.Kind(cur.Kind); k != nil && k.Free != "" {
+				out = append(out, action(freeNoun[cur.Kind], func() error { return e.addFree(cur) }))
+			}
 			out = append(out, action("Delete this "+noun, func() error { return e.deleteSection(cur) }))
 			return out
 		},
@@ -410,6 +440,42 @@ func (e *Editor) instancePage(s confedit.Section, noun string) page {
 			}
 			return nil
 		}}
+}
+
+// freeNoun is the Add item for the keys of the sysop's own of a kind.
+var freeNoun = map[string]string{"menu": "Add a menu item", "qwknet": "Carry a conference"}
+
+// addFree adds a key of the sysop's own to s (a menu's item, a QWK
+// network's conference): its key asked, then its value picked from what
+// there is (or typed).
+func (e *Editor) addFree(s confedit.Section) error {
+	intro, label := "The key callers press: one letter or digit.", "Key"
+	if s.Kind == "qwknet" {
+		intro, label = "The hub's conference number.", "Conference"
+	}
+	v, ok, err := e.UI.Form(&view.Form{Title: freeNoun[s.Kind], Intro: []view.Line{view.L(intro)},
+		Fields: []view.Field{{Name: "key", Label: label, Width: 8}}, Submit: "Next"})
+	if err != nil || !ok {
+		return err
+	}
+	key := strings.ToLower(strings.TrimSpace(v["key"]))
+	if key == "" {
+		return nil
+	}
+	if !e.cat.Kind(s.Kind).IsFree(key) {
+		e.say(view.Bad, key+": not a "+strings.ToLower(label)+".")
+		return nil
+	}
+	if had, _ := e.doc.Get(s, key); had != "" {
+		e.say(view.Bad, key+" is there already: "+had+".")
+		return nil
+	}
+	it := e.field(s, key)
+	val, ok, err := view.PickChoice(e.UI, it.Entry)
+	if err != nil || !ok || strings.TrimSpace(val) == "" {
+		return err
+	}
+	return it.set(val)
 }
 
 // deleteSection takes s out of the file if the sysop says yes, and is then

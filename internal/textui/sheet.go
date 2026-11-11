@@ -1,6 +1,8 @@
 package textui
 
 import (
+	"slices"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -217,7 +219,16 @@ func (s *session) Sheet(sh *view.Sheet) (view.SheetResult, error) {
 			case view.EntryChoice:
 				switch k {
 				case ' ':
-					return set(e.ID, e.Next())
+					if !e.Listed() {
+						return set(e.ID, e.Next())
+					}
+					v, ok, err := s.choiceBox(w.frame(), e)
+					if err != nil {
+						return view.SheetResult{}, err
+					}
+					if ok && v != e.Value {
+						return set(e.ID, v)
+					}
 				case KeyRight:
 				default:
 					v, ok, err := s.choiceBox(w.frame(), e)
@@ -706,6 +717,10 @@ func (s *session) helpBox(scr *screen, e *view.Entry, status, flash string) bool
 	lines := wrapText(capFirst(help), cols-4)
 	more := ""
 	switch {
+	case e.Kind == view.EntryChoice && e.Multi && len(e.Choices) > 0:
+		more = "Any of: " + strings.Join(choiceLabels(e.Choices), ", ")
+	case e.Kind == view.EntryChoice && e.Open && len(e.Choices) > 0:
+		more = "Enter: pick one of " + strconv.Itoa(len(e.Choices)) + ", or type your own"
 	case e.Kind == view.EntryChoice && len(e.Choices) > 0:
 		more = "One of: " + strings.Join(choiceLabels(e.Choices), ", ")
 	case e.Default != "" && e.Default != "default" && e.Value == "":
@@ -1234,27 +1249,64 @@ func (s *session) inputBox(base *screen, e view.Entry) (string, bool, error) {
 	return v, true, nil
 }
 
-// choiceBox picks one of a choice entry's values from a list over base:
-// false if it was given up.
+// choiceBox picks an EntryChoice's value from a list over base: its
+// choices (with their notes), * by what it is now.  A Multi entry's are
+// turned on and off with space, Enter taking them; an Open entry's last
+// line types a value of its own.
 func (s *session) choiceBox(base *screen, e view.Entry) (string, bool, error) {
-	labels := choiceLabels(e.Choices)
-	cur := 0
+	type line struct {
+		value, label, note string
+		other              bool // the line to type one's own
+	}
+	var lines []line
 	now := e.Value
-	if now == "" {
+	if now == "" && !e.Multi && !slices.Contains(e.Choices, "") {
 		now = e.Default
 	}
-	iw := len([]rune(e.Label)) + 6
+	picked := map[string]bool{}
+	for _, p := range e.Picked() {
+		picked[p] = true
+	}
+	if e.Open && !e.Multi && e.Value != "" && !slices.Contains(e.Choices, e.Value) {
+		lines = append(lines, line{value: e.Value, label: e.Value, note: "as it is now"})
+	}
 	for i, c := range e.Choices {
-		iw = max(iw, len([]rune(labels[i]))+6)
-		if c == now || c == "" && e.Value == "" {
+		label := view.ChoiceLabel(c)
+		if c == "" && e.Default != "" && e.Default != "default" {
+			label = "(default: " + e.Default + ")"
+		}
+		lines = append(lines, line{value: c, label: label, note: e.ChoiceNote(i)})
+	}
+	if e.Open {
+		lines = append(lines, line{label: "Type another value...", other: true})
+	}
+	cur := 0
+	lw0, nw0 := len([]rune(e.Label))+2, 0
+	for i, l := range lines {
+		lw0 = max(lw0, len([]rune(l.label)))
+		nw0 = max(nw0, len([]rune(l.note)))
+		if !e.Multi && !l.other && l.value == now {
 			cur = i
 		}
 	}
-	iw = min(max(iw, 24), s.t.Cols-8)
-	n := min(len(labels), s.t.Rows-10)
+	iw := lw0 + 6
+	if e.Multi {
+		iw += 4
+	}
+	if nw0 > 0 {
+		iw += nw0 + 2
+	}
+	iw = min(max(iw, 28), s.t.Cols-8)
+	n := min(len(lines), s.t.Rows-10)
 	row, col, bw, bh := s.dlgBox(iw, n+4)
 	n = min(n, bh-6)
 	top := 0
+	on := func(l line) bool {
+		if e.Multi {
+			return picked[l.value]
+		}
+		return !l.other && l.value == now
+	}
 	for {
 		if cur < top {
 			top = cur
@@ -1266,51 +1318,97 @@ func (s *session) choiceBox(base *screen, e view.Entry) (string, bool, error) {
 		scr.box(row, col, bh, bw, boxDouble, dlgFrame, dlgText)
 		scr.shadow(row, col, bh, bw)
 		scr.title(row, col, bw, e.Label, dlgTitle)
-		scr.put(row+1, col+2, "Values", attr{cYellow, cLightGray})
+		head := "Values"
+		if e.Multi {
+			head = "Values (any of them)"
+		}
+		scr.put(row+1, col+2, head, attr{cYellow, cLightGray})
 		lw := bw - 4
 		for r := 0; r < n; r++ {
 			j := top + r
-			a := attr{cBlack, cCyan}
+			a, na := attr{cBlack, cCyan}, attr{cBlue, cCyan}
 			if j == cur {
-				a = attr{cWhite, cGreen}
+				a, na = attr{cWhite, cGreen}, attr{cLightGray, cGreen}
 			}
-			l := " " + labels[j]
-			if e.Choices[j] == now || e.Choices[j] == "" && e.Value == "" {
-				l += " *"
+			l := lines[j]
+			text := " "
+			switch {
+			case e.Multi && !l.other && picked[l.value]:
+				text += "[x] "
+			case e.Multi && !l.other:
+				text += "[ ] "
 			}
-			scr.putw(row+2+r, col+2, lw, l, a)
+			text += l.label
+			if !e.Multi && on(l) {
+				text += " *"
+			}
+			scr.putw(row+2+r, col+2, lw, text, a)
+			if l.note != "" {
+				x := len([]rune(text)) + 2
+				if col := 1 + lw0 + 4 + map[bool]int{true: 4}[e.Multi]; col+10 < lw {
+					x = max(x, col) // the notes in a column
+				}
+				if x < lw-2 {
+					scr.put(row+2+r, col+2+x, trunc(l.note, lw-x-1), na)
+				}
+			}
 		}
 		if top > 0 {
 			scr.put(row+2, col+2+lw-1, "▲", attr{cBlue, cCyan})
 		}
-		if top+n < len(labels) {
+		if top+n < len(lines) {
 			scr.put(row+1+n, col+2+lw-1, "▼", attr{cBlue, cCyan})
 		}
-		scr.put(row+bh-2, col+2, trunc("* as it is now", lw), dlgDim)
-		s.keyBar(scr, [][2]string{{"Enter", "OK"}, {"Esc", "Cancel"}, {"↑↓", "Choose"}}, "")
+		foot := "* as it is now"
+		keys := [][2]string{{"Enter", "OK"}, {"Esc", "Cancel"}, {"↑↓", "Choose"}}
+		if e.Multi {
+			foot = "Space turns one on or off"
+			keys = [][2]string{{"Space", "On/off"}, {"Enter", "OK"}, {"Esc", "Cancel"}}
+		}
+		scr.put(row+bh-2, col+2, trunc(foot, lw), dlgDim)
+		s.keyBar(scr, keys, "")
 		s.show(scr)
 		k, _, err := s.key()
 		if err != nil {
 			return "", false, err
 		}
 		switch {
+		case lines[cur].other && (isEnter(k) || k == ' '):
+			typed := e
+			typed.Kind = view.EntryText
+			v, ok, err := s.inputBox(base, typed)
+			if err != nil || !ok {
+				if err != nil {
+					return "", false, err
+				}
+				continue
+			}
+			return strings.TrimSpace(v), true, nil
+		case e.Multi && k == ' ':
+			if v := lines[cur].value; v == "" {
+				picked = map[string]bool{}
+			} else {
+				picked[v] = !picked[v]
+			}
+		case e.Multi && isEnter(k):
+			return view.JoinPicked(e, picked), true, nil
 		case isEnter(k) || k == ' ':
-			return e.Choices[cur], true, nil
+			return lines[cur].value, true, nil
 		case k == 0x1b:
 			return "", false, nil
 		case k == KeyUp:
 			cur = max(cur-1, 0)
 		case k == KeyDown || k == '\t':
-			cur = min(cur+1, len(labels)-1)
+			cur = min(cur+1, len(lines)-1)
 		case k == KeyHome || k == KeyPgUp:
 			cur = 0
 		case k == KeyEnd || k == KeyPgDn:
-			cur = len(labels) - 1
+			cur = len(lines) - 1
 		default:
 			u := unicode.ToUpper(k)
-			for d := 1; d <= len(labels); d++ {
-				j := (cur + d) % len(labels)
-				if strings.HasPrefix(strings.ToUpper(labels[j]), string(u)) {
+			for d := 1; d <= len(lines); d++ {
+				j := (cur + d) % len(lines)
+				if strings.HasPrefix(strings.ToUpper(lines[j].label), string(u)) {
 					cur = j
 					break
 				}

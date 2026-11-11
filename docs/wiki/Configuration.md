@@ -101,7 +101,7 @@ covered in [Running](Running#running-as-a-user-of-its-own).
 |---|---|
 | arrows, PgUp, PgDn, Home, End | move (a letter goes to the next line beginning with it) |
 | Enter | open a menu, change a value (typed in a box that pops up, or picked from a list of its choices), do an action |
-| Space | turn a yes/no over, or go to the next choice |
+| Space | turn a yes/no over, or go to the next choice (a list's: open it; in a list of some, turn one on or off) |
 | Esc, left arrow | back a window |
 | `/`, F12, Alt+letter | the menu bar's pull-down menus (arrows between them, Enter to go) |
 | F1 or `?` | the whole help for the line (from bbs.conf.sample) |
@@ -109,6 +109,32 @@ covered in [Running](Running#running-as-a-user-of-its-own).
 | F10 | save and exit |
 | `A`, `D` | add one (a listener, a door, a user ...), delete it |
 | Ctrl-L | draw the screen again |
+
+### Values picked from what there is
+
+Most settings are picked from a list (marked `↕`) rather than typed, the
+list made from what the file and the machine have, a word beside each:
+
+| Setting | Offered |
+|---|---|
+| a certificate (`tls_cert`, `cert_file`) | `acme` and each `acme:NAME` (with its names), `ca` where the BBS's own CA can sign it, and the certificate files other servers use |
+| its key (`tls_key`, `key_file`) | the key that goes with the certificate chosen (from another server, or beside it on disk), and the others the file names; not asked for with `acme` or `ca` |
+| an address a server listens on | every address, this machine only, and each of this machine's IPs, at the port it has (or the usual one); one another server is on is marked *taken by* |
+| `[dns]` `answer` and `*_answer` | the IPs the services listen on, and this machine's |
+| `[dns]` `primary`, `backup` | this host's servers, and the well-known public ones |
+| `[dns]` `services`, `[feeds]` `catalog`, `[time]` `servers`, `[mx]` `dnsbl`, gopher's and Gemini's `areas` | some of them at once (Space on each) |
+| levels (new users', validated users', a user's, `[mrc]` and `[menu]` `require`) | the `[level N]`s, with their names |
+| a menu item (Add a menu item on a menu's page) | the BBS's own actions, each door, the other menus, the screens and scripts, the areas, each with a label to begin from |
+| `[menu]` `screen` | the display files in `screens_dir` |
+| `[link]` `aka` | `[fido]`'s addresses |
+| `[feed]` `group`, `area` | the catalogue's groups and the other feeds'; the message areas |
+| the user and groups it runs as | this machine's accounts and groups |
+| ACME's CA, DNS provider, challenge and key type; the log; TLS modes; outbound mail; and the rest of the settings with a fixed set of values | those values, with what each one does |
+
+A list whose values are only suggestions ends with *Type another value*,
+and on a 3270 the value can always be typed over; F1 lists the choices
+with their notes. On a 3270, `S` beside such a line opens the list; on a
+terminal without ANSI its number does, a number each to pick.
 
 In a box where a value is typed, the arrows, Home and End move, Ctrl-U
 clears it, Enter keeps it and Esc leaves the value as it was. The screens
