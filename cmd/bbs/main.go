@@ -315,6 +315,9 @@ func main() {
 		}
 		if o := cfg.OSCAR; o != nil {
 			fmt.Printf("oscar: %q, reconnect at %q, ICQ numbers from %d\n", o.Address, o.Host, o.UINBase)
+			if o.TLSAddress != "" {
+				fmt.Printf("oscar: TLS on %q, clients asking for TLS sent to %q\n", o.TLSAddress, o.TLSHost)
+			}
 		}
 		if a := cfg.AOL; a != nil {
 			fmt.Printf("aol: %q\n", a.Address)

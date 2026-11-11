@@ -1,10 +1,12 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strings"
 
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/config"
 	"github.com/D-Modem/bbs/internal/oscar"
 )
@@ -42,6 +44,24 @@ func (c *Config) oscarSection(cf *config.File) error {
 			return err
 		}
 		o.UINBase = uint32(base)
+		o.TLSAddress, o.TLSCert, o.TLSKey = s.String("tls_address", ""), s.String("tls_cert", ""), s.String("tls_key", "")
+		o.TLSHost = s.String("tls_host", "")
+		if o.TLSAddress != "" {
+			if _, _, err := net.SplitHostPort(o.TLSAddress); err != nil {
+				return fmt.Errorf("tls_address: %v", err)
+			}
+			if o.TLSCert == "" || o.TLSKey == "" && !certs.IsACME(o.TLSCert) {
+				return errors.New("tls_address needs tls_cert and tls_key")
+			}
+			if err := certs.Check(o.TLSCert, o.TLSKey, c.acmeNames()); err != nil {
+				return fmt.Errorf("tls_cert, tls_key: %v", err)
+			}
+		}
+		if o.TLSHost != "" {
+			if h, _, err := net.SplitHostPort(o.TLSHost); err != nil || h == "" {
+				return errors.New("tls_host: host:port, where clients come by TLS (its host the certificate's name)")
+			}
+		}
 		c.OSCAR = o
 		return nil
 	}()

@@ -1,7 +1,7 @@
 The BBS has an AIM and ICQ server (OSCAR, the protocol AOL's AIM and ICQ
 clients spoke), beside its [IRC](IRC) server and on the same chat. Someone
-signed on in AIM 5, AIM 4, ICQ 2003, Pidgin, Miranda or any other OSCAR
-client sees the BBS's users on their buddy list, IMs them and talks in its
+signed on in AIM 7, AIM 5, AIM 4, ICQ 2003, Pidgin, Miranda or any other
+OSCAR client sees the BBS's users on their buddy list, IMs them and talks in its
 [chat rooms](Chat-and-Paging), with callers on telnet, SSH, 3270s, IRC,
 the web terminal and the API.
 
@@ -19,13 +19,16 @@ host = aim.example.org:5190
 | `max_per_ip` | `16` | from one address (each client opens a few) |
 | `uin_base` | `100000` | an account's ICQ number is this plus its number |
 | `system` | `OnlineHost` | the screen name the BBS's notices come from |
+| `tls_address` | none | a TLS port for the [later logins](#later-aim-versions), e.g. `:443` |
+| `tls_cert`, `tls_key` | none | its certificate and key (`tls_cert = acme` for the `[acme]` one) |
+| `tls_host` | `host`'s name at `tls_address`'s port | where clients that ask for TLS are sent (`host:port`); a TLS proxy's, when one is in front |
 
-Point the client at the BBS: in AIM, the "Host" under Connection settings
-(`login.oscar.aol.com` was AOL's, so a hosts file entry also works); in
-Pidgin, the server and port of an AIM or ICQ account, with "Use clientLogin"
-unticked and encryption off (clientLogin and SSL were AOL's later web
-sign-on, which this server does not serve, nor AIM 6's). The deny list and
-bans in `[security]` apply as they do everywhere else.
+Point the client at the BBS: in AIM up to 6.1, the "Host" under Connection
+settings (`login.oscar.aol.com` was AOL's, so a hosts file entry also
+works); in Pidgin, the server and port of an AIM or ICQ account, with "Use
+clientLogin" unticked and encryption off, or see [later AIM
+versions](#later-aim-versions) to use clientLogin. The deny list and bans in
+`[security]` apply as they do everywhere else.
 
 ## Signing on
 
@@ -87,6 +90,69 @@ Room" with `main` is in `#main` with IRC users and the terminals' Chat. A
 name is made a room's: lower case, spaces as dashes, at most 20 letters
 and digits (`Test Room` is `test-room`). Inviting a buddy who isn't on AIM
 sends them a line naming the room.
+
+## Later AIM versions
+
+AOL's later clients sign on by HTTP before they reach the server proper,
+and the BBS serves both ways they do it, on port 5190 itself (a
+connection that starts as an HTTP request is told apart by its first
+byte) and on `tls_address`:
+
+- **AIM 6.2 to 7.5** post a Kerberos-style login to `/`. Set the client's
+  host and port under Settings, Connection, to the BBS's TLS address
+  (they ask for HTTPS and then a TLS connection, so `tls_address` or a
+  proxy is needed). The client checks the certificate against its own
+  store (an NSS database in its folder), so a certificate from a public
+  CA, or the BBS's own added there, is needed.
+- **AIM 6.0 and 6.1** can't be set to another server for this login; set
+  their `serviceManifest.xml` to the old (BUCP) login and they sign on as
+  AIM 5 does.
+- **Pidgin with "Use clientLogin"**, AIM Express and the phones' AIM ask
+  `api.screenname.aol.com` (`/auth/clientLogin`) and then
+  `api.oscar.aol.com` (`/aim/startOSCARSession`). Point those names at the
+  BBS in the hosts file; by HTTPS they need a certificate for those names
+  that the client trusts. Either way the client then signs on to the host
+  the BBS names, by TLS if it asked for it ("Use SSL") and there is a
+  TLS host.
+
+These logins send the password itself (inside TLS), so they work for any
+account, without the AIM digests above.
+
+Wrong passwords count against the throttle and the hack log as any other
+login does. The session secret clientLogin gives isn't used to check
+the requests that follow; the token is a one-time sign-on cookie good for
+five minutes.
+
+### AIM 6.2 and later, and TLS
+
+AIM 6.2 to 7.5 open TLS with an SSL 2.0-style hello, which Go's TLS (and
+so `tls_address`) can't read; they need a TLS proxy in front, linked
+against an OpenSSL that still takes it (1.0.2 or older: stunnel or nginx
+built with it), with TLS 1.0 and the old ciphers on. Have it pass the
+plain connection to port 5190 and set `tls_host` to the proxy's address:
+
+```ini
+[oscar]
+address = :5190
+host = aim.example.org:5190
+tls_host = aim.example.org:443
+```
+
+```
+; stunnel, against OpenSSL 1.0.2
+[aim]
+accept = 443
+connect = 127.0.0.1:5190
+cert = /etc/bbs/aim.pem
+sslVersion = all
+ciphers = ALL
+```
+
+Behind the proxy every client comes from the proxy's address, so
+`max_per_ip`, the login throttle and bans see that one address; raise
+`max_per_ip` to suit. `tls_address` on its own serves clients with modern
+TLS, such as Pidgin.
+A chat room asked for by TLS is sent to the TLS host too.
 
 ## Port 5190 and AOL
 

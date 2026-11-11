@@ -844,6 +844,15 @@ address = 127.0.0.1:2513
 ;uin_base = 100000
 ; the screen name the BBS's notices come from
 ;system = OnlineHost
+; The later AIM logins (AIM 6.2 to 7.x, and clientLogin: Pidgin, AIM
+; Express, the phones' AIM) come by HTTP on address, or by TLS here, with
+; tls_cert and tls_key (a certificate for the name clients use)
+;tls_address = :443
+;tls_cert = /etc/bbs/aim.crt
+;tls_key = /etc/bbs/aim.key
+; where clients that ask for TLS are sent, host:port (default: host's host
+; at tls_address's port); a TLS proxy's, when one is in front
+;tls_host = aim.example.org:443
 
 ; IRC server linking: the BBS as a hub server on an IRC network, by TS6
 ; (Solanum, charybdis, ircd-ratbox; ircd-hybrid 8 with protocol = hybrid)

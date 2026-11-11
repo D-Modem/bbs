@@ -433,10 +433,21 @@ func (ss *session) serviceRequest(h snacHeader, r *rd) {
 	}
 	var o tlvs
 	o.addU16(0x000d, fam)
-	o.addStr(0x0005, ss.s.reconnectHost(ss.fc.c))
-	o.add(0x0006, ss.s.newCookie(k))
-	if t.has(0x008c) {
-		o.addU8(0x008e, 0) // no SSL
+	tlsTo := ss.s.tlsHost()
+	switch {
+	case t.has(0x008c) && tlsTo != "": // by TLS, as it asks
+		k.tls = true
+		certName, _, _ := net.SplitHostPort(tlsTo)
+		o.addStr(0x0005, tlsTo)
+		o.add(0x0006, ss.s.newCookie(k))
+		o.addStr(0x008d, certName)
+		o.addU8(0x008e, 2)
+	default:
+		o.addStr(0x0005, ss.s.reconnectHost(ss.fc.c))
+		o.add(0x0006, ss.s.newCookie(k))
+		if t.has(0x008c) {
+			o.addU8(0x008e, 0) // no SSL
+		}
 	}
 	ss.snac(0x0001, 0x0005, h.req, o.bytes())
 }
