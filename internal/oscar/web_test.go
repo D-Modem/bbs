@@ -1,9 +1,8 @@
 package oscar
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -198,23 +197,23 @@ func TestKerberos(t *testing.T) {
 // selfSigned writes a certificate for 127.0.0.1 and its key; their paths.
 func selfSigned(t *testing.T) (string, string) {
 	t.Helper()
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	key, err := rsa.GenerateKey(rand.Reader, 2048) // RSA, as TLS 1.0's RSA key exchange needs
 	if err != nil {
 		t.Fatal(err)
 	}
 	tmpl := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "127.0.0.1"},
 		IPAddresses: []net.IP{net.ParseIP("127.0.0.1")}, NotBefore: time.Now().Add(-time.Hour),
-		NotAfter: time.Now().Add(time.Hour), KeyUsage: x509.KeyUsageDigitalSignature,
+		NotAfter: time.Now().Add(time.Hour), KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}}
 	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
 	if err != nil {
 		t.Fatal(err)
 	}
-	kb, _ := x509.MarshalECPrivateKey(key)
+	kb := x509.MarshalPKCS1PrivateKey(key)
 	dir := t.TempDir()
 	crt, kf := filepath.Join(dir, "c.pem"), filepath.Join(dir, "k.pem")
 	os.WriteFile(crt, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o600)
-	os.WriteFile(kf, pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: kb}), 0o600)
+	os.WriteFile(kf, pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: kb}), 0o600)
 	return crt, kf
 }
 
@@ -257,5 +256,30 @@ func TestKerberosTLS(t *testing.T) {
 	res := parseTLVs(alice.expect(0x01, 0x05))
 	if res.str(0x0005) != tlsAddr || res.str(0x008d) != "127.0.0.1" {
 		t.Errorf("service %v", res)
+	}
+}
+
+// TestSSLv2HelloTLS: a TLS hello in SSL 2.0's format, as AIM 6.2 to 7.5
+// send it, is answered with TLS 1.0's ServerHello on the TLS port.
+func TestSSLv2HelloTLS(t *testing.T) {
+	crt, key := selfSigned(t)
+	tlsAddr := freeAddr(t)
+	start(t, func(s *Settings) { s.TLSAddress, s.TLSCert, s.TLSKey = tlsAddr, crt, key })
+	c, err := net.Dial("tcp", tlsAddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+	c.SetDeadline(time.Now().Add(5 * time.Second))
+	// CLIENT-HELLO, version 3.1: TLS_RSA_WITH_AES_128_CBC_SHA, a 16-byte challenge
+	m := []byte{1, 3, 1, 0, 3, 0, 0, 0, 16, 0, 0x00, 0x2f}
+	m = append(m, make([]byte, 16)...)
+	c.Write(append([]byte{0x80, byte(len(m))}, m...))
+	var h [10]byte
+	if _, err := io.ReadFull(c, h[:]); err != nil {
+		t.Fatal(err)
+	}
+	if h[0] != 22 || h[1] != 3 || h[2] != 1 || h[5] != 2 {
+		t.Errorf("answer %x", h)
 	}
 }
