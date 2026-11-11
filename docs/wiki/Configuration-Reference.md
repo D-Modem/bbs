@@ -591,9 +591,9 @@ AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC.  Users sign o
 | `max_per_ip` |  |  | each client opens a few connections: sign-on, the BOS, chat rooms. Examples: `16`. |
 | `uin_base` |  |  | an account's ICQ number is this plus its number. Examples: `100000`. |
 | `system` |  |  | the screen name the BBS's notices come from. Examples: `OnlineHost`. |
-| `tls_address` |  |  | The later AIM logins (AIM 6.2 to 7.x, and clientLogin: Pidgin, AIM Express, the phones' AIM) come by HTTP on address, or by TLS here, with tls_cert and tls_key (a certificate for the name clients use) Examples: `:443`. |
-| `tls_cert` |  |  | The later AIM logins (AIM 6.2 to 7.x, and clientLogin: Pidgin, AIM Express, the phones' AIM) come by HTTP on address, or by TLS here, with tls_cert and tls_key (a certificate for the name clients use) Examples: `/etc/bbs/aim.crt`. |
-| `tls_key` |  |  | The later AIM logins (AIM 6.2 to 7.x, and clientLogin: Pidgin, AIM Express, the phones' AIM) come by HTTP on address, or by TLS here, with tls_cert and tls_key (a certificate for the name clients use) Examples: `/etc/bbs/aim.key`. |
+| `tls_address` |  |  | The later AIM logins (AIM 6.2 to 7.x, and clientLogin: Pidgin, AIM Express, the phones' AIM) come by HTTP on address, or by TLS here, with tls_cert and tls_key (a certificate for the name clients use; an RSA one for AIM 6.2 to 7.x, whose TLS 1.0 has only RSA key exchange: with acme, key_type = rsa2048) Examples: `:443`. |
+| `tls_cert` |  |  | The later AIM logins (AIM 6.2 to 7.x, and clientLogin: Pidgin, AIM Express, the phones' AIM) come by HTTP on address, or by TLS here, with tls_cert and tls_key (a certificate for the name clients use; an RSA one for AIM 6.2 to 7.x, whose TLS 1.0 has only RSA key exchange: with acme, key_type = rsa2048) Examples: `/etc/bbs/aim.crt`. |
+| `tls_key` |  |  | The later AIM logins (AIM 6.2 to 7.x, and clientLogin: Pidgin, AIM Express, the phones' AIM) come by HTTP on address, or by TLS here, with tls_cert and tls_key (a certificate for the name clients use; an RSA one for AIM 6.2 to 7.x, whose TLS 1.0 has only RSA key exchange: with acme, key_type = rsa2048) Examples: `/etc/bbs/aim.key`. |
 | `tls_host` |  |  | where clients that ask for TLS are sent, host:port (default: host's host at tls_address's port); a TLS proxy's, when one is in front. Examples: `aim.example.org:443`. |
 
 

@@ -100,8 +100,8 @@ byte) and on `tls_address`:
 
 - **AIM 6.2 to 7.5** post a Kerberos-style login to `/`. Set the client's
   host and port under Settings, Connection, to the BBS's TLS address
-  (they ask for HTTPS and then a TLS connection, so `tls_address` or a
-  proxy is needed). The client checks the certificate against its own
+  (they ask for HTTPS and then a TLS connection, so `tls_address` is
+  needed). The client checks the certificate against its own
   store (an NSS database in its folder), so a certificate from a public
   CA, or the BBS's own added there, is needed.
 - **AIM 6.0 and 6.1** can't be set to another server for this login; set
@@ -125,34 +125,18 @@ five minutes.
 
 ### AIM 6.2 and later, and TLS
 
-AIM 6.2 to 7.5 open TLS with an SSL 2.0-style hello, which Go's TLS (and
-so `tls_address`) can't read; they need a TLS proxy in front, linked
-against an OpenSSL that still takes it (1.0.2 or older: stunnel or nginx
-built with it), with TLS 1.0 and the old ciphers on. Have it pass the
-plain connection to port 5190 and set `tls_host` to the proxy's address:
+AIM 6.2 to 7.5 open TLS with an SSL 2.0-format hello and speak only TLS
+1.0 with RSA key exchange. Go's TLS can't read that hello, so the BBS
+answers those clients with a small TLS 1.0 server of its own (AES, 3DES
+or RC4, by RSA); every other client gets Go's TLS. So `tls_cert` must be
+an RSA certificate (with `[acme]`, `key_type = rsa2048`); the log says so
+at start when it isn't. A chat room asked for by TLS is sent to the TLS
+host too.
 
-```ini
-[oscar]
-address = :5190
-host = aim.example.org:5190
-tls_host = aim.example.org:443
-```
-
-```
-; stunnel, against OpenSSL 1.0.2
-[aim]
-accept = 443
-connect = 127.0.0.1:5190
-cert = /etc/bbs/aim.pem
-sslVersion = all
-ciphers = ALL
-```
-
-Behind the proxy every client comes from the proxy's address, so
-`max_per_ip`, the login throttle and bans see that one address; raise
-`max_per_ip` to suit. `tls_address` on its own serves clients with modern
-TLS, such as Pidgin.
-A chat room asked for by TLS is sent to the TLS host too.
+A TLS proxy in front (stunnel, nginx) works as well: have it pass the
+plain connection to port 5190 and set `tls_host` to its address. Behind
+it every client comes from the proxy's address, so `max_per_ip`, the
+login throttle and bans see that one address.
 
 ## Port 5190 and AOL
 

@@ -853,7 +853,9 @@ address = 127.0.0.1:2513
 ;system = OnlineHost
 ; The later AIM logins (AIM 6.2 to 7.x, and clientLogin: Pidgin, AIM
 ; Express, the phones' AIM) come by HTTP on address, or by TLS here, with
-; tls_cert and tls_key (a certificate for the name clients use)
+; tls_cert and tls_key (a certificate for the name clients use; an RSA one
+; for AIM 6.2 to 7.x, whose TLS 1.0 has only RSA key exchange: with acme,
+; key_type = rsa2048)
 ;tls_address = :443
 ;tls_cert = /etc/bbs/aim.crt
 ;tls_key = /etc/bbs/aim.key

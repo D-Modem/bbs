@@ -15,6 +15,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -26,6 +27,7 @@ import (
 
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/certs"
+	"github.com/D-Modem/bbs/internal/oldtls"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
 	"github.com/D-Modem/bbs/internal/tcpserv"
@@ -132,11 +134,29 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 		if err != nil {
 			return fmt.Errorf("oscar: %w", err)
 		}
+		if c, err := src.GetCertificate(&tls.ClientHelloInfo{}); err == nil {
+			if _, ok := c.PrivateKey.(*rsa.PrivateKey); !ok {
+				s.B.Log.Printf("oscar: tls_cert's key is not RSA: AIM 6.2 to 7.5 can't sign on by TLS")
+			}
+		}
 		cfg := legacyTLS(src.GetCertificate)
 		ts := &tcpserv.Server{Name: "oscar tls", MaxClients: s.S.MaxClients, MaxPerIP: s.S.MaxPerIP, Log: s.B.Log,
 			Refuse: refuse, Handle: func(c net.Conn) {
-				tc := tls.Server(c, cfg)
-				tc.SetDeadline(time.Now().Add(loginTimeout))
+				c.SetDeadline(time.Now().Add(loginTimeout))
+				r := bufio.NewReader(c)
+				first, err := r.Peek(3)
+				if err != nil {
+					return
+				}
+				var tc interface {
+					net.Conn
+					Handshake() error
+				}
+				if oldtls.IsSSLv2Hello(first) { // AIM 6.2 to 7.5, which crypto/tls can't take
+					tc = oldtls.Server(&peeked{c, r}, &oldtls.Config{GetCertificate: src.GetCertificate})
+				} else {
+					tc = tls.Server(&peeked{c, r}, cfg)
+				}
 				if err := tc.Handshake(); err != nil {
 					s.B.Log.Printf("oscar: %s: TLS: %v", c.RemoteAddr(), err)
 					return
