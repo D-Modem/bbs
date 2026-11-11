@@ -57,7 +57,7 @@ func freeAddr(t *testing.T) string {
 
 // start is a BBS (alice, bob, Carol Ann and sysop, all password1; old,
 // made before AIM digests were kept) with OSCAR and IRC servers.
-func start(t *testing.T) *env {
+func start(t *testing.T, opts ...func(*Settings)) *env {
 	t.Helper()
 	store.BcryptCost = 4
 	st, err := store.Open(filepath.Join(t.TempDir(), "bbs.db"))
@@ -83,7 +83,11 @@ func start(t *testing.T) *env {
 	b := bbs.New(s, st, log.New(logs, "", 0))
 	e := &env{b: b, logs: logs, p3: make(chan []byte, 1)}
 	e.addr = freeAddr(t)
-	srv, err := New(b, Settings{Address: e.addr, MaxPerIP: 50})
+	set := Settings{Address: e.addr, MaxPerIP: 50}
+	for _, o := range opts {
+		o(&set)
+	}
+	srv, err := New(b, set)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +114,11 @@ func start(t *testing.T) *env {
 			t.Log("log:\n" + logs.String())
 		}
 	})
-	for _, a := range []string{e.addr, e.ircAddr} {
+	waitFor := []string{e.addr, e.ircAddr}
+	if set.TLSAddress != "" {
+		waitFor = append(waitFor, set.TLSAddress)
+	}
+	for _, a := range waitFor {
 		for i := 0; ; i++ {
 			if c, err := net.Dial("tcp", a); err == nil {
 				c.Close()
@@ -143,6 +151,12 @@ func dialWait(t *testing.T, addr string, hello tlvs, wait bool) *client {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return clientOn(t, c, hello, wait)
+}
+
+// clientOn is dialWait on a connection made.
+func clientOn(t *testing.T, c net.Conn, hello tlvs, wait bool) *client {
+	t.Helper()
 	t.Cleanup(func() { c.Close() })
 	cl := &client{t: t, c: c, fc: newFlapConn(c, bufio.NewReader(c))}
 	if !wait {
@@ -253,7 +267,12 @@ func bos(t *testing.T, host string, ck []byte, buddies ...string) *client {
 	t.Helper()
 	var h tlvs
 	h.add(tlvCookie, ck)
-	cl := dial(t, host, h)
+	return bosUp(t, dial(t, host, h), buddies...)
+}
+
+// bosUp brings up a BOS connection made, as bos does.
+func bosUp(t *testing.T, cl *client, buddies ...string) *client {
+	t.Helper()
 	r := &rd{p: cl.expect(0x01, 0x03)}
 	fams := map[uint16]bool{}
 	for r.left() >= 2 {

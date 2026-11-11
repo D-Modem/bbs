@@ -15,6 +15,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/rand"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -24,6 +25,7 @@ import (
 	"time"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
 	"github.com/D-Modem/bbs/internal/tcpserv"
@@ -54,6 +56,13 @@ type Settings struct {
 	UINBase uint32
 	// System is the screen name the BBS's notices come from
 	System string
+	// TLSAddress, if set, is where clients come by TLS (AIM 6.2 to 7.x,
+	// clientLogin over HTTPS), with the certificate of TLSCert and TLSKey
+	TLSAddress, TLSCert, TLSKey string
+	// TLSHost is where clients that ask for TLS are sent (host:port, its
+	// host the certificate's name); "": Host's host at TLSAddress's port.
+	// Set it to a TLS proxy's when one is in front.
+	TLSHost string
 }
 
 // Server serves OSCAR.
@@ -69,6 +78,7 @@ type Server struct {
 	byNode   map[int]*session
 	cookies  map[string]*cookie
 	bagMu    sync.Mutex // placing friends in buddy lists
+	web      web        // the HTTP logins
 }
 
 // New checks the settings and makes the server.
@@ -110,10 +120,39 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	defer stop()
 	stopFriends := s.B.WatchFriends(s.friendsChanged)
 	defer stopFriends()
+	defer s.stopWeb()
+	refuse := func(c net.Conn) bool { return s.B.Refuse("oscar", c.RemoteAddr()) }
+	errs := make(chan error, 1)
+	if s.S.TLSAddress != "" {
+		src, err := certs.New(s.S.TLSCert, s.S.TLSKey)
+		if err != nil {
+			return fmt.Errorf("oscar: tls_cert, tls_key: %w", err)
+		}
+		tln, err := sockets.Listen("tcp", s.S.TLSAddress)
+		if err != nil {
+			return fmt.Errorf("oscar: %w", err)
+		}
+		cfg := legacyTLS(src.GetCertificate)
+		ts := &tcpserv.Server{Name: "oscar tls", MaxClients: s.S.MaxClients, MaxPerIP: s.S.MaxPerIP, Log: s.B.Log,
+			Refuse: refuse, Handle: func(c net.Conn) {
+				tc := tls.Server(c, cfg)
+				tc.SetDeadline(time.Now().Add(loginTimeout))
+				if err := tc.Handshake(); err != nil {
+					s.B.Log.Printf("oscar: %s: TLS: %v", c.RemoteAddr(), err)
+					return
+				}
+				tc.SetDeadline(time.Time{})
+				s.handle(tc)
+			}}
+		go func() { errs <- ts.Serve(ctx, tln) }()
+	}
 	ts := &tcpserv.Server{Name: "oscar", MaxClients: s.S.MaxClients, MaxPerIP: s.S.MaxPerIP, Log: s.B.Log,
-		Handle: s.handle,
-		Refuse: func(c net.Conn) bool { return s.B.Refuse("oscar", c.RemoteAddr()) }}
-	return ts.Serve(ctx, ln)
+		Handle: s.handle, Refuse: refuse}
+	err := ts.Serve(ctx, ln)
+	if s.S.TLSAddress != "" {
+		<-errs
+	}
+	return err
 }
 
 // Clients is how many sessions are signed on.
@@ -147,6 +186,10 @@ func (s *Server) handle(c net.Conn) {
 		}
 		c.SetReadDeadline(time.Time{})
 		s.P3(&peeked{c, r})
+		return
+	case err == nil && isHTTP(first[0]):
+		c.SetReadDeadline(time.Time{})
+		s.serveHTTP(&peeked{c, r}) // a later AIM's login, by HTTP
 		return
 	case err == nil && first[0] != flapStart:
 		return // neither
@@ -187,6 +230,7 @@ type cookie struct {
 	room     string   // chat: the room
 	exchange uint16   // chat: its exchange
 	sess     *session // a service's: the session it serves
+	tls      bool     // the client comes by TLS
 	expires  time.Time
 }
 
