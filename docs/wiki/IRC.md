@@ -68,8 +68,48 @@ ChanServ: then its access list says who is opped or voiced on coming in,
 and its ops can `MODE +o`/`-o`/`+v`/`-v`, `KICK` and set the topic.
 [Permanent](#permanent-rooms) and registered rooms have topics; others
 don't. Colours and other formatting are stripped from lines going into
-the rooms. Channel modes besides `o` and `v` are not the BBS's yet: a
-room is always `+nt`.
+the rooms. A registered room's ops set its [channel modes](#channel-modes).
+
+## Channel modes
+
+A registered room has Solanum's channel modes, set by its ops with `MODE`
+(`/mode` in the BBS's chat). A room nobody has registered is `+Ccnt`, and
+its modes can't change. Like ops and bans, the modes are the room's, so a
+caller on the text BBS, AOL or Yahoo is kept out or kept quiet just as an
+IRC user is, and they are kept across restarts.
+
+| Mode | What it does |
+|---|---|
+| `o`, `v` | an operator; a voice |
+| `n` | no lines from outside the room (on when registered) |
+| `t` | only ops set the topic (on when registered) |
+| `s` | secret: not in `LIST` or the BBS's room lists, its members not shown, to those outside |
+| `p` | private: no `KNOCK` |
+| `m` | moderated: only ops and voices talk |
+| `i` | invite only: in by `INVITE`, an `I` mask, or the `i` flag |
+| `k KEY` | a key to come in: `JOIN #room KEY`, or `/join room KEY` |
+| `l N` | at most N users (someone on two nodes counts once) |
+| `z` | lines that `m`, `b` or `q` stop go to the ops instead |
+| `g` | anyone in the room may `INVITE` |
+| `T` | no `NOTICE`s to the room |
+| `b MASK` | banned: kept out, and quiet if in |
+| `q MASK` | quieted: may not talk |
+| `e MASK` | an exception to `b` and `q` |
+| `I MASK` | an exception to `i` |
+| `c`, `C` | colours stripped, CTCPs dropped: always on |
+
+A mask is `nick!user@host`, where a BBS user is `Nick!how@nodeN` (how they
+came: `irc`, `telnet`, `ssh`...): `+b alice` bans `alice!*@*`, which, nicks
+being BBS names, is alice's account, and `+q *!telnet@*` quiets everyone
+on telnet. Extbans: `$a` matches every account (so `$~a` no one of ours),
+`$a:MASK` an account by name, `$o` sysops. Each list holds 100.
+
+An invite lasts an hour, gets past `i`, `k` and `l`, and is used up by
+coming in. `KNOCK #room [why]` asks the ops of a room that is invite only,
+keyed or full to let you in, once a minute. Sysops and a room's founder
+come in always, and sysops, ops and voices always talk; someone with the
+`e` flag isn't kept out by bans, and one with `i` gets past `i`, `k` and
+`l`. Modes beside these (`f`, `j`, `S`, `P`, `L`...) are refused.
 
 A sysop is told of a page by a `NOTICE`. Joining `#sysop-N` answers the
 page from node N, just as `/answer` does in the BBS's chat.
@@ -126,6 +166,8 @@ or `/CS COMMAND`; on the text BBS, `/cs COMMAND` in chat.
 | `OP`, `DEOP #room [nick ...]` | `o` | ops you, or them |
 | `VOICE`, `DEVOICE #room [nick ...]` | `v` | voices you, or them |
 | `TOPIC #room [text]` | `t` | sets the topic |
+| `INVITE #room` | `i` | invites you in (past `+i`, `+k` and `+l`, for the hour) |
+| `GETKEY #room` | `i` | tells you the key |
 | `KICK #room nick [reason]` | `r` | puts one out |
 | `BAN`, `UNBAN #room nick` | `r` | keeps one out (`b` on their entry), or lets them in again |
 | `CLEAR #room USERS [reason]` | `R` | puts everyone out but you |
@@ -141,7 +183,7 @@ The flags are Atheme's:
 |---|---|---|---|
 | `v` | voice through ChanServ | `V` | voiced on coming in |
 | `o` | ops through ChanServ | `O` | opped on coming in |
-| `t` | sets the topic | `i` | invites (for the modes to come) |
+| `t` | sets the topic | `i` | `INVITE`, `GETKEY`; gets past `+i`, `+k`, `+l` |
 | `r` | `KICK`, `BAN`, `UNBAN` | `R` | `CLEAR` |
 | `f` | changes the access list | `s` | `SET` |
 | `A` | sees the access list | `e` | not kept out by a ban |
