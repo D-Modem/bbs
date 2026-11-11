@@ -158,7 +158,7 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 				// AIM 6.2 to 7.5 (an SSL 2.0-format hello) and SSL 3.0-only
 				// clients, which crypto/tls can't take
 				if old {
-					tc = retrossl.Server(&peeked{c, r}, &retrossl.Config{GetCertificate: src.GetCertificate})
+					tc = retrossl.Server(&peeked{c, r}, &retrossl.Config{GetCertificate: src.GetCertificate, SessionCache: oldSessions})
 				} else {
 					tc = tls.Server(&peeked{c, r}, cfg)
 				}
@@ -179,6 +179,10 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	}
 	return err
 }
+
+// oldSessions are the TLS sessions of clients served by retrossl, kept
+// for them to resume.
+var oldSessions = retrossl.NewSessionCache(0, 0)
 
 // Clients is how many sessions are signed on.
 func (s *Server) Clients() int {

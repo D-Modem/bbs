@@ -115,7 +115,7 @@ func (p *Port) Handle(c net.Conn) {
 				p.logf("%s: an SSL 2.0-format hello, which nothing here takes", c.RemoteAddr())
 				return
 			}
-			tc = retrossl.Server(&peeked{c, r}, &retrossl.Config{GetCertificate: rt.Cert})
+			tc = retrossl.Server(&peeked{c, r}, &retrossl.Config{GetCertificate: rt.Cert, SessionCache: oldSessions})
 		} else {
 			tc = tls.Server(&peeked{c, r}, legacyTLS(p.certificate))
 		}
@@ -232,6 +232,10 @@ func (p *Port) certificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error)
 	}
 	return nil, errors.New("no certificate")
 }
+
+// oldSessions are the sessions of clients served by retrossl, kept for
+// them to resume (each goes only with its own certificate).
+var oldSessions = retrossl.NewSessionCache(0, 0)
 
 func (p *Port) sslv2() *Route {
 	for _, rt := range p.Routes {
