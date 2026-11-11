@@ -277,7 +277,7 @@ func (e *Editor) certOffer(s confedit.Section) offer {
 		o.add(certs.ACME+":"+a.Name, noteOr(d, "[acme "+a.Name+"]"))
 	}
 	if caSigned[s.Kind] {
-		o.add(certs.CA, "the BBS's own CA signs it for the old names (bbs ca)")
+		o.add(certs.CA, "signed by the BBS's own CA (its services sub-CA)")
 	}
 	for _, f := range e.files(isCertKey) {
 		o.add(f.value, "as "+f.where)
