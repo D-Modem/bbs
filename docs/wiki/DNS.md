@@ -30,6 +30,7 @@ backup = 8.8.8.8
 | `primary`, `backup` | the host's | the servers other names are asked of, by IP address (`:port` if not 53); the backup is asked when the primary fails |
 | `answer` | the BBS's address as the caller reaches it | the IPv4 address the services' names are given |
 | `answer6` | likewise, for a caller that came by IPv6 | the IPv6 address they are given |
+| `msn_answer`, `ymsg_answer`, `oscar_answer`, `aol_answer`, `marvel_answer`, `compuserve_answer` | the IP the service's HTTPS (TLS) server or port is given, when it has one of its own | that service's own address (an IPv4 and an IPv6 one at most), given for its names instead of `answer` |
 | `services` | `auto` | whose names: `auto` (the front ends set up here), `none`, or some of `msn`, `marvel`, `oscar`, `aol`, `ymsg`, `compuserve` |
 | `names` | none | more names answered with the BBS's address; `*.example.org` is every name under it |
 | `allow` | this machine and private networks | the networks that may resolve other names |
@@ -132,6 +133,50 @@ openssl x509 -req -in legacy.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
 `bbs check` warns when front ends sharing a TLS port have certificates
 of their own. A port that is TLS for one front end and plain for another
 can't be shared, and is refused.
+
+### An IP for each HTTPS service
+
+When each service needs a self-signed certificate of its own (an old
+client that checks only the certificate's common name, not a SAN list),
+give each its own IP instead of sharing one. Put the addresses on the
+BBS machine (a dummy interface, or more addresses on the LAN one), and
+give each front end's HTTPS server one:
+
+```ini
+[msn]
+address = :1863
+https_address = 192.168.77.11:443
+tls_cert = /etc/bbs/passport.crt
+tls_key = /etc/bbs/passport.key
+
+[ymsg]
+address = :5050
+http_address = :80
+https_address = 192.168.77.12:443
+tls_cert = /etc/bbs/login.yahoo.com.crt
+tls_key = /etc/bbs/login.yahoo.com.key
+
+[oscar]
+address = :5190
+tls_address = 192.168.77.13:443
+tls_cert = /etc/bbs/aim.crt
+tls_key = /etc/bbs/aim.key
+
+[dns]
+```
+
+`[dns]` then gives each service's names its own address (MSN's names
+192.168.77.11, Yahoo!'s 192.168.77.12, AIM's 192.168.77.13), with no
+more settings: a front end's HTTPS (or TLS) address, when it names an IP,
+is the one its names get. `msn_answer` and the like set it otherwise (an
+address behind NAT, say). Keep the plain ports (`address`, `http_address`)
+on every address, as above, so a client reaches them at the service's IP
+too. Dial-up callers reach the extra addresses through the BBS machine,
+which is their PPP link's far end.
+
+One port can't be both on every address and on an IP of its own: with
+`https_address = 192.168.77.11:443` for one front end, give the others an
+IP of their own too (not `:443`). `bbs check` refuses the mix.
 
 ## Who may use it
 

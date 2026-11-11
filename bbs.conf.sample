@@ -1031,6 +1031,16 @@ address = 127.0.0.1:2513
 ; IPv6 (default: likewise, for a caller that came by IPv6)
 ;answer = 192.168.77.1
 ;answer6 =
+; a service's own address, given for its names instead (an IPv4 and an
+; IPv6 one at most): for an HTTPS server on an IP of its own, with a
+; self-signed certificate of its own.  Default: the IP its https_address
+; (or [oscar] tls_address, or address) is given, when it is one of its own
+;msn_answer = 192.168.77.11
+;ymsg_answer = 192.168.77.12
+;oscar_answer = 192.168.77.13
+;aol_answer =
+;marvel_answer =
+;compuserve_answer =
 ; whose names: auto (the front ends set up here), none, or some of msn,
 ; marvel, oscar, aol, ymsg, compuserve
 ;services = auto

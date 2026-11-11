@@ -85,6 +85,32 @@ func (c *Config) dnsSection(cf *config.File) error {
 				}
 			}
 		}
+		// each service's own address: <service>_answer, or the IP its
+		// HTTPS (TLS) server or its port is given
+		for _, svc := range dnsd.ServiceNames() {
+			key := svc + "_answer"
+			var ips []net.IP
+			if v := s.String(key, ""); v != "" {
+				for _, f := range splitList(v) {
+					ip := net.ParseIP(f)
+					if ip == nil {
+						return fmt.Errorf("%s: an IP address (an IPv4 and an IPv6 one at most)", key)
+					}
+					ips = append(ips, ip)
+				}
+				if len(ips) > 2 || len(ips) == 2 && (ips[0].To4() != nil) == (ips[1].To4() != nil) {
+					return fmt.Errorf("%s: an IPv4 address, an IPv6 one, or one of each", key)
+				}
+			} else if ip := c.serviceIP(svc); ip != nil {
+				ips = []net.IP{ip}
+			}
+			if len(ips) > 0 && slices.Contains(d.Services, svc) {
+				if d.ServiceAnswers == nil {
+					d.ServiceAnswers = map[string][]net.IP{}
+				}
+				d.ServiceAnswers[svc] = ips
+			}
+		}
 		for _, n := range splitList(s.String("names", "")) {
 			n = strings.ToLower(strings.TrimSuffix(n, "."))
 			if strings.ContainsAny(n, "/:@") || !strings.Contains(n, ".") || strings.Contains(n[1:], "*") ||
@@ -167,6 +193,45 @@ func (c *Config) dnsServicesOn() []string {
 	return on
 }
 
+// serviceIP is the IP a service's server is given, when it is one of
+// its own (not every address, nor loopback): its HTTPS or TLS address's,
+// else its address's.  nil: none.
+func (c *Config) serviceIP(svc string) net.IP {
+	var addrs []string
+	switch svc {
+	case "msn":
+		if m := c.MSN; m != nil {
+			addrs = []string{m.HTTPSAddress, m.Address}
+		}
+	case "ymsg":
+		if y := c.YMSG; y != nil {
+			addrs = []string{y.HTTPSAddress, y.Address}
+		}
+	case "oscar":
+		if o := c.OSCAR; o != nil {
+			addrs = []string{o.TLSAddress, o.Address}
+		}
+	case "aol":
+		if a := c.AOL; a != nil {
+			addrs = []string{a.Address}
+		}
+	case "marvel":
+		if m := c.Marvel; m != nil {
+			addrs = []string{m.Address}
+		}
+	}
+	for _, a := range addrs {
+		h, _, err := net.SplitHostPort(a)
+		if err != nil {
+			continue
+		}
+		if ip := net.ParseIP(h); ip != nil && !ip.IsUnspecified() && !ip.IsLoopback() {
+			return ip
+		}
+	}
+	return nil
+}
+
 // dnsWarnings: the clients sent here by name come to the old services'
 // ports, so a front end listening elsewhere is not found.
 func (c *Config) dnsWarnings() {
@@ -247,6 +312,19 @@ func (c *Config) SharedPorts() ([]SharedPort, error) {
 				out[i].Members[0], u.who)
 		}
 		out[i].Members = append(out[i].Members, u.who)
+	}
+	// one port on every address and on an address of its own can't both
+	// be listened on: give each front end an IP of its own, or one address
+	for i, p := range out {
+		ph, pp, _ := net.SplitHostPort(vhost.Normal(p.Address))
+		for _, q := range out[i+1:] {
+			qh, qp, _ := net.SplitHostPort(vhost.Normal(q.Address))
+			if pp == qp && ph != qh && (ph == "" || qh == "") {
+				return nil, fmt.Errorf("port %s is on every address for [%s] and on %s for [%s]: give each "+
+					"front end an IP of its own (all of them), or the same address", pp, strings.Join(p.Members, "], ["),
+					q.Address, strings.Join(q.Members, "], ["))
+			}
+		}
 	}
 	var shared []SharedPort
 	for _, p := range out {

@@ -33,8 +33,13 @@ type Settings struct {
 	// BBS's address as the asker reaches it); Answer6 their IPv6 one (nil:
 	// likewise, when the asker came by IPv6; none otherwise)
 	Answer, Answer6 net.IP
-	Services        []string // whose names are answered (keys of Services)
-	Names           []string // more names answered with the BBS's address
+	// ServiceAnswers are services' own addresses (an IPv4 and an IPv6 one
+	// at most), given for their names instead of Answer and Answer6: for a
+	// service whose HTTPS server is on an IP of its own, with a
+	// certificate of its own
+	ServiceAnswers map[string][]net.IP
+	Services       []string // whose names are answered (keys of Services)
+	Names          []string // more names answered with the BBS's address
 	// Allow are the networks whose clients may resolve other names (the
 	// services' names are answered to anyone)
 	Allow     []*net.IPNet
@@ -172,7 +177,7 @@ func (s *Server) Answer(req *dns.Msg, client net.IP, local net.Addr) *dns.Msg {
 		r.SetReply(req)
 		r.Authoritative = true
 		r.RecursionAvailable = allowed
-		if ip := s.answerFor(q.Qtype, client, local); ip != nil {
+		if ip := s.answerFor(who, q.Qtype, client, local); ip != nil {
 			hdr := dns.RR_Header{Name: q.Name, Rrtype: q.Qtype, Class: dns.ClassINET, Ttl: s.S.TTL}
 			if q.Qtype == dns.TypeA {
 				r.Answer = append(r.Answer, &dns.A{Hdr: hdr, A: ip.To4()})
@@ -235,7 +240,19 @@ func (s *Server) resolve(req *dns.Msg) (*dns.Msg, error) {
 
 // answerFor is the address the services' names are given, for an A or
 // AAAA query (nil: none).
-func (s *Server) answerFor(qtype uint16, client net.IP, local net.Addr) net.IP {
+func (s *Server) answerFor(who string, qtype uint16, client net.IP, local net.Addr) net.IP {
+	if ips := s.S.ServiceAnswers[who]; len(ips) > 0 {
+		// the service's own address (its HTTPS server on an IP of its own)
+		for _, ip := range ips {
+			if qtype == dns.TypeA && ip.To4() != nil {
+				return ip.To4()
+			}
+			if qtype == dns.TypeAAAA && ip.To4() == nil {
+				return ip
+			}
+		}
+		return nil
+	}
 	switch qtype {
 	case dns.TypeA:
 		if s.S.Answer != nil {
@@ -428,6 +445,17 @@ func (s Settings) String() string {
 		ans = s.Answer.String()
 	}
 	return "dns: " + s.Address + ", " + strconv.Itoa(len(NewTable(s.Services, s.Names).exact)) +
-		" names (" + fmt.Sprint(s.Services) + ") answered with " + ans + ", the rest from " + up +
+		" names (" + fmt.Sprint(s.Services) + ") answered with " + ans + perService(s.ServiceAnswers) + ", the rest from " + up +
 		", " + strconv.Itoa(s.CacheSize) + " kept"
+}
+
+// perService describes the services' own addresses, for String.
+func perService(m map[string][]net.IP) string {
+	out := ""
+	for _, k := range ServiceNames() {
+		if ips := m[k]; len(ips) > 0 {
+			out += fmt.Sprintf(" (%s: %v)", k, ips)
+		}
+	}
+	return out
 }

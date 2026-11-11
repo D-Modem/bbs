@@ -97,3 +97,36 @@ func TestSharedPorts(t *testing.T) {
 		t.Errorf("TLS and plain on one port: %v", err)
 	}
 }
+
+// TestDNSServiceAnswers: a front end's HTTPS server on an IP of its own is
+// what [dns] gives for its names; <service>_answer says otherwise.
+func TestDNSServiceAnswers(t *testing.T) {
+	dir := t.TempDir()
+	cert, key := selfSigned(t, dir)
+	tlsKeys := "tls_cert = " + cert + "\ntls_key = " + key + "\n"
+	load := func(body string) (*Config, error) {
+		p := filepath.Join(dir, "bbs.conf")
+		os.WriteFile(p, []byte("[listen telnet]\ntype = telnet\naddress = :2300\n"+body), 0600)
+		return Load(p)
+	}
+	c, err := load("[msn]\nhttps_address = 192.168.77.11:443\n" + tlsKeys + "[ymsg]\nhttps_address = 192.168.77.12:443\n" +
+		tlsKeys + "[oscar]\ntls_address = 192.168.77.13:443\n" + tlsKeys + "[dns]\nprimary = 1.1.1.1\nymsg_answer = 10.0.0.12 fd00::12\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ports, err := c.SharedPorts(); err != nil || len(ports) != 0 {
+		t.Errorf("an IP each: shared %v %v", ports, err)
+	}
+	a := c.DNS.ServiceAnswers
+	if a["msn"][0].String() != "192.168.77.11" || a["oscar"][0].String() != "192.168.77.13" ||
+		len(a["ymsg"]) != 2 || a["ymsg"][0].String() != "10.0.0.12" {
+		t.Errorf("answers %v", a)
+	}
+	if _, err := load("[msn]\nhttps_address = 192.168.77.11:443\n" + tlsKeys + "[ymsg]\nhttps_address = :443\n" +
+		tlsKeys); err == nil || !strings.Contains(err.Error(), "an IP of its own") {
+		t.Errorf("every address and one IP on one port: %v", err)
+	}
+	if _, err := load("[msn]\n[dns]\nmsn_answer = 1.2.3.4 5.6.7.8\n"); err == nil || !strings.Contains(err.Error(), "msn_answer") {
+		t.Errorf("two IPv4 answers: %v", err)
+	}
+}

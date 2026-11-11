@@ -250,3 +250,19 @@ func TestServerAddress(t *testing.T) {
 		t.Error("a name taken")
 	}
 }
+
+func TestServiceAnswers(t *testing.T) {
+	s := New(Settings{Address: ":53", Services: []string{"msn", "ymsg"}, Answer: net.IPv4(192, 168, 77, 1),
+		ServiceAnswers: map[string][]net.IP{"msn": {net.IPv4(192, 168, 77, 11), net.ParseIP("fd00::11")}}}, nil)
+	for name, want := range map[string]string{"login.live.com": "192.168.77.11", "messenger.hotmail.com": "192.168.77.11",
+		"login.yahoo.com": "192.168.77.1"} {
+		r := s.Answer(query(name, dns.TypeA), net.IPv4(192, 168, 77, 2), local)
+		if len(r.Answer) != 1 || r.Answer[0].(*dns.A).A.String() != want {
+			t.Errorf("%s: %v, want %s", name, r, want)
+		}
+	}
+	r := s.Answer(query("login.live.com", dns.TypeAAAA), net.IPv4(192, 168, 77, 2), local)
+	if len(r.Answer) != 1 || r.Answer[0].(*dns.AAAA).AAAA.String() != "fd00::11" {
+		t.Errorf("AAAA: %v", r)
+	}
+}
