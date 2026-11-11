@@ -43,7 +43,7 @@ the file is laid out.
 | [`[irclink]`](#irclink) | IRC server linking: the BBS as a hub server on an IRC network, by TS6 (Solanum, charybdis, ircd-ratbox; ircd-hybrid 8 with protocol = hybrid) or P10 (ircu, Undernet's, with protocol = p10). |
 | [`[ircpeer NAME]`](#ircpeer-name) | A server the BBS links with, one section each: [ircpeer ITS.NAME]. |
 | [`[aol]`](#aol) | AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP). |
-| [`[msn]`](#msn) | MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (MSNP2 to 7), beside IRC and AIM. |
+| [`[msn]`](#msn) | MSN Messenger: the chat for MSN Messenger 1.0 to 7.5 and Windows Messenger 4.x (MSNP2 to 12), beside IRC and AIM. |
 | [`[marvel]`](#marvel) | The Microsoft Network of 1995 to 1998, for the MSN client that came with Windows 95: users sign in with their BBS names and passwords, the message areas are its Categories, and each area is an MSN bulletin board to read and post in. |
 | [`[ymsg]`](#ymsg) | Yahoo! Messenger: the chat for Yahoo! Messenger clients (YMSG 9 to 16), beside IRC, AIM and MSN. |
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
@@ -648,7 +648,7 @@ AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP).  Users sign on wi
 
 ## `[msn]`
 
-MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (MSNP2 to 7), beside IRC and AIM.  Users sign in as name@domain with their BBS passwords; contacts are their friends list; an IM is a private message (a PRIVMSG on IRC), kept for one away.  The clients must be pointed at this host (see the wiki page). See docs/wiki/MSN-Messenger.md.
+MSN Messenger: the chat for MSN Messenger 1.0 to 7.5 and Windows Messenger 4.x (MSNP2 to 12), beside IRC and AIM.  Users sign in as name@domain with their BBS passwords; contacts are their friends list; an IM is a private message (a PRIVMSG on IRC), kept for one away.  The clients must be pointed at this host (see the wiki page). See docs/wiki/MSN-Messenger.md.
 
 | key | default | live | what it does |
 |---|---|---|---|
@@ -659,6 +659,11 @@ MSN Messenger: the chat for MSN Messenger 1.0 to 4.7 and Windows Messenger 4.x (
 | `max_per_ip` |  |  | each conversation is a connection of its own. Examples: `16`. |
 | `system` |  |  | the name the BBS's notices come from. Examples: `BBS`. |
 | `site` |  |  | a web address the clients' links (inbox, profiles) open. Examples: `https://bbs.example.org/`. |
+| `https_address` |  |  | MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is that server too when https_address is set. The machine running the client sends nexus.passport.com, login.passport.com and login.live.com to the BBS (its hosts file) and trusts tls_cert for those names (make a small certificate authority of your own). See the wiki page. Examples: `:443`. |
+| `tls_cert` |  |  | MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is that server too when https_address is set. The machine running the client sends nexus.passport.com, login.passport.com and login.live.com to the BBS (its hosts file) and trusts tls_cert for those names (make a small certificate authority of your own). See the wiki page. Examples: `/etc/bbs/passport.crt`. |
+| `tls_key` |  |  | MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is that server too when https_address is set. The machine running the client sends nexus.passport.com, login.passport.com and login.live.com to the BBS (its hosts file) and trusts tls_cert for those names (make a small certificate authority of your own). See the wiki page. Examples: `/etc/bbs/passport.key`. |
+| `passport_host` |  |  | where the clients log in, host[:port] (default: the name they asked the nexus at) Examples: `login.passport.com`. |
+| `http_address` |  |  | or without TLS, behind a proxy that does it. Examples: `127.0.0.1:8863`. |
 
 
 ## `[marvel]`

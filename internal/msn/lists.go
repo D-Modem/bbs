@@ -154,6 +154,10 @@ func (ns *nsSession) syn(c *cmd) {
 		ns.k.sendErr(errInternal, c.trid)
 		return
 	}
+	if ns.ver >= 8 {
+		ns.syn8(c)
+		return
+	}
 	have, _ := strconv.Atoi(c.arg(0))
 	ns.mu.Lock()
 	if ns.listVer <= have {
@@ -293,12 +297,7 @@ func (ns *nsSession) add(c *cmd) {
 		}
 		k.send(w...)
 		ns.s.B.FriendsChanged(ns.u.ID)
-		if st := ns.s.statusFor(t, ns.u); st != "" {
-			ns.mu.Lock()
-			ns.told[t.ID] = st
-			ns.mu.Unlock()
-			k.send("ILN", c.trid, st, h, encode(ns.s.friendlyFor(t)))
-		}
+		ns.tellNow(c.trid, t)
 	case "AL":
 		if blocked {
 			k.sendErr(errInOpposite, c.trid)
@@ -325,6 +324,10 @@ func (ns *nsSession) add(c *cmd) {
 
 // rem is REM: off a list (or, MSNP7, out of a group).
 func (ns *nsSession) rem(c *cmd) {
+	if ns.ver >= 10 {
+		ns.rem10(c)
+		return
+	}
 	which, handle := strings.ToUpper(c.arg(0)), c.arg(1)
 	k := ns.k
 	t := ns.s.resolve(handle)
@@ -446,7 +449,10 @@ func (ns *nsSession) group(c *cmd) {
 		k.sendErr(errSyntax, c.trid)
 		return
 	}
-	st := ns.s.B.Store
+	if ns.ver >= 10 {
+		ns.group10(c)
+		return
+	}
 	switch c.name {
 	case "ADG":
 		name := strings.TrimSpace(decode(c.arg(0)))
@@ -473,47 +479,58 @@ func (ns *nsSession) group(c *cmd) {
 	case "RMG", "REG":
 		id, err := strconv.Atoi(c.arg(0))
 		ns.mu.Lock()
-		old, ok := ns.groups[id]
+		_, ok := ns.groups[id]
 		ns.mu.Unlock()
 		if err != nil || !ok || id == 0 {
 			k.sendErr(errBadGroup, c.trid)
 			return
 		}
-		to := ""
-		if c.name == "REG" {
-			to = strings.TrimSpace(decode(c.arg(1)))
-			if to == "" || len(to) > 61 {
-				k.sendErr(errGroupName, c.trid)
-				return
-			}
-		}
-		ns.mu.Lock()
-		var moved []store.Friend
-		for fid, f := range ns.fl {
-			if f.Group == old {
-				f.Group = to
-				ns.fl[fid] = f
-				moved = append(moved, f)
-			}
-		}
-		if c.name == "RMG" {
-			delete(ns.groups, id)
-		} else {
-			ns.groups[id] = to
-		}
-		ns.mu.Unlock()
-		for _, f := range moved {
-			st.PutFriend(ns.u.ID, f)
-		}
-		if len(moved) > 0 {
-			ns.s.B.FriendsChanged(ns.u.ID)
+		if code := ns.regroup(c.name, id, c.arg(1)); code != 0 {
+			k.sendErr(code, c.trid)
+			return
 		}
 		if c.name == "RMG" {
 			k.send("RMG", c.trid, ns.bumpVer(), strconv.Itoa(id))
 		} else {
-			k.send("REG", c.trid, ns.bumpVer(), strconv.Itoa(id), encode(to), "0")
+			k.send("REG", c.trid, ns.bumpVer(), strconv.Itoa(id), c.arg(1), "0")
 		}
 	}
+}
+
+// regroup removes a group (RMG: its friends into none) or renames it
+// (REG: to, URL-encoded); an error's number, or 0.
+func (ns *nsSession) regroup(op string, id int, to string) int {
+	to = strings.TrimSpace(decode(to))
+	if op == "REG" && (to == "" || len(to) > 61) {
+		return errGroupName
+	}
+	if op == "RMG" {
+		to = ""
+	}
+	ns.mu.Lock()
+	old := ns.groups[id]
+	var moved []store.Friend
+	for fid, f := range ns.fl {
+		if f.Group == old {
+			f.Group = to
+			ns.fl[fid] = f
+			moved = append(moved, f)
+		}
+	}
+	if op == "RMG" {
+		delete(ns.groups, id)
+		delete(ns.gguid, id)
+	} else {
+		ns.groups[id] = to
+	}
+	ns.mu.Unlock()
+	for _, f := range moved {
+		ns.s.B.Store.PutFriend(ns.u.ID, f)
+	}
+	if len(moved) > 0 {
+		ns.s.B.FriendsChanged(ns.u.ID)
+	}
+	return 0
 }
 
 // syncLists has the client told of changes made to its friends and
@@ -534,21 +551,17 @@ func (ns *nsSession) syncLists() {
 	ns.mu.Unlock()
 	for id, f := range newFL {
 		if _, ok := oldFL[id]; !ok {
-			w := []string{"ADD", "0", "FL", ns.bumpVer(), ns.s.handleOfName(f.Name), encode(f.Name)}
-			if ns.ver >= 7 {
-				ns.mu.Lock()
-				w = append(w, strconv.Itoa(ns.groupIDLocked(f.Group)))
-				ns.mu.Unlock()
-			}
-			ns.k.send(w...)
 			if u, err := ns.s.B.Store.UserByID(id); err == nil {
+				ns.asyncAdd("FL", u, f.Group)
 				ns.contactChanged(u)
 			}
 		}
 	}
-	for id, f := range oldFL {
+	for id := range oldFL {
 		if _, ok := newFL[id]; !ok {
-			ns.k.send("REM", "0", "FL", ns.bumpVer(), ns.s.handleOfName(f.Name))
+			if u, err := ns.s.B.Store.UserByID(id); err == nil {
+				ns.asyncRem("FL", u)
+			}
 			ns.mu.Lock()
 			delete(ns.told, id)
 			ns.mu.Unlock()
@@ -557,14 +570,14 @@ func (ns *nsSession) syncLists() {
 	for id := range newBL {
 		if !oldBL[id] {
 			if u, err := ns.s.B.Store.UserByID(id); err == nil {
-				ns.k.send("ADD", "0", "BL", ns.bumpVer(), ns.s.handleOf(u), encode(u.Name))
+				ns.asyncAdd("BL", u, "")
 			}
 		}
 	}
 	for id := range oldBL {
 		if !newBL[id] {
 			if u, err := ns.s.B.Store.UserByID(id); err == nil {
-				ns.k.send("REM", "0", "BL", ns.bumpVer(), ns.s.handleOf(u))
+				ns.asyncRem("BL", u)
 			}
 		}
 	}
@@ -588,9 +601,9 @@ func (ns *nsSession) reverseChanged(u *store.User) {
 			}
 			ns.mu.Unlock()
 			if has {
-				ns.k.send("ADD", "0", "RL", ns.bumpVer(), ns.s.handleOf(u), encode(u.Name))
+				ns.asyncAdd("RL", u, "")
 			} else {
-				ns.k.send("REM", "0", "RL", ns.bumpVer(), ns.s.handleOf(u))
+				ns.asyncRem("RL", u)
 			}
 		}
 	}

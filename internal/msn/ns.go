@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,6 +48,11 @@ type nsSession struct {
 	rl       map[int64]bool         // who has it as a friend, as last told
 	bl       map[int64]bool         // its blocked list, as last told
 	groups   map[int]string         // MSNP7 group ids: names ("" is 0, Other Contacts)
+	gguid    map[int]string         // MSNP10: the groups' GUIDs, by id
+	caps     string                 // MSNP8: its client's capabilities ("0" before)
+	msnobj   string                 // MSNP9: its display picture's object (encoded), "" for none
+	psm      []byte                 // MSNP11: its personal message (UUX's data)
+	auth     string                 // MSNP8: its Passport ticket
 	told     map[int64]string       // what it was last told of each friend's status ("": offline)
 	noted    map[int64]bool         // told that these are away (their messages kept)
 	keptSent bool
@@ -57,7 +63,7 @@ type nsSession struct {
 func (s *Server) notification(k *conn, host string, first *cmd) {
 	ns := &nsSession{s: s, k: k, host: host, todo: make(chan func(), queueLen), done: make(chan struct{}),
 		blp: "AL", gtc: "A", fl: map[int64]store.Friend{}, rl: map[int64]bool{}, bl: map[int64]bool{},
-		groups: map[int]string{0: ""}, told: map[int64]string{}, noted: map[int64]bool{}}
+		groups: map[int]string{0: ""}, gguid: map[int]string{}, caps: "0", told: map[int64]string{}, noted: map[int64]bool{}}
 	if !ns.signIn(first) {
 		return
 	}
@@ -92,11 +98,20 @@ func (s *Server) notification(k *conn, host string, first *cmd) {
 		s.B.Log.Printf("node %d: gone (msn)", n.Num)
 		s.changed(u)
 	}()
-	ok := []string{"USR", ns.loginTrid, "OK", ns.handle, encode(ns.friendly)}
+	ok := []string{"USR", ns.loginTrid, "OK", ns.handle}
+	if ns.ver < 10 {
+		ok = append(ok, encode(ns.friendly)) // since MSNP10, in SYN (PRP MFN)
+	}
 	if ns.ver >= 6 {
 		ok = append(ok, "1") // its e-mail address verified
 	}
+	if ns.ver >= 8 {
+		ok = append(ok, "0") // not an account that must use MSN Explorer
+	}
 	ns.k.send(ok...)
+	if ns.ver >= 11 {
+		ns.k.send("SBS", "0", "null")
+	}
 	ns.profile()
 	go ns.events()
 	ns.serve()
@@ -114,15 +129,19 @@ func (ns *nsSession) signIn(c *cmd) bool {
 			ns.ver = 0
 			for _, a := range c.args {
 				if v, ok := strings.CutPrefix(strings.ToUpper(a), "MSNP"); ok {
-					if n, err := strconv.Atoi(v); err == nil && n >= minVersion && n <= maxVersion && n > ns.ver {
+					if n, err := strconv.Atoi(v); err == nil && n >= minVersion && n <= s.maxVer() && n > ns.ver {
 						ns.ver = n
 					}
 				}
 			}
 			if ns.ver == 0 {
 				ns.k.send("VER", c.trid, "0")
-				s.B.Log.Printf("msn: %s: a client for %s, which is not served (MSNP%d to %d are)",
-					ns.host, strings.Join(c.args, " "), minVersion, maxVersion)
+				why := ""
+				if !s.passportOn() {
+					why = "; MSN 5.0 and later need the Passport server, https_address"
+				}
+				s.B.Log.Printf("msn: %s: a client for %s, which is not served (MSNP%d to %d are%s)",
+					ns.host, strings.Join(c.args, " "), minVersion, s.maxVer(), why)
 				return false
 			}
 			ns.k.send("VER", c.trid, fmt.Sprintf("MSNP%d", ns.ver))
@@ -133,7 +152,16 @@ func (ns *nsSession) signIn(c *cmd) bool {
 		case "USR":
 			pkg, stage := strings.ToUpper(c.arg(0)), strings.ToUpper(c.arg(1))
 			switch {
-			case pkg == "MD5" && stage == "I":
+			case pkg == "TWN" && stage == "I" && ns.ver >= 8:
+				ns.handle = c.arg(2)
+				ns.k.send("USR", c.trid, "TWN", "S", fmt.Sprintf("lc=1033,id=507,tw=40,fs=1,"+
+					"ru=http%%3A%%2F%%2Fmessenger%%2Emsn%%2Ecom,ct=%d,kpp=1,kv=5,ver=2.1.0173.1,tpf=%s",
+					time.Now().Unix(), randomHex(16)))
+			case pkg == "TWN" && stage == "S" && ns.ver >= 8 && ns.handle != "":
+				ns.loginTrid = c.trid
+				u, err := ns.twnLogin(c.arg(2))
+				return ns.signedIn(c.trid, u, err)
+			case pkg == "MD5" && stage == "I" && ns.ver <= 7:
 				ns.handle = c.arg(2)
 				target = s.resolve(ns.handle)
 				if target != nil {
@@ -146,7 +174,7 @@ func (ns *nsSession) signIn(c *cmd) bool {
 					salt = randomHex(10) // an unknown handle is challenged too; its sign-in fails
 				}
 				ns.k.send("USR", c.trid, "MD5", "S", salt)
-			case pkg == "MD5" && stage == "S" && salt != "":
+			case pkg == "MD5" && stage == "S" && salt != "" && ns.ver <= 7:
 				ns.loginTrid = c.trid
 				u, err := ns.md5Login(target, salt, c.arg(2))
 				return ns.signedIn(c.trid, u, err)
@@ -225,6 +253,26 @@ func (ns *nsSession) md5Login(target *store.User, salt, digest string) (*store.U
 	return u, err
 }
 
+// twnLogin checks a Passport ticket (TWN): one the Passport server gave
+// for the account the client signed in as.
+func (ns *nsSession) twnLogin(token string) (*store.User, error) {
+	id := ns.s.takeTicket(token)
+	if id == 0 {
+		ns.s.B.Log.Printf("msn: %s: %s gave no ticket of the Passport server's", ns.host, ns.handle)
+		return nil, store.ErrNotFound
+	}
+	u, err := ns.s.B.Store.UserByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if t := ns.s.resolve(ns.handle); t == nil || t.ID != u.ID {
+		return nil, store.ErrNotFound
+	}
+	q, _ := url.ParseQuery(token)
+	ns.auth = q.Get("t")
+	return u, nil
+}
+
 // passwordLogin checks a password sent in the clear (CTP, MSN 1.0).
 func (ns *nsSession) passwordLogin(handle, pw string) (*store.User, error) {
 	name := handle
@@ -249,11 +297,28 @@ func (ns *nsSession) cvr(c *cmd) {
 
 // profile is the initial profile message after sign-in.
 func (ns *nsSession) profile() {
-	p := fmt.Sprintf("MIME-Version: 1.0\r\nContent-Type: text/x-msmsgsprofile; charset=UTF-8\r\n"+
-		"LoginTime: %d\r\nEmailEnabled: 0\r\nMemberIdHigh: 0\r\nMemberIdLow: %d\r\n"+
+	auth := ns.auth
+	if auth == "" {
+		auth = randomHex(16)
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "MIME-Version: 1.0\r\nContent-Type: text/x-msmsgsprofile; charset=UTF-8\r\n"+
+		"LoginTime: %d\r\nEmailEnabled: 0\r\nMemberIdHigh: 1\r\nMemberIdLow: %d\r\n"+
 		"lang_preference: 1033\r\npreferredEmail: \r\ncountry: \r\nPostalCode: \r\nGender: \r\n"+
-		"Kid: 0\r\nAge: \r\nsid: 507\r\nkv: 2\r\nMSPAuth: %s\r\nClientIP: %s\r\nClientPort: 0\r\n\r\n",
-		time.Now().Unix(), ns.u.ID, randomHex(16), ns.host)
+		"Kid: 0\r\nAge: \r\n", time.Now().Unix(), ns.u.ID)
+	if ns.ver >= 8 {
+		b.WriteString("BDayPre: \r\nBirthday: \r\nWallet: \r\nFlags: 1027\r\n")
+	}
+	kv := "2"
+	if ns.ver >= 8 {
+		kv = "11"
+	}
+	fmt.Fprintf(&b, "sid: 507\r\nkv: %s\r\nMSPAuth: %s\r\nClientIP: %s\r\nClientPort: 0\r\n", kv, auth, ns.host)
+	if ns.ver >= 10 {
+		b.WriteString("ABCHMigrated: 1\r\n") // contacts and groups by GUID
+	}
+	b.WriteString("\r\n")
+	p := b.String()
 	ns.k.sendPayload([]byte(p), "MSG", "Hotmail", "Hotmail")
 }
 
@@ -297,6 +362,13 @@ func (ns *nsSession) statusNow() string {
 	ns.mu.Lock()
 	defer ns.mu.Unlock()
 	return ns.status
+}
+
+// capsNow is its client's capabilities.
+func (ns *nsSession) capsNow() string {
+	ns.mu.Lock()
+	defer ns.mu.Unlock()
+	return ns.caps
 }
 
 // friendlyName is its display name.
@@ -367,7 +439,11 @@ func (ns *nsSession) command(c *cmd) {
 	k := ns.k
 	switch c.name {
 	case "PNG":
-		k.send("QNG")
+		if ns.ver >= 9 {
+			k.send("QNG", "50") // the next in 50 seconds
+		} else {
+			k.send("QNG")
+		}
 	case "CVR", "CVQ":
 		ns.cvr(c)
 	case "INF":
@@ -382,6 +458,26 @@ func (ns *nsSession) command(c *cmd) {
 		ns.chg(c)
 	case "ADD":
 		ns.add(c)
+	case "ADC":
+		if ns.ver < 10 {
+			k.sendErr(errSyntax, c.trid)
+			return
+		}
+		ns.adc(c)
+	case "PRP":
+		ns.prp(c)
+	case "SBP":
+		ns.sbp(c)
+	case "UUX":
+		if ns.ver < 11 {
+			k.sendErr(errSyntax, c.trid)
+			return
+		}
+		ns.uux(c)
+	case "GCF":
+		// the client's feature blocks: none
+		k.sendPayload([]byte(`<?xml version="1.0" encoding="utf-8" ?><config><shield><cli maj="7" min="0" `+
+			`minbld="0" maxbld="9999" deny=" " /></shield><block></block></config>`), "GCF", c.trid, c.arg(0))
 	case "REM":
 		ns.rem(c)
 	case "REA":
@@ -393,7 +489,7 @@ func (ns *nsSession) command(c *cmd) {
 			ns.mu.Lock()
 			ns.blp = m
 			ns.mu.Unlock()
-			k.send("BLP", c.trid, ns.bumpVer(), m)
+			k.send(ns.versioned("BLP", c.trid, m)...)
 			ns.s.changed(ns.u)
 		} else {
 			k.sendErr(errBadParam, c.trid)
@@ -403,7 +499,7 @@ func (ns *nsSession) command(c *cmd) {
 			ns.mu.Lock()
 			ns.gtc = m
 			ns.mu.Unlock()
-			k.send("GTC", c.trid, ns.bumpVer(), m)
+			k.send(ns.versioned("GTC", c.trid, m)...)
 		} else {
 			k.sendErr(errBadParam, c.trid)
 		}
@@ -450,8 +546,23 @@ func (ns *nsSession) chg(c *cmd) {
 	ns.mu.Lock()
 	first := ns.status == ""
 	ns.status = st
+	echo := []string{"CHG", c.trid, c.arg(0)}
+	if ns.ver >= 8 {
+		ns.caps = "0"
+		if _, err := strconv.ParseUint(c.arg(1), 10, 32); err == nil {
+			ns.caps = c.arg(1)
+		}
+		ns.msnobj = ""
+		if ns.ver >= 9 && len(c.arg(2)) <= 2048 && c.arg(2) != "0" {
+			ns.msnobj = c.arg(2)
+		}
+		echo = append(echo, ns.caps)
+		if ns.msnobj != "" {
+			echo = append(echo, ns.msnobj)
+		}
+	}
 	ns.mu.Unlock()
-	ns.k.send("CHG", c.trid, c.arg(0))
+	ns.k.send(echo...)
 	doing := "MSN"
 	if st != "NLN" {
 		doing += " (" + statuses[st] + ")"

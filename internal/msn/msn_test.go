@@ -45,6 +45,7 @@ type env struct {
 	srv     *Server
 	addr    string // MSN's
 	ircAddr string
+	web     string // the Passport server's ("": none)
 }
 
 // freeAddr is a loopback address free to listen on.
@@ -59,7 +60,11 @@ func freeAddr(t *testing.T) string {
 
 // start is a BBS (alice, bob, Carol Ann and sysop, all password1; old,
 // made before MSN digests were kept) with MSN and IRC servers.
-func start(t *testing.T) *env {
+func start(t *testing.T) *env { t.Helper(); return startWith(t, nil) }
+
+// startWith is start, with the Passport server (without TLS) if
+// passport is not nil, the settings then changed by it.
+func startWith(t *testing.T, passport func(*Settings)) *env {
 	t.Helper()
 	store.BcryptCost = 4
 	st, err := store.Open(filepath.Join(t.TempDir(), "bbs.db"))
@@ -81,7 +86,13 @@ func start(t *testing.T) *env {
 	logs := &syncBuf{}
 	b := bbs.New(s, st, log.New(logs, "", 0))
 	e := &env{b: b, addr: freeAddr(t), ircAddr: freeAddr(t)}
-	srv, err := New(b, Settings{Address: e.addr, Domain: "bbs.test", MaxPerIP: 50})
+	set := Settings{Address: e.addr, Domain: "bbs.test", MaxPerIP: 50}
+	if passport != nil {
+		e.web = freeAddr(t)
+		set.HTTPAddress = e.web
+		passport(&set)
+	}
+	srv, err := New(b, set)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +113,11 @@ func start(t *testing.T) *env {
 			t.Log("log:\n" + logs.String())
 		}
 	})
-	for _, a := range []string{e.addr, e.ircAddr} {
+	addrs := []string{e.addr, e.ircAddr}
+	if e.web != "" {
+		addrs = append(addrs, e.web)
+	}
+	for _, a := range addrs {
 		for i := 0; ; i++ {
 			if c, err := net.Dial("tcp", a); err == nil {
 				c.Close()
@@ -162,7 +177,7 @@ func (cl *client) line() (string, string, error) {
 	}
 	l = strings.TrimRight(l, "\r\n")
 	f := strings.Fields(l)
-	if len(f) > 0 && (f[0] == "MSG" || f[0] == "NOT") {
+	if len(f) > 0 && (f[0] == "MSG" || f[0] == "NOT" || f[0] == "UBX" || f[0] == "GCF") {
 		n, _ := strconv.Atoi(f[len(f)-1])
 		p := make([]byte, n)
 		if _, err := readFull(cl.r, p); err != nil {

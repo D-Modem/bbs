@@ -146,7 +146,7 @@ which is generated from `bbs.conf.sample`.
 | [AIM and ICQ](AIM-and-ICQ) | the OSCAR server: AIM and ICQ clients, buddies, IMs and chat rooms |
 | [IRC server linking](IRC-Linking) | The BBS as a hub server on an IRC network (TS6 or P10): every user reachable there |
 | [AOL clients](AOL) | a host for AOL's own clients (3.0, 4.0): sign-on with BBS accounts |
-| [MSN Messenger](MSN-Messenger) | the MSN server: MSN Messenger 1.0 to 4.7, contacts and IMs |
+| [MSN Messenger](MSN-Messenger) | the MSN server: MSN Messenger 1.0 to 7.5, contacts and IMs |
 | [MSN Classic](MSN-Classic) | The Microsoft Network for Windows 95's client: sign-in, the areas as Categories, bulletin boards |
 | [Yahoo! Messenger](Yahoo-Messenger) | the Yahoo server: YMSG 9 to 16, buddies, IMs, chat rooms and conferences |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |

@@ -180,12 +180,12 @@ func (sb *switchboard) join(sc *sbConn, first *cmd) bool {
 		sc.k.send("USR", first.trid, "OK", sc.handle, friendly)
 		return true
 	}
-	var others [][2]string
+	var others [][3]string
 	for _, o := range sb.joined {
-		others = append(others, [2]string{o.handle, encode(o.ns.friendlyName())})
+		others = append(others, [3]string{o.handle, encode(o.ns.friendlyName()), o.ns.capsNow()})
 	}
 	for _, v := range sb.virtual {
-		others = append(others, [2]string{v.handle, encode(v.friendly)})
+		others = append(others, [3]string{v.handle, encode(v.friendly), "0"})
 	}
 	tell := append([]*sbConn(nil), sb.joined...)
 	sb.joined = append(sb.joined, sc)
@@ -194,11 +194,15 @@ func (sb *switchboard) join(sc *sbConn, first *cmd) bool {
 	delete(sb.queue, uid)
 	sb.mu.Unlock()
 	for i, o := range others {
-		sc.k.send("IRO", first.trid, strconv.Itoa(i+1), strconv.Itoa(len(others)), o[0], o[1])
+		w := []string{"IRO", first.trid, strconv.Itoa(i + 1), strconv.Itoa(len(others)), o[0], o[1]}
+		if sc.ns.ver >= 12 {
+			w = append(w, o[2]) // its capabilities
+		}
+		sc.k.send(w...)
 	}
 	sc.k.send("ANS", first.trid, "OK")
 	for _, o := range tell {
-		o.k.send("JOI", sc.handle, friendly)
+		o.joi(sc.handle, friendly, sc.ns.capsNow())
 	}
 	for _, m := range queued {
 		sc.k.write(m)
@@ -338,7 +342,17 @@ func (sc *sbConn) call(c *cmd) {
 	sb.mu.Lock()
 	sb.virtual = append(sb.virtual, v)
 	sb.mu.Unlock()
-	sc.k.send("JOI", v.handle, encode(v.friendly))
+	sc.joi(v.handle, encode(v.friendly), "0")
+}
+
+// joi tells a client that one came into the conversation (since MSNP12,
+// with their capabilities).
+func (sc *sbConn) joi(handle, friendly, caps string) {
+	w := []string{"JOI", handle, friendly}
+	if sc.ns.ver >= 12 {
+		w = append(w, caps)
+	}
+	sc.k.send(w...)
 }
 
 // ring has a client asked to answer the conversation (RNG), as from one

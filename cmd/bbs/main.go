@@ -323,7 +323,8 @@ func main() {
 			fmt.Printf("aol: %q\n", a.Address)
 		}
 		if m := cfg.MSN; m != nil {
-			fmt.Printf("msn: %q, conversations at %q, handles @%s\n", m.Address, m.Host, m.Domain)
+			fmt.Printf("msn: %q, conversations at %q, handles @%s, Passport (MSN 5.0 and later) at %q\n",
+				m.Address, m.Host, m.Domain, m.HTTPSAddress)
 		}
 		if m := cfg.Marvel; m != nil {
 			fmt.Printf("marvel: %q\n", m.Address)
