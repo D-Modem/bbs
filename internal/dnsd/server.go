@@ -40,6 +40,9 @@ type Settings struct {
 	ServiceAnswers map[string][]net.IP
 	Services       []string // whose names are answered (keys of Services)
 	Names          []string // more names answered with the BBS's address
+	// Records are the sysop's own ([dnsrecord NAME]), answered as they
+	// are before all else
+	Records []dns.RR
 	// Allow are the networks whose clients may resolve other names (the
 	// services' names are answered to anyone)
 	Allow     []*net.IPNet
@@ -62,6 +65,7 @@ type Server struct {
 	S     Settings
 	Log   *log.Logger
 	table *Table
+	recs  *Records
 	cache *cache
 	up    *upstreams
 	group singleflight.Group
@@ -88,7 +92,7 @@ func New(s Settings, lg *log.Logger) *Server {
 	if s.Timeout == 0 {
 		s.Timeout = 2 * time.Second
 	}
-	srv := &Server{S: s, Log: lg, table: NewTable(s.Services, s.Names),
+	srv := &Server{S: s, Log: lg, table: NewTable(s.Services, s.Names), recs: NewRecords(s.Records),
 		cache: newCache(s.CacheSize, s.MaxTTL, s.NegTTL),
 		up:    &upstreams{fixed: s.Upstreams, self: []string{s.Address}}}
 	if s.Rate > 0 {
@@ -173,6 +177,16 @@ func (s *Server) Answer(req *dns.Msg, client net.IP, local net.Addr) *dns.Msg {
 	}
 	q := req.Question[0]
 	allowed := s.allowed(client)
+	if ans, has := s.recs.answer(q.Name, q.Qtype); has && q.Qclass == dns.ClassINET &&
+		(len(ans) > 0 || s.table.Match(q.Name) == "") {
+		// the sysop's own: as they are (none of the type: no records,
+		// NOERROR, so nothing upstream answers for the name)
+		r.SetReply(req)
+		r.Authoritative = true
+		r.RecursionAvailable = allowed
+		r.Answer = fixName(ans, q.Name)
+		return r
+	}
 	if who := s.table.Match(q.Name); who != "" && q.Qclass == dns.ClassINET {
 		r.SetReply(req)
 		r.Authoritative = true
@@ -446,7 +460,18 @@ func (s Settings) String() string {
 	}
 	return "dns: " + s.Address + ", " + strconv.Itoa(len(NewTable(s.Services, s.Names).exact)) +
 		" names (" + fmt.Sprint(s.Services) + ") answered with " + ans + perService(s.ServiceAnswers) + ", the rest from " + up +
-		", " + strconv.Itoa(s.CacheSize) + " kept"
+		records(len(s.Records)) + ", " + strconv.Itoa(s.CacheSize) + " kept"
+}
+
+// records is how many records of the sysop's there are, for String.
+func records(n int) string {
+	switch n {
+	case 0:
+		return ""
+	case 1:
+		return ", 1 record of your own"
+	}
+	return ", " + strconv.Itoa(n) + " records of your own"
 }
 
 // perService describes the services' own addresses, for String.

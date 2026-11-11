@@ -186,6 +186,50 @@ configuration editor (`bbs config`, and the sysop's menu) won't take an
 edit that makes it: the old value is put back and the reason shown. The
 editor has the DNS server under Internet services, "DNS for callers".
 
+## Records of your own
+
+A `[dnsrecord NAME]` section is one DNS record, answered as written. These
+records are answered to anyone, before the services' names, and nothing
+about the name is asked upstream. Use them for a machine on your network,
+a game server, or a mail server for your dial-up users. Give a name more
+than one section for more than one record:
+
+```ini
+[dnsrecord games.bbs.example.org]
+value = 192.168.77.20
+
+[dnsrecord bbs-mx]
+name = bbs.example.org
+type = MX
+value = 10 mail.bbs.example.org
+
+[dnsrecord bbs-txt]
+name = bbs.example.org
+type = TXT
+value = v=spf1 mx -all
+
+[dnsrecord lan]
+name = *.lan.example.org
+value = 192.168.77.5
+ttl = 300
+```
+
+| key | what it is |
+|---|---|
+| `name` | the name (default: the section's NAME); `*.domain` is every name under it |
+| `type` | A, AAAA, CNAME, TXT, MX, SRV, NS, PTR, CAA, or any other type (default: A or AAAA, from the value's address) |
+| `value` | as a zone file writes it: an address, a CNAME's target, a TXT's text, an MX's preference and host, an SRV's priority, weight, port and host |
+| `ttl` | seconds (default: `[dns]` `ttl`) |
+
+A query for a type the name has no record of gets an empty answer, and is
+not asked upstream. A CNAME is followed to its target when the target has
+records here too. A record for one of the old services' names takes the
+place of the BBS's answer for that type; the other types still get the
+BBS's answer. `bbs check` refuses a record it cannot read. In the
+configuration screens these records are under Internet services, DNS for
+callers, DNS records, with the type picked from a list and an address
+picked from this machine's.
+
 ## Who may use it
 
 The services' names are answered to anyone who asks. Other names are

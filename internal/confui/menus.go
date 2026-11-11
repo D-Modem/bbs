@@ -319,7 +319,7 @@ func (e *Editor) servicesMenu() page {
 			e.single("Gopher", "gopher"),
 			e.single("Gemini", "gemini"),
 			e.single("FTP", "ftp"),
-			e.single("DNS for callers", "dns"),
+			menu("DNS for callers", e.onOff(sec("dns")), func() error { return e.show(e.dnsPage()) }),
 			menu("News (NNTP)", e.onOff(sec("nntp")), func() error { return e.show(e.newsPage()) }),
 			menu("Web: API, forum, image boards", e.onOff(sec("http")), func() error { return e.show(e.webPage()) }),
 			menu("Certificates (ACME)", e.onOff(sec("acme")), func() error { return e.show(e.acmePage()) }),
@@ -478,6 +478,32 @@ func (e *Editor) acmePage() page {
 		}))
 		return out
 	}}
+}
+
+// dnsPage is DNS for callers: [dns], and the records of the sysop's own
+// ([dnsrecord NAME]s).
+func (e *Editor) dnsPage() page {
+	return page{title: "DNS for callers", items: func() []item {
+		out := []item{e.enabled(sec("dns"), "Enabled")}
+		out = append(out, e.sectionFields(sec("dns"))...)
+		out = append(out, heading("Records of your own"), menu("DNS records", e.count("dnsrecord", nil, "record"), func() error {
+			return e.show(e.listPage("DNS records", "dnsrecord", "record", nil, func(s confedit.Section) string {
+				return e.recordWords(s)
+			}, map[string]string{"type": "A"}))
+		}))
+		return out
+	}}
+}
+
+// recordWords is a [dnsrecord]'s record in a line: name, type, value.
+func (e *Editor) recordWords(s confedit.Section) string {
+	name := e.value(s, "name", s.Name)
+	t := e.value(s, "type", "A")
+	v, _ := e.doc.Get(s, "value")
+	if v == "" {
+		v = "(no value yet)"
+	}
+	return name + " " + strings.ToUpper(t) + " " + v
 }
 
 // tn3270Page is TN3270: the 3270 pictures and logo, and the tn3270 key of

@@ -130,3 +130,31 @@ func TestDNSServiceAnswers(t *testing.T) {
 		t.Errorf("two IPv4 answers: %v", err)
 	}
 }
+
+// TestDNSRecords: the [dnsrecord NAME]s, by NAME or their name, a bad one
+// refused, and one without [dns] warned of.
+func TestDNSRecords(t *testing.T) {
+	dir := t.TempDir()
+	load := func(body string) (*Config, error) {
+		p := filepath.Join(dir, "bbs.conf")
+		os.WriteFile(p, []byte("[listen telnet]\ntype = telnet\naddress = :2300\n"+body), 0600)
+		return Load(p)
+	}
+	c, err := load("[dns]\nttl = 90\n[dnsrecord games.bbs.example]\nvalue = 192.168.77.20\n" +
+		"[dnsrecord mail]\nname = bbs.example\ntype = mx\nvalue = 10 mail.bbs.example\nttl = 3600\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := c.DNS.Records; len(r) != 2 || r[0].Header().Name != "games.bbs.example." || r[0].Header().Ttl != 90 ||
+		r[1].Header().Name != "bbs.example." || r[1].Header().Ttl != 3600 {
+		t.Errorf("records %v", r)
+	}
+	if _, err := load("[dns]\n[dnsrecord x.example]\ntype = MX\nvalue = nope\n"); err == nil ||
+		!strings.Contains(err.Error(), "[dnsrecord x.example]") {
+		t.Errorf("bad MX: %v", err)
+	}
+	c, err = load("[dnsrecord x.example]\nvalue = 10.0.0.1\n")
+	if err != nil || !slices.ContainsFunc(c.Warnings, func(w string) bool { return strings.Contains(w, "without a [dns]") }) {
+		t.Errorf("no [dns]: %v %v", err, c.Warnings)
+	}
+}

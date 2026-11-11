@@ -47,6 +47,7 @@ the file is laid out.
 | [`[marvel]`](#marvel) | The Microsoft Network of 1995 to 1998, for the MSN client that came with Windows 95: users sign in with their BBS names and passwords, the message areas are its Categories, and each area is an MSN bulletin board to read and post in. |
 | [`[ymsg]`](#ymsg) | Yahoo! Messenger: the chat for Yahoo! Messenger clients (YMSG 9 to 16), beside IRC, AIM and MSN. |
 | [`[dns]`](#dns) | DNS: a resolving, caching DNS server for callers (dial-up users above all: give it to them as their DNS server, as pppd's ms-dns). |
+| [`[dnsrecord NAME]`](#dnsrecord-name) | A DNS record of your own, answered by [dns] as it is (to anyone, before the services' names and before anything is asked upstream): a name for a machine on your network, a game server, a mail server for your dial-up users. |
 | [`[mrc]`](#mrc) | Multi Relay Chat: the BBSes' chat network. |
 | [`[finger]`](#finger) | finger: who is on ("finger @host"), and who a user is ("finger name@host"). |
 | [`[gopher]`](#gopher) | gopher: about the system, who is on, and what areas the sysop opens: no login, so anyone sees them. |
@@ -725,6 +726,20 @@ DNS: a resolving, caching DNS server for callers (dial-up users above all: give 
 | `timeout` |  |  | seconds for each server to answer before the next is asked. Examples: `2`. |
 | `rate` |  |  | UDP queries a second one address may make (0: no limit), and at once. Examples: `50`. |
 | `burst` |  |  | UDP queries a second one address may make (0: no limit), and at once. Examples: `200`. |
+
+
+## `[dnsrecord NAME]`
+
+A DNS record of your own, answered by [dns] as it is (to anyone, before the services' names and before anything is asked upstream): a name for a machine on your network, a game server, a mail server for your dial-up users.  Each [dnsrecord NAME] is one record; give a name several for several (two A records, an MX and a TXT ...)
+
+There may be any number of these, each with its own NAME.
+
+| key | default | live | what it does |
+|---|---|---|---|
+| `name` |  |  | the name (default: NAME); *.domain for every name under it. Examples: `games.bbs.example.org`. |
+| `type` |  |  | A, AAAA, CNAME, TXT, MX, SRV, NS, PTR, CAA ... (default: A or AAAA, by the value's address) Examples: `A`. |
+| `value` |  |  | as a zone file writes it: an address; a CNAME's name; a TXT's text; an MX's preference and host (10 mail.example.org); an SRV's priority, weight, port and host (0 5 5060 sip.example.org) Examples: `192.168.77.20`. |
+| `ttl` |  |  | seconds (default: [dns] ttl) Examples: `300`. |
 
 
 ## `[mrc]`

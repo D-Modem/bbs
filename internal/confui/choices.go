@@ -42,6 +42,7 @@ func (o *offer) add(v, note string) {
 // more are the closed lists (by "kind.key") beside choices: the values
 // the BBS takes and no others.  "" is the default.
 var more = map[string][]string{
+	"dnsrecord.type":     {"", "A", "AAAA", "CNAME", "TXT", "MX", "SRV", "NS", "PTR", "CAA"},
 	"listen.frontend":    {"", "bbs", "compuserve", "marvel"},
 	"acme.challenge":     {"", "http", "tls-alpn", "dns"},
 	"acme.dns_check":     {"", "authoritative", "resolvers", "no"},
@@ -61,6 +62,10 @@ var more = map[string][]string{
 
 // notes are words beside some of the closed lists' values.
 var notes = map[string]map[string]string{
+	"dnsrecord.type": {"": "A or AAAA, by the address", "A": "an IPv4 address", "AAAA": "an IPv6 address",
+		"CNAME": "another name for a name", "TXT": "text", "MX": "a mail server: 10 mail.example.org",
+		"SRV": "a service: 0 5 5060 sip.example.org", "NS": "a name server", "PTR": "a name for an address",
+		"CAA": "who may issue certificates: 0 issue \"letsencrypt.org\""},
 	"listen.frontend": {"bbs": "the BBS", "compuserve": "CompuServe (CIS)", "marvel": "MSN 1995, dial-in"},
 	"acme.challenge": {"http": "a token on port 80", "tls-alpn": "a certificate on port 443",
 		"dns": "a TXT record (the only one for *.wildcards)"},
@@ -146,6 +151,24 @@ func (e *Editor) offerFor(s confedit.Section, key string) (offer, bool) {
 		o = e.addressOffer(s, key)
 	case kk == "dns.answer" || kk == "dns.answer6" || s.Kind == "dns" && strings.HasSuffix(key, "_answer"):
 		o = e.answerOffer(key == "answer6")
+	case kk == "dnsrecord.value":
+		switch t := strings.ToUpper(e.value(s, "type", "")); t {
+		case "", "A", "AAAA":
+			o = e.answerOffer(t == "AAAA")
+			o.values, o.notes = o.values[1:], o.notes[1:]
+		default:
+			return offer{}, false
+		}
+	case kk == "dnsrecord.name":
+		o.open = true
+		o.add("", s.Name)
+		for _, n := range strings.FieldsFunc(e.value(sec("dns"), "names", ""), func(r rune) bool { return r == ',' || r == ' ' }) {
+			if !strings.HasPrefix(n, "*.") {
+				o.add(n, "a name of [dns] names")
+			} else {
+				o.add(strings.Replace(n, "*", s.Name, 1), "under "+n[2:])
+			}
+		}
 	case kk == "dns.services":
 		o.multi, o.open = true, true
 		for _, n := range dnsd.ServiceNames() {
