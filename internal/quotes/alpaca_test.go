@@ -117,13 +117,12 @@ func TestAlpacaSnapshots(t *testing.T) {
 
 // TestAlpacaStream: Friday's quote from the snapshot, then Monday's trades
 // on the stream begin the quote again, with Friday's close the change is
-// from.
+// from.  The clock is Monday 9:33, just after the open, whatever day the
+// test runs (later, with no clock tick since, the session would be closed).
 func TestAlpacaStream(t *testing.T) {
 	srv, subs := fakeAlpaca(t)
 	ws := "ws" + strings.TrimPrefix(srv.URL, "http") + "/v2/"
-	// Monday before the open, whenever the test is run: the session not
-	// over, so no close yet
-	monday := time.Date(2026, 11, 9, 9, 0, 0, 0, eastern)
+	monday := time.Date(2026, 11, 9, 9, 33, 0, 0, eastern)
 	a := &Alpaca{Key: "KEY", Secret: "SECRET", Book: NewBook(nil), Pinned: []string{"AAPL"},
 		DataURL: srv.URL + "/v2/", StreamURL: ws, Now: func() time.Time { return monday }}
 	ctx, cancel := context.WithCancel(context.Background())

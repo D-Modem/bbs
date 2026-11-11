@@ -40,9 +40,7 @@ type Alpaca struct {
 	StreamURL   string // AlpacaStream if "" (the feed is added)
 	DataURL     string // AlpacaData if ""
 	Log         func(format string, args ...any)
-	// Now is the time, by which the session is open or over (nil:
-	// time.Now; a test's clock)
-	Now func() time.Time
+	Now         func() time.Time // the clock (time.Now if nil): what session it is, how fresh a snapshot is
 
 	mu      sync.Mutex
 	wanted  map[string]time.Time // when each symbol was last wanted
@@ -52,7 +50,6 @@ type Alpaca struct {
 	err     error // the stream's last failure (nil: connected)
 }
 
-// now is the time by a's clock.
 func (a *Alpaca) now() time.Time {
 	if a.Now != nil {
 		return a.Now()
@@ -111,7 +108,7 @@ func (a *Alpaca) Err() error {
 func (a *Alpaca) Want(ctx context.Context, syms []string) {
 	a.mu.Lock()
 	a.init()
-	now := time.Now()
+	now := a.now()
 	var fetch []string
 	for _, s := range syms {
 		if s = Normalize(s); s == "" {
