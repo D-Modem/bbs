@@ -192,7 +192,16 @@ func (ps *popSession) authorization(cmd string, args []string, line string) {
 	case "AUTH":
 		if len(args) == 0 {
 			ps.ok("Mechanisms follow")
+			if ps.x.svc.ntlmOffered() {
+				ps.w.WriteString(strings.Join(ntlmMechs, "\r\n") + "\r\n")
+			}
 			ps.w.WriteString("PLAIN\r\n.\r\n")
+			return
+		}
+		if isNTLMMech(args[0]) && ps.x.svc.ntlmOffered() {
+			if ps.mayLogin() {
+				ps.ntlm()
+			}
 			return
 		}
 		if !strings.EqualFold(args[0], "PLAIN") {
@@ -223,6 +232,49 @@ func (ps *popSession) authorization(cmd string, args []string, line string) {
 		ps.login(parts[1], parts[2])
 	default:
 		ps.err("Log in first")
+	}
+}
+
+// ntlm is AUTH NTLM (or MSN), as MS-POP3 has it: +OK, then the
+// NEGOTIATE, answered "+ " and the CHALLENGE, then the AUTHENTICATE.  A
+// "*" cancels.
+func (ps *popSession) ntlm() {
+	var u *store.User
+	x := ps.x.svc.ntlmServer(ps.who, ps.c.RemoteAddr(), "pop3", func(v *store.User) { u = v })
+	ps.w.WriteString("+OK\r\n")
+	for {
+		ps.w.Flush()
+		l, err := ps.r.ReadString('\n')
+		if err != nil {
+			return
+		}
+		l = strings.TrimSpace(l)
+		if l == "*" {
+			ps.err("[AUTH] Cancelled")
+			return
+		}
+		in, err := base64.StdEncoding.DecodeString(l)
+		if err != nil {
+			ps.err("[AUTH] Not base64")
+			return
+		}
+		out, done, err := x.Next(in)
+		if done {
+			if err != nil || u == nil {
+				ps.err("[AUTH] Authentication failed")
+				return
+			}
+			ps.open(u)
+			return
+		}
+		if err != nil {
+			ps.err("[AUTH] " + err.Error())
+			return
+		}
+		if out == nil {
+			continue // waiting for the NEGOTIATE
+		}
+		ps.w.WriteString("+ " + base64.StdEncoding.EncodeToString(out) + "\r\n")
 	}
 }
 
@@ -260,6 +312,13 @@ func (ps *popSession) login(name, pw string) {
 		ps.err("[AUTH] Authentication failed")
 		return
 	}
+	ps.open(u)
+}
+
+// open opens a user's maildrop, logged in.
+func (ps *popSession) open(u *store.User) {
+	svc := ps.x.svc
+	ps.name = ""
 	es, err := svc.B.Store.FolderEntries(u.ID, store.FolderInbox)
 	if err != nil {
 		ps.err("[SYS/TEMP] The maildrop cannot be read")

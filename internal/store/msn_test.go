@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"path/filepath"
 	"testing"
+
+	"github.com/D-Modem/bbs/internal/ntlm"
 )
 
 // TestMSNKeys: digests kept only when asked, made at a password's check,
@@ -110,10 +112,10 @@ func TestAddressBook(t *testing.T) {
 
 func TestNTLMKeys(t *testing.T) {
 	// the hashes of "password", as every NTLM write-up gives them
-	if got := hex.EncodeToString(LMHash("password")); got != "e52cac67419a9a224a3b108f3fa6cb6d" {
+	if got := hex.EncodeToString(ntlm.LMHash("password")); got != "e52cac67419a9a224a3b108f3fa6cb6d" {
 		t.Errorf("LM: %s", got)
 	}
-	if got := hex.EncodeToString(NTHash("password")); got != "8846f7eaee8fb117ad06bdd830b7586c" {
+	if got := hex.EncodeToString(ntlm.NTHash("password")); got != "8846f7eaee8fb117ad06bdd830b7586c" {
 		t.Errorf("NT: %s", got)
 	}
 	BcryptCost = 4
@@ -129,7 +131,7 @@ func TestNTLMKeys(t *testing.T) {
 	s.SetKeepNTLM(true)
 	s.CheckPassword("alice", "password")
 	lm, nt, ok, err := s.NTLMKey(u.ID)
-	if err != nil || !ok || !bytes.Equal(lm, LMHash("password")) || !bytes.Equal(nt, NTHash("password")) {
+	if err != nil || !ok || !bytes.Equal(lm, ntlm.LMHash("password")) || !bytes.Equal(nt, ntlm.NTHash("password")) {
 		t.Fatalf("kept: %x %x %v %v", lm, nt, ok, err)
 	}
 	// a password changed where it isn't seen leaves them stale
@@ -138,7 +140,7 @@ func TestNTLMKeys(t *testing.T) {
 		t.Fatal("stale hashes used")
 	}
 	s.SetPassword(u.ID, "another1")
-	if lm, _, ok, _ := s.NTLMKey(u.ID); !ok || !bytes.Equal(lm, LMHash("another1")) {
+	if lm, _, ok, _ := s.NTLMKey(u.ID); !ok || !bytes.Equal(lm, ntlm.LMHash("another1")) {
 		t.Fatal("not kept on a new password")
 	}
 }

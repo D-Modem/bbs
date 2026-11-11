@@ -7,6 +7,7 @@ import (
 
 	"github.com/D-Modem/bbs/internal/forum"
 	"github.com/D-Modem/bbs/internal/imageboard"
+	"github.com/D-Modem/bbs/internal/ntlm"
 	"github.com/D-Modem/bbs/internal/store"
 )
 
@@ -29,6 +30,16 @@ func (f forumSessions) Login(r *http.Request, name, password string) (string, *s
 // address, and starts a browser session for its user.
 func (f forumSessions) LoginCode(r *http.Request, code string) (string, *store.User, error) {
 	u, err := f.s.B.AuthenticateCode("forum", "ip:"+hostOf(r), code)
+	if err != nil {
+		return "", nil, err
+	}
+	return f.session(r, u)
+}
+
+// LoginNTLM checks an NTLM sign-in as a forum login from the request's
+// address, and starts a browser session for its user.
+func (f forumSessions) LoginNTLM(r *http.Request, a *ntlm.Auth, challenge []byte) (string, *store.User, error) {
+	u, err := f.s.B.AuthenticateNTLM("forum", "ip:"+hostOf(r), a, challenge)
 	if err != nil {
 		return "", nil, err
 	}

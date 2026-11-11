@@ -101,6 +101,7 @@ type Config struct {
 	Listeners       []*Listener
 	Warnings        []string
 	Guard           *guard.Guard     // [security]
+	KeepNTLM        bool             // [security] ntlm: keep the hashes NTLM sign-ins check
 	RunAs           *sockets.Account // [general] user and group: who serve becomes, its ports bound (nil: as it is started)
 	MenuAuth        *MenuAuth        // [modemmenu]: passwords asked of modemmenu (nil: none)
 	Events          []*events.Event
@@ -516,6 +517,9 @@ func (c *Config) securitySection(sec *config.Section) error {
 		return err
 	}
 	g.BanTime = time.Duration(mins) * time.Minute
+	if c.KeepNTLM, err = sec.Bool("ntlm", false); err != nil {
+		return err
+	}
 	for _, w := range g.Check() {
 		c.Warnings = append(c.Warnings, "[security] "+w)
 	}

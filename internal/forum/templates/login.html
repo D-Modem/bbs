@@ -16,5 +16,8 @@
     <label class="field"><span>Code</span><input type="text" name="code" placeholder="ABCD-EFGH" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="12" required></label>
     <div class="editor-foot"><button class="button important">Sign In</button></div>
   </form>
+  {{if $b.NTLM}}<div class="box-body signin">
+    <p class="desc">Or, from MSN or Internet Explorer on Windows, without typing your password: <a href="/forum/login/ntlm?back={{$b.Back}}">sign in with your MSN password</a>.</p>
+  </div>{{end}}
 </div>
 {{template "foot" .}}{{end}}

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +18,7 @@ import (
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/certs"
 	"github.com/D-Modem/bbs/internal/news"
+	"github.com/D-Modem/bbs/internal/ntlm"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
 )
@@ -163,7 +165,8 @@ type session struct {
 	tls   bool
 	who   string
 	user  *store.User
-	name  string // AUTHINFO USER, waiting for PASS
+	name  string     // AUTHINFO USER, waiting for PASS
+	ntlm  *ntlm.SASL // AUTHINFO GENERIC NTLM, under way
 	peer  *Peer
 	group *store.Area
 	cur   int64
@@ -427,6 +430,10 @@ func (ss *session) starttls() {
 // (throttled, counted against the address unless it is loopback). Not before
 // STARTTLS if TLS is required.
 func (ss *session) authinfo(args []string) {
+	if len(args) >= 1 && strings.EqualFold(args[0], "GENERIC") && ss.user == nil {
+		ss.generic(args[1:])
+		return
+	}
 	if len(args) < 2 {
 		ss.reply(501, "AUTHINFO USER name, then AUTHINFO PASS password")
 		return
@@ -450,11 +457,7 @@ func (ss *session) authinfo(args []string) {
 		}
 		// a local client's address is everyone's: its failures count
 		// against the account named
-		source := bbs.LocalSource("nntp", ss.name)
-		if a, ok := ss.c.RemoteAddr().(*net.TCPAddr); ok && !a.IP.IsLoopback() {
-			source = "ip:" + a.IP.String()
-		}
-		u, err := ss.s.Svc.B.Authenticate(ss.who, source, ss.name, strings.Join(args[1:], " "))
+		u, err := ss.s.Svc.B.Authenticate(ss.who, ss.source(ss.name), ss.name, strings.Join(args[1:], " "))
 		ss.name = ""
 		if err != nil {
 			ss.reply(481, "Authentication failed")
@@ -466,6 +469,76 @@ func (ss *session) authinfo(args []string) {
 	default:
 		ss.reply(501, "AUTHINFO USER or PASS")
 	}
+}
+
+// source is where a login's failures count: a local client's address is
+// everyone's, so its count against the account named.
+func (ss *session) source(name string) string {
+	if a, ok := ss.c.RemoteAddr().(*net.TCPAddr); ok && !a.IP.IsLoopback() {
+		return "ip:" + a.IP.String()
+	}
+	return bbs.LocalSource("nntp", name)
+}
+
+// generic answers AUTHINFO GENERIC, as MS-NNTP has it, with NTLM (or MSN,
+// MSN's name for it) while the BBS keeps the hashes it checks: alone, the
+// mechanisms; with one, 381 and an exchange of base64 messages, each
+// "AUTHINFO GENERIC <message>", ended 281 or 502.
+func (ss *session) generic(args []string) {
+	b := ss.s.Svc.B
+	if !b.NTLMOffered() {
+		ss.ntlm = nil
+		ss.reply(485, "No AUTHINFO GENERIC mechanisms here")
+		return
+	}
+	if !ss.tls && ss.s.Set.TLS == TLSRequired {
+		ss.reply(483, "Use STARTTLS first")
+		return
+	}
+	switch {
+	case len(args) == 0:
+		ss.ntlm = nil
+		ss.reply(281, "List of authenticators follows")
+		ss.w.WriteString("NTLM\r\nMSN\r\n")
+		ss.end()
+		return
+	case strings.EqualFold(args[0], "NTLM") || strings.EqualFold(args[0], "MSN"):
+		ss.ntlm = &ntlm.SASL{Exchange: ntlm.Exchange{Target: "BBS"}, Login: func(a *ntlm.Auth, c []byte) error {
+			u, err := b.AuthenticateNTLM(ss.who, ss.source(a.User), a, c)
+			if err != nil {
+				return err
+			}
+			ss.user = u
+			b.Log.Printf("%s: %s logged in by NTLM", ss.who, u.Name)
+			return nil
+		}}
+		ss.reply(381, "Protocol supported, proceed")
+		return
+	case ss.ntlm == nil:
+		ss.reply(485, "Only NTLM")
+		return
+	}
+	in, err := base64.StdEncoding.DecodeString(args[0])
+	if err != nil {
+		ss.ntlm = nil
+		ss.reply(501, "Not base64")
+		return
+	}
+	out, done, err := ss.ntlm.Next(in)
+	if done || err != nil {
+		ss.ntlm = nil
+		if err != nil || ss.user == nil {
+			ss.reply(502, "Permission denied")
+			return
+		}
+		ss.reply(281, "Authentication ok")
+		return
+	}
+	if out == nil {
+		ss.reply(381, "Protocol supported, proceed")
+		return
+	}
+	ss.reply(381, base64.StdEncoding.EncodeToString(out))
 }
 
 // groups are the newsgroups (areas that are) this reader may see

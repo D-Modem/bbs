@@ -199,7 +199,7 @@ func (e *Editor) systemMenu() page {
 		out = append(out, e.fields(g, "files_dir", "max_file_size", "upload_quota", "screens_dir", "scripts_dir")...)
 		out = append(out, e.field(sec("chan"), "dir"), e.field(sec("fido"), "dir"))
 		out = append(out, heading("Security"))
-		out = append(out, e.fields(sec("security"), "deny_file", "name_deny_file", "hack_log", "ban_minutes")...)
+		out = append(out, e.fields(sec("security"), "deny_file", "name_deny_file", "hack_log", "ban_minutes", "ntlm")...)
 		out = append(out, heading("The process"))
 		out = append(out, e.fields(g, "user", "group")...)
 		out = append(out,

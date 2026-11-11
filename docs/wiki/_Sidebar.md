@@ -39,6 +39,7 @@
 - [AOL clients](AOL)
 - [MSN Messenger](MSN-Messenger)
 - [MSN Classic (1995)](MSN-Classic)
+- [MSN 2.x (1996)](MSN-2)
 - [Yahoo! Messenger](Yahoo-Messenger)
 - [MRC](MRC)
 - [News, weather and quotes](News-Weather-and-Quotes)

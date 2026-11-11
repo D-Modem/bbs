@@ -18,6 +18,19 @@ by modem, from the marvel-msn project's protocol notes.  Next:
   opened from the temporary folder.
 - **MSN Today**: the Media Viewer title (MEDVIEW), a page of news.
 
+## MSN 2.x
+
+*Status: started; the NTLM ("MSN" security package) sign-in on mail,
+news and the web forum (`internal/ntlm`, `[security] ntlm`) is done.*
+
+For MSN 2.0 to 2.6 (Windows 95 and 98), whose programs are internet
+clients.  Next:
+
+- **The Program Viewer**: what it loads at sign-in (the start page, its
+  channel list), and the MSN Sign-In dialer, found from the client.
+- **DPA**: the Distributed Password Authentication package of the later
+  Windows 98 mail, if it can be learned.
+
 ## An AOL front end
 
 *Status: started; FDO91 (`internal/aol/fdo`), P3 (`internal/aol/p3`) and

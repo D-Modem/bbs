@@ -158,6 +158,7 @@ keeping callers out: a file of addresses and networks refused, one of names no n
 | `name_deny_file` |  |  | See the section above. Examples: `/etc/bbs/names.txt`. |
 | `hack_log` |  |  | See the section above. Examples: `/var/log/bbs/hack.log`. |
 | `ban_minutes` |  |  | See the section above. Examples: `60`. |
+| `ntlm` |  |  | keep each password's LM and NT hashes (made when it is next typed), so Microsoft's clients of the 1990s sign in without sending it: MSN 2.x's Outlook Express (mail), Internet News and Program Viewer, by Secure Password Authentication. The hashes are password equivalents, so the database needs guarding as a password file does. Serving MSN Classic keeps them anyway. See the wiki's MSN-2. Examples: `no`. |
 
 
 ## `[event NAME]`

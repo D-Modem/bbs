@@ -23,6 +23,7 @@ import (
 
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/ftn"
+	"github.com/D-Modem/bbs/internal/ntlm"
 	"github.com/D-Modem/bbs/internal/store"
 )
 
@@ -192,13 +193,48 @@ func (s *Service) Login(who string, remote net.Addr, service, name, password str
 			name = u.Name
 		}
 	}
-	// a local client's address is everyone's: its failures count
-	// against the account named
-	source := bbs.LocalSource(service, name)
+	return s.B.Authenticate(who, loginSource(remote, service, name), name, password)
+}
+
+// loginSource is where a login's failures count: a local client's address
+// is everyone's, so its count against the account named.
+func loginSource(remote net.Addr, service, name string) string {
 	if a, ok := remote.(*net.TCPAddr); ok && !a.IP.IsLoopback() {
-		source = "ip:" + a.IP.String()
+		return "ip:" + a.IP.String()
 	}
-	return s.B.Authenticate(who, source, name, password)
+	return bbs.LocalSource(service, name)
+}
+
+// NTLM mechanisms: Microsoft's name for it and MSN's (its security
+// package, which Outlook Express uses for an MSN account's Secure Password
+// Authentication).  Offered only while the BBS keeps the hashes they check.
+var ntlmMechs = []string{"NTLM", "MSN"}
+
+func isNTLMMech(m string) bool { return strings.EqualFold(m, "NTLM") || strings.EqualFold(m, "MSN") }
+
+// ntlmOffered reports whether NTLM sign-ins are.
+func (s *Service) ntlmOffered() bool { return s.B.NTLMOffered() }
+
+// ntlmServer is an NTLM sign-in's SASL server, which logs in to done.
+func (s *Service) ntlmServer(who string, remote net.Addr, service string, done func(*store.User)) *ntlm.SASL {
+	return &ntlm.SASL{Exchange: ntlm.Exchange{Target: s.ntlmTarget()}, Login: func(a *ntlm.Auth, c []byte) error {
+		u, err := s.B.AuthenticateNTLM(who, loginSource(remote, service, a.User), a, c)
+		if err != nil {
+			return err
+		}
+		done(u)
+		return nil
+	}}
+}
+
+// ntlmTarget is the domain a CHALLENGE names: the BBS's mail domain's
+// first label, as a Windows domain would be.
+func (s *Service) ntlmTarget() string {
+	d, _, _ := strings.Cut(s.Set.Domain, ".")
+	if d == "" {
+		d = "BBS"
+	}
+	return strings.ToUpper(d)
 }
 
 // mayMail reports whether u's access lets them mail anyone (else only the
