@@ -136,8 +136,8 @@ func (e *Editor) field(s confedit.Section, key string, label ...string) item {
 		it.Kind, it.Choices, it.ChoiceNotes, it.Open, it.Multi = view.EntryChoice, o.values, o.notes, o.open, o.multi
 	}
 	if isKeyKey(key) {
-		if c, _ := e.doc.Get(s, certOf(key)); certs.IsACME(c) {
-			it.Default = "not needed with acme"
+		if c, _ := e.doc.Get(s, certOf(key)); certs.IsACME(c) || certs.IsCA(c) {
+			it.Default = "not needed with " + c
 		}
 	}
 	if !confedit.Live(s.Kind, key) {

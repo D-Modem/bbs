@@ -226,6 +226,10 @@ func (e *Editor) offerFor(s confedit.Section, key string) (offer, bool) {
 	return o, true
 }
 
+// caSigned are the kinds whose certificate the BBS's own CA may sign
+// (tls_cert = ca, cert_file = ca).
+var caSigned = map[string]bool{"msn": true, "ymsg": true, "oscar": true, "gemini": true}
+
 // isCertKey is whether a key names a certificate.
 func isCertKey(key string) bool { return key == "tls_cert" || key == "cert_file" }
 
@@ -272,6 +276,9 @@ func (e *Editor) certOffer(s confedit.Section) offer {
 		d, _ := e.doc.Get(a, "domains")
 		o.add(certs.ACME+":"+a.Name, noteOr(d, "[acme "+a.Name+"]"))
 	}
+	if caSigned[s.Kind] {
+		o.add(certs.CA, "the BBS's own CA signs it for the old names (bbs ca)")
+	}
 	for _, f := range e.files(isCertKey) {
 		o.add(f.value, "as "+f.where)
 	}
@@ -284,7 +291,7 @@ func (e *Editor) keyOffer(s confedit.Section, key string) offer {
 	o := offer{open: true}
 	o.add("", "")
 	cert, _ := e.doc.Get(s, certOf(key))
-	if cert != "" && !certs.IsACME(cert) {
+	if cert != "" && !certs.IsACME(cert) && !certs.IsCA(cert) {
 		for _, x := range e.doc.Sections() {
 			for _, ck := range []string{"tls_cert", "cert_file"} {
 				if c, _ := e.doc.Get(x, ck); c == cert {
@@ -328,7 +335,7 @@ func (e *Editor) files(keep func(string) bool) []named {
 				continue
 			}
 			v, _ := e.doc.Get(x, k)
-			if v == "" || certs.IsACME(v) || seen[v] {
+			if v == "" || certs.IsACME(v) || certs.IsCA(v) || seen[v] {
 				continue
 			}
 			seen[v] = true

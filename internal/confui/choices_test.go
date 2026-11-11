@@ -62,11 +62,15 @@ func TestCertificateChoices(t *testing.T) {
 		t.Errorf("tn.crt's note %q", n)
 	}
 	noteOf(t, cert, "acme")
+	if slices.Contains(cert.Choices, "ca") {
+		t.Error("irc offered the BBS's CA")
+	}
+	noteOf(t, e.field(sec("msn"), "tls_cert"), "ca")
 	key := e.field(sec("irc"), "tls_key")
 	if len(key.Choices) < 2 || key.Choices[1] != "/etc/bbs/tn.key" || !strings.Contains(key.ChoiceNote(1), "goes with tn.crt") {
 		t.Errorf("irc tls_key: %q %q", key.Choices, key.ChoiceNotes)
 	}
-	if k := e.field(sec("msn"), "tls_key"); k.Default != "not needed with acme" {
+	if k := e.field(sec("msn"), "tls_key"); k.Default != "not needed with acme:mail" {
 		t.Errorf("msn tls_key's default %q", k.Default)
 	}
 	// a file of one's own may still be typed

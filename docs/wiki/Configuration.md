@@ -117,8 +117,8 @@ list made from what the file and the machine have, a word beside each:
 
 | Setting | Offered |
 |---|---|
-| a certificate (`tls_cert`, `cert_file`) | `acme` and each `acme:NAME` (with its names), and the certificate files other servers use |
-| its key (`tls_key`, `key_file`) | the key that goes with the certificate chosen (from another server, or beside it on disk), and the others the file names; not asked for with `acme` |
+| a certificate (`tls_cert`, `cert_file`) | `acme` and each `acme:NAME` (with its names), `ca` where the BBS's own CA can sign it, and the certificate files other servers use |
+| its key (`tls_key`, `key_file`) | the key that goes with the certificate chosen (from another server, or beside it on disk), and the others the file names; not asked for with `acme` or `ca` |
 | an address a server listens on | every address, this machine only, and each of this machine's IPs, at the port it has (or the usual one); one another server is on is marked *taken by* |
 | `[dns]` `answer` and `*_answer` | the IPs the services listen on, and this machine's |
 | `[dns]` `primary`, `backup` | this host's servers, and the well-known public ones |
