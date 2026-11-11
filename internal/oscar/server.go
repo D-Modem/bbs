@@ -27,11 +27,11 @@ import (
 
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/certs"
-	"github.com/D-Modem/bbs/internal/oldtls"
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
 	"github.com/D-Modem/bbs/internal/tcpserv"
 	"github.com/D-Modem/bbs/internal/vhost"
+	"github.com/D-Modem/retrossl"
 )
 
 // timeouts
@@ -147,7 +147,7 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 			Refuse: refuse, Handle: func(c net.Conn) {
 				c.SetDeadline(time.Now().Add(loginTimeout))
 				r := bufio.NewReader(c)
-				first, err := r.Peek(3)
+				old, err := retrossl.Sniff(r)
 				if err != nil {
 					return
 				}
@@ -155,8 +155,10 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 					net.Conn
 					Handshake() error
 				}
-				if oldtls.IsSSLv2Hello(first) { // AIM 6.2 to 7.5, which crypto/tls can't take
-					tc = oldtls.Server(&peeked{c, r}, &oldtls.Config{GetCertificate: src.GetCertificate})
+				// AIM 6.2 to 7.5 (an SSL 2.0-format hello) and SSL 3.0-only
+				// clients, which crypto/tls can't take
+				if old {
+					tc = retrossl.Server(&peeked{c, r}, &retrossl.Config{GetCertificate: src.GetCertificate, SessionCache: oldSessions})
 				} else {
 					tc = tls.Server(&peeked{c, r}, cfg)
 				}
@@ -177,6 +179,10 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	}
 	return err
 }
+
+// oldSessions are the TLS sessions of clients served by retrossl, kept
+// for them to resume.
+var oldSessions = retrossl.NewSessionCache(0, 0)
 
 // Clients is how many sessions are signed on.
 func (s *Server) Clients() int {
