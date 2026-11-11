@@ -24,6 +24,33 @@ type RoomReg struct {
 	Topic      string
 	TopicBy    string
 	TopicAt    time.Time
+	// the channel modes: the letters on ("ntm"), the key and the limit
+	Modes string
+	Key   string
+	Limit int
+	// the ban, quiet, exception and invite-exception lists
+	Lists []*RoomListEntry
+}
+
+// RoomListEntry is a mask on one of a room's lists: kind b (bans), q
+// (quiets), e (exceptions) or I (invite exceptions).
+type RoomListEntry struct {
+	Room  string
+	Kind  string
+	Mask  string
+	SetBy string
+	SetAt time.Time
+}
+
+// List is the room's entries of a kind.
+func (r *RoomReg) List(kind string) []*RoomListEntry {
+	var out []*RoomListEntry
+	for _, e := range r.Lists {
+		if e.Kind == kind {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // Has: the room has that setting on.
@@ -46,12 +73,12 @@ type RoomAccess struct {
 	SetAt  time.Time
 }
 
-const roomRegCols = `r.name, r.founder_id, COALESCE(u.name, ''), r.registered, r.last_used, r.settings, r.descr, r.url, r.entrymsg, r.topic, r.topic_by, r.topic_at`
+const roomRegCols = `r.name, r.founder_id, COALESCE(u.name, ''), r.registered, r.last_used, r.settings, r.descr, r.url, r.entrymsg, r.topic, r.topic_by, r.topic_at, r.modes, r.mode_key, r.mode_limit`
 
 func scanRoomReg(sc interface{ Scan(...any) error }) (*RoomReg, error) {
 	var r RoomReg
 	var reg, used, tat int64
-	if err := sc.Scan(&r.Name, &r.FounderID, &r.Founder, &reg, &used, &r.Settings, &r.Descr, &r.URL, &r.EntryMsg, &r.Topic, &r.TopicBy, &tat); err != nil {
+	if err := sc.Scan(&r.Name, &r.FounderID, &r.Founder, &reg, &used, &r.Settings, &r.Descr, &r.URL, &r.EntryMsg, &r.Topic, &r.TopicBy, &tat, &r.Modes, &r.Key, &r.Limit); err != nil {
 		return nil, err
 	}
 	r.Registered, r.LastUsed, r.TopicAt = unix(reg), unix(used), unix(tat)
@@ -73,7 +100,24 @@ func (s *Store) RoomRegs() ([]*RoomReg, error) {
 		}
 		out = append(out, r)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	lists, err := s.roomLists(``)
+	if err != nil {
+		return nil, err
+	}
+	byName := map[string]*RoomReg{}
+	for _, r := range out {
+		byName[r.Name] = r
+	}
+	for _, e := range lists {
+		if r := byName[e.Room]; r != nil {
+			r.Lists = append(r.Lists, e)
+		}
+	}
+	return out, nil
 }
 
 // RoomReg is a registered room; ErrNotFound if it is not registered.
@@ -82,7 +126,51 @@ func (s *Store) RoomReg(name string) (*RoomReg, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
+	if err != nil {
+		return nil, err
+	}
+	r.Lists, err = s.roomLists(`WHERE room = ?`, name)
 	return r, err
+}
+
+// roomLists are rooms' list entries, oldest first.
+func (s *Store) roomLists(where string, args ...any) ([]*RoomListEntry, error) {
+	rows, err := s.db.Query(`SELECT room, kind, mask, set_by, set_at FROM room_lists `+where+` ORDER BY set_at, mask`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*RoomListEntry
+	for rows.Next() {
+		var e RoomListEntry
+		var at int64
+		if err := rows.Scan(&e.Room, &e.Kind, &e.Mask, &e.SetBy, &at); err != nil {
+			return nil, err
+		}
+		e.SetAt = unix(at)
+		out = append(out, &e)
+	}
+	return out, rows.Err()
+}
+
+// SetRoomModes sets a registered room's modes, key and limit.
+func (s *Store) SetRoomModes(name, modes, key string, limit int) error {
+	_, err := s.db.Exec(`UPDATE room_reg SET modes = ?, mode_key = ?, mode_limit = ? WHERE name = ?`, modes, key, limit, name)
+	return err
+}
+
+// AddRoomList puts a mask on a room's list; ErrExists if it is on it.
+func (s *Store) AddRoomList(name, kind, mask, by string) error {
+	_, err := s.db.Exec(`INSERT INTO room_lists (room, kind, mask, set_by, set_at) VALUES (?, ?, ?, ?, ?)`, name, kind, mask, by, now())
+	if isUnique(err) {
+		return ErrExists
+	}
+	return err
+}
+
+// DelRoomList takes a mask off a room's list; ErrNotFound if it is not on it.
+func (s *Store) DelRoomList(name, kind, mask string) error {
+	return s.exec1(`DELETE FROM room_lists WHERE room = ? AND kind = ? AND mask = ?`, name, kind, mask)
 }
 
 // RegisterRoom registers a room to its founder, who is put on its access
@@ -97,6 +185,7 @@ func (s *Store) RegisterRoom(name string, founder int64, flags, by string) error
 		return err
 	}
 	_, _ = s.db.Exec(`DELETE FROM room_access WHERE room = ?`, name) // left over
+	_, _ = s.db.Exec(`DELETE FROM room_lists WHERE room = ?`, name)
 	return s.SetRoomAccess(name, founder, flags, by)
 }
 
@@ -105,7 +194,10 @@ func (s *Store) DropRoom(name string) error {
 	if err := s.exec1(`DELETE FROM room_reg WHERE name = ?`, name); err != nil {
 		return err
 	}
-	_, err := s.db.Exec(`DELETE FROM room_access WHERE room = ?`, name)
+	if _, err := s.db.Exec(`DELETE FROM room_access WHERE room = ?`, name); err != nil {
+		return err
+	}
+	_, err := s.db.Exec(`DELETE FROM room_lists WHERE room = ?`, name)
 	return err
 }
 

@@ -1,7 +1,6 @@
 package ircd
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/D-Modem/bbs/internal/bbs"
@@ -56,43 +55,4 @@ func (c *client) nodeOfUser(name string) int {
 		}
 	}
 	return 0
-}
-
-// chanMode is MODE #room with changes: +o, -o, +v and -v (up to MODES of
-// them) by the room's ops; the rest are not the BBS's yet.
-func (c *client) chanMode(name, modes string, args []string) {
-	on, changes := true, 0
-	for _, m := range modes {
-		switch m {
-		case '+':
-			on = true
-		case '-':
-			on = false
-		case 'o', 'v':
-			if len(args) == 0 {
-				continue
-			}
-			nick := args[0]
-			args = args[1:]
-			if changes++; changes > 4 {
-				return
-			}
-			err := c.n.SetStatus(name, nick, m == 'o', on)
-			switch {
-			case err == nil:
-			case errors.Is(err, bbs.ErrNoUser):
-				c.reply(ERR_NOSUCHNICK, nick, "No such nick")
-			case errors.Is(err, bbs.ErrNotThere):
-				c.reply(ERR_USERNOTINCHANNEL, nick, "#"+name, "They aren't on that channel")
-			default:
-				c.reply(ERR_CHANOPRIVSNEEDED, "#"+name, capital(err.Error()))
-			}
-		case 'n', 't':
-			if !on {
-				c.reply(ERR_CHANOPRIVSNEEDED, "#"+name, "The BBS's rooms are always +nt")
-			}
-		default:
-			c.reply(ERR_UNKNOWNMODE, string(m), "is not a mode the BBS's rooms have")
-		}
-	}
 }

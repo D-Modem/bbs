@@ -124,7 +124,18 @@ CREATE TABLE IF NOT EXISTS room_reg (
 	entrymsg   {str} NOT NULL DEFAULT '',
 	topic      {str} NOT NULL DEFAULT '',
 	topic_by   {str} NOT NULL DEFAULT '',
-	topic_at   {int} NOT NULL DEFAULT 0
+	topic_at   {int} NOT NULL DEFAULT 0,
+	modes      {str} NOT NULL DEFAULT 'nt',
+	mode_key   {str} NOT NULL DEFAULT '',
+	mode_limit {int} NOT NULL DEFAULT 0
+)`, `
+CREATE TABLE IF NOT EXISTS room_lists (
+	room       {key} NOT NULL,
+	kind       {key} NOT NULL,
+	mask       {key} NOT NULL,
+	set_by     {str} NOT NULL DEFAULT '',
+	set_at     {int} NOT NULL,
+	PRIMARY KEY (room, kind, mask)
 )`, `
 CREATE TABLE IF NOT EXISTS room_access (
 	room       {key} NOT NULL,
@@ -557,6 +568,9 @@ var added = []struct{ table, column, decl string }{
 	{"users", "geo_place", "{str} NOT NULL DEFAULT ''"},
 	{"users", "geo_by", "{str} NOT NULL DEFAULT ''"},
 	{"users", "geo_at", "{int} NOT NULL DEFAULT 0"},
+	{"room_reg", "modes", "{str} NOT NULL DEFAULT 'nt'"},
+	{"room_reg", "mode_key", "{str} NOT NULL DEFAULT ''"},
+	{"room_reg", "mode_limit", "{int} NOT NULL DEFAULT 0"},
 }
 
 // migrate makes the schema, or brings an older database up to it.

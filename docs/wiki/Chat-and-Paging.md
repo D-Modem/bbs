@@ -25,6 +25,10 @@ last caller leaves, unless the sysop has made it
 | `/topic [TEXT]` | the room's topic; a [registered room](IRC#chanserv)'s ops set it, the sysop a [permanent room](IRC#permanent-rooms)'s |
 | `/cs COMMAND` | ChanServ: [register a room](IRC#chanserv), its access list (`/cs HELP`) |
 | `/kick WHO [WHY]` | put one out of the room (a registered room's ops; `Carol_Ann` for Carol Ann) |
+| `/mode [CHANGES]` | a registered room's [channel modes](IRC#channel-modes): `/mode +m`, `/mode +b alice`, `/mode +b` lists the bans |
+| `/invite WHO` | ask one into the room (past `+i`, `+k`, `+l`) |
+| `/join ROOM KEY` | come into a room with a key |
+| `/knock ROOM [WHY]` | ask the ops of a room you are kept out of to let you in |
 | `/quit` | leave the chat |
 | `/help` | these |
 

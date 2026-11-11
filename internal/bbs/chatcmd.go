@@ -21,6 +21,8 @@ var ChatHelp = []string{
 	"  /cs COMMAND     ChanServ: register a room, its access list (/cs HELP)",
 	"  /topic TEXT     set the topic (a registered room's ops)",
 	"  /kick WHO [WHY] put one out of the room (its ops)",
+	"  /mode [+m-i...] a registered room's modes (its ops)   /invite WHO   ask one in",
+	"  /join ROOM KEY  a room with a key        /knock ROOM [WHY]  ask its ops in",
 	"Sysops:  /pages  callers paging   /answer [NODE]  answer one   /busy  pages on or off",
 	"         /topic TEXT  set a permanent room's topic",
 }
@@ -84,6 +86,53 @@ func (n *Node) ChatCommand(line string) (out []string, leave bool, err error) {
 		return nil, false, n.SetTopic(room, arg)
 	case "cs", "chanserv":
 		return n.ChanServ(arg), false, nil
+	case "mode":
+		room := n.Room()
+		if room == "" {
+			return nil, false, ErrNotInRoom
+		}
+		f := strings.Fields(arg)
+		if len(f) == 0 {
+			modes, args := n.b.RoomModes(room, true)
+			return []string{strings.TrimSpace("The modes of " + room + ": " + modes + " " + strings.Join(args, " "))}, false, nil
+		}
+		changes := ParseModes(f[0], f[1:])
+		if len(changes) == 0 {
+			// a list: /mode +b
+			for _, k := range f[0] {
+				if strings.ContainsRune(RoomListModes, k) {
+					out = append(out, fmt.Sprintf("The +%c list of %s:", k, room))
+					for _, e := range n.b.RoomList(room, k) {
+						out = append(out, fmt.Sprintf("  %-40s set by %s, %s", e.Mask, e.SetBy, e.SetAt.Format("Jan 2 2006")))
+					}
+				}
+			}
+			if out == nil {
+				return nil, false, fmt.Errorf("/mode +m, -m, +k KEY, +l N, +b MASK ...: see /cs HELP")
+			}
+			return out, false, nil
+		}
+		_, errs := n.SetModes(room, changes)
+		for _, err := range errs {
+			out = append(out, capital(err.Error())+".")
+		}
+		return out, false, nil
+	case "invite":
+		room := n.Room()
+		if room == "" {
+			return nil, false, ErrNotInRoom
+		}
+		t, err := n.Invite(room, strings.TrimSpace(arg))
+		if err != nil {
+			return nil, false, err
+		}
+		return []string{Nick(t.Name) + " is invited into " + room + "."}, false, nil
+	case "knock":
+		room, why, _ := strings.Cut(arg, " ")
+		if err := n.Knock(strings.ToLower(strings.TrimPrefix(room, "#")), why); err != nil {
+			return nil, false, err
+		}
+		return []string{"You knocked: its ops are told."}, false, nil
 	case "kick":
 		room := n.Room()
 		if room == "" {
@@ -98,7 +147,8 @@ func (n *Node) ChatCommand(line string) (out []string, leave bool, err error) {
 		}
 		return nil, false, nil
 	case "join", "j":
-		hist, err := n.JoinRoom(arg)
+		room, key, _ := strings.Cut(arg, " ")
+		hist, err := n.JoinRoomKey(room, strings.TrimSpace(key))
 		if err != nil {
 			return nil, false, err
 		}

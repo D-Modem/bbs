@@ -29,6 +29,7 @@ const (
 	Topic                    // a room's topic (set, or shown on coming in)
 	Mode                     // ops or voice given or taken (Text "+o", Target whose)
 	Kicked                   // Target put out of the room by From (Text: why)
+	Invited                  // From asks Target into Room (an IRC INVITE)
 )
 
 // Event is something for a node to show its caller.
@@ -58,6 +59,8 @@ func Plain(e Event) []Event {
 	switch e.Kind {
 	case Mode:
 		return []Event{{Kind: Notice, Room: e.Room, Text: e.String(), Time: e.Time}}
+	case Invited:
+		return []Event{{Kind: Notice, Text: e.String(), Time: e.Time}}
 	case Kicked:
 		return []Event{{Kind: Notice, Room: e.Room, Text: e.String(), Time: e.Time},
 			{Kind: Left, Room: e.Room, From: e.Target, Node: e.TargetNode, Text: e.Text, Time: e.Time}}
@@ -89,9 +92,14 @@ func (e Event) String() string {
 			"+v": "gave %s a voice", "-v": "took the voice from %s",
 		}[e.Text]
 		if what == "" {
-			return fmt.Sprintf("%s set %s %s", e.From, e.Text, e.Target)
+			if word := modeWords[e.Text]; word != "" {
+				return fmt.Sprintf("%s %s %s", e.From, fmt.Sprintf(word, e.Room), e.Target)
+			}
+			return strings.TrimSpace(fmt.Sprintf("%s set %s in %s %s", e.From, e.Text, e.Room, e.Target))
 		}
 		return e.From + " " + fmt.Sprintf(what, e.Target) + " in " + e.Room
+	case Invited:
+		return fmt.Sprintf("%s invites %s into %s (/join %s)", e.From, e.Target, e.Room, e.Room)
 	case Kicked:
 		s := e.From + " put " + e.Target + " out of " + e.Room
 		if e.Text != "" {
@@ -132,9 +140,10 @@ type chatState struct {
 	also    map[string]bool // rooms an IRC client is in besides (JoinAlso)
 	busy    bool            // a sysop not to be paged
 	sent    []time.Time
-	handle  string    // a CompuServe CB handle ("": none)
-	paging  string    // why this caller pages the sysop ("": not)
-	pagedAt time.Time // when
+	handle  string               // a CompuServe CB handle ("": none)
+	paging  string               // why this caller pages the sysop ("": not)
+	pagedAt time.Time            // when
+	knocked map[string]time.Time // when this node last knocked on each room
 }
 
 // room is a chat room's members and its last lines.
@@ -145,6 +154,8 @@ type room struct {
 	topic     string // a permanent room's
 	// in a registered room, the users given ops or voice (stOp, stVoice)
 	status map[int64]uint8
+	// the users invited in, and when
+	invites map[int64]time.Time
 }
 
 // hub is the BBS's chat: its rooms.
@@ -263,7 +274,7 @@ func (n *Node) name() string {
 func pageRoom(node int) string { return fmt.Sprintf("sysop-%d", node) }
 
 // mayJoin checks a room's name, and that the node may go in.
-func (n *Node) mayJoin(name string) (string, error) {
+func (n *Node) mayJoin(name, key string) (string, error) {
 	name = strings.ToLower(strings.TrimSpace(name))
 	if !roomName.MatchString(name) {
 		return "", ErrNoRoom
@@ -285,13 +296,23 @@ func (n *Node) mayJoin(name string) (string, error) {
 	if n.b.banned(name, u) {
 		return "", ErrBanned
 	}
+	invited, err := n.mayEnter(name, u, key)
+	if err != nil {
+		return "", err
+	}
+	if invited {
+		n.b.useInvite(name, u.ID)
+	}
 	return name, nil
 }
 
 // JoinRoom takes the node into a room (leaving the one it is in), and
 // gives it the room's last lines.
-func (n *Node) JoinRoom(name string) ([]Event, error) {
-	name, err := n.mayJoin(name)
+func (n *Node) JoinRoom(name string) ([]Event, error) { return n.JoinRoomKey(name, "") }
+
+// JoinRoomKey is JoinRoom, with a key for a room that has one.
+func (n *Node) JoinRoomKey(name, key string) ([]Event, error) {
+	name, err := n.mayJoin(name, key)
 	if err != nil {
 		return nil, err
 	}
@@ -309,8 +330,11 @@ func (n *Node) JoinRoom(name string) ([]Event, error) {
 
 // JoinAlso takes the node into a room as well as those it is in (an IRC
 // client's channels), and gives it the room's last lines.
-func (n *Node) JoinAlso(name string) ([]Event, error) {
-	name, err := n.mayJoin(name)
+func (n *Node) JoinAlso(name string) ([]Event, error) { return n.JoinAlsoKey(name, "") }
+
+// JoinAlsoKey is JoinAlso, with a key for a room that has one.
+func (n *Node) JoinAlsoKey(name, key string) ([]Event, error) {
+	name, err := n.mayJoin(name, key)
 	if err != nil {
 		return nil, err
 	}
@@ -513,13 +537,36 @@ func (n *Node) Say(text string, emote bool) error {
 }
 
 // SayIn says a line in a room the node is in.
-func (n *Node) SayIn(name, text string, emote bool) error {
+func (n *Node) SayIn(name, text string, emote bool) error { return n.say(name, text, emote, false) }
+
+// SayOutside says a line in a room the node is not in: one whose modes
+// let lines in from outside (-n).
+func (n *Node) SayOutside(name, text string, emote bool) error {
+	if n.InRoom(name) {
+		return n.say(name, text, emote, false)
+	}
+	if n.b.RoomReg(name) == nil || n.b.RoomHas(name, 'n') {
+		return ErrNotInRoom
+	}
+	return n.say(name, text, emote, true)
+}
+
+// say says a line in a room: one the node is in, or (outside) one that
+// takes lines from outside.  m, b and q stop it (to the ops alone, with z).
+func (n *Node) say(name, text string, emote, outside bool) error {
 	text = Clean(text, MaxChatLine)
 	if text == "" {
 		return nil
 	}
-	if !n.InRoom(name) {
+	if !outside && !n.InRoom(name) {
 		return ErrNotInRoom
+	}
+	toOps := false
+	if err := n.mayTalk(name, n.User()); err != nil {
+		if !n.b.RoomHas(name, 'z') {
+			return err
+		}
+		toOps = true
 	}
 	relay := n.b.relayFor(name)
 	if relay != nil && len(text) > 1 && text[0] == '!' && text[1] != ' ' && text[1] != '!' {
@@ -541,6 +588,18 @@ func (n *Node) SayIn(name, text string, emote bool) error {
 		e.Kind = Emoted
 	}
 	n.b.Stats.ChatLines.Add(1)
+	if toOps {
+		// stopped (m, b, q) in a +z room: to its ops alone, and back to its
+		// sayer
+		seen := map[*Node]bool{}
+		for _, m := range append(n.b.opsOf(name), n) {
+			if !seen[m] {
+				seen[m] = true
+				m.deliver(e)
+			}
+		}
+		return nil
+	}
 	h := n.b.hub()
 	h.mu.Lock()
 	r := h.rooms[name]
@@ -555,6 +614,9 @@ func (n *Node) SayIn(name, text string, emote bool) error {
 	h.mu.Unlock()
 	for _, m := range members {
 		m.deliver(e)
+	}
+	if outside {
+		n.deliver(e) // the sayer is not in the room to see it
 	}
 	if relay != nil {
 		relay.Said(name, n.name(), text, emote)
@@ -588,6 +650,18 @@ func (b *BBS) rooms(u *store.User, node int) []RoomInfo {
 	for name, r := range h.rooms {
 		if strings.HasPrefix(name, "sysop-") && (node == 0 || name != pageRoom(node)) && (u == nil || !u.Sysop) {
 			continue
+		}
+		if reg := h.regs[name]; reg != nil && strings.ContainsRune(reg.Modes, 's') && (u == nil || !u.Sysop) {
+			// secret: only to those in it
+			in := false
+			for m := range r.members {
+				if m.user != nil && u != nil && m.user.ID == u.ID {
+					in = true
+				}
+			}
+			if !in {
+				continue
+			}
 		}
 		ri := RoomInfo{Name: name, Permanent: r.permanent, Topic: h.topicOf(name, r), Registered: h.regs[name] != nil}
 		for m := range r.members {

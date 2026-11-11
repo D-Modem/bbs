@@ -443,7 +443,10 @@ func (n *Node) SetTopic(name, topic string) error {
 	}
 	if reg := n.b.RoomReg(name); reg != nil {
 		flags := n.b.RoomFlags(name, u)
-		if !has(flags, FlagTopic) && (reg.Has("topiclock") || !n.b.IsOp(name, u)) {
+		// t (the flag) always; with TOPICLOCK only it; else ops, or anyone
+		// in a -t room
+		anyone := !strings.ContainsRune(reg.Modes, 't') && n.InRoom(name)
+		if !has(flags, FlagTopic) && (reg.Has("topiclock") || !n.b.IsOp(name, u) && !anyone) {
 			return errors.New("you may not set that room's topic")
 		}
 	} else if _, permanent := n.b.RoomTopic(name); !permanent {

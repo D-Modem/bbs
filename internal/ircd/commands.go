@@ -31,7 +31,7 @@ func (c *client) command(m *ircmsg.Message) {
 			c.reply(ERR_ERRONEUSNICKNAME, nick, "Your nick is your BBS name")
 		}
 	case "JOIN":
-		c.join(param(m, 0))
+		c.join(param(m, 0), param(m, 1))
 	case "PART":
 		for _, ch := range strings.Split(param(m, 0), ",") {
 			c.part(ch)
@@ -100,7 +100,11 @@ func (c *client) command(m *ircmsg.Message) {
 		c.reply(RPL_ENDOFINFO, "End of INFO")
 	case "KICK":
 		c.kick(param(m, 0), param(m, 1), param(m, 2))
-	case "INVITE", "OPER", "KILL", "KNOCK":
+	case "INVITE":
+		c.invite(param(m, 0), param(m, 1))
+	case "KNOCK":
+		c.knock(param(m, 0), param(m, 1))
+	case "OPER", "KILL":
 		c.reply(ERR_NOPRIVILEGES, "Permission denied")
 	default:
 		for _, svc := range []*service{c.s.svc, c.s.cs} {
@@ -135,16 +139,21 @@ func (c *client) joined() []string {
 // join is JOIN: each channel's room joined, with its topic, names and
 // last lines; "0" parts them all. A sysop joining #sysop-N answers node
 // N's page.
-func (c *client) join(list string) {
+func (c *client) join(list, keyList string) {
 	if list == "0" {
 		for _, r := range c.joined() {
 			c.part("#" + r)
 		}
 		return
 	}
-	for _, ch := range strings.Split(list, ",") {
+	keys := strings.Split(keyList, ",")
+	for i, ch := range strings.Split(list, ",") {
 		if ch == "" {
 			continue
+		}
+		key := ""
+		if i < len(keys) {
+			key = keys[i]
 		}
 		name := room(ch)
 		if name == "" {
@@ -164,10 +173,10 @@ func (c *client) join(list string) {
 			// a sysop going into a paging caller's room answers the page
 			num, _ := strconv.Atoi(pager)
 			if hist, _, err = c.n.AnswerAlso(num); err != nil {
-				hist, err = c.n.JoinAlso(name)
+				hist, err = c.n.JoinAlsoKey(name, key)
 			}
 		} else {
-			hist, err = c.n.JoinAlso(name)
+			hist, err = c.n.JoinAlsoKey(name, key)
 		}
 		switch {
 		case errors.Is(err, bbs.ErrNoRoom):
@@ -175,6 +184,15 @@ func (c *client) join(list string) {
 			continue
 		case errors.Is(err, bbs.ErrBanned):
 			c.reply(ERR_BANNEDFROMCHAN, ch, "Cannot join channel (+b): "+err.Error())
+			continue
+		case errors.Is(err, bbs.ErrInviteOnly):
+			c.reply(ERR_INVITEONLYCHAN, ch, "Cannot join channel (+i): "+err.Error())
+			continue
+		case errors.Is(err, bbs.ErrBadKey):
+			c.reply(ERR_BADCHANNELKEY, ch, "Cannot join channel (+k): "+err.Error())
+			continue
+		case errors.Is(err, bbs.ErrFull):
+			c.reply(ERR_CHANNELISFULL, ch, "Cannot join channel (+l): "+err.Error())
 			continue
 		case errors.Is(err, bbs.ErrNotYours), errors.Is(err, bbs.ErrNotAllowed):
 			c.reply(ERR_INVITEONLYCHAN, ch, "Cannot join channel: "+err.Error())
@@ -240,7 +258,7 @@ func (c *client) roomServices(name string) []*service {
 // sysops as ops; a sysop- room's only to those in it.
 func (c *client) names(ch string) {
 	name := room(ch)
-	if name != "" && (c.n.InRoom(name) || !strings.HasPrefix(name, "sysop-")) {
+	if name != "" && (c.n.InRoom(name) || !strings.HasPrefix(name, "sysop-") && (!c.s.B.RoomSecret(name) || c.u.Sysop)) {
 		var line []string
 		seen := map[string]bool{}
 		for _, svc := range c.roomServices(name) {
@@ -314,7 +332,7 @@ func (c *client) userOfNick(nick string) *store.User {
 // or a nick's nodes.
 func (c *client) who(mask string) {
 	if name := room(mask); name != "" {
-		if c.n.InRoom(name) || !strings.HasPrefix(name, "sysop-") {
+		if c.n.InRoom(name) || !strings.HasPrefix(name, "sysop-") && (!c.s.B.RoomSecret(name) || c.u.Sysop) {
 			for _, svc := range c.roomServices(name) {
 				c.reply(RPL_WHOREPLY, "#"+name, svc.Name, c.s.S.ServerName, c.s.S.ServerName, svc.Name, "H@",
 					"0 "+c.s.serviceReal(svc))
@@ -474,14 +492,12 @@ func (c *client) sendTopic(ch, name string) {
 func (c *client) mode(m *ircmsg.Message) {
 	target := param(m, 0)
 	if name := room(target); name != "" {
-		switch {
-		case len(m.Params) == 1:
-			c.reply(RPL_CHANNELMODEIS, "#"+name, "+nt")
-		case strings.Trim(param(m, 1), "+") == "b":
-			c.reply(RPL_ENDOFBANLIST, "#"+name, "End of channel ban list")
-		default:
-			c.chanMode(name, m.Params[1], m.Params[2:])
+		if len(m.Params) == 1 {
+			modes, args := c.s.B.RoomModes(name, c.n.InRoom(name) || c.u.Sysop)
+			c.reply(RPL_CHANNELMODEIS, append([]string{"#" + name, modes}, args...)...)
+			return
 		}
+		c.chanMode(name, m.Params[1], m.Params[2:])
 		return
 	}
 	if fold(target) != fold(c.nick) {
@@ -522,9 +538,16 @@ func (c *client) privmsg(command, target, text string) {
 	}
 	text = stripped(text)
 	if name := room(target); name != "" {
+		if notice && c.s.B.RoomHas(name, 'T') {
+			return // +T: no notices (and a NOTICE is never answered)
+		}
 		if !c.n.InRoom(name) {
-			if !notice {
-				c.reply(ERR_CANNOTSENDTOCHAN, target, "Cannot send to channel (join it first)")
+			if err := c.n.SayOutside(name, text, emote); err != nil && !notice {
+				if errors.Is(err, bbs.ErrNotInRoom) {
+					c.reply(ERR_CANNOTSENDTOCHAN, target, "Cannot send to channel (join it first)")
+				} else {
+					c.reply(ERR_CANNOTSENDTOCHAN, target, "Cannot send to channel: "+err.Error())
+				}
 			}
 			return
 		}
@@ -677,7 +700,16 @@ func (c *client) event(e bbs.Event) {
 		}
 		c.send(tags, source, "TOPIC", "#"+e.Room, e.Text)
 	case bbs.Mode:
-		c.send(tags, c.eventSource(e), "MODE", "#"+e.Room, e.Text, Nick(e.Target))
+		switch {
+		case strings.HasSuffix(e.Text, "o"), strings.HasSuffix(e.Text, "v"):
+			c.send(tags, c.eventSource(e), "MODE", "#"+e.Room, e.Text, Nick(e.Target))
+		case e.Target != "":
+			c.send(tags, c.eventSource(e), "MODE", "#"+e.Room, e.Text, e.Target)
+		default:
+			c.send(tags, c.eventSource(e), "MODE", "#"+e.Room, e.Text)
+		}
+	case bbs.Invited:
+		c.send(tags, c.eventSource(e), "INVITE", Nick(e.Target), "#"+e.Room)
 	case bbs.Kicked:
 		c.send(tags, c.eventSource(e), "KICK", "#"+e.Room, Nick(e.Target), e.Text)
 	case bbs.Private:

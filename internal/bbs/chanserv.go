@@ -46,7 +46,7 @@ theirs; with changes, it changes them (needs f): +AO-v, a template
 give or take flags you have yourself, unless you have F.
     v  voice through ChanServ        V  voiced on coming in
     o  ops through ChanServ          O  opped on coming in
-    t  sets the topic                i  invites (to come)
+    t  sets the topic                i  INVITE, GETKEY; past +i, +k, +l
     r  KICK, BAN, UNBAN              R  CLEAR
     f  changes the access list       s  SET
     A  sees the access list          e  not kept out by a ban
@@ -69,6 +69,10 @@ Templates: VOP +AV, AOP +AOiortv, SOP +AORefiorstv, FOUNDER +AFORefiorstv.`, csF
 and puts them out if they are in.  UNBAN takes it off.`, csBan},
 		"unban": {"UNBAN <#room> <nick>", "lets one banned in again (needs r)",
 			"UNBAN takes b off someone's entry, so they may come in again.", csUnban},
+		"invite": {"INVITE <#room>", "invites you into a room (needs i)",
+			"INVITE invites you into the room: past +i, its key and its limit, for the hour.", csInvite},
+		"getkey": {"GETKEY <#room>", "tells you a room's key (needs i)",
+			"GETKEY tells you the room's key (+k).", csGetKey},
 		"clear": {"CLEAR <#room> USERS [reason]", "puts everyone out of a room (needs R)",
 			"CLEAR USERS puts everyone out of the room but you.", csClear},
 		"set": {"SET <#room> <setting> [value]", "changes a room's settings (needs s)",
@@ -272,7 +276,8 @@ func csInfo(n *Node, u *store.User, args []string) ([]string, error) {
 	if len(set) > 0 {
 		out = append(out, "Settings    : "+strings.Join(set, " "))
 	}
-	return out, nil
+	modes, _ := n.b.RoomModes(reg.Name, has(flags, FlagView))
+	return append(out, "Modes       : "+modes), nil
 }
 
 // sortedFlags are flags, each once, in AllRoomFlags' order.
@@ -597,6 +602,32 @@ func csUnban(n *Node, u *store.User, args []string) ([]string, error) {
 		return nil, err
 	}
 	return []string{Nick(t.Name) + " may come into #" + reg.Name + " again."}, nil
+}
+
+func csInvite(n *Node, u *store.User, args []string) ([]string, error) {
+	if len(args) != 1 {
+		return nil, errSyntax
+	}
+	reg, _, err := n.regFor(args[0], u, string(FlagInvite))
+	if err != nil {
+		return nil, err
+	}
+	n.b.invite(reg.Name, u.ID)
+	return []string{"You are invited into #" + reg.Name + " for the hour: /join #" + reg.Name}, nil
+}
+
+func csGetKey(n *Node, u *store.User, args []string) ([]string, error) {
+	if len(args) != 1 {
+		return nil, errSyntax
+	}
+	reg, _, err := n.regFor(args[0], u, string(FlagInvite))
+	if err != nil {
+		return nil, err
+	}
+	if reg.Key == "" {
+		return []string{"#" + reg.Name + " has no key."}, nil
+	}
+	return []string{"The key of #" + reg.Name + " is " + reg.Key + "."}, nil
 }
 
 func csClear(n *Node, u *store.User, args []string) ([]string, error) {
