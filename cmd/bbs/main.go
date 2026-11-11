@@ -179,6 +179,10 @@ func usage() {
   bbs [-config FILE] quotes alpaca [SYMBOL...]     try [quotes]' Alpaca keys: the symbols now
   bbs [-config FILE] gemini cert [-force]          make the Gemini server's certificate (it asks
                                                   for host names, organization and years)
+  bbs [-config FILE] ca [show]                     the BBS's certificate authority: fingerprint, what it signs
+  bbs [-config FILE] ca init [-sha1]               make it (-sha1: for Windows before XP SP3)
+  bbs [-config FILE] ca issue [-out DIR] NAME...   a certificate it signs, for a TLS proxy
+  bbs [-config FILE] ca package [-out FILE]        the zip that installs it on callers' machines
   bbs [-config FILE] acme [list]                   the ACME client's certificates: names, expiry
   bbs [-config FILE] acme renew [-force] [NAME...] get them now: those due, all (-force) or those named
 `)
@@ -354,7 +358,9 @@ func main() {
 		}
 		if g := cfg.Gemini; g != nil {
 			fmt.Printf("gemini: %s, areas %q, files %v, users %v\n", g.Address, g.Areas, g.Files, g.Users)
-			if certs.IsACME(g.CertFile) {
+			if certs.IsCA(g.CertFile) {
+				fmt.Printf("gemini certificate: signed by the BBS's CA for %s (bbs ca show)\n", g.Host)
+			} else if certs.IsACME(g.CertFile) {
 				fmt.Printf("gemini certificate: the ACME client's (%s)\n", g.CertFile)
 			} else {
 				fmt.Printf("gemini certificate %s: %s\n", g.CertFile, gemini.CertInfo(g.CertFile))
@@ -428,6 +434,8 @@ func main() {
 		geminiCmd(cfg, args)
 	case "acme":
 		acmeCmd(cfg, args)
+	case "ca":
+		caCmd(cfg, args)
 	case "feeds":
 		feedsCmd(cfg, args)
 	case "quotes":
@@ -641,6 +649,12 @@ func serve(cfg *server.Config, path string) int {
 	// the front ends' shared web ports (443 for MSN's Passport, Yahoo!'s
 	// login and AIM's TLS, say): claimed before they start, so they leave
 	// them to the ports that hand them their connections
+	// tls_cert = ca: the BBS's CA signs those certificates, before the
+	// servers that read them start
+	if err := caServe(ctx, cfg, lg); err != nil {
+		lg.Printf("%v", err)
+		return 1
+	}
 	shared, err := cfg.SharedPorts()
 	if err != nil {
 		lg.Printf("%v", err)

@@ -192,3 +192,98 @@ To try it with no public name at all, run
 with `ca = https://localhost:14000/dir` and
 `LEGO_CA_CERTIFICATES=pebble.minica.pem` in the environment so the client
 trusts it.
+
+## The BBS's own certificate authority
+
+No public CA will sign for `login.live.com`, `login.yahoo.com` or
+`api.screenname.aol.com`, the names the old clients ask for once the
+BBS's [DNS server](DNS) sends them here. For those the BBS is a
+certificate authority of its own. Its certificate goes on each caller's
+machine once; the BBS signs each server's certificate itself and renews
+it before it runs out.
+
+```ini
+[msn]
+https_address = 192.168.77.11:443
+tls_cert = ca
+
+[ymsg]
+https_address = 192.168.77.12:443
+tls_cert = ca
+
+[oscar]
+tls_address = 192.168.77.13:443
+tls_cert = ca
+
+[gemini]
+hostname = gemini.example.org
+cert_file = ca
+```
+
+`tls_cert = ca` (`cert_file = ca` for Gemini) needs no key file. At its
+start `bbs serve` makes the CA if there is none (in `ca/` beside the
+database), signs each server a certificate for its names, and looks again
+daily:
+
+| Server | Names |
+|---|---|
+| `[msn]` | `login.passport.com` (its common name), `nexus.passport.com`, `loginnet.passport.com`, `login.live.com` |
+| `[ymsg]` | `login.yahoo.com` |
+| `[oscar]` | `api.screenname.aol.com`, `api.oscar.aol.com`, `kdc.uas.aol.com`, `slogin.oscar.aol.com`, `login.oscar.aol.com`, `login.messaging.aol.com`, `slogin.icq.com`, `login.icq.com`, and `tls_host`'s name |
+| `[gemini]` | `hostname` |
+
+Each server's certificate covers only its own names, so with Windows XP
+clients (which name no server in TLS) give each its own IP, as above, not
+one shared port 443. An HTTPS address on an IP of its own is in the certificate too, for a
+client given the address. The keys are RSA 2048, which AIM 6.2 to 7.5 and
+Windows XP need. A certificate is good for 397 days and signed again 30
+days before its end, keeping its key. Gemini's is good for as long as the
+CA, since Gemini clients pin what they first see.
+
+### On callers' machines
+
+`ca/install-ca.zip` puts the CA among a machine's trusted roots. Put it in
+a file area for callers to download, or hand it out. It holds:
+
+| File | For |
+|---|---|
+| `NAME-CA.cer` | Windows 98 and later: double-click, Install Certificate, Trusted Root Certification Authorities |
+| `install-ca.inf` | Windows 95 and later: right-click, Install (the machine's roots, by the registry) |
+| `install-ca.reg` | the same, double-clicked; `remove-ca.reg` takes it out |
+| `install-ca.bat` | Windows Vista and later, as an administrator: `certutil`, or the `.reg` without it |
+| `NAME-CA.mobileconfig` | macOS and iOS: a profile |
+| `NAME-CA.crt` | Linux (`update-ca-certificates`), and programs with a store of their own: Firefox, Netscape, AIM 6 and later (its NSS database) |
+| `README.txt` | which to use, and the CA's fingerprint to check |
+
+The `.inf` and `.reg` write the certificate where Windows keeps the
+machine's trusted roots (`HKLM\SOFTWARE\Microsoft\SystemCertificates\ROOT`),
+which works from Windows 95 on, with no Internet Explorer needed. None of
+the package has been tried on the old Windows versions yet.
+
+### Old Windows: SHA-1
+
+Windows 95 to 2000, and XP before Service Pack 3, know no SHA-256. Make
+the CA with `bbs ca init -sha1` (before anything else makes it) and it
+signs with SHA-1, as the CAs of the time did. Current systems refuse
+SHA-1 certificates, so use it only for a BBS whose callers' machines are
+that old.
+
+### A TLS proxy
+
+The same CA signs a certificate for a TLS proxy in front of anything
+(stunnel, nginx, an SSL-stripping proxy for old browsers): `bbs ca issue
+-out /etc/stunnel login.example.com 192.168.77.20` writes
+`login.example.com.crt` (with the CA's after it) and `login.example.com.key`.
+Callers who installed the CA trust it as they do the BBS's own.
+
+### Commands
+
+```
+bbs ca                 the CA: its fingerprint, until when, what it signs
+bbs ca init [-sha1]    make it now (and its zip)
+bbs ca issue [-out DIR] [-days N] NAME...   a certificate for a proxy
+bbs ca package [-out FILE]                  the zip again
+```
+
+Keep `ca/ca.key` with your backups, and private: anyone with it can make
+certificates the callers' machines trust.

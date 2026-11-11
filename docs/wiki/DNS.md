@@ -111,6 +111,11 @@ tls_cert = /etc/bbs/legacy.crt
 tls_key = /etc/bbs/legacy.key
 ```
 
+The BBS can sign these certificates itself, with a certificate authority
+of its own and a package that installs it on callers' machines: see
+[Certificates](Certificates#the-bbss-own-certificate-authority)
+(`tls_cert = ca`).
+
 Windows XP's clients send no server name, so a TLS client there gets the
 first front end's certificate (MSN's, then Yahoo!'s, then AIM's). Give
 the front ends one certificate with all their names, an RSA one (AIM 6.2

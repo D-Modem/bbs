@@ -593,8 +593,8 @@ AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC.  Users sign o
 | `uin_base` |  |  | an account's ICQ number is this plus its number. Examples: `100000`. |
 | `system` |  |  | the screen name the BBS's notices come from. Examples: `OnlineHost`. |
 | `tls_address` |  |  | The later AIM logins (AIM 6.2 to 7.x, and clientLogin: Pidgin, AIM Express, the phones' AIM) come by HTTP on address, or by TLS here, with tls_cert and tls_key (a certificate for the name clients use; an RSA one for AIM 6.2 to 7.x, whose TLS 1.0 has only RSA key exchange: with acme, key_type = rsa2048) Examples: `:443`. |
-| `tls_cert` |  |  | The later AIM logins (AIM 6.2 to 7.x, and clientLogin: Pidgin, AIM Express, the phones' AIM) come by HTTP on address, or by TLS here, with tls_cert and tls_key (a certificate for the name clients use; an RSA one for AIM 6.2 to 7.x, whose TLS 1.0 has only RSA key exchange: with acme, key_type = rsa2048) Examples: `/etc/bbs/aim.crt`. |
-| `tls_key` |  |  | The later AIM logins (AIM 6.2 to 7.x, and clientLogin: Pidgin, AIM Express, the phones' AIM) come by HTTP on address, or by TLS here, with tls_cert and tls_key (a certificate for the name clients use; an RSA one for AIM 6.2 to 7.x, whose TLS 1.0 has only RSA key exchange: with acme, key_type = rsa2048) Examples: `/etc/bbs/aim.key`. |
+| `tls_cert` |  |  | (tls_cert = ca: the BBS's own CA signs it for AOL's names; bbs ca) Examples: `/etc/bbs/aim.crt`. |
+| `tls_key` |  |  | (tls_cert = ca: the BBS's own CA signs it for AOL's names; bbs ca) Examples: `/etc/bbs/aim.key`. |
 | `tls_host` |  |  | where clients that ask for TLS are sent, host:port (default: host's host at tls_address's port); a TLS proxy's, when one is in front. Examples: `aim.example.org:443`. |
 
 
@@ -662,8 +662,8 @@ MSN Messenger: the chat for MSN Messenger 1.0 to 7.5 and Windows Messenger 4.x (
 | `system` |  |  | the name the BBS's notices come from. Examples: `BBS`. |
 | `site` |  |  | a web address the clients' links (inbox, profiles) open. Examples: `https://bbs.example.org/`. |
 | `https_address` |  |  | MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is that server too when https_address is set. The machine running the client sends nexus.passport.com, login.passport.com and login.live.com to the BBS (its hosts file) and trusts tls_cert for those names (make a small certificate authority of your own). [dns] sends those names here for dial-up users. Sharing 443 with [ymsg] and [oscar] TLS, give them one certificate with all their names. See the wiki page. Examples: `:443`. |
-| `tls_cert` |  |  | MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is that server too when https_address is set. The machine running the client sends nexus.passport.com, login.passport.com and login.live.com to the BBS (its hosts file) and trusts tls_cert for those names (make a small certificate authority of your own). [dns] sends those names here for dial-up users. Sharing 443 with [ymsg] and [oscar] TLS, give them one certificate with all their names. See the wiki page. Examples: `/etc/bbs/passport.crt`. |
-| `tls_key` |  |  | MSN Messenger 5.0 to 7.5 sign in by Passport, over HTTPS: the BBS is that server too when https_address is set. The machine running the client sends nexus.passport.com, login.passport.com and login.live.com to the BBS (its hosts file) and trusts tls_cert for those names (make a small certificate authority of your own). [dns] sends those names here for dial-up users. Sharing 443 with [ymsg] and [oscar] TLS, give them one certificate with all their names. See the wiki page. Examples: `/etc/bbs/passport.key`. |
+| `tls_cert` |  |  | (tls_cert = ca: the BBS's own CA signs it for Passport's names, no key file; its install-ca.zip puts the CA on callers' machines. bbs ca) Examples: `/etc/bbs/passport.crt`. |
+| `tls_key` |  |  | (tls_cert = ca: the BBS's own CA signs it for Passport's names, no key file; its install-ca.zip puts the CA on callers' machines. bbs ca) Examples: `/etc/bbs/passport.key`. |
 | `passport_host` |  |  | where the clients log in, host[:port] (default: the name they asked the nexus at) Examples: `login.passport.com`. |
 | `http_address` |  |  | or without TLS, behind a proxy that does it. Examples: `127.0.0.1:8863`. |
 
@@ -688,8 +688,8 @@ Yahoo! Messenger: the chat for Yahoo! Messenger clients (YMSG 9 to 16), beside I
 | `address` |  |  | See the section above. Examples: `:5050`. |
 | `http_address` |  |  | the web half, for Y!M 9 and later, the room list and file transfer: point vcs1.msg.yahoo.com, vcs2.msg.yahoo.com, insider.msg.yahoo.com, relay.msg.yahoo.com and filetransfer.msg.yahoo.com here. File transfer needs it on port 80. Examples: `:80`. |
 | `https_address` |  |  | Y!M 9's login, its password over HTTPS: point login.yahoo.com here, with a certificate for it the client trusts. Examples: `:443`. |
-| `tls_cert` |  |  | Y!M 9's login, its password over HTTPS: point login.yahoo.com here, with a certificate for it the client trusts. Examples: `/etc/bbs/login.yahoo.com.crt`. |
-| `tls_key` |  |  | Y!M 9's login, its password over HTTPS: point login.yahoo.com here, with a certificate for it the client trusts. Examples: `/etc/bbs/login.yahoo.com.key`. |
+| `tls_cert` |  |  | (tls_cert = ca: the BBS's own CA signs it for login.yahoo.com; bbs ca) Examples: `/etc/bbs/login.yahoo.com.crt`. |
+| `tls_key` |  |  | (tls_cert = ca: the BBS's own CA signs it for login.yahoo.com; bbs ca) Examples: `/etc/bbs/login.yahoo.com.key`. |
 | `host` |  |  | the pager's address the web half gives Y!M 9 (default: the address each one asked on; set it behind NAT) Examples: `203.0.113.5`. |
 | `max_clients` |  |  | the pager's address the web half gives Y!M 9 (default: the address each one asked on; set it behind NAT) Examples: `256`. |
 | `max_per_ip` |  |  | the pager's address the web half gives Y!M 9 (default: the address each one asked on; set it behind NAT) Examples: `4`. |
@@ -775,8 +775,8 @@ gemini: gopher's capsule over Gemini (gemini://, TLS): about the system, who is 
 |---|---|---|---|
 | `address` |  |  | See the section above. Examples: `:1965`. |
 | `hostname` |  |  | the host name bbs gemini cert offers for a new certificate. Examples: `bbs.example.org`. |
-| `cert_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes, so an ACME one (cert_file = acme) is for capsules whose visitors check it against a CA. Examples: `/etc/bbs/gemini-cert.pem`. |
-| `key_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes, so an ACME one (cert_file = acme) is for capsules whose visitors check it against a CA. Examples: `/etc/bbs/gemini-key.pem`. |
+| `cert_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes, so an ACME one (cert_file = acme) is for capsules whose visitors check it against a CA. cert_file = ca: the BBS's own CA signs it for hostname, good as long as the CA, its key kept (bbs ca) Examples: `/etc/bbs/gemini-cert.pem`. |
+| `key_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes, so an ACME one (cert_file = acme) is for capsules whose visitors check it against a CA. cert_file = ca: the BBS's own CA signs it for hostname, good as long as the CA, its key kept (bbs ca) Examples: `/etc/bbs/gemini-key.pem`. |
 | `areas` |  |  | message areas shown (a wildmat of area names; "": none) Examples: `general,announcements`. |
 | `files` |  |  | file areas listed and downloadable. Examples: `no`. |
 | `users` |  |  | /users: look up a user, as finger tells of them. Examples: `yes`. |

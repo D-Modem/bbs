@@ -34,7 +34,7 @@ func (c *Config) ymsgSection(cf *config.File) error {
 			return errors.New("address: where the pager listens (:5050)")
 		}
 		if y.HTTPSAddress != "" {
-			if y.CertFile == "" || y.KeyFile == "" && !certs.IsACME(y.CertFile) {
+			if y.CertFile == "" || y.KeyFile == "" && !certs.IsACME(y.CertFile) && !certs.IsCA(y.CertFile) {
 				return errors.New("https_address needs tls_cert and tls_key (one for login.yahoo.com: not a name a CA will sign for this host)")
 			}
 			if err := certs.Check(y.CertFile, y.KeyFile, c.acmeNames()); err != nil {

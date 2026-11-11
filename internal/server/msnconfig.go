@@ -32,7 +32,7 @@ func (c *Config) msnSection(cf *config.File) error {
 			}
 		}
 		if m.HTTPSAddress != "" {
-			if m.CertFile == "" || m.KeyFile == "" && !certs.IsACME(m.CertFile) {
+			if m.CertFile == "" || m.KeyFile == "" && !certs.IsACME(m.CertFile) && !certs.IsCA(m.CertFile) {
 				return errors.New("https_address needs tls_cert and tls_key (one for nexus.passport.com, " +
 					"login.passport.com and login.live.com: not names a CA will sign for this host)")
 			}
