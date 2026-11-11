@@ -574,6 +574,8 @@ IRC: the chat rooms as channels (#main ...), for IRC clients.  Users log in with
 | `max_clients` |  |  | IRC over TLS (and address = none for TLS only); with no tls_cert and tls_key, the [acme] certificates. Examples: `64`. |
 | `max_per_ip` |  |  | IRC over TLS (and address = none for TLS only); with no tls_cert and tls_key, the [acme] certificates. Examples: `4`. |
 | `service` |  |  | the services bot's nick: /msg BBSServ HELP (your account's settings) Examples: `BBSServ`. |
+| `chanserv` |  |  | the rooms' bot's nick: /msg ChanServ HELP (registering rooms, their access lists; the BBS chat's /cs too) Examples: `ChanServ`. |
+| `chanserv_expire` |  |  | days a registered room may go unused (no one on its access list coming in) before it is dropped; 0: never. Examples: `90`. |
 
 
 ## `[oscar]`

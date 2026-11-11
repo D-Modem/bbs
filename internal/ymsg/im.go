@@ -15,6 +15,12 @@ import (
 // its sender, a room's line to the chat room or conference it is, anything
 // else as an IM from the BBS.
 func (ss *session) event(e bbs.Event) {
+	if plain := bbs.Plain(e); plain != nil { // ops and kicks: as notices and leaving
+		for _, x := range plain {
+			ss.event(x)
+		}
+		return
+	}
 	switch e.Kind {
 	case bbs.Private:
 		text := e.Text

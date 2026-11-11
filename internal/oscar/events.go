@@ -10,6 +10,12 @@ import (
 // room's line to its chat connection, anything else as an IM from the
 // system.
 func (ss *session) event(e bbs.Event) {
+	if plain := bbs.Plain(e); plain != nil { // ops and kicks: as notices and leaving
+		for _, x := range plain {
+			ss.event(x)
+		}
+		return
+	}
 	switch e.Kind {
 	case bbs.Private:
 		text := e.Text

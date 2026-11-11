@@ -218,19 +218,23 @@ type BBS struct {
 	// sysopAway: the sysop is not to be paged (pages leave a message)
 	sysopAway atomic.Bool
 
-	mu         sync.Mutex
-	nodes      map[int]*Node
-	failures   map[string][]time.Time
-	hubOnce    sync.Once
-	chat       *hub
-	relays     []Relay // chat networks' rooms (MRC, IRC links)
-	geoMu      sync.Mutex
-	geo        *geoip.File
-	presMu     sync.Mutex
-	presence   map[int]func(name string, online bool) // WatchPresence's
-	presNext   int
-	friendFns  map[int]func(user int64) // WatchFriends'
-	friendNext int
+	mu       sync.Mutex
+	nodes    map[int]*Node
+	failures map[string][]time.Time
+	hubOnce  sync.Once
+	chat     *hub
+	relays   []Relay // chat networks' rooms (MRC, IRC links)
+	// the rooms' service's nick, and how long registered rooms may go unused
+	chanServ      string
+	roomExpiry    time.Duration
+	roomExpirySet bool
+	geoMu         sync.Mutex
+	geo           *geoip.File
+	presMu        sync.Mutex
+	presence      map[int]func(name string, online bool) // WatchPresence's
+	presNext      int
+	friendFns     map[int]func(user int64) // WatchFriends'
+	friendNext    int
 }
 
 // New makes the BBS of the settings and store.

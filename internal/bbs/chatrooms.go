@@ -58,7 +58,7 @@ func (b *BBS) RemovePermanentRoom(name, by string) error {
 	h.mu.Lock()
 	if r := h.rooms[name]; r != nil {
 		r.permanent, r.topic = false, ""
-		if len(r.members) == 0 {
+		if len(r.members) == 0 && !h.kept(name, r) {
 			delete(h.rooms, name)
 		}
 	}
@@ -67,25 +67,42 @@ func (b *BBS) RemovePermanentRoom(name, by string) error {
 	return nil
 }
 
-// SetRoomTopic sets a permanent room's topic ("": none), and tells those
-// in it.
+// SetRoomTopic sets a permanent or registered room's topic ("": none),
+// and tells those in it.
 func (b *BBS) SetRoomTopic(name, topic, by string) error {
 	name = strings.ToLower(strings.TrimSpace(name))
 	topic = Clean(topic, MaxTopic)
 	h := b.hub()
 	h.mu.Lock()
 	r := h.rooms[name]
-	if r == nil || !r.permanent {
+	reg := h.regs[name]
+	permanent := r != nil && r.permanent
+	if reg == nil && !permanent {
 		h.mu.Unlock()
 		return ErrNotPermanent
 	}
 	h.mu.Unlock()
-	if err := b.Store.SetChatTopic(name, topic); err != nil {
-		return err
+	if permanent {
+		if err := b.Store.SetChatTopic(name, topic); err != nil {
+			return err
+		}
+	}
+	if reg != nil {
+		if err := b.Store.SetRoomRegTopic(name, topic, by); err != nil {
+			return err
+		}
 	}
 	h.mu.Lock()
-	r.topic = topic
-	members := r.membersList()
+	if permanent {
+		r.topic = topic
+	}
+	if reg := h.regs[name]; reg != nil {
+		reg.Topic, reg.TopicBy, reg.TopicAt = topic, by, time.Now()
+	}
+	var members []*Node
+	if r != nil {
+		members = r.membersList()
+	}
 	h.mu.Unlock()
 	e := Event{Kind: Topic, Room: name, From: by, Text: topic, Time: time.Now()}
 	for _, m := range members {
@@ -95,15 +112,14 @@ func (b *BBS) SetRoomTopic(name, topic, by string) error {
 	return nil
 }
 
-// RoomTopic is a room's topic, and whether the room is permanent.
+// RoomTopic is a room's topic (a registered room's own, else a permanent
+// room's), and whether the room is permanent.
 func (b *BBS) RoomTopic(name string) (topic string, permanent bool) {
 	h := b.hub()
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if r := h.rooms[name]; r != nil {
-		return r.topic, r.permanent
-	}
-	return "", false
+	r := h.rooms[name]
+	return h.topicOf(name, r), r != nil && r.permanent
 }
 
 // PermanentRooms are the permanent rooms, by name.
@@ -114,7 +130,7 @@ func (b *BBS) PermanentRooms() []RoomInfo {
 	var out []RoomInfo
 	for name, r := range h.rooms {
 		if r.permanent {
-			ri := RoomInfo{Name: name, Permanent: true, Topic: r.topic}
+			ri := RoomInfo{Name: name, Permanent: true, Topic: h.topicOf(name, r), Registered: h.regs[name] != nil}
 			for m := range r.members {
 				ri.Users = append(ri.Users, m.name())
 			}

@@ -20,6 +20,8 @@ tls_key = /etc/bbs/tls.key
 | `max_clients` | `64` | connections at once |
 | `max_per_ip` | `4` | from one address |
 | `service` | `BBSServ` | the [services bot](#bbsserv)'s nick |
+| `chanserv` | `ChanServ` | the [rooms' bot](#chanserv)'s nick |
+| `chanserv_expire` | `90` | days a registered room may go unused before it is dropped (`0`: never) |
 
 `bbs check` warns about a plain `address` without a `tls_address`,
 because passwords then travel in the clear. The deny list and bans in
@@ -60,10 +62,14 @@ up to 20 at once. Joining shows the room's last 20 lines.
 | `LIST` | the rooms in use |
 | a page, mail, a notice | a `NOTICE` from the server |
 
-Sysops show as channel operators (`@`), but there's little to operate:
-rooms have no modes, kicks or bans, and only [permanent
-rooms](#permanent-rooms) have topics. Colours and other formatting are
-stripped from lines going into the rooms.
+In a room no one has registered, sysops show as channel operators (`@`)
+and no one else does. A user can [register a room](#chanserv) with
+ChanServ: then its access list says who is opped or voiced on coming in,
+and its ops can `MODE +o`/`-o`/`+v`/`-v`, `KICK` and set the topic.
+[Permanent](#permanent-rooms) and registered rooms have topics; others
+don't. Colours and other formatting are stripped from lines going into
+the rooms. Channel modes besides `o` and `v` are not the BBS's yet: a
+room is always `+nt`.
 
 A sysop is told of a page by a `NOTICE`. Joining `#sysop-N` answers the
 page from node N, just as `/answer` does in the BBS's chat.
@@ -100,6 +106,60 @@ When a topic is set, everyone in the room is told: on IRC as a `TOPIC` from
 BBSServ, on the BBS as a line ("sysop set the topic: ..."). Changes made
 with the `bbs` command reach a running BBS at its next start; those made
 through BBSServ apply at once.
+
+## ChanServ
+
+ChanServ looks after registered rooms: who founded each, and who has which
+flags there. A room is registered by someone in it, who becomes its
+founder and is opped. Like everything about rooms, it holds for every way
+in: a caller on the text BBS, AOL, Yahoo or AIM is opped, voiced, kept out
+or put out just as an IRC user is. Talk to it with `/msg ChanServ COMMAND`
+or `/CS COMMAND`; on the text BBS, `/cs COMMAND` in chat.
+
+| Command | Needs | What it does |
+|---|---|---|
+| `REGISTER #room` | to be in it | makes the room yours |
+| `DROP #room` | the founder | unregisters it |
+| `INFO #room` | | its founder, when registered and last used, settings, topic |
+| `FLAGS #room` | `A` | the access list |
+| `FLAGS #room nick +flags-flags` | `f` | changes an entry; a template (`VOP`, `AOP`, `SOP`, `FOUNDER`) sets it, `-*` takes it off |
+| `OP`, `DEOP #room [nick ...]` | `o` | ops you, or them |
+| `VOICE`, `DEVOICE #room [nick ...]` | `v` | voices you, or them |
+| `TOPIC #room [text]` | `t` | sets the topic |
+| `KICK #room nick [reason]` | `r` | puts one out |
+| `BAN`, `UNBAN #room nick` | `r` | keeps one out (`b` on their entry), or lets them in again |
+| `CLEAR #room USERS [reason]` | `R` | puts everyone out but you |
+| `SET #room FOUNDER nick` | the founder | gives the room away |
+| `SET #room GUARD`, `TOPICLOCK`, `PRIVATE ON`\|`OFF` | `s` | ChanServ holds the room open; only `t` sets the topic; `INFO` shows little to those without `A` |
+| `SET #room DESCRIPTION`, `URL`, `ENTRYMSG [text]` | `s` | the room's texts; the entry message is told to everyone coming in |
+| `LIST` | | the rooms you have flags in (a sysop's `LIST ALL`: every room) |
+| `WHY #room [nick]` | | what gives you (or them) their flags |
+
+The flags are Atheme's:
+
+| Flag | | Flag | |
+|---|---|---|---|
+| `v` | voice through ChanServ | `V` | voiced on coming in |
+| `o` | ops through ChanServ | `O` | opped on coming in |
+| `t` | sets the topic | `i` | invites (for the modes to come) |
+| `r` | `KICK`, `BAN`, `UNBAN` | `R` | `CLEAR` |
+| `f` | changes the access list | `s` | `SET` |
+| `A` | sees the access list | `e` | not kept out by a ban |
+| `b` | banned: kept out | `F` | founder: everything |
+
+Templates: `VOP` is `+AV`, `AOP` `+AOiortv`, `SOP` `+AORefiorstv`, and
+`FOUNDER` `+AFORefiorstv`. Someone with `f` gives or takes only flags they
+have; `F` is a founder's to give. A sysop acts as a founder in every room,
+but is opped in a registered one only as anyone is. Only a sysop puts a
+sysop out, and no one but a sysop puts out the founder.
+
+Page rooms (`sysop-N`) and rooms a [linked network](IRC-Linking) or MRC
+carries can't be registered: the network's own services look after
+those. A permanent room is registered by the sysop alone, who can then
+give it away with `SET FOUNDER`. A room no one on its access list has
+come into for `chanserv_expire` days is dropped. When a founder's account
+is deleted, the room goes to the oldest entry with `F`, else with `f`,
+else the oldest entry; with no one left, it is dropped.
 
 ## BBSServ
 

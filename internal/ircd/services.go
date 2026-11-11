@@ -21,6 +21,9 @@ type service struct {
 	CommandAliases []string // IRC commands that talk to it
 	Commands       map[string]*serviceCommand
 	HelpBanner     string
+	// raw, if set, runs every line sent to the service (but CTCPs), in
+	// place of its command table
+	raw func(svc *service, c *client, line string)
 }
 
 // serviceCommand is one of a service's commands.
@@ -85,6 +88,10 @@ func fieldsN(s string, n int) []string {
 func (svc *service) privmsg(c *client, message string) {
 	if strings.HasPrefix(message, "\x01") {
 		svc.ctcp(c, message)
+		return
+	}
+	if svc.raw != nil {
+		svc.raw(svc, c, message)
 		return
 	}
 	params := strings.Fields(message)

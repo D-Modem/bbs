@@ -70,7 +70,7 @@ func (c *client) command(m *ircmsg.Message) {
 		var on []string
 		for _, nick := range m.Params {
 			for _, w := range strings.Fields(nick) {
-				if _, remote := c.s.B.LookupRemote(w); len(c.nodesOf(w)) > 0 || remote || fold(w) == fold(c.s.svc.Name) {
+				if _, remote := c.s.B.LookupRemote(w); len(c.nodesOf(w)) > 0 || remote || c.s.service(w) != nil {
 					on = append(on, w)
 				}
 			}
@@ -98,12 +98,16 @@ func (c *client) command(m *ircmsg.Message) {
 	case "INFO":
 		c.reply(RPL_INFO, c.s.B.Conf().Name+": the BBS's chat rooms are its channels")
 		c.reply(RPL_ENDOFINFO, "End of INFO")
-	case "KICK", "INVITE", "OPER", "KILL", "KNOCK":
-		c.reply(ERR_NOPRIVILEGES, "Permission denied: the BBS's rooms are everyone's")
+	case "KICK":
+		c.kick(param(m, 0), param(m, 1), param(m, 2))
+	case "INVITE", "OPER", "KILL", "KNOCK":
+		c.reply(ERR_NOPRIVILEGES, "Permission denied")
 	default:
-		if slices.Contains(c.s.svc.CommandAliases, m.Command) {
-			c.s.svc.command(c, m.Params)
-			return
+		for _, svc := range []*service{c.s.svc, c.s.cs} {
+			if slices.Contains(svc.CommandAliases, m.Command) {
+				svc.command(c, m.Params)
+				return
+			}
 		}
 		c.reply(ERR_UNKNOWNCOMMAND, m.Command, "Unknown command")
 	}
@@ -169,6 +173,9 @@ func (c *client) join(list string) {
 		case errors.Is(err, bbs.ErrNoRoom):
 			c.reply(ERR_BADCHANMASK, ch, "A channel is # and 1 to 20 letters, digits or -")
 			continue
+		case errors.Is(err, bbs.ErrBanned):
+			c.reply(ERR_BANNEDFROMCHAN, ch, "Cannot join channel (+b): "+err.Error())
+			continue
 		case errors.Is(err, bbs.ErrNotYours), errors.Is(err, bbs.ErrNotAllowed):
 			c.reply(ERR_INVITEONLYCHAN, ch, "Cannot join channel: "+err.Error())
 			continue
@@ -200,16 +207,33 @@ func (c *client) part(ch string) {
 }
 
 // member is a room member as NAMES and WHO give one: nick, user (how they
-// came), host (their node), and op for a sysop (@).
-func (c *client) member(m bbs.RoomMember) (nick, user, host string, op bool) {
+// came), host (their node), and their prefixes (@ an op, + a voice; with
+// multi-prefix both, else the highest).
+func (c *client) member(m bbs.RoomMember) (nick, user, host, prefix string) {
 	if m.Node == 0 { // on a linked network: as it names them
-		return m.Name, m.Via, m.Host, false
+		return m.Name, m.Via, m.Host, ""
 	}
 	nick, user, host = Nick(m.Name), m.Via, fmt.Sprintf("node%d", m.Node)
-	if u, err := c.s.B.Store.UserByName(m.Name); err == nil && u.Sysop {
-		op = true
+	if m.Op {
+		prefix = "@"
+	}
+	if m.Voice && (prefix == "" || c.caps["multi-prefix"]) {
+		prefix += "+"
 	}
 	return
+}
+
+// roomServices are the services sitting in a room: BBSServ in a permanent
+// one, ChanServ in a guarded one.
+func (c *client) roomServices(name string) []*service {
+	var out []*service
+	if _, permanent := c.s.B.RoomTopic(name); permanent {
+		out = append(out, c.s.svc)
+	}
+	if c.s.B.RoomGuarded(name) {
+		out = append(out, c.s.cs)
+	}
+	return out
 }
 
 // names is NAMES for one channel: the service first in a permanent room,
@@ -219,16 +243,16 @@ func (c *client) names(ch string) {
 	if name != "" && (c.n.InRoom(name) || !strings.HasPrefix(name, "sysop-")) {
 		var line []string
 		seen := map[string]bool{}
-		if _, permanent := c.s.B.RoomTopic(name); permanent {
-			// the service holds the permanent rooms open
-			entry := c.s.svc.Name
+		for _, svc := range c.roomServices(name) {
+			// the services hold permanent and guarded rooms open
+			entry := svc.Name
 			if c.caps["userhost-in-names"] {
-				entry = c.s.svc.source(c)
+				entry = svc.source(c)
 			}
 			line = append(line, "@"+entry)
 		}
 		for _, m := range c.s.B.RoomMembers(name) {
-			nick, user, host, op := c.member(m)
+			nick, user, host, prefix := c.member(m)
 			entry := nick
 			if c.caps["userhost-in-names"] {
 				entry = nick + "!" + user + "@" + host
@@ -237,9 +261,7 @@ func (c *client) names(ch string) {
 				continue
 			}
 			seen[entry] = true
-			if op {
-				entry = "@" + entry
-			}
+			entry = prefix + entry
 			line = append(line, entry)
 			if len(strings.Join(line, " ")) > 350 {
 				c.reply(RPL_NAMREPLY, "=", "#"+name, strings.Join(line, " "))
@@ -256,7 +278,7 @@ func (c *client) names(ch string) {
 // nodesOf are the nodes online of a nick's user (none for the service's
 // nick, which is the service's).
 func (c *client) nodesOf(nick string) []bbs.NodeInfo {
-	if fold(nick) == fold(c.s.svc.Name) {
+	if c.s.service(nick) != nil {
 		return nil
 	}
 	var out []bbs.NodeInfo
@@ -270,7 +292,7 @@ func (c *client) nodesOf(nick string) []bbs.NodeInfo {
 
 // userOfNick is the BBS user a nick is of, on or not (nil: none).
 func (c *client) userOfNick(nick string) *store.User {
-	if fold(nick) == fold(c.s.svc.Name) {
+	if c.s.service(nick) != nil {
 		return nil
 	}
 	if u, err := c.s.B.Store.UserByName(nick); err == nil {
@@ -293,17 +315,13 @@ func (c *client) userOfNick(nick string) *store.User {
 func (c *client) who(mask string) {
 	if name := room(mask); name != "" {
 		if c.n.InRoom(name) || !strings.HasPrefix(name, "sysop-") {
-			if _, permanent := c.s.B.RoomTopic(name); permanent {
-				svc := c.s.svc
+			for _, svc := range c.roomServices(name) {
 				c.reply(RPL_WHOREPLY, "#"+name, svc.Name, c.s.S.ServerName, c.s.S.ServerName, svc.Name, "H@",
-					"0 Your BBS account and the permanent rooms")
+					"0 "+c.s.serviceReal(svc))
 			}
 			for _, m := range c.s.B.RoomMembers(name) {
-				nick, user, host, op := c.member(m)
-				flags := "H"
-				if op {
-					flags += "@"
-				}
+				nick, user, host, prefix := c.member(m)
+				flags := "H" + prefix
 				c.reply(RPL_WHOREPLY, "#"+name, user, host, c.s.S.ServerName, nick, flags, "0 "+m.Name)
 			}
 		}
@@ -319,12 +337,19 @@ func (c *client) who(mask string) {
 // whois is WHOIS: the service, or a nick's user, their nodes and what each
 // is doing, whether they are the sysop, and how long since they came on.
 func (c *client) whois(nick string) {
-	if svc := c.s.svc; fold(nick) == fold(svc.Name) {
+	if svc := c.s.service(nick); svc != nil {
 		c.reply(RPL_WHOISUSER, svc.Name, svc.Name, c.s.S.ServerName, "*",
-			fmt.Sprintf("Your BBS account: /msg %s HELP", svc.Name))
+			fmt.Sprintf("%s: /msg %s HELP", c.s.serviceReal(svc), svc.Name))
 		var chans []string
-		for _, r := range c.s.B.PermanentRooms() {
-			chans = append(chans, "@#"+r.Name)
+		if svc == c.s.svc {
+			for _, r := range c.s.B.PermanentRooms() {
+				chans = append(chans, "@#"+r.Name)
+			}
+		} else {
+			for _, r := range c.s.B.GuardedRooms() {
+				chans = append(chans, "@#"+r)
+			}
+			slices.Sort(chans)
 		}
 		if len(chans) > 0 {
 			c.reply(RPL_WHOISCHANNELS, svc.Name, strings.Join(chans, " "))
@@ -382,37 +407,55 @@ func (c *client) whoisRemote(r bbs.RemoteUser) {
 	c.reply(RPL_ENDOFWHOIS, r.Nick, "End of /WHOIS list")
 }
 
-// list is LIST: the rooms, their numbers of callers (the service counted
-// in a permanent room) and their topics.
+// list is LIST: the rooms, their numbers of callers (the services counted
+// in the rooms they hold) and their topics.
 func (c *client) list() {
 	c.reply(RPL_LISTSTART, "Channel", "Users  Name")
 	for _, r := range c.n.Rooms() {
-		users := len(r.Users)
-		if r.Permanent {
-			users++ // the service
-		}
+		users := len(r.Users) + len(c.roomServices(r.Name)) // the services holding it open
 		c.reply(RPL_LIST, "#"+r.Name, strconv.Itoa(users), r.Topic)
 	}
 	c.reply(RPL_LISTEND, "End of /LIST")
 }
 
-// topic is TOPIC: a room's topic shown; set it only if it is permanent and
-// the user is the sysop.
+// topic is TOPIC: a room's topic shown, or set: a registered room's by
+// its ops, a permanent room's by the sysop.
 func (c *client) topic(ch, text string, set bool) {
 	name := room(ch)
 	_, permanent := c.s.B.RoomTopic(name)
 	switch {
-	case name == "" || !c.n.InRoom(name) && !permanent:
+	case name == "" || !c.n.InRoom(name) && !permanent && c.s.B.RoomReg(name) == nil:
 		c.reply(ERR_NOTONCHANNEL, ch, "You're not on that channel")
 	case !set:
 		c.sendTopic("#"+name, name)
-	case !permanent:
-		c.reply(ERR_CHANOPRIVSNEEDED, ch, fmt.Sprintf("Only permanent rooms have topics (/msg %s HELP ROOM)", c.s.svc.Name))
-	case !c.u.Sysop:
-		c.reply(ERR_CHANOPRIVSNEEDED, ch, "A topic is set by the sysop")
 	default:
-		if err := c.s.B.SetRoomTopic(name, text, c.u.Name); err != nil {
-			c.reply(ERR_UNKNOWNERROR, "TOPIC", err.Error())
+		if err := c.n.SetTopic(name, text); err != nil {
+			c.reply(ERR_CHANOPRIVSNEEDED, "#"+name, capital(err.Error()))
+		}
+	}
+}
+
+// kick is KICK: ops put people out (a list of nicks, parted by commas).
+func (c *client) kick(ch, nicks, reason string) {
+	name := room(ch)
+	if name == "" || nicks == "" {
+		c.reply(ERR_NEEDMOREPARAMS, "KICK", "Not enough parameters")
+		return
+	}
+	if !c.n.InRoom(name) && !c.u.Sysop {
+		c.reply(ERR_NOTONCHANNEL, ch, "You're not on that channel")
+		return
+	}
+	for _, nick := range strings.Split(nicks, ",") {
+		err := c.n.Kick(name, nick, reason)
+		switch {
+		case err == nil:
+		case errors.Is(err, bbs.ErrNoUser):
+			c.reply(ERR_NOSUCHNICK, nick, "No such nick")
+		case errors.Is(err, bbs.ErrNotThere):
+			c.reply(ERR_USERNOTINCHANNEL, nick, "#"+name, "They aren't on that channel")
+		default:
+			c.reply(ERR_CHANOPRIVSNEEDED, "#"+name, capital(err.Error()))
 		}
 	}
 }
@@ -426,7 +469,8 @@ func (c *client) sendTopic(ch, name string) {
 	}
 }
 
-// mode is MODE: a channel's are +nt and never change; a user's own is +i.
+// mode is MODE: a channel's are +nt; its ops give and take o and v (in a
+// registered room).  A user's own is +i.
 func (c *client) mode(m *ircmsg.Message) {
 	target := param(m, 0)
 	if name := room(target); name != "" {
@@ -436,7 +480,7 @@ func (c *client) mode(m *ircmsg.Message) {
 		case strings.Trim(param(m, 1), "+") == "b":
 			c.reply(RPL_ENDOFBANLIST, "#"+name, "End of channel ban list")
 		default:
-			c.reply(ERR_CHANOPRIVSNEEDED, target, "The BBS's rooms have no modes to change")
+			c.chanMode(name, m.Params[1], m.Params[2:])
 		}
 		return
 	}
@@ -461,9 +505,9 @@ func (c *client) privmsg(command, target, text string) {
 		}
 		return
 	}
-	if fold(target) == fold(c.s.svc.Name) {
+	if svc := c.s.service(target); svc != nil {
 		if !notice { // a NOTICE to a bot is never answered
-			c.s.svc.privmsg(c, stripped(text))
+			svc.privmsg(c, stripped(text))
 		}
 		return
 	}
@@ -624,7 +668,18 @@ func (c *client) event(e bbs.Event) {
 			c.send(tags, c.sourceOfEvent(e), "PART", "#"+e.Room)
 		}
 	case bbs.Topic:
-		c.send(tags, c.s.svc.source(c), "TOPIC", "#"+e.Room, e.Text)
+		source := c.s.svc.source(c)
+		if c.s.B.RoomReg(e.Room) != nil {
+			source = c.s.cs.source(c)
+			if e.From != "" && e.From != c.s.cs.Name {
+				source = c.sourceOf(e.From, c.nodeOfUser(e.From))
+			}
+		}
+		c.send(tags, source, "TOPIC", "#"+e.Room, e.Text)
+	case bbs.Mode:
+		c.send(tags, c.eventSource(e), "MODE", "#"+e.Room, e.Text, Nick(e.Target))
+	case bbs.Kicked:
+		c.send(tags, c.eventSource(e), "KICK", "#"+e.Room, Nick(e.Target), e.Text)
 	case bbs.Private:
 		text := e.Text
 		if e.Kept && !c.caps["server-time"] {
@@ -642,7 +697,11 @@ func (c *client) event(e bbs.Event) {
 			c.send(tags, "", "NOTICE", "#"+e.Room, e.Text) // the room's, from a chat network
 			return
 		}
-		c.send(tags, "", "NOTICE", c.nick, e.String())
+		source := ""
+		if svc := c.s.service(e.From); svc != nil {
+			source = svc.source(c) // a room's entry message, from ChanServ
+		}
+		c.send(tags, source, "NOTICE", c.nick, e.String())
 	default:
 		c.send(tags, "", "NOTICE", c.nick, e.String())
 	}

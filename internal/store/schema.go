@@ -113,6 +113,27 @@ CREATE TABLE IF NOT EXISTS chat_rooms (
 	created_by {str} NOT NULL DEFAULT '',
 	created    {int} NOT NULL
 )`, `
+CREATE TABLE IF NOT EXISTS room_reg (
+	name       {key} PRIMARY KEY,
+	founder_id {int} NOT NULL,
+	registered {int} NOT NULL,
+	last_used  {int} NOT NULL DEFAULT 0,
+	settings   {str} NOT NULL DEFAULT '',
+	descr      {str} NOT NULL DEFAULT '',
+	url        {str} NOT NULL DEFAULT '',
+	entrymsg   {str} NOT NULL DEFAULT '',
+	topic      {str} NOT NULL DEFAULT '',
+	topic_by   {str} NOT NULL DEFAULT '',
+	topic_at   {int} NOT NULL DEFAULT 0
+)`, `
+CREATE TABLE IF NOT EXISTS room_access (
+	room       {key} NOT NULL,
+	user_id    {int} NOT NULL,
+	flags      {str} NOT NULL DEFAULT '',
+	set_by     {str} NOT NULL DEFAULT '',
+	set_at     {int} NOT NULL,
+	PRIMARY KEY (room, user_id)
+)`, `
 CREATE TABLE IF NOT EXISTS qwk_msgs (
 	net        {key} NOT NULL,
 	number     {int} NOT NULL,
@@ -468,6 +489,7 @@ var indexes = []struct {
 	{"chan_posts_ip", "chan_posts", "ip, created", false},
 	{"chan_reports_post", "chan_reports", "board_id, num", false},
 	{"chats_to", "chats", "to_id, delivered", false},
+	{"room_access_user", "room_access", "user_id", false},
 	{"chats_pair", "chats", "from_id, to_id, id", false},
 }
 

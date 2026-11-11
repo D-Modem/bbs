@@ -819,6 +819,12 @@ address = 127.0.0.1:2513
 ;max_per_ip = 4
 ; the services bot's nick: /msg BBSServ HELP (your account's settings)
 ;service = BBSServ
+; the rooms' bot's nick: /msg ChanServ HELP (registering rooms, their
+; access lists; the BBS chat's /cs too)
+;chanserv = ChanServ
+; days a registered room may go unused (no one on its access list coming
+; in) before it is dropped; 0: never
+;chanserv_expire = 90
 
 ; AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC.  Users
 ; sign on with their BBS names (or ICQ numbers: uin_base plus the account's

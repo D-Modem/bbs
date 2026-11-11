@@ -395,13 +395,16 @@ func (s *Store) SetLocked(id int64, locked bool) error {
 	return s.exec1(`UPDATE users SET locked = ? WHERE id = ?`, locked, id)
 }
 
-// DeleteUser removes an account and its mail; its messages stay.
+// DeleteUser removes an account and its mail; its messages stay.  Rooms
+// it founded pass to another on their access lists.
 func (s *Store) DeleteUser(id int64) error {
 	if err := s.exec1(`DELETE FROM users WHERE id = ?`, id); err != nil {
 		return err
 	}
-	_, err := s.db.Exec(`DELETE FROM script_data WHERE user_id = ?`, id)
-	return err
+	if _, err := s.db.Exec(`DELETE FROM script_data WHERE user_id = ?`, id); err != nil {
+		return err
+	}
+	return s.roomsGone(id)
 }
 
 // LoggedIn counts a login.

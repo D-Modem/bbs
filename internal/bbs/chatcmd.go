@@ -18,6 +18,9 @@ var ChatHelp = []string{
 	"  /block WHO      stop their messages      /unblock WHO    let them again",
 	"  /msg NICK TEXT  to someone on a linked IRC network",
 	"  /quit           leave the chat",
+	"  /cs COMMAND     ChanServ: register a room, its access list (/cs HELP)",
+	"  /topic TEXT     set the topic (a registered room's ops)",
+	"  /kick WHO [WHY] put one out of the room (its ops)",
 	"Sysops:  /pages  callers paging   /answer [NODE]  answer one   /busy  pages on or off",
 	"         /topic TEXT  set a permanent room's topic",
 }
@@ -78,10 +81,22 @@ func (n *Node) ChatCommand(line string) (out []string, leave bool, err error) {
 			}
 			return []string{"Topic: " + topic}, false, nil
 		}
-		if u := n.User(); u == nil || !u.Sysop {
-			return nil, false, fmt.Errorf("a topic is set by the sysop")
+		return nil, false, n.SetTopic(room, arg)
+	case "cs", "chanserv":
+		return n.ChanServ(arg), false, nil
+	case "kick":
+		room := n.Room()
+		if room == "" {
+			return nil, false, ErrNotInRoom
 		}
-		return nil, false, n.b.SetRoomTopic(room, arg, n.name())
+		who, reason, _ := strings.Cut(arg, " ")
+		if who == "" {
+			return nil, false, fmt.Errorf("/kick WHO [WHY]: a user's name (Carol_Ann for Carol Ann)")
+		}
+		if err := n.Kick(room, who, reason); err != nil {
+			return nil, false, err
+		}
+		return nil, false, nil
 	case "join", "j":
 		hist, err := n.JoinRoom(arg)
 		if err != nil {
