@@ -15,6 +15,7 @@ import (
 	"github.com/emersion/go-imap/v2"
 	"github.com/emersion/go-imap/v2/imapserver"
 	"github.com/emersion/go-message/textproto"
+	"github.com/emersion/go-sasl"
 
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/store"
@@ -132,10 +133,51 @@ func (is *imapSession) Login(username, password string) error {
 	if err != nil {
 		return imapserver.ErrAuthFailed
 	}
+	is.loggedIn(u, "")
+	return nil
+}
+
+func (is *imapSession) loggedIn(u *store.User, how string) {
 	is.user = u
 	is.wake, is.stop = is.x.svc.watch(u.ID)
-	is.x.svc.B.Log.Printf("%s: %s logged in", is.who, u.Name)
-	return nil
+	is.x.svc.B.Log.Printf("%s: %s logged in%s", is.who, u.Name, how)
+}
+
+// AuthenticateMechanisms are PLAIN, and NTLM while it's offered.
+func (is *imapSession) AuthenticateMechanisms() []string {
+	m := []string{sasl.Plain}
+	if is.x.svc.ntlmOffered() {
+		m = append(m, ntlmMechs...)
+	}
+	return m
+}
+
+// Authenticate is a mechanism's server.
+func (is *imapSession) Authenticate(mech string) (sasl.Server, error) {
+	switch {
+	case strings.EqualFold(mech, sasl.Plain):
+		return sasl.NewPlainServer(func(identity, name, password string) error {
+			if identity != "" && identity != name {
+				return imapserver.ErrAuthFailed
+			}
+			return is.Login(name, password)
+		}), nil
+	case isNTLMMech(mech) && is.x.svc.ntlmOffered():
+		x := is.x.svc.ntlmServer(is.who, is.conn.NetConn().RemoteAddr(), "imap", func(u *store.User) { is.loggedIn(u, " by NTLM") })
+		return saslFailed{x}, nil
+	}
+	return nil, &imap.Error{Type: imap.StatusResponseTypeNo, Text: "SASL mechanism not supported"}
+}
+
+// saslFailed gives a failed sign-in IMAP's own error.
+type saslFailed struct{ sasl.Server }
+
+func (s saslFailed) Next(r []byte) ([]byte, bool, error) {
+	c, done, err := s.Server.Next(r)
+	if err != nil {
+		err = imapserver.ErrAuthFailed
+	}
+	return c, done, err
 }
 
 // uidValidity is the user's UIDVALIDITY, the same for every folder: the

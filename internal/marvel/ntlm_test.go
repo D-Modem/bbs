@@ -3,27 +3,10 @@ package marvel
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"testing"
 
-	"github.com/D-Modem/bbs/internal/store"
+	"github.com/D-Modem/bbs/internal/ntlm"
 )
-
-// MS-NLMP 4.2.2: NTLMv1 with the password "Password" and the challenge
-// 0123456789abcdef.
-func TestNTLMv1Vectors(t *testing.T) {
-	c, _ := hex.DecodeString("0123456789abcdef")
-	if got := hex.EncodeToString(desl(store.LMHash("Password"), c)); got != "98def7b87f88aa5dafe2df779688a172def11c7d5ccdef13" {
-		t.Errorf("LM response: %s", got)
-	}
-	if got := hex.EncodeToString(desl(store.NTHash("Password"), c)); got != "67c43011f30298a2ad35ece64f16331c44bdbed927841f94" {
-		t.Errorf("NT response: %s", got)
-	}
-	a := &ntlmAuth{}
-	if got := hex.EncodeToString(a.sessionKey(store.LMHash("Password"), store.NTHash("Password"), c)); got != "d87262b0cde4b1cb7499becccdf10784" {
-		t.Errorf("session base key: %s", got)
-	}
-}
 
 func TestSealer(t *testing.T) {
 	key := bytes.Repeat([]byte{0x55}, 16)
@@ -88,13 +71,13 @@ func (c *client) ntlmLogin(t *testing.T, user, pw string) (uint32, uint32, *seal
 		t.Fatalf("challenge token: %x", ch[:48])
 	}
 	challenge := ch[24:32]
-	lmResp := desl(store.LMHash(pw), challenge)
+	lmResp := ntlm.DESL(ntlm.LMHash(pw), challenge)
 	r = c.call(1, logsrvIface, logNTLMAuth, vparam(wrapToken(ntlmTypeAuthenticate, authenticateToken(user, lmResp))), []byte{0x82, 0x83})
 	if len(r) != 3+5+1 || r[0] != tagWord || r[3] != tagDword || r[8] != tagEndStatic {
 		t.Fatalf("sign-on reply: %x", r)
 	}
-	a := &ntlmAuth{flags: osr2Flags, lmResp: lmResp}
-	s, _ := newSealer(osr2Flags, a.sessionKey(store.LMHash(pw), store.NTHash(pw), challenge))
+	a := &ntlm.Auth{Flags: osr2Flags, LM: lmResp}
+	s, _ := newSealer(osr2Flags, a.SessionKey(ntlm.LMHash(pw), ntlm.NTHash(pw), challenge))
 	return uint32(binary.LittleEndian.Uint16(r[1:])), binary.LittleEndian.Uint32(r[4:]), s
 }
 

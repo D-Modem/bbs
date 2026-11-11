@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/D-Modem/bbs/internal/bbs"
+	"github.com/D-Modem/bbs/internal/ntlm"
 	"github.com/D-Modem/bbs/internal/store"
 )
 
@@ -93,8 +94,8 @@ func (l *logsrv) call(h hostBlock) ([]byte, bool) {
 			return reply{}.bytes_(nil), true // no token: the client says the sign-on failed
 		}
 		l.flags = binary.LittleEndian.Uint32(t[12:])
-		l.challenge = newChallenge()
-		return reply{}.bytes_(wrapToken(ntlmTypeChallenge, challengeToken(l.flags, l.challenge))), true
+		l.challenge = ntlm.NewChallenge()
+		return reply{}.bytes_(wrapToken(ntlmTypeChallenge, ntlm.ChallengeMessage(l.flags, l.challenge, ""))), true
 	case logNTLMAuth:
 		result, ok := l.ntlmSignOn(ps)
 		word := uint16(ntlmRefused)
@@ -171,32 +172,15 @@ func (l *logsrv) ntlmSignOn(ps []param) (uint32, bool) {
 	}
 	challenge := l.challenge
 	l.challenge = nil // one answer to each
-	a, err := parseAuthenticate(t, l.flags)
+	a, err := ntlm.ParseAuthenticate(t, l.flags)
 	if err != nil {
 		l.c.logf("NTLM: %v", err)
 		return loginNoMember, false
 	}
 	b := l.c.s.B
 	var lm, nt []byte
-	check := func() (*store.User, error) {
-		u, err := b.Store.UserByName(a.user)
-		if err != nil {
-			if u, err = b.Store.UserByScreenName(a.user); err != nil {
-				return nil, store.ErrNotFound
-			}
-		}
-		var ok bool
-		if lm, nt, ok, err = b.Store.NTLMKey(u.ID); err != nil || !ok {
-			// kept once the password is seen: a sign-in any other way
-			l.c.logf("NTLM: no password hashes kept for %s yet: they are kept when the password is next typed in the clear", u.Name)
-			return nil, store.ErrNotFound
-		}
-		if !a.verify(lm, nt, challenge) {
-			return nil, store.ErrNotFound
-		}
-		return u, nil
-	}
-	result := l.c.signOnBy(a.user, func(node *bbs.Node, name string) (*store.User, error) {
+	check := b.NTLMCheck("marvel", a, challenge, func(l, n []byte) { lm, nt = l, n })
+	result := l.c.signOnBy(a.User, func(node *bbs.Node, name string) (*store.User, error) {
 		if node != nil {
 			return node.LoginWith(name, "NTLM", check)
 		}
@@ -205,7 +189,7 @@ func (l *logsrv) ntlmSignOn(ps []param) (uint32, bool) {
 	if result != loginOK {
 		return result, false
 	}
-	if l.seal, err = newSealer(a.flags, a.sessionKey(lm, nt, challenge)); err != nil {
+	if l.seal, err = newSealer(a.Flags, a.SessionKey(lm, nt, challenge)); err != nil {
 		l.c.logf("NTLM: %v", err)
 	}
 	return loginOK, true

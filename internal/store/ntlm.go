@@ -1,66 +1,28 @@
 package store
 
 import (
-	"crypto/des"
 	"database/sql"
 	"errors"
-	"strings"
-	"unicode/utf16"
 
-	"golang.org/x/crypto/md4"
-	"golang.org/x/text/encoding/charmap"
+	"github.com/D-Modem/bbs/internal/ntlm"
 )
 
-// The 1996 MSN client (Windows 95 OSR2, MSN 1.3) signs in with NTLM: it
-// proves the password by DES over the server's challenge, keyed with the
+// MSN's clients from 1996 on (MSN Classic's on Windows 95 OSR2, and MSN
+// 2.x's Program Viewer, mail and news) sign in with NTLM: it proves the
+// password by DES over the server's challenge, keyed with the
 // password's LM or NT hash, which a bcrypt hash cannot give.  So both
 // hashes are kept as CompuServe's key is (cis.go): whenever the password
 // is known in the clear, bound to the password hash they were made with.
 // They are password equivalents (the LM hash a weak one), kept only when
-// an MSN Classic front end asks for them.
+// an MSN Classic front end or [security] ntlm asks for them.
 
-// LMHash is a password's LAN Manager hash: its first 14 characters in
-// capitals, as two DES keys over "KGS!@#$%".
-func LMHash(pw string) []byte {
-	var k [14]byte
-	b, err := charmap.Windows1252.NewEncoder().Bytes([]byte(strings.ToUpper(pw)))
-	if err != nil {
-		b = []byte(strings.ToUpper(pw))
-	}
-	copy(k[:], b)
-	out := make([]byte, 16)
-	for i := range 2 {
-		c, _ := des.NewCipher(DESKey(k[i*7 : i*7+7]))
-		c.Encrypt(out[i*8:], []byte("KGS!@#$%"))
-	}
-	return out
-}
-
-// NTHash is a password's NT hash: MD4 of it in UTF-16LE.
-func NTHash(pw string) []byte {
-	h := md4.New()
-	for _, u := range utf16.Encode([]rune(pw)) {
-		h.Write([]byte{byte(u), byte(u >> 8)})
-	}
-	return h.Sum(nil)
-}
-
-// DESKey spreads 7 bytes over a DES key's 8, a parity bit in each.
-func DESKey(k []byte) []byte {
-	var v uint64
-	for _, b := range k[:7] {
-		v = v<<8 | uint64(b)
-	}
-	out := make([]byte, 8)
-	for i := range 8 {
-		out[i] = byte(v>>(56-7*(i+1))) << 1
-	}
-	return out
-}
-
-// SetKeepNTLM says whether to keep the hashes: only with an MSN Classic
-// front end, as they would let anyone who read the database sign in by it.
+// SetKeepNTLM says whether to keep the hashes: only when asked, as they
+// would let anyone who read the database sign in by them.
 func (s *Store) SetKeepNTLM(on bool) { s.keepNTLM.Store(on) }
+
+// KeepsNTLM reports whether the hashes are kept, and so whether NTLM
+// sign-ins can be offered.
+func (s *Store) KeepsNTLM() bool { return s.keepNTLM.Load() }
 
 // NTLMKey is the account's LM and NT hashes, if current ones are kept.
 func (s *Store) NTLMKey(id int64) (lm, nt []byte, ok bool, err error) {
@@ -89,7 +51,7 @@ func (s *Store) KeepNTLMKey(id int64, pw string) error {
 		}
 		return err
 	}
-	lm, nt := LMHash(pw), NTHash(pw)
+	lm, nt := ntlm.LMHash(pw), ntlm.NTHash(pw)
 	if ol, on, ok, err := s.NTLMKey(id); err == nil && ok && string(ol) == string(lm) && string(on) == string(nt) {
 		return nil
 	}

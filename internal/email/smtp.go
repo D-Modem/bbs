@@ -108,12 +108,17 @@ func (ss *smtpSession) tls() bool {
 	return ok
 }
 
-// AuthMechanisms are those offered: PLAIN and LOGIN, for submission.
+// AuthMechanisms are those offered: PLAIN and LOGIN, and NTLM while
+// it's offered, for submission.
 func (ss *smtpSession) AuthMechanisms() []string {
 	if ss.x.kind != Submission {
 		return nil
 	}
-	return []string{sasl.Plain, sasl.Login}
+	m := []string{sasl.Plain, sasl.Login}
+	if ss.x.svc.ntlmOffered() {
+		m = append(m, ntlmMechs...)
+	}
+	return m
 }
 
 // Auth is a mechanism's server.
@@ -132,6 +137,12 @@ func (ss *smtpSession) Auth(mech string) (sasl.Server, error) {
 		ss.user = u
 		ss.x.svc.B.Log.Printf("%s: %s logged in", ss.who, u.Name)
 		return nil
+	}
+	if isNTLMMech(mech) && ss.x.svc.ntlmOffered() {
+		return ss.x.svc.ntlmServer(ss.who, ss.c.Conn().RemoteAddr(), "smtp", func(u *store.User) {
+			ss.user = u
+			ss.x.svc.B.Log.Printf("%s: %s logged in by NTLM", ss.who, u.Name)
+		}), nil
 	}
 	switch mech {
 	case sasl.Plain:

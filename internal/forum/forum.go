@@ -131,6 +131,7 @@ type Server struct {
 	tmpl map[string]*template.Template // by theme
 	key  []byte                        // for forms' CSRF tokens
 	live atomic.Pointer[Options]       // Reconfigure's
+	ntlm ntlmWaits                     // NTLM sign-ins under way
 }
 
 // Options are the forum's settings that can change while it runs.
@@ -206,6 +207,7 @@ func (s *Server) Handler() (http.Handler, error) {
 		"GET " + Base + "/search":            s.search,
 		"GET " + Base + "/login":             s.login,
 		"POST " + Base + "/login":            s.login,
+		"GET " + Base + "/login/ntlm":        s.loginNTLM,
 		"POST " + Base + "/logout":           s.logout,
 		"GET " + Base + "/register":          s.register,
 		"POST " + Base + "/register":         s.register,

@@ -627,7 +627,7 @@ func (s *Server) login(q *req) {
 		q.redirect(back)
 		return
 	}
-	form := map[string]any{"Back": back}
+	form := map[string]any{"Back": back, "NTLM": s.ntlmOn()}
 	if q.r.Method == http.MethodPost {
 		name := strings.TrimSpace(q.r.PostForm.Get("name"))
 		var secret string

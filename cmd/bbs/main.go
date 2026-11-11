@@ -505,6 +505,10 @@ func serve(cfg *server.Config, path string) int {
 	b.Doors = cfg.Doors
 	b.Screens, b.Menus, b.Text, b.ScriptsDir = cfg.Screens, cfg.Menus, cfg.Text, cfg.ScriptsDir
 	b.Guard = cfg.Guard
+	if cfg.KeepNTLM {
+		// Microsoft's NTLM sign-ins, for MSN 2.x's mail, news and pages
+		st.SetKeepNTLM(true)
+	}
 	if m := cfg.MenuAuth; m != nil {
 		b.MenuAuth = &authd.Client{Socket: m.Socket, Timeout: m.Timeout}
 		b.MenuAuthCreate = m.Create

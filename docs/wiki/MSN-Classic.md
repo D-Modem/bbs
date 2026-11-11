@@ -63,7 +63,8 @@ Point the client's phone number at the line that reaches that listener.
   unused until it is typed again. An account whose hashes aren't kept yet
   gets "Password not valid" from this client: sign in once by telnet, the
   web or the 1995 client first. The hashes are kept only while MSN Classic
-  is served (a `[marvel]` section or a `frontend = marvel` listener), and
+  is served (a `[marvel]` section or a `frontend = marvel` listener) or
+  `[security] ntlm` is on ([MSN 2.x](MSN-2)), and
   they are password equivalents, the LM hash a weak one, so the database
   needs guarding as a password file does. After signing in, the Password
   dialog and the billing pages travel sealed (RC4) under the sign-in's
