@@ -127,8 +127,9 @@ five minutes.
 
 AIM 6.2 to 7.5 open TLS with an SSL 2.0-format hello and speak only TLS
 1.0 with RSA key exchange. Go's TLS can't read that hello, so the BBS
-answers those clients with a small TLS 1.0 server of its own (AES, 3DES
-or RC4, by RSA); every other client gets Go's TLS. So `tls_cert` must be
+answers those clients with [retrossl](https://github.com/D-Modem/retrossl),
+D-Modem's SSL 3.0 and TLS 1.0 server (AES, 3DES, RC4 or DES, by RSA), as it
+does clients that offer only SSL 3.0; every other client gets Go's TLS. So `tls_cert` must be
 an RSA certificate (with `[acme]`, `key_type = rsa2048`); the log says so
 at start when it isn't. A chat room asked for by TLS is sent to the TLS
 host too.

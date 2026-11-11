@@ -28,8 +28,8 @@ import (
 	"time"
 
 	"github.com/D-Modem/bbs/internal/certs"
-	"github.com/D-Modem/bbs/internal/oldtls"
 	"github.com/D-Modem/bbs/internal/tcpserv"
+	"github.com/D-Modem/retrossl"
 )
 
 // Route is one front end's part of a shared port.
@@ -107,13 +107,15 @@ func (p *Port) Handle(c net.Conn) {
 			net.Conn
 			Handshake() error
 		}
-		if oldtls.IsSSLv2Hello(first) {
+		// Three bytes tell an SSL 2.0-format hello, which only the route
+		// for AIM 6.2 to 7.5 takes; everything else is crypto/tls's.
+		if retrossl.Wants(first) {
 			rt := p.sslv2()
 			if rt == nil {
 				p.logf("%s: an SSL 2.0-format hello, which nothing here takes", c.RemoteAddr())
 				return
 			}
-			tc = oldtls.Server(&peeked{c, r}, &oldtls.Config{GetCertificate: rt.Cert})
+			tc = retrossl.Server(&peeked{c, r}, &retrossl.Config{GetCertificate: rt.Cert})
 		} else {
 			tc = tls.Server(&peeked{c, r}, legacyTLS(p.certificate))
 		}
