@@ -40,6 +40,7 @@ type Editor struct {
 	doc    *confedit.Doc
 
 	db     *data // the accounts and areas, as read and as changed (nil: not read yet)
+	dbErr  error // why they could not be read, for the offers not to try again
 	crumbs []string
 	trail  []string // the label of the item each page in crumbs was opened by ("": the first, or not by one)
 	via    string   // the label of the item opening a page now
@@ -292,6 +293,23 @@ func (e *Editor) helpOf(it item) error {
 		help = "No help for this."
 	}
 	lines := wrap(help, e.width())
+	if it.Kind == view.EntryChoice && len(it.Choices) > 0 {
+		head := "One of:"
+		switch {
+		case it.Multi:
+			head = "Any of (by commas):"
+		case it.Open:
+			head = "For instance (or a value of your own):"
+		}
+		lines = append(lines, view.L(""), view.T(view.Bright, head))
+		for i, c := range it.Choices {
+			l := "  " + view.ChoiceLabel(c)
+			if n := it.ChoiceNote(i); n != "" {
+				l += "  " + n
+			}
+			lines = append(lines, view.L(l))
+		}
+	}
 	if it.Note != "" {
 		lines = append(lines, view.L(""), view.T(view.Dim, "Takes effect: "+it.Note))
 	}

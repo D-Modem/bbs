@@ -29,7 +29,8 @@ type script struct {
 	confirms []bool
 	forms    []map[string]string
 	said     []string
-	sheets   []string // the crumbs of each sheet drawn
+	sheets   []string                        // the crumbs of each sheet drawn
+	tables   []func(*view.Table) view.Choice // the answers to tables (none left: back)
 }
 
 // Sheet keeps the sheet's crumbs and status and answers with the next step;
@@ -57,8 +58,13 @@ func (s *script) Narrow() bool { return false }
 // Menu goes back.
 func (s *script) Menu(m *view.Menu) (string, error) { return view.Back, nil }
 
-// Table goes back.
+// Table answers with the next of tables, or goes back.
 func (s *script) Table(t *view.Table) (view.Choice, error) {
+	if len(s.tables) > 0 {
+		f := s.tables[0]
+		s.tables = s.tables[1:]
+		return f(t), nil
+	}
 	return view.Choice{Action: view.Back}, nil
 }
 

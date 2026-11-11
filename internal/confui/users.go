@@ -305,6 +305,9 @@ func (e *Editor) userPage(u *store.User) page {
 		self := e.Who != "" && strings.EqualFold(e.Who, u.Name)
 		level := item{Entry: view.Entry{ID: "level", Kind: view.EntryText, Label: "Level", Value: strconv.Itoa(u.Level),
 			Changed: u.Level != w.Level, Help: "0 to 255: what the [level] at or below it allows."}}
+		if o := e.levelOffer(); len(o.values) > 1 {
+			level.Kind, level.Choices, level.ChoiceNotes, level.Open = view.EntryChoice, o.values[1:], o.notes[1:], true
+		}
 		level.set = func(v string) error {
 			n, err := strconv.Atoi(strings.TrimSpace(v))
 			if err != nil || n < 0 || n > bbs.MaxLevel {

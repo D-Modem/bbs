@@ -217,6 +217,12 @@ func (x *Key) example(v string) {
 }
 
 // free reports whether a key is one of the sysop's own (a menu item's).
+// IsFree is whether key is one of the sysop's own keys of the kind (a
+// menu's item, a QWK network's conference), not one the sample names.
+func (k *Kind) IsFree(key string) bool {
+	return k != nil && k.byKey[key] == nil && k.free(key)
+}
+
 func (k *Kind) free(key string) bool {
 	switch k.Name {
 	case "menu":
