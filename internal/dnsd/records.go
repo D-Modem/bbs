@@ -10,7 +10,9 @@ import (
 
 // Records are the sysop's own DNS records ([dnsrecord NAME]): answered
 // as they are, to anyone, before the services' names and before anything
-// is asked upstream.  A name beginning "*." is every name under it.
+// is asked upstream.  A name beginning "*." is every name under it.  An
+// A or AAAA record's address answers a reverse (PTR) query with its name,
+// unless there are PTR records of the sysop's for it.
 type Records struct {
 	exact  map[string][]dns.RR // fqdn, lower case
 	suffix map[string][]dns.RR // ".domain."
@@ -82,7 +84,37 @@ func NewRecords(rrs []dns.RR) *Records {
 		}
 		r.exact[n] = append(r.exact[n], rr)
 	}
+	// each A and AAAA's address answers back with its name (a PTR), unless
+	// the sysop wrote the address's PTRs
+	for _, rr := range rrs {
+		var ip net.IP
+		switch a := rr.(type) {
+		case *dns.A:
+			ip = a.A
+		case *dns.AAAA:
+			ip = a.AAAA
+		default:
+			continue
+		}
+		name := rr.Header().Name
+		rev, err := dns.ReverseAddr(ip.String())
+		if err != nil || strings.HasPrefix(name, "*.") || r.wrotePTR(rev, rrs) {
+			continue
+		}
+		r.exact[rev] = append(r.exact[rev], &dns.PTR{Hdr: dns.RR_Header{Name: rev, Rrtype: dns.TypePTR,
+			Class: dns.ClassINET, Ttl: rr.Header().Ttl}, Ptr: strings.ToLower(name)})
+	}
 	return r
+}
+
+// wrotePTR is whether the sysop's records (rrs) have a PTR for rev.
+func (r *Records) wrotePTR(rev string, rrs []dns.RR) bool {
+	for _, rr := range rrs {
+		if rr.Header().Rrtype == dns.TypePTR && strings.EqualFold(rr.Header().Name, rev) {
+			return true
+		}
+	}
+	return false
 }
 
 // Len is how many names (and wildcards) have records.

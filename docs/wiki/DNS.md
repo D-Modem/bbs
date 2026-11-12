@@ -221,6 +221,13 @@ ttl = 300
 | `value` | as a zone file writes it: an address, a CNAME's target, a TXT's text, an MX's preference and host, an SRV's priority, weight, port and host |
 | `ttl` | seconds (default: `[dns]` `ttl`) |
 
+Reverse lookups work too. Each A or AAAA record's address answers a PTR
+query (`20.77.168.192.in-addr.arpa`, or its `ip6.arpa` name) with the
+record's name, so `192.168.77.20` gives back `games.bbs.example.org`.
+Wildcards don't make PTRs. To give an address another name, write its PTR
+yourself (`name = 20.77.168.192.in-addr.arpa`, `type = PTR`,
+`value = arcade.bbs.example.org`). Your own PTR replaces the automatic one.
+
 A query for a type the name has no record of gets an empty answer, and is
 not asked upstream. A CNAME is followed to its target when the target has
 records here too. A record for one of the old services' names takes the

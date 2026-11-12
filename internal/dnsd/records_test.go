@@ -23,6 +23,8 @@ func TestRecords(t *testing.T) {
 		{"*.lan.example", "A", "10.0.0.9"},
 		{"messenger.hotmail.com", "", "192.168.77.30"}, // over the service's own answer
 		{"login.live.com", "TXT", "hello"},             // a type the service has not: its A stays
+		{"pc2.lan.example", "", "10.0.0.2"},
+		{"2.0.0.10.in-addr.arpa", "PTR", "server.lan.example"}, // the sysop's own PTR wins
 	} {
 		rr, err := NewRecord(r.name, r.typ, r.value, 300)
 		if err != nil {
@@ -68,6 +70,16 @@ func TestRecords(t *testing.T) {
 	}
 	if r := ask("login.live.com", dns.TypeA); len(r.Answer) != 1 || !r.Answer[0].(*dns.A).A.Equal(net.IPv4(127, 0, 0, 1)) {
 		t.Errorf("login.live.com A: %v, want the service's", r.Answer)
+	}
+	// reverse: an A or AAAA's address gives back its name
+	if r := ask("20.77.168.192.in-addr.arpa", dns.TypePTR); len(r.Answer) != 1 || r.Answer[0].(*dns.PTR).Ptr != "games.bbs.example." {
+		t.Errorf("PTR of 192.168.77.20: %v", r.Answer)
+	}
+	if r := ask("0.2.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.d.f.ip6.arpa", dns.TypePTR); len(r.Answer) != 1 {
+		t.Errorf("PTR of fd00::20: %v", r.Answer)
+	}
+	if r := ask("2.0.0.10.in-addr.arpa", dns.TypePTR); len(r.Answer) != 1 || r.Answer[0].(*dns.PTR).Ptr != "server.lan.example." {
+		t.Errorf("PTR of 10.0.0.2: %v, want only the sysop's", r.Answer)
 	}
 	if n.Load() != 0 {
 		t.Errorf("%d asked upstream", n.Load())
