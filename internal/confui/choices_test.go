@@ -197,3 +197,38 @@ func TestPickChoice(t *testing.T) {
 		t.Errorf("%q %v %v", v, ok, err)
 	}
 }
+
+// TestDNSRecordsPage: a record is added under DNS for callers, its type
+// picked from a list, its address from this machine's.
+func TestDNSRecordsPage(t *testing.T) {
+	fakeAddrs(t)
+	p := filepath.Join(t.TempDir(), "bbs.conf")
+	os.WriteFile(p, []byte("[general]\nname = Test\n\n[dns]\naddress = :53\n"), 0o600)
+	ui := &script{t: t, forms: []map[string]string{{"name": "games.bbs.example"}}, steps: []step{
+		open("Internet services"), open("DNS for callers"), open("DNS records"), key("add"),
+		func(t *testing.T, sh *view.Sheet) view.SheetResult {
+			ty := sh.Entries[entry(t, sh, "type")]
+			if ty.Kind != view.EntryChoice || !slices.Contains(ty.Choices, "MX") {
+				t.Errorf("type: %+v", ty)
+			}
+			v := sh.Entries[entry(t, sh, "value")]
+			if !slices.Contains(v.Choices, "192.0.2.10") {
+				t.Errorf("value's choices %q", v.Choices)
+			}
+			return set("value", "192.0.2.10")(t, sh)
+		},
+		back,
+		func(t *testing.T, sh *view.Sheet) view.SheetResult {
+			if it := sh.Entries[entry(t, sh, "games.bbs.example")]; it.Value != "games.bbs.example A 192.0.2.10" {
+				t.Errorf("summary %q", it.Value)
+			}
+			return save(t, sh)
+		},
+	}}
+	if err := (&Editor{UI: ui, Tools: bbs.ConfigTools{Path: p}}).Run(); err != nil {
+		t.Fatal(err)
+	}
+	if data, _ := os.ReadFile(p); !strings.Contains(string(data), "[dnsrecord games.bbs.example]\ntype = A\nvalue = 192.0.2.10\n") {
+		t.Errorf("written:\n%s", data)
+	}
+}

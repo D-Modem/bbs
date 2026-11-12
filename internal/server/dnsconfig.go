@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/miekg/dns"
+
 	"github.com/D-Modem/bbs/internal/config"
 	"github.com/D-Modem/bbs/internal/dnsd"
 	"github.com/D-Modem/bbs/internal/vhost"
@@ -19,6 +21,9 @@ import (
 func (c *Config) dnsSection(cf *config.File) error {
 	s := cf.Get("dns", "")
 	if s == nil {
+		if len(cf.All("dnsrecord")) > 0 {
+			c.Warnings = append(c.Warnings, "[dnsrecord] without a [dns] section: no DNS server answers it")
+		}
 		return nil
 	}
 	err := func() error {
@@ -141,6 +146,9 @@ func (c *Config) dnsSection(cf *config.File) error {
 			return err
 		}
 		d.TTL = uint32(ttl)
+		if d.Records, err = dnsRecords(cf, d.TTL); err != nil {
+			return err
+		}
 		if d.Timeout, err = s.Seconds("timeout", 2, 1, 30); err != nil {
 			return err
 		}
@@ -369,4 +377,22 @@ func (c *Config) sharedPortsCheck() error {
 		}
 	}
 	return nil
+}
+
+// dnsRecords reads the [dnsrecord NAME]s: the sysop's own records, each a
+// name (NAME by default), type, value and ttl (by default [dns]'s).
+func dnsRecords(cf *config.File, ttl uint32) ([]dns.RR, error) {
+	var out []dns.RR
+	for _, rs := range cf.All("dnsrecord") {
+		t, err := rs.Int("ttl", int(ttl), 0, 7*86400)
+		if err != nil {
+			return nil, fmt.Errorf("[dnsrecord %s] %w", rs.Name, err)
+		}
+		rr, err := dnsd.NewRecord(rs.String("name", rs.Name), rs.String("type", ""), rs.String("value", ""), uint32(t))
+		if err != nil {
+			return nil, fmt.Errorf("[dnsrecord %s] %w", rs.Name, err)
+		}
+		out = append(out, rr)
+	}
+	return out, nil
 }

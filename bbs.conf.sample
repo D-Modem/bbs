@@ -1065,6 +1065,26 @@ address = 127.0.0.1:2513
 ;rate = 50
 ;burst = 200
 
+; A DNS record of your own, answered by [dns] as it is (to anyone, before
+; the services' names and before anything is asked upstream): a name for a
+; machine on your network, a game server, a mail server for your dial-up
+; users.  Each [dnsrecord NAME] is one record; give a name several for
+; several (two A records, an MX and a TXT ...)
+;[dnsrecord games]
+; the name (default: NAME); *.domain for every name under it
+;name = games.bbs.example.org
+; A, AAAA, CNAME, TXT, MX, SRV, NS, PTR, CAA ... (default: A or AAAA, by the
+; value's address)
+;type = A
+; as a zone file writes it: an address; a CNAME's name; a TXT's text; an
+; MX's preference and host (10 mail.example.org); an SRV's priority,
+; weight, port and host (0 5 5060 sip.example.org)
+;value = 192.168.77.20
+; seconds (default: [dns] ttl).  An A or AAAA record's address answers
+; reverse lookups (PTR) with its name, unless a [dnsrecord] gives that
+; address a PTR of its own
+;ttl = 300
+
 ; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
 ; beginning mrc- here (mrc-lobby is its lobby), on terminals and IRC alike.
 ; See docs/wiki/MRC.md

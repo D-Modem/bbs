@@ -121,6 +121,7 @@ list made from what the file and the machine have, a word beside each:
 | its key (`tls_key`, `key_file`) | the key that goes with the certificate chosen (from another server, or beside it on disk), and the others the file names; not asked for with `acme` or `ca` |
 | an address a server listens on | every address, this machine only, and each of this machine's IPs, at the port it has (or the usual one); one another server is on is marked *taken by* |
 | `[dns]` `answer` and `*_answer` | the IPs the services listen on, and this machine's |
+| `[dnsrecord]` `type`, `value` (DNS for callers, DNS records) | the record types, each with what its value looks like; an A or AAAA record's address from this machine's and the services' |
 | `[dns]` `primary`, `backup` | this host's servers, and the well-known public ones |
 | `[dns]` `services`, `[feeds]` `catalog`, `[time]` `servers`, `[mx]` `dnsbl`, gopher's and Gemini's `areas` | some of them at once (Space on each) |
 | levels (new users', validated users', a user's, `[mrc]` and `[menu]` `require`) | the `[level N]`s, with their names |
