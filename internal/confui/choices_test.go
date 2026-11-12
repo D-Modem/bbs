@@ -277,7 +277,7 @@ func TestEveryLineHasHelp(t *testing.T) {
 				}
 			}
 			for i, en := range sh.Entries {
-				k := sh.Crumbs + "/" + en.Label
+				k := sh.Title + " / " + en.Label
 				if en.Kind != view.EntryMenu || seen[k] || depth > 5 {
 					continue
 				}
