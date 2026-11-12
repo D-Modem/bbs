@@ -62,7 +62,11 @@ var (
 
 // header is the section a line opens, if it does.
 func header(line string) (Section, bool) {
-	m := headerRE.FindStringSubmatch(strings.TrimSpace(line))
+	t := strings.TrimSpace(line)
+	if t == "" || t[0] != '[' { // most lines: no regexp for them
+		return Section{}, false
+	}
+	m := headerRE.FindStringSubmatch(t)
 	if m == nil {
 		return Section{}, false
 	}
@@ -71,7 +75,11 @@ func header(line string) (Section, bool) {
 
 // commentedHeader is a section's header commented out (;[http]).
 func commentedHeader(line string) (Section, bool) {
-	m := commentedRE.FindStringSubmatch(strings.TrimSpace(line))
+	t := strings.TrimSpace(line)
+	if !strings.Contains(t, "[") {
+		return Section{}, false
+	}
+	m := commentedRE.FindStringSubmatch(t)
 	if m == nil {
 		return Section{}, false
 	}

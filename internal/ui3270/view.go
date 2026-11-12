@@ -145,10 +145,24 @@ func (u *ui) Menu(m *view.Menu) (string, error) {
 				row = 2
 				scr = scr[:3] // no room for the intro
 			}
-			scr = append(scr, u.boxed(row, 2, row+len(m.Items)+1, 44, go3270.Blue)...)
+			right, helps := 44, false
+			for _, it := range m.Items {
+				helps = helps || it.Help != ""
+			}
+			if helps && u.cols >= 80 {
+				right = u.cols - 3 // what each does beside it
+			}
+			scr = append(scr, u.boxed(row, 2, row+len(m.Items)+1, right, go3270.Blue)...)
 			for i, it := range m.Items {
 				scr = append(scr, u.text(row+1+i, 4, it.Key, go3270.Yellow, true))
-				scr = append(scr, u.spanFields(row+1+i, 7, 44, it.Label, go3270.Green)...) // its tags' colors
+				end := 44
+				if right > 44 {
+					end = 31
+				}
+				scr = append(scr, u.spanFields(row+1+i, 7, end, it.Label, go3270.Green)...) // its tags' colors
+				if right > 44 && it.Help != "" {
+					scr = append(scr, u.text(row+1+i, 32, bbs.Trunc(it.Help, right-33), go3270.Turquoise, false))
+				}
 			}
 		}
 		prompt := "Option ===>"

@@ -238,14 +238,16 @@ func heading(label string) item {
 	return item{Entry: view.Entry{Kind: view.EntryHeading, Label: label}}
 }
 
-// menu is an item that opens another page, value shown beside it.
+// menu is an item that opens another page, value shown beside it, its
+// help from helpOfItem.
 func menu(label, value string, open func() error) item {
-	return item{Entry: view.Entry{ID: "menu " + label, Kind: view.EntryMenu, Label: label, Value: value}, open: open}
+	return item{Entry: view.Entry{ID: "menu " + label, Kind: view.EntryMenu, Label: label, Value: value,
+		Help: helpOfItem[label]}, open: open}
 }
 
-// action is an item that does do when picked.
+// action is an item that does do when picked, its help from helpOfItem.
 func action(label string, do func() error) item {
-	return item{Entry: view.Entry{ID: "do " + label, Kind: view.EntryAction, Label: label}, do: do}
+	return item{Entry: view.Entry{ID: "do " + label, Kind: view.EntryAction, Label: label, Help: helpOfItem[label]}, do: do}
 }
 
 // fields are items for keys of a section.
@@ -357,12 +359,16 @@ func (e *Editor) listPage(title, kind, noun string, keep func(confedit.Section) 
 				}
 				it := menu(s.Name, v, func() error { return e.show(e.instancePage(s, noun)) })
 				it.Changed = !e.orig.Has(s)
+				it.Help = "Opens " + s.String() + ": its settings, its name, and Delete."
 				out = append(out, it)
 			}
 			if len(out) == 0 {
-				out = append(out, item{Entry: view.Entry{Kind: view.EntryInfo, Label: "None yet: A adds one."}})
+				out = append(out, item{Entry: view.Entry{Kind: view.EntryInfo, Label: "None yet: A adds one.",
+					Help: "There is no [" + kind + " NAME] in the file yet."}})
 			}
-			out = append(out, action("Add a "+noun, func() error { return e.addInstance(kind, noun, with) }))
+			add := action("Add a "+noun, func() error { return e.addInstance(kind, noun, with) })
+			add.Help = "Adds a new " + noun + " ([" + kind + " NAME]): you give it a name, then set it up on its page.  A does the same."
+			out = append(out, add)
 			return out
 		},
 		key: func(id string) error {
@@ -429,9 +435,13 @@ func (e *Editor) instancePage(s confedit.Section, noun string) page {
 			out := []item{name}
 			out = append(out, e.sectionFields(cur)...)
 			if k := e.cat.Kind(cur.Kind); k != nil && k.Free != "" {
-				out = append(out, action(freeNoun[cur.Kind], func() error { return e.addFree(cur) }))
+				add := action(freeNoun[cur.Kind], func() error { return e.addFree(cur) })
+				add.Help = freeHelp[cur.Kind]
+				out = append(out, add)
 			}
-			out = append(out, action("Delete this "+noun, func() error { return e.deleteSection(cur) }))
+			del := action("Delete this "+noun, func() error { return e.deleteSection(cur) })
+			del.Help = "Takes [" + cur.Kind + " " + cur.Name + "] out of the file, after a yes (nothing is written until you save).  D does the same."
+			out = append(out, del)
 			return out
 		},
 		key: func(id string) error {
@@ -440,6 +450,12 @@ func (e *Editor) instancePage(s confedit.Section, noun string) page {
 			}
 			return nil
 		}}
+}
+
+// freeHelp is the help of the Add item for the keys of the sysop's own.
+var freeHelp = map[string]string{
+	"menu":   "Adds an item to this menu: the key callers press, then what it does, picked from the BBS's own actions, the doors, menus, screens, scripts and areas.",
+	"qwknet": "Carries one of the hub's conferences here: its number, then the message area it goes to.",
 }
 
 // freeNoun is the Add item for the keys of the sysop's own of a kind.

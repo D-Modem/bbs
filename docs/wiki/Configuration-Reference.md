@@ -143,10 +143,10 @@ There may be any number of these, each with its own NAME.
 | `socket_group` | `...` |  | and its group. Examples: `asterisk`. |
 | `frontend` | `bbs` |  | what callers get: the BBS, or compuserve: the CompuServe Information Service (telnet and raw listeners; no 3270). See the wiki's CompuServe. Or marvel: The Microsoft Network, for the MSN client of Windows 95 dialing in (telnet and raw). See the wiki's MSN-Classic. Examples: `compuserve`. |
 | `connect` | `9600` |  | compuserve: the CONNECT line before Host Name: (telnet: 9600; raw: none, the modem says its own) |
-| `tn3270` |  |  | See the section above. Examples: `yes`. |
-| `tls_cert` |  |  | See the section above. Examples: `/etc/bbs/cert.pem`. |
-| `tls_key` |  |  | See the section above. Examples: `/etc/bbs/key.pem`. |
-| `host_keys` |  |  | See the section above. Examples: `/etc/bbs/ssh_host_ed25519_key /etc/bbs/ssh_host_rsa_key`. |
+| `tn3270` |  |  | yes: 3270 terminals (c3270, x3270, a mainframe's) may come in by this telnet listener and get full screens. Examples: `yes`. |
+| `tls_cert` |  |  | The certificate (PEM) for telnet over TLS (port 992); acme for the [acme] certificate. None: plain telnet. Examples: `/etc/bbs/cert.pem`. |
+| `tls_key` |  |  | The certificate's private key (PEM); not needed with acme. Examples: `/etc/bbs/key.pem`. |
+| `host_keys` |  |  | SSH listeners: the host key files, by spaces (default: made beside the database the first time). Examples: `/etc/bbs/ssh_host_ed25519_key /etc/bbs/ssh_host_rsa_key`. |
 | `legacy` |  |  | old clients only: CBC ciphers and 1024-bit DH too. Examples: `no`. |
 
 
@@ -156,10 +156,10 @@ keeping callers out: a file of addresses and networks refused, one of names no n
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `deny_file` |  |  | See the section above. Examples: `/etc/bbs/deny.txt`. |
-| `name_deny_file` |  |  | See the section above. Examples: `/etc/bbs/names.txt`. |
-| `hack_log` |  |  | See the section above. Examples: `/var/log/bbs/hack.log`. |
-| `ban_minutes` |  |  | See the section above. Examples: `60`. |
+| `deny_file` |  |  | A file of addresses and networks (one a line, CIDR) refused before the login. Examples: `/etc/bbs/deny.txt`. |
+| `name_deny_file` |  |  | A file of names no new user may take, one a line (* wildcards). Examples: `/etc/bbs/names.txt`. |
+| `hack_log` |  |  | Where failed logins and refused callers are written, apart from the log. Examples: `/var/log/bbs/hack.log`. |
+| `ban_minutes` |  |  | Minutes an address locked out for failed logins is refused outright (0: not banned). Examples: `60`. |
 | `ntlm` |  |  | keep each password's LM and NT hashes (made when it is next typed), so Microsoft's clients of the 1990s sign in without sending it: MSN 2.x's Outlook Express (mail), Internet News and Program Viewer, by Secure Password Authentication. The hashes are password equivalents, so the database needs guarding as a password file does. Serving MSN Classic keeps them anyway. See the wiki's MSN-2. Examples: `no`. |
 
 
@@ -171,9 +171,9 @@ There may be any number of these, each with its own NAME.
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `command` |  |  | See the section above. Examples: `/usr/local/bin/poll-something`. |
-| `every` |  |  | See the section above. Examples: `60`. |
-| `timeout` |  |  | See the section above. Examples: `600`. |
+| `command` |  |  | The program to run, with its arguments (no shell). Examples: `/usr/local/bin/poll-something`. |
+| `every` |  |  | Run it every this many minutes (or at = HH:MM, daily). Examples: `60`. |
+| `timeout` |  |  | Seconds it may run before it is stopped. Examples: `600`. |
 
 
 ## `[backup]`
@@ -222,7 +222,7 @@ modemmenu's auth socket ([authd] there): the accounts modemmenu logs in (no pass
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `auth_socket` |  |  | See the section above. Examples: `/run/modemmenu/auth.sock`. |
+| `auth_socket` |  |  | modemmenu's auth socket ([authd] there): the BBS asks it to check passwords of accounts modemmenu knows. Examples: `/run/modemmenu/auth.sock`. |
 | `create_users` |  |  | a user modemmenu knows and the BBS does not gets an account at their first login, any way in. Examples: `yes`. |
 | `timeout` |  |  | seconds for its answer. Examples: `15`. |
 
@@ -233,7 +233,7 @@ The HTTP API (REST, server-sent events, and WebSockets in JSON and protobuf): se
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:8443`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:8443`. |
 | `cert_file` |  |  | TLS is the default; tls = no only on 127.0.0.1 behind a proxy that has it. With no cert_file and key_file, the [acme] certificates. Examples: `/etc/bbs/tls/cert.pem`. |
 | `key_file` |  |  | TLS is the default; tls = no only on 127.0.0.1 behind a proxy that has it. With no cert_file and key_file, the [acme] certificates. Examples: `/etc/bbs/tls/key.pem`. |
 | `trusted_proxies` |  |  | behind a reverse proxy (nginx, Caddy): its addresses (or ranges), which are believed when they say whose a request is (X-Forwarded-For, Forwarded, X-Real-IP), for rate limits, logs, bans and the deny lists. secure_cookies: logins' cookies over HTTPS only (the default with tls = yes; say yes when the proxy has TLS) Examples: `127.0.0.1, ::1`. |
@@ -309,7 +309,7 @@ The FTP server for the file areas: users log in with their BBS name and password
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:2121`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:2121`. |
 | `passive_ports` |  |  | passive data connections: open these in the firewall too. Examples: `50000-50100`. |
 | `public_host` |  |  | behind NAT: the public IP address passive replies give. Examples: `203.0.113.7`. |
 | `tls` |  |  | required: explicit FTPS (AUTH TLS before USER); implicit: TLS from the first byte; optional or no: passwords may cross in the clear. Examples: `required`. |
@@ -328,9 +328,9 @@ Newsgroups: a message area with a newsgroup name (bbs area newsgroup General bbs
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `hostname` |  |  | See the section above. Examples: `news.example.org`. |
-| `domain` |  |  | See the section above. Examples: `news.example.org`. |
-| `organization` |  |  | See the section above. Examples: `D-Modem BBS`. |
+| `hostname` |  |  | This site's name in articles' Path lines (default: the machine's name). Examples: `news.example.org`. |
+| `domain` |  |  | The domain of the Message-IDs made here (default: the machine's name). Examples: `news.example.org`. |
+| `organization` |  |  | The Organization header of articles posted here (default: the BBS's name). Examples: `D-Modem BBS`. |
 | `max_article` |  |  | the largest article taken (from readers and peers) Examples: `64K`. |
 
 
@@ -340,7 +340,7 @@ The NNTP server.  Without this section there is none (peers still sync)
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:1119`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:1119`. |
 | `tls` |  |  | no, optional (STARTTLS), required (no AUTHINFO before STARTTLS), implicit (TLS from the first byte, NNTPS: usually port 563) Examples: `required`. |
 | `cert_file` |  |  | no, optional (STARTTLS), required (no AUTHINFO before STARTTLS), implicit (TLS from the first byte, NNTPS: usually port 563) Examples: `/etc/bbs/cert.pem`. |
 | `key_file` |  |  | no, optional (STARTTLS), required (no AUTHINFO before STARTTLS), implicit (TLS from the first byte, NNTPS: usually port 563) Examples: `/etc/bbs/key.pem`. |
@@ -359,16 +359,16 @@ There may be any number of these, each with its own NAME.
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `news.example.net:119`. |
-| `tls` |  |  | See the section above. Examples: `starttls`. |
-| `ca_file` |  |  | See the section above. Examples: `/etc/bbs/peer-ca.pem`. |
-| `username` |  |  | See the section above. Examples: `bbs`. |
-| `password` |  |  | See the section above. Examples: `secret`. |
-| `groups` |  |  | See the section above. Examples: `bbs.*,!bbs.test`. |
-| `pull` |  |  | See the section above. Examples: `yes`. |
-| `push` |  |  | See the section above. Examples: `yes`. |
-| `interval` |  |  | See the section above. Examples: `600`. |
-| `max_per_run` |  |  | See the section above. Examples: `1000`. |
+| `address` |  |  | The peer's NNTP server, host:port. Examples: `news.example.net:119`. |
+| `tls` |  |  | no, starttls or implicit (NNTPS, usually port 563). Examples: `starttls`. |
+| `ca_file` |  |  | A PEM file its certificate is checked against (default: the system's CAs). Examples: `/etc/bbs/peer-ca.pem`. |
+| `username` |  |  | The account it gave us (AUTHINFO), if it asks for one. Examples: `bbs`. |
+| `password` |  |  | And its password. Examples: `secret`. |
+| `groups` |  |  | The newsgroups exchanged with it: a wildmat (bbs.*,!bbs.test). Examples: `bbs.*,!bbs.test`. |
+| `pull` |  |  | yes: its new articles in our newsgroups are fetched. Examples: `yes`. |
+| `push` |  |  | yes: our new articles are offered to it (IHAVE, or POST if it refuses IHAVE). Examples: `yes`. |
+| `interval` |  |  | Seconds between exchanges. Examples: `600`. |
+| `max_per_run` |  |  | The most articles fetched from it at one exchange. Examples: `1000`. |
 | `initial` |  |  | on first contact, how many of each group's latest articles to fetch. Examples: `100`. |
 | `accept_from` |  |  | the addresses it may send us articles from (IHAVE) Examples: `news.example.net`. |
 
@@ -379,7 +379,7 @@ E-mail.  Each user is name@domain (bbs mail address NAME shows it), and their BB
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `domain` |  |  | See the section above. Examples: `example.org`. |
+| `domain` |  |  | The users' mail domain: each user is name@domain. Examples: `example.org`. |
 | `hostname` |  |  | this host's name, said in SMTP's greeting and Received lines. Examples: `mail.example.org`. |
 | `outbound` |  |  | how mail for elsewhere goes: direct (to each domain's MX, port 25), smarthost (through [smarthost]) or none (only mail here) Examples: `direct`. |
 | `max_message` |  |  | the largest message taken; recipients in one; days in the trash before mail is gone (0: until emptied); days the queue keeps trying. Examples: `10M`. |
@@ -399,11 +399,11 @@ An outgoing mail server to send through, instead of straight to each domain's MX
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `smtp.example.net:587`. |
-| `tls` |  |  | See the section above. Examples: `starttls`. |
-| `username` |  |  | See the section above. Examples: `bbs@example.org`. |
-| `password` |  |  | See the section above. Examples: `secret`. |
-| `insecure` |  |  | See the section above. Examples: `no`. |
+| `address` |  |  | The mail server sent through, host:port (587 for STARTTLS, 465 for implicit TLS). Examples: `smtp.example.net:587`. |
+| `tls` |  |  | starttls, implicit (port 465) or no. Examples: `starttls`. |
+| `username` |  |  | The account to log in to it with. Examples: `bbs@example.org`. |
+| `password` |  |  | And its password. Examples: `secret`. |
+| `insecure` |  |  | yes: its certificate is not checked (a relay on this machine's own network only). Examples: `no`. |
 
 
 ## `[pop3]`
@@ -412,8 +412,8 @@ The mail servers: each runs only with its section.  tls: no, optional (STARTTLS 
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:1110`. |
-| `tls` |  |  | See the section above. Examples: `required`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:1110`. |
+| `tls` |  |  | no, optional (STARTTLS offered), required (STARTTLS before a login) or implicit (TLS from the first byte). Examples: `required`. |
 
 
 ## `[imap]`
@@ -422,9 +422,9 @@ IMAP: mail programs read and file mail in the folders.  Its IDLE wants a long id
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:1143`. |
-| `tls` |  |  | See the section above. Examples: `required`. |
-| `idle_timeout` |  |  | See the section above. Examples: `1800`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:1143`. |
+| `tls` |  |  | no, optional (STARTTLS offered), required (STARTTLS before a login) or implicit (TLS from the first byte). Examples: `required`. |
+| `idle_timeout` |  |  | Seconds a connection may be idle before it is closed; IMAP's IDLE wants 1800 or more. Examples: `1800`. |
 
 
 ## `[smtp]`
@@ -433,8 +433,8 @@ mail submission: users send mail, logged in (port 587 or 465)
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:1587`. |
-| `tls` |  |  | See the section above. Examples: `required`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:1587`. |
+| `tls` |  |  | no, optional (STARTTLS offered), required (STARTTLS before a login) or implicit (TLS from the first byte). Examples: `required`. |
 
 
 ## `[mx]`
@@ -443,9 +443,9 @@ mail from the internet: on port 25, named by the domain's MX record. checks = ye
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:25`. |
-| `tls` |  |  | See the section above. Examples: `optional`. |
-| `checks` |  |  | See the section above. Examples: `yes`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:25`. |
+| `tls` |  |  | no, optional (STARTTLS offered), required (STARTTLS before a login) or implicit (TLS from the first byte). Examples: `optional`. |
+| `checks` |  |  | yes: SPF, DKIM and DMARC are checked, and mail that fails a DMARC reject policy (or, with no DMARC, fails SPF unsigned) is refused. Examples: `yes`. |
 | `dnsbl` |  |  | DNS blocklists the sending address is looked up in (none by default). A listed sender is refused at MAIL FROM (554, with the list's reason); a list that does not answer refuses no one. Spamhaus refuses queries through public resolvers (8.8.8.8, 1.1.1.1) and wants a paid feed for heavy or commercial use: run a resolver of your own (unbound) for it. Examples: `zen.spamhaus.org, bl.spamcop.net`. |
 
 
@@ -455,7 +455,7 @@ LMTP, for a mail server in front (Postfix's virtual_transport) to hand mail in: 
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `/run/bbs/lmtp.sock`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `/run/bbs/lmtp.sock`. |
 
 
 ## `[fido]`
@@ -478,9 +478,9 @@ binkp: answer the links' calls.  Without it, links are only called.
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:24554`. |
-| `max_clients` |  |  | See the section above. Examples: `16`. |
-| `max_per_ip` |  |  | See the section above. Examples: `4`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:24554`. |
+| `max_clients` |  |  | Connections at once. Examples: `16`. |
+| `max_per_ip` |  |  | Connections at once from one address. Examples: `4`. |
 
 
 ## `[link NAME]`
@@ -491,7 +491,7 @@ There may be any number of these, each with its own NAME.
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `21:1/100`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `21:1/100`. |
 | `host` |  |  | to call it (port 24554 if none); without a host it calls us; nodelist: where the nodelist says. Examples: `hub.example.net:24554`. |
 | `password` |  |  | the session password (CRAM-MD5); and the packets', up to 8 characters. Examples: `secret`. |
 | `packet_password` |  |  | the session password (CRAM-MD5); and the packets', up to 8 characters. |
@@ -535,8 +535,8 @@ There may be any number of these, each with its own NAME.
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `description` |  |  | See the section above. Examples: `Legend of the Red Dragon`. |
-| `command` |  |  | See the section above. Examples: `docker run --rm -i --network none --name bbs-door{node} --user {uid}:{gid} -v /srv/doors:/doors -v {dir}:/node bbs-dosemu2 'F:\LORD' 'START.BAT {node}'`, `/usr/games/adventure`. |
+| `description` |  |  | The door's name in the doors list. Examples: `Legend of the Red Dragon`. |
+| `command` |  |  | The program to run (no shell), {node}, {dir}, {uid}, {gid} filled in: a door on this machine. None for a door elsewhere (type). Examples: `docker run --rm -i --network none --name bbs-door{node} --user {uid}:{gid} -v /srv/doors:/doors -v {dir}:/node bbs-dosemu2 'F:\LORD' 'START.BAT {node}'`, `/usr/games/adventure`. |
 | `dir` |  |  | the node's directory ({node} its number): mounted as /node above. Examples: `/var/lib/bbs/doors/node{node}`. |
 | `drop_files` |  |  | the node's directory ({node} its number): mounted as /node above. Examples: `door.sys dorinfo1.def door32.sys chain.txt`. |
 | `charset` |  |  | cp437: shown as UTF-8 to UTF-8 terminals; utf-8; raw: as it comes. Examples: `cp437`, `utf-8`. |
@@ -544,21 +544,21 @@ There may be any number of these, each with its own NAME.
 | `sysop_only` |  |  | yes: for sysops only. Examples: `no`. |
 | `single` |  |  | yes: one caller at a time (a door that is not multi-node) Examples: `no`. |
 | `cleanup` |  |  | after the door: make sure its container is gone. Examples: `docker rm -f bbs-door{node}`. |
-| `pty` |  |  | See the section above. Examples: `yes`. |
-| `door32_comm` |  |  | See the section above. Examples: `local`. |
-| `type` |  |  | See the section above. Examples: `telnet`, `rlogin`, `bbslink`, `doorparty`. |
-| `address` |  |  | See the section above. Examples: `doors.example.org:2323`, `doors.example.org:513`. |
+| `pty` |  |  | yes: the program gets a pseudo-terminal (a Linux program); no: a pipe (a DOS door in dosemu2). Examples: `yes`. |
+| `door32_comm` |  |  | DOOR32.SYS's comm type: serial (a FOSSIL, for DOS doors), telnet or local. Examples: `local`. |
+| `type` |  |  | Where the door is: on this machine (none: command), or another system's, by telnet, rlogin, bbslink or doorparty. Examples: `telnet`, `rlogin`, `bbslink`, `doorparty`. |
+| `address` |  |  | The door server's host:port (telnet and rlogin doors). Examples: `doors.example.org:2323`, `doors.example.org:513`. |
 | `client_user` |  |  | the names it is given: the caller's ({user}) Examples: `{user}`. |
 | `server_user` |  |  | the names it is given: the caller's ({user}) Examples: `{user}`. |
-| `syscode` |  |  | See the section above. Examples: `XXXXXX`. |
-| `authcode` |  |  | See the section above. Examples: `XXXXXX`. |
-| `schemecode` |  |  | See the section above. Examples: `XXXXXX`. |
-| `door` |  |  | See the section above. Examples: `lord`. |
+| `syscode` |  |  | BBSLink: the system code it gave you. Examples: `XXXXXX`. |
+| `authcode` |  |  | BBSLink: the auth code it gave you. Examples: `XXXXXX`. |
+| `schemecode` |  |  | BBSLink: the scheme code it gave you. Examples: `XXXXXX`. |
+| `door` |  |  | BBSLink and DoorParty: the door's code (lord ...); DoorParty with none: its menu. Examples: `lord`. |
 | `url` |  |  | its web address, for the codes (by default http://games.bbslink.net) Examples: `http://games.bbslink.net`. |
-| `ssh_user` |  |  | See the section above. Examples: `myuser`. |
-| `ssh_password` |  |  | See the section above. Examples: `secret`. |
-| `tag` |  |  | See the section above. Examples: `XB`. |
-| `host_key` |  |  | See the section above. Examples: `SHA256:...`. |
+| `ssh_user` |  |  | DoorParty: the SSH account it gave you. Examples: `myuser`. |
+| `ssh_password` |  |  | DoorParty: and its password. Examples: `secret`. |
+| `tag` |  |  | DoorParty: your system's tag. Examples: `XB`. |
+| `host_key` |  |  | DoorParty: its SSH host key's fingerprint (SHA256:...), checked at each call. Examples: `SHA256:...`. |
 | `rlogin_address` |  |  | its RLogin server, where the SSH session goes on to. Examples: `dp.throwbackbbs.com:513`. |
 
 
@@ -568,7 +568,7 @@ IRC: the chat rooms as channels (#main ...), for IRC clients.  Users log in with
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:6667`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:6667`. |
 | `tls_address` |  |  | IRC over TLS (and address = none for TLS only); with no tls_cert and tls_key, the [acme] certificates. Examples: `:6697`. |
 | `tls_cert` |  |  | IRC over TLS (and address = none for TLS only); with no tls_cert and tls_key, the [acme] certificates. Examples: `/etc/bbs/tls.crt`. |
 | `tls_key` |  |  | IRC over TLS (and address = none for TLS only); with no tls_cert and tls_key, the [acme] certificates. Examples: `/etc/bbs/tls.key`. |
@@ -587,7 +587,7 @@ AIM and ICQ: the chat for AIM and ICQ clients (OSCAR), beside IRC.  Users sign o
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:5190`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:5190`. |
 | `host` |  |  | where clients are sent to reconnect, host:port (default: the address each one came to; set it behind NAT) Examples: `aim.example.org:5190`. |
 | `max_clients` |  |  | where clients are sent to reconnect, host:port (default: the address each one came to; set it behind NAT) Examples: `256`. |
 | `max_per_ip` |  |  | each client opens a few connections: sign-on, the BOS, chat rooms. Examples: `16`. |
@@ -644,9 +644,9 @@ AOL: a host for AOL's own clients (3.0, 4.0 and on, over TCP).  Users sign on wi
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:5190`. |
-| `max_clients` |  |  | See the section above. Examples: `256`. |
-| `max_per_ip` |  |  | See the section above. Examples: `4`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:5190`. |
+| `max_clients` |  |  | Connections at once. Examples: `256`. |
+| `max_per_ip` |  |  | Connections at once from one address. Examples: `4`. |
 
 
 ## `[msn]`
@@ -655,7 +655,7 @@ MSN Messenger: the chat for MSN Messenger 1.0 to 7.5 and Windows Messenger 4.x (
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:1863`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:1863`. |
 | `host` |  |  | where clients are sent for conversations, host:port (default: the address each one came to; set it behind NAT) Examples: `msn.example.org:1863`. |
 | `domain` |  |  | handles are name@domain (default bbs.invalid); clients may sign in with any domain, as MSN 1.0's @hotmail.com. Examples: `msn.example.org`. |
 | `max_clients` |  |  | handles are name@domain (default bbs.invalid); clients may sign in with any domain, as MSN 1.0's @hotmail.com. Examples: `256`. |
@@ -675,9 +675,9 @@ The Microsoft Network of 1995 to 1998, for the MSN client that came with Windows
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:569`. |
-| `max_clients` |  |  | See the section above. Examples: `64`. |
-| `max_per_ip` |  |  | See the section above. Examples: `4`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:569`. |
+| `max_clients` |  |  | Connections at once. Examples: `64`. |
+| `max_per_ip` |  |  | Connections at once from one address. Examples: `4`. |
 
 
 ## `[ymsg]`
@@ -686,7 +686,7 @@ Yahoo! Messenger: the chat for Yahoo! Messenger clients (YMSG 9 to 16), beside I
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:5050`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:5050`. |
 | `http_address` |  |  | the web half, for Y!M 9 and later, the room list and file transfer: point vcs1.msg.yahoo.com, vcs2.msg.yahoo.com, insider.msg.yahoo.com, relay.msg.yahoo.com and filetransfer.msg.yahoo.com here. File transfer needs it on port 80. Examples: `:80`. |
 | `https_address` |  |  | Y!M 9's login, its password over HTTPS: point login.yahoo.com here, with a certificate for it the client trusts. Examples: `:443`. |
 | `tls_cert` |  |  | (tls_cert = ca: the BBS's own CA signs it for login.yahoo.com; bbs ca) Examples: `/etc/bbs/login.yahoo.com.crt`. |
@@ -764,9 +764,9 @@ finger: who is on ("finger @host"), and who a user is ("finger name@host"). Port
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:79`. |
-| `online` |  |  | See the section above. Examples: `yes`. |
-| `users` |  |  | See the section above. Examples: `yes`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:79`. |
+| `online` |  |  | yes: finger @host lists who is on. Examples: `yes`. |
+| `users` |  |  | yes: finger name@host tells about a user. Examples: `yes`. |
 
 
 ## `[gopher]`
@@ -775,7 +775,7 @@ gopher: about the system, who is on, and what areas the sysop opens: no login, s
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:70`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:70`. |
 | `hostname` |  |  | the name and port menus send clients back to. Examples: `bbs.example.org`. |
 | `port` |  |  | the name and port menus send clients back to. Examples: `70`. |
 | `areas` |  |  | message areas shown (a wildmat of area names; "": none) Examples: `general,announcements`. |
@@ -788,7 +788,7 @@ gemini: gopher's capsule over Gemini (gemini://, TLS): about the system, who is 
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:1965`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:1965`. |
 | `hostname` |  |  | the host name bbs gemini cert offers for a new certificate. Examples: `bbs.example.org`. |
 | `cert_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes, so an ACME one (cert_file = acme) is for capsules whose visitors check it against a CA. cert_file = ca: the BBS's own CA signs it for hostname, good as long as the CA, its key kept (bbs ca) Examples: `/etc/bbs/gemini-cert.pem`. |
 | `key_file` |  |  | the certificate and key (PEM); with neither, gemini-cert.pem and gemini-key.pem beside the database, which bbs gemini cert makes (it asks for the host names, organization and years first). Clients trust it on first use and warn if it ever changes, so an ACME one (cert_file = acme) is for capsules whose visitors check it against a CA. cert_file = ca: the BBS's own CA signs it for hostname, good as long as the CA, its key kept (bbs ca) Examples: `/etc/bbs/gemini-key.pem`. |
@@ -818,9 +818,9 @@ There may be any number of these, each with its own NAME.
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `enabled` |  |  | See the section above. Examples: `yes`. |
-| `url` |  |  | See the section above. Examples: `https://lobste.rs/rss`. |
-| `title` |  |  | See the section above. Examples: `Lobsters`. |
+| `enabled` |  |  | no: the feed (yours, or the catalogue's of this name) is left out. Examples: `yes`. |
+| `url` |  |  | The feed's address (RSS or Atom). Examples: `https://lobste.rs/rss`. |
+| `title` |  |  | Who its messages are from (default: the feed's own title). Examples: `Lobsters`. |
 | `area` |  |  | the area (its name by default), and the group it is listed under. Examples: `Lobsters`. |
 | `group` |  |  | the area (its name by default), and the group it is listed under. Examples: `Technology`. |
 | `description` |  |  | the area (its name by default), and the group it is listed under. Examples: `Lobsters: computing`. |
@@ -847,7 +847,7 @@ Stock quotes from IEX (the Investors Exchange): its own trades and quotes, not t
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `file` |  |  | See the section above. Examples: `/var/lib/bbs/quotes.json.gz`. |
+| `file` |  |  | The day's quotes, as bbs quotes fetch writes them (run by an [event] each morning). Examples: `/var/lib/bbs/quotes.json.gz`. |
 | `default` |  |  | the symbols a caller sees before they choose their own. Examples: `SPY DIA QQQ AAPL MSFT`. |
 | `listen` |  |  | a live TOPS feed (IEX's real-time feed, or its free delayed one; both need a connection to IEX): its UDP address (a multicast group, joined on the interface), and how far behind it is, for the callers. Examples: `233.215.21.4:10378`. |
 | `interface` |  |  | a live TOPS feed (IEX's real-time feed, or its free delayed one; both need a connection to IEX): its UDP address (a multicast group, joined on the interface), and how far behind it is, for the callers. Examples: `eth1`. |
@@ -879,7 +879,7 @@ an NTP server (UDP).  Port 123 needs CAP_NET_BIND_SERVICE.
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:123`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:123`. |
 | `rate` |  |  | requests a second an address may make (0: no limit), and at once. Examples: `2`. |
 | `burst` |  |  | requests a second an address may make (0: no limit), and at once. Examples: `16`. |
 
@@ -890,9 +890,9 @@ an NTS-KE server (RFC 8915): TLS 1.3, its clients' keys and cookies for [ntp], w
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `address` |  |  | See the section above. Examples: `:4460`. |
-| `tls_cert` |  |  | See the section above. Examples: `/etc/bbs/cert.pem`. |
-| `tls_key` |  |  | See the section above. Examples: `/etc/bbs/key.pem`. |
+| `address` |  |  | Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only). Examples: `:4460`. |
+| `tls_cert` |  |  | The NTS-KE server's certificate (PEM): TLS 1.3, so a modern one ([acme]'s by default). Examples: `/etc/bbs/cert.pem`. |
+| `tls_key` |  |  | Its private key (PEM). Examples: `/etc/bbs/key.pem`. |
 | `ntp_host` |  |  | the NTP server clients are told to use ("": this one) Examples: `time.example.org`. |
 | `max_clients` |  |  | the NTP server clients are told to use ("": this one) Examples: `64`. |
 | `max_per_ip` |  |  | the NTP server clients are told to use ("": this one) Examples: `8`. |
@@ -926,9 +926,9 @@ There may be any number of these, each with its own NAME.
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `title` |  | yes | See the section above. Examples: `{cyan}{bright}@BBS@{reset}`, `{cyan}Extras{reset}`. |
-| `screen` |  | yes | See the section above. Examples: `mainmenu`. |
-| `prompt` |  | yes | See the section above. Examples: `{cyan}Extras{default}> `. |
+| `title` |  | yes | The menu's title, above its items (@-codes and {tags}). Examples: `{cyan}{bright}@BBS@{reset}`, `{cyan}Extras{reset}`. |
+| `screen` |  | yes | A display file (in screens_dir) shown instead of the list of items. Examples: `mainmenu`. |
+| `prompt` |  | yes | The prompt under the menu (default: [strings] command_prompt). Examples: `{cyan}Extras{default}> `. |
 | `require` |  | yes | The access a caller needs to be taken into the menu (a level and flags; see docs/wiki/Access-Levels.md). |
 
 Any other key is a menu item: KEY = ACTION Label, KEY one character; ACTION areas, mail, who, users, profile, info, files, boards, doors, chat, page, callers, feedback, qwk, sysop, terminal, back, logoff, or door:NAME menu:NAME screen:NAME script:NAME area:NAME; \|REQUIRE after the label limits it.
@@ -940,12 +940,12 @@ The prompts and messages, with @-codes and tags.
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `name_prompt` |  | yes | See the section above. Examples: `{cyan}Name:{default} `. |
-| `new_name_prompt` |  | yes | See the section above. Examples: `{cyan}Name{default} (or NEW): `. |
-| `password_prompt` |  | yes | See the section above. Examples: `{cyan}Password:{default} `. |
-| `command_prompt` |  | yes | See the section above. Examples: `{yellow}@USER@{default} @ {cyan}@BBS@{default} > `. |
-| `pause` |  | yes | See the section above. Examples: `{blue}[Press a key]{reset}`. |
-| `logoff_confirm` |  | yes | See the section above. Examples: `{red}Log off?{reset}`. |
-| `welcome` |  | yes | See the section above. Examples: `Welcome, @USER@.`. |
+| `name_prompt` |  | yes | Asking a caller's name at the login. Examples: `{cyan}Name:{default} `. |
+| `new_name_prompt` |  | yes | Asking the name where new users may sign up (NEW for a new account). Examples: `{cyan}Name{default} (or NEW): `. |
+| `password_prompt` |  | yes | Asking the password. Examples: `{cyan}Password:{default} `. |
+| `command_prompt` |  | yes | The prompt under the menus (@USER@, @BBS@ ... and {tags}). Examples: `{yellow}@USER@{default} @ {cyan}@BBS@{default} > `. |
+| `pause` |  | yes | Shown at the end of a page, waiting for a key. Examples: `{blue}[Press a key]{reset}`. |
+| `logoff_confirm` |  | yes | Asking whether to log off. Examples: `{red}Log off?{reset}`. |
+| `welcome` |  | yes | Said after the login. Examples: `Welcome, @USER@.`. |
 
 **See also:** [Configuration](Configuration)

@@ -36,21 +36,21 @@ func (s *Session) sysopMenu() error {
 		}
 		var items []view.Item
 		if s.UI.Kind() == Text {
-			items = append(items, view.Item{Key: "W", Label: "Watch a node"})
+			items = append(items, view.Item{Key: "W", Label: "Watch a node", Help: "See a caller's screen as they do, live"})
 		}
-		items = append(items, view.Item{Key: "C", Label: "Chat with a node"},
-			view.Item{Key: "K", Label: "Kick a node"},
-			view.Item{Key: "U", Label: "Users"},
-			view.Item{Key: "S", Label: "Statistics"},
-			view.Item{Key: "H", Label: "Hack log and bans"})
+		items = append(items, view.Item{Key: "C", Label: "Chat with a node", Help: "Call a caller into a chat with you"},
+			view.Item{Key: "K", Label: "Kick a node", Help: "Throw a caller off, after a yes"},
+			view.Item{Key: "U", Label: "Users", Help: "Every user, their level, flags and last call; edit one"},
+			view.Item{Key: "S", Label: "Statistics", Help: "Totals, and the last 14 days' calls, new users, posts, uploads"},
+			view.Item{Key: "H", Label: "Hack log and bans", Help: "The banned addresses (lift a ban) and the hack log"})
 		if s.B.Events != nil {
-			items = append(items, view.Item{Key: "E", Label: "Scheduled events"})
+			items = append(items, view.Item{Key: "E", Label: "Scheduled events", Help: "The events, their schedules and last runs; run one now"})
 		}
 		if s.B.Config != nil {
-			items = append(items, view.Item{Key: "F", Label: "Configuration"})
+			items = append(items, view.Item{Key: "F", Label: "Configuration", Help: "bbs.conf, the accounts and areas, in full screens"})
 		}
-		items = append(items, view.Item{Key: "A", Label: "Available: " + avail},
-			view.Item{Key: "Q", Label: "Back"})
+		items = append(items, view.Item{Key: "A", Label: "Available: " + avail, Help: "Whether callers' pages reach you (yes/no)"},
+			view.Item{Key: "Q", Label: "Back", Help: "To the main menu"})
 		k, err := s.UI.Menu(&view.Menu{Title: "Sysop tools", Items: items, Brief: s.expert()})
 		if err != nil {
 			return err
