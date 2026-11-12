@@ -739,7 +739,7 @@ There may be any number of these, each with its own NAME.
 | `name` |  |  | the name (default: NAME); *.domain for every name under it. Examples: `games.bbs.example.org`. |
 | `type` |  |  | A, AAAA, CNAME, TXT, MX, SRV, NS, PTR, CAA ... (default: A or AAAA, by the value's address) Examples: `A`. |
 | `value` |  |  | as a zone file writes it: an address; a CNAME's name; a TXT's text; an MX's preference and host (10 mail.example.org); an SRV's priority, weight, port and host (0 5 5060 sip.example.org) Examples: `192.168.77.20`. |
-| `ttl` |  |  | seconds (default: [dns] ttl) Examples: `300`. |
+| `ttl` |  |  | seconds (default: [dns] ttl). An A or AAAA record's address answers reverse lookups (PTR) with its name, unless a [dnsrecord] gives that address a PTR of its own. Examples: `300`. |
 
 
 ## `[mrc]`

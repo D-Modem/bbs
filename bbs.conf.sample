@@ -1080,7 +1080,9 @@ address = 127.0.0.1:2513
 ; MX's preference and host (10 mail.example.org); an SRV's priority,
 ; weight, port and host (0 5 5060 sip.example.org)
 ;value = 192.168.77.20
-; seconds (default: [dns] ttl)
+; seconds (default: [dns] ttl).  An A or AAAA record's address answers
+; reverse lookups (PTR) with its name, unless a [dnsrecord] gives that
+; address a PTR of its own
 ;ttl = 300
 
 ; Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms
