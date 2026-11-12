@@ -8,7 +8,7 @@ import (
 )
 
 // choice is a menu's item.
-type choice struct{ key, label string }
+type choice struct{ key, label, help string }
 
 // menu shows a menu and reads its key: the title and items (unless list
 // is false: a screen of the sysop's showed them) in two columns, or one
@@ -38,9 +38,21 @@ func (s *session) menu(title string, items []choice, prompt string, list bool) (
 			if t.Narrow() {
 				cols, width = 1, max(t.Cols-7, 10)
 			}
+			helps := false
+			for _, it := range items {
+				helps = helps || it.help != ""
+			}
 			var cells []string
 			for _, it := range items {
-				cells = append(cells, t.C(Yellow, "["+it.key+"]")+" "+screens.Fit(it.label, width))
+				cell := t.C(Yellow, "["+it.key+"]") + " " + screens.Fit(it.label, width)
+				if helps && !t.Narrow() {
+					// one column, what each does beside it
+					cols = 1
+					if room := t.Cols - 2 - 4 - width - 2 - 1; it.help != "" && room > 10 {
+						cell += "  " + t.C(Dim, trunc(it.help, room))
+					}
+				}
+				cells = append(cells, cell)
 			}
 			for i := 0; i < len(cells); i += cols {
 				t.Println("  " + strings.Join(cells[i:min(i+cols, len(cells))], ""))

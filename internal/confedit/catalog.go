@@ -168,7 +168,103 @@ func NewCatalog(sample []byte) *Catalog {
 	for name, help := range kindHelp {
 		c.kind(name).Help = help
 	}
+	// help for the keys the sample shows with no comment of their own
+	for _, k := range c.Kinds {
+		for _, x := range k.Keys {
+			if x.Help != "" {
+				continue
+			}
+			if h, ok := keyHelp[k.Name+"."+x.Name]; ok {
+				x.Help = h
+			} else if h, ok := commonHelp[x.Name]; ok {
+				x.Help = h
+			}
+		}
+	}
 	return c
+}
+
+// keyHelp is the help of keys the sample shows bare, by "kind.key".
+var keyHelp = map[string]string{
+	"listen.tls_cert":         "The certificate (PEM) for telnet over TLS (port 992); acme for the [acme] certificate.  None: plain telnet.",
+	"listen.tls_key":          "The certificate's private key (PEM); not needed with acme.",
+	"listen.host_keys":        "SSH listeners: the host key files, by spaces (default: made beside the database the first time).",
+	"listen.tn3270":           "yes: 3270 terminals (c3270, x3270, a mainframe's) may come in by this telnet listener and get full screens.",
+	"security.deny_file":      "A file of addresses and networks (one a line, CIDR) refused before the login.",
+	"security.name_deny_file": "A file of names no new user may take, one a line (* wildcards).",
+	"security.hack_log":       "Where failed logins and refused callers are written, apart from the log.",
+	"security.ban_minutes":    "Minutes an address locked out for failed logins is refused outright (0: not banned).",
+	"event.command":           "The program to run, with its arguments (no shell).",
+	"event.every":             "Run it every this many minutes (or at = HH:MM, daily).",
+	"event.timeout":           "Seconds it may run before it is stopped.",
+	"modemmenu.auth_socket":   "modemmenu's auth socket ([authd] there): the BBS asks it to check passwords of accounts modemmenu knows.",
+	"news.hostname":           "This site's name in articles' Path lines (default: the machine's name).",
+	"news.domain":             "The domain of the Message-IDs made here (default: the machine's name).",
+	"news.organization":       "The Organization header of articles posted here (default: the BBS's name).",
+	"peer.address":            "The peer's NNTP server, host:port.",
+	"peer.tls":                "no, starttls or implicit (NNTPS, usually port 563).",
+	"peer.ca_file":            "A PEM file its certificate is checked against (default: the system's CAs).",
+	"peer.username":           "The account it gave us (AUTHINFO), if it asks for one.",
+	"peer.password":           "And its password.",
+	"peer.groups":             "The newsgroups exchanged with it: a wildmat (bbs.*,!bbs.test).",
+	"peer.pull":               "yes: its new articles in our newsgroups are fetched.",
+	"peer.push":               "yes: our new articles are offered to it (IHAVE, or POST if it refuses IHAVE).",
+	"peer.interval":           "Seconds between exchanges.",
+	"peer.max_per_run":        "The most articles fetched from it at one exchange.",
+	"mail.domain":             "The users' mail domain: each user is name@domain.",
+	"smarthost.address":       "The mail server sent through, host:port (587 for STARTTLS, 465 for implicit TLS).",
+	"smarthost.tls":           "starttls, implicit (port 465) or no.",
+	"smarthost.username":      "The account to log in to it with.",
+	"smarthost.password":      "And its password.",
+	"smarthost.insecure":      "yes: its certificate is not checked (a relay on this machine's own network only).",
+	"imap.idle_timeout":       "Seconds a connection may be idle before it is closed; IMAP's IDLE wants 1800 or more.",
+	"mx.checks":               "yes: SPF, DKIM and DMARC are checked, and mail that fails a DMARC reject policy (or, with no DMARC, fails SPF unsigned) is refused.",
+	"finger.online":           "yes: finger @host lists who is on.",
+	"finger.users":            "yes: finger name@host tells about a user.",
+	"door.description":        "The door's name in the doors list.",
+	"door.command":            "The program to run (no shell), {node}, {dir}, {uid}, {gid} filled in: a door on this machine.  None for a door elsewhere (type).",
+	"door.type":               "Where the door is: on this machine (none: command), or another system's, by telnet, rlogin, bbslink or doorparty.",
+	"door.pty":                "yes: the program gets a pseudo-terminal (a Linux program); no: a pipe (a DOS door in dosemu2).",
+	"door.door32_comm":        "DOOR32.SYS's comm type: serial (a FOSSIL, for DOS doors), telnet or local.",
+	"door.address":            "The door server's host:port (telnet and rlogin doors).",
+	"door.syscode":            "BBSLink: the system code it gave you.",
+	"door.authcode":           "BBSLink: the auth code it gave you.",
+	"door.schemecode":         "BBSLink: the scheme code it gave you.",
+	"door.door":               "BBSLink and DoorParty: the door's code (lord ...); DoorParty with none: its menu.",
+	"door.ssh_user":           "DoorParty: the SSH account it gave you.",
+	"door.ssh_password":       "DoorParty: and its password.",
+	"door.tag":                "DoorParty: your system's tag.",
+	"door.host_key":           "DoorParty: its SSH host key's fingerprint (SHA256:...), checked at each call.",
+	"feed.enabled":            "no: the feed (yours, or the catalogue's of this name) is left out.",
+	"feed.url":                "The feed's address (RSS or Atom).",
+	"feed.title":              "Who its messages are from (default: the feed's own title).",
+	"menu.title":              "The menu's title, above its items (@-codes and {tags}).",
+	"menu.screen":             "A display file (in screens_dir) shown instead of the list of items.",
+	"menu.prompt":             "The prompt under the menu (default: [strings] command_prompt).",
+	"quotes.file":             "The day's quotes, as bbs quotes fetch writes them (run by an [event] each morning).",
+	"nts.tls_cert":            "The NTS-KE server's certificate (PEM): TLS 1.3, so a modern one ([acme]'s by default).",
+	"nts.tls_key":             "Its private key (PEM).",
+	"strings.name_prompt":     "Asking a caller's name at the login.",
+	"strings.new_name_prompt": "Asking the name where new users may sign up (NEW for a new account).",
+	"strings.password_prompt": "Asking the password.",
+	"strings.command_prompt":  "The prompt under the menus (@USER@, @BBS@ ... and {tags}).",
+	"strings.pause":           "Shown at the end of a page, waiting for a key.",
+	"strings.logoff_confirm":  "Asking whether to log off.",
+	"strings.welcome":         "Said after the login.",
+}
+
+// commonHelp is the help of keys many servers have, where the sample gives
+// none of their own.
+var commonHelp = map[string]string{
+	"address":      "Where it listens: host:port (:PORT for every address, 127.0.0.1:PORT for this machine only).",
+	"max_clients":  "Connections at once.",
+	"max_per_ip":   "Connections at once from one address.",
+	"tls":          "no, optional (STARTTLS offered), required (STARTTLS before a login) or implicit (TLS from the first byte).",
+	"tls_cert":     "The certificate (PEM); acme for the [acme] certificate.",
+	"tls_key":      "The certificate's private key (PEM); not needed with acme.",
+	"cert_file":    "The certificate (PEM); acme for the [acme] certificate.",
+	"key_file":     "The certificate's private key (PEM); not needed with acme.",
+	"idle_timeout": "Seconds a connection may be idle before it is closed.",
 }
 
 // header is the kind of section s is, made Named if s has a name, and given

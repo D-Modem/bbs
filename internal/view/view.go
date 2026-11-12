@@ -70,6 +70,7 @@ const (
 type Item struct {
 	Key   string // one character
 	Label string
+	Help  string // what it does, beside it where the screen has room ("": none)
 }
 
 // Menu is a list of choices by key.

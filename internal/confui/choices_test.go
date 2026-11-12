@@ -1,6 +1,8 @@
 package confui
 
 import (
+	"io"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -11,6 +13,7 @@ import (
 	bbssec "github.com/D-Modem/bbs"
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/confedit"
+	"github.com/D-Modem/bbs/internal/store"
 	"github.com/D-Modem/bbs/internal/view"
 )
 
@@ -230,5 +233,68 @@ func TestDNSRecordsPage(t *testing.T) {
 	}
 	if data, _ := os.ReadFile(p); !strings.Contains(string(data), "[dnsrecord games.bbs.example]\ntype = A\nvalue = 192.0.2.10\n") {
 		t.Errorf("written:\n%s", data)
+	}
+}
+
+// TestEveryLineHasHelp: every line of every page, and every key the sample
+// has, tells the sysop what it is: its help at the foot (and F1).
+func TestEveryLineHasHelp(t *testing.T) {
+	e := editorOf(t, "")
+	for _, k := range e.cat.Kinds {
+		if k.Help == "" {
+			t.Errorf("[%s]: no help", k.Name)
+		}
+		for _, x := range k.Keys {
+			if it := e.field(confedit.Section{Kind: k.Name, Name: "x"}, x.Name); it.Help == "" {
+				t.Errorf("%s.%s: no help", k.Name, x.Name)
+			}
+		}
+	}
+	// the sample, with one of each named section and a database, every page
+	// opened
+	p := filepath.Join(t.TempDir(), "bbs.conf")
+	extra := "\n[acme]\n[acme mail]\n[event poll]\n[peer up]\n[link hub]\n[qwknet dove]\n[door lord]\n[menu main]\n" +
+		"[level 20]\n[feed mine]\n[ircpeer hub]\n[irclink]\n[dns]\n[dnsrecord games]\n[fido]\n[nntp]\n[mail]\n" +
+		"[listen cis]\ntype = telnet\naddress = :2324\nfrontend = compuserve\n"
+	os.WriteFile(p, append(append([]byte{}, bbssec.Sample...), extra...), 0o600)
+	st, err := store.Open(filepath.Join(t.TempDir(), "bbs.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	st.CreateUser("sysop", "sysoppass1", "", true)
+	st.CreateArea("General", "Talk", false)
+	b := bbs.New(bbs.Defaults(), st, log.New(io.Discard, "", 0))
+	seen, told := map[string]bool{}, map[string]bool{}
+	var walk func(depth int) step
+	walk = func(depth int) step {
+		return func(t *testing.T, sh *view.Sheet) view.SheetResult {
+			for _, en := range sh.Entries {
+				k := sh.Title + " / " + en.Label
+				if en.Help == "" && en.Kind != view.EntryHeading && !told[k] {
+					told[k] = true
+					t.Errorf("%s: no help", k)
+				}
+			}
+			for i, en := range sh.Entries {
+				k := sh.Crumbs + "/" + en.Label
+				if en.Kind != view.EntryMenu || seen[k] || depth > 5 {
+					continue
+				}
+				seen[k] = true
+				ui := currentUI
+				ui.steps = append([]step{walk(depth + 1), walk(depth)}, ui.steps...)
+				return view.SheetResult{Action: view.Pick, Entry: i}
+			}
+			return back(t, sh)
+		}
+	}
+	ui := &script{t: t, steps: []step{walk(0)}}
+	currentUI = ui
+	if err := (&Editor{UI: ui, Tools: bbs.ConfigTools{Path: p}, Open: func() (*bbs.BBS, error) { return b, nil }}).Run(); err != nil {
+		t.Fatal(err)
+	}
+	if len(seen) < 60 {
+		t.Errorf("only %d pages opened", len(seen))
 	}
 }

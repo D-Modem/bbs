@@ -59,6 +59,59 @@ func (e *Editor) mainMenu() page {
 	}}
 }
 
+// helpOfItem is the help of the menus and actions, by their labels.
+var helpOfItem = map[string]string{
+	// the first page
+	mReview:                    "Lists every change not saved yet: the file's (those that wait for a restart marked) and the accounts' and areas'.",
+	mCheck:                     "Reads the file as it will be written, as the BBS would: whether it would start, and its warnings.",
+	"Save and exit (F10)":      "Checks the file, writes it (the last kept as .bak), makes the accounts' and areas' changes, and puts in force what can change while the BBS runs.",
+	"Quit without saving (F9)": "Leaves everything as it was, after a yes if anything changed.",
+	// Board configuration
+	"Menus":                "Your own menus ([menu NAME]): [menu main] takes the place of the built-in main menu; the others are reached from it.",
+	"Prompts and messages": "The prompts and messages callers see ([strings]): the login's, the menus' prompt, the pause, the welcome.",
+	// System configuration
+	"Scheduled events":         "Programs run daily at a time or every so many minutes ([event NAME]): polling, fetching, clean-ups.",
+	"All settings, by section": "Every section of the file as it is, each with all its keys, for what the other menus do not reach.",
+	// Connections and modems
+	"Modem lines":   "The listeners modem callers come in by (raw, or with header = yes): app_dmodem's and modemmenu's.",
+	"All listeners": "Every listener ([listen NAME]): the ports and sockets callers come in by, of every type.",
+	// Internet services
+	"Telnet":                        "Telnet listeners: terminals (SyncTERM, NetRunner, telnet), and 3270s where TN3270 is on.",
+	"TN3270":                        "3270 terminals: which telnet listeners take them, and the pictures and logo they get.",
+	"SSH":                           "SSH listeners: terminals by SSH, logged in by their BBS name and password.",
+	"RLogin":                        "RLogin listeners: for front ends that log callers in themselves (modemmenu, a BBS's door server).",
+	"News (NNTP)":                   "The NNTP server for newsreaders, this site's name in the news, and the peer news servers.",
+	"Web: API, forum, image boards": "The HTTP server: the API, the web forum, the image boards, the logins.",
+	"Certificates (ACME)":           "Certificates from Let's Encrypt or another ACME CA, got and renewed by the BBS for its TLS servers.",
+	"DNS for callers":               "The DNS server for callers: the old services' names answered with the BBS's address, your own records, the rest resolved and cached.",
+	"DNS records":                   "Your own DNS records ([dnsrecord NAME]): A, AAAA, CNAME, MX, TXT and the rest, answered as written.",
+	"Feeds of your own":             "RSS and Atom feeds of your own ([feed NAME]), each posted to a message area.",
+	// Online services
+	"CompuServe (CIS)":                 "Listeners that answer as CompuServe (frontend = compuserve), for CompuServe's own client programs.",
+	"The Microsoft Network (MSN 1995)": "MSN Classic for Windows 95's client: its TCP host, and the listeners its modem callers dial in by.",
+	"Listeners with frontend = marvel": "The listeners Windows 95's MSN client dials in by (frontend = marvel).",
+	// Messengers and chat
+	"IRC network links": "Linking the IRC server to an IRC network ([irclink]) and the servers it links with ([ircpeer NAME]).",
+	"Peer servers":      "The IRC servers linked with ([ircpeer NAME]): where, the passwords, the protocol.",
+	// Networks and doors
+	"FidoNet":      "FidoNet (or another FTN network): our address, binkp's answering, and the links ([link NAME]).",
+	"Links":        "The systems FidoNet mail is exchanged with ([link NAME]): their addresses, passwords, echoes and polls.",
+	"QWK networks": "QWK networks this BBS is a node of ([qwknet NAME]): the hub, the account, the conferences carried.",
+	"Doors":        "The doors callers play ([door NAME]): programs here, or other systems' door servers.",
+	// News
+	"Peer news servers": "The news servers newsgroups are exchanged with ([peer NAME]).",
+	// ACME
+	"Certificates": "More certificates of [acme]'s ([acme NAME]), for servers to name by cert_file = acme:NAME.",
+	// Users and groups
+	"User accounts": "The accounts: each one's level, flags, sysop, locked and password; new ones; deleted ones.",
+	"Levels":        "The access levels ([level N]): each one's name, time a day, downloads and ratio.",
+	// Maintenance
+	"Disk space":                    "What the database, the files, the backups and the log take, and what is free where they are.",
+	"Message areas: what they keep": "Each message area's keeping: its newest N messages, for N days.",
+	"Backups made":                  "The backups there are, the newest first, and how to put one back.",
+	"Add a user":                    "Makes a new account at the save: its name and password asked, at the new users' level.  A does the same.",
+}
+
 // withHelp is it with its help.
 func withHelp(it item, help string) item {
 	it.Help = help

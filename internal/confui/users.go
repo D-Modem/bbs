@@ -160,7 +160,8 @@ func keeps(a *store.Area) string {
 // noData is a page's word that the database is not to be had.
 func noData(err error) []item {
 	return []item{{Entry: view.Entry{Kind: view.EntryInfo, Label: "The database",
-		Value: "not to be had: " + err.Error(), Disabled: true}}}
+		Value: "not to be had: " + err.Error(), Disabled: true,
+		Help: "The accounts and areas are in the database, which could not be opened here."}}}
 }
 
 // usersMenu is Users and groups: the accounts, new and validated users'
@@ -224,6 +225,7 @@ func (e *Editor) accountsPage() page {
 					v = "deleted at the save"
 				}
 				it := menu(u.Name, v, func() error { return e.show(e.userPage(u)) })
+				it.Help = "Opens " + u.Name + "'s account: level, flags, line speed, sysop, locked, a new password, Delete."
 				_, pw := d.passwords[u]
 				it.Changed = !old || d.deleted[u.ID] || pw || u.Level != w.Level || u.Flags != w.Flags ||
 					u.Sysop != w.Sysop || u.Locked != w.Locked
@@ -370,7 +372,8 @@ func (e *Editor) userPage(u *store.User) page {
 			return nil
 		}
 		out := []item{
-			{Entry: view.Entry{Kind: view.EntryInfo, Label: "Name", Value: u.Name}},
+			{Entry: view.Entry{Kind: view.EntryInfo, Label: "Name", Value: u.Name,
+				Help: "The account's name, as it logs in (bbs user rename changes it)."}},
 			level, flags, speed,
 			boolItem("sysop", "Sysop", &u.Sysop, w.Sysop, "The sysop's tools, and every area and door."),
 			boolItem("locked", "Locked out", &u.Locked, w.Locked, "A locked account cannot log in."),
@@ -378,9 +381,9 @@ func (e *Editor) userPage(u *store.User) page {
 		}
 		if old {
 			out = append(out, item{Entry: view.Entry{Kind: view.EntryInfo, Label: "Calls, posts",
-				Value: fmt.Sprintf("%d, %d", u.Logins, u.Posts)}})
+				Value: fmt.Sprintf("%d, %d", u.Logins, u.Posts), Help: "How many times the user has called, and messages posted."}})
 			out = append(out, item{Entry: view.Entry{Kind: view.EntryInfo, Label: "Calling from (GeoIP)",
-				Value: bbs.GeoWords(u)}})
+				Value: bbs.GeoWords(u), Help: "Where the user calls from, by GeoIP, if they let it be shared."}})
 		}
 		del := "Delete this user"
 		if d.deleted[u.ID] && old {
@@ -400,6 +403,7 @@ func (e *Editor) userPage(u *store.User) page {
 			return nil
 		})
 		da.Disabled = self
+		da.Help = "Deletes the account at the save (pick it again to keep it); a new one is gone at once.  Not your own."
 		out = append(out, da)
 		return out
 	}}

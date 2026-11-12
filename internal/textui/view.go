@@ -128,7 +128,7 @@ func (s *session) Menu(m *view.Menu) (string, error) {
 	}
 	items := make([]choice, len(m.Items))
 	for i, it := range m.Items {
-		items[i] = choice{it.Key, it.Label}
+		items[i] = choice{it.Key, it.Label, it.Help}
 	}
 	prompt := m.Prompt
 	if prompt == "" {

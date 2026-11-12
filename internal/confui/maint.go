@@ -59,7 +59,8 @@ func (e *Editor) maintenanceMenu() page {
 		b := sec("backup")
 		out = append(out, e.fields(b, "dir", "at", "keep", "files")...)
 		out = append(out, item{Entry: view.Entry{Kind: view.EntryInfo, Label: "Configuration's last",
-			Value: filepath.Base(e.Tools.Path) + ".bak, at each save"}})
+			Value: filepath.Base(e.Tools.Path) + ".bak, at each save",
+			Help:  "Each save keeps the file as it was before beside it, as .bak."}})
 		return out
 	}}
 }
@@ -110,11 +111,12 @@ func (e *Editor) retentionPage() page {
 			w := d.areasWas[a.ID]
 			it := menu(a.Name, keeps(a), func() error { return e.show(e.areaKeepPage(a)) })
 			it.Changed = a.MaxMsgs != w.MaxMsgs || a.MaxDays != w.MaxDays
-			it.Help = fmt.Sprintf("%d messages now", a.Messages)
+			it.Help = fmt.Sprintf("%d messages now.  Opens what the area keeps: its newest N, for N days.", a.Messages)
 			out = append(out, it)
 		}
 		if len(out) == 0 {
-			out = append(out, item{Entry: view.Entry{Kind: view.EntryInfo, Label: "No message areas yet."}})
+			out = append(out, item{Entry: view.Entry{Kind: view.EntryInfo, Label: "No message areas yet.",
+				Help: "bbs area add NAME makes one."}})
 		}
 		return out
 	}}
@@ -139,7 +141,8 @@ func (e *Editor) areaKeepPage(a *store.Area) page {
 			return it
 		}
 		return []item{
-			{Entry: view.Entry{Kind: view.EntryInfo, Label: "Messages", Value: strconv.Itoa(a.Messages)}},
+			{Entry: view.Entry{Kind: view.EntryInfo, Label: "Messages", Value: strconv.Itoa(a.Messages),
+				Help: "The messages in the area now."}},
 			num("msgs", "Keep the newest", &a.MaxMsgs, w.MaxMsgs, "Messages kept (0: all)."),
 			num("days", "Keep for days", &a.MaxDays, w.MaxDays, "Days a message is kept (0: for ever)."),
 		}
