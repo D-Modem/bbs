@@ -133,8 +133,9 @@ _dmarc.example.org.       TXT "v=DMARC1; p=quarantine"
 ```
 
 Also, a reverse DNS (PTR) name of `mail.example.org` for 203.0.113.5 is
-necessary. The hosting provider sets it. `bbs mail dkim
-/etc/bbs/dkim.pem` makes the DKIM key and prints its record. With a
+necessary. The hosting provider sets it.
+`bbs mail dkim /etc/bbs/dkim.pem` makes the DKIM key and prints its
+record. With a
 smarthost, use the SPF and DKIM that its provider gives.
 
 ## Mail from the internet
