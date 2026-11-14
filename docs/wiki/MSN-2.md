@@ -1,12 +1,18 @@
-MSN 2.0 (late 1996) and the 2.5 and 2.6 that came with Windows 98 turned
-The Microsoft Network into internet services: web pages in the MSN
-Program Viewer (Internet Explorer inside), newsgroups for the bulletin
-boards, IRC for chat, and internet mail. Members signed in to each with
-MSN's own security package, which is NTLM under another name ("MSN", once
-codenamed Sicily): the password never travels, only an answer to a
-challenge worked out from its hash. The BBS answers that sign-in on its
-mail, news and web servers, so MSN 2.x's programs sign in to the BBS as
-they did to MSN. This is early work, not yet tried with a real client.
+MSN 2.0 (late 1996), and the 2.5 and 2.6 that came with Windows 98,
+changed The Microsoft Network into internet services:
+
+- Web pages in the MSN Program Viewer (Internet Explorer inside).
+- Newsgroups for the bulletin boards.
+- IRC for chat.
+- Internet mail.
+
+Members signed in to each service with the MSN security package. This
+package is NTLM with a different name ("MSN", with the old codename
+Sicily). The password never goes on the network. Only an answer to a
+challenge goes, which the client calculates from the hash of the
+password. The BBS answers this sign-in on its mail, news and web servers.
+Thus, the programs of MSN 2.x sign in to the BBS as they did to MSN. This
+is early work. We did not try it with a real client yet.
 
 ## Turning it on
 
@@ -15,54 +21,61 @@ they did to MSN. This is early work, not yet tried with a real client.
 ntlm = yes
 ```
 
-The sign-in checks each password's LAN Manager and NT hashes, which the
-BBS keeps once this is on (or MSN Classic is served, whose 1996 client
-signs in the same way). They are made when the password is next typed in
-the clear: when its owner signs in any other way (telnet, the web form, a
-mail program's plain password) or sets a password. Until then, that
-member's NTLM sign-in fails, and the log says why. The hashes are password
-equivalents, the LM hash a weak one, so the database needs guarding as a
-password file does.
+The sign-in checks the LAN Manager and NT hashes of each password. The
+BBS keeps these hashes when this setting is on, or when it serves MSN
+Classic (the 1996 client of MSN Classic signs in in the same way). The
+BBS makes the hashes the next time that the user types the password in
+clear text. That occurs when the user signs in with a different method
+(telnet, the web form, the plain password of a mail program) or sets a
+password. Until then, the NTLM sign-in of that member fails, and the log
+gives the reason.
+
+The hashes are equivalent to passwords, and the LM hash is a weak hash.
+Thus, you must protect the database as you protect a password file.
 
 ## What signs in
 
-The member ID is the BBS name (or the mail address, or the name with any
-domain), and the password the BBS password.
+The member ID is the BBS name (or the mail address, or the name with a
+domain). The password is the BBS password.
 
 - **Mail**: POP3 and IMAP, and SMTP on the submission listener, offer
-  `NTLM` and `MSN` beside `PLAIN`. In Outlook Express (or Internet Mail),
-  give the account the BBS's servers and tick "Log on using Secure
-  Password Authentication" for incoming mail, and under the outgoing
-  server's "My server requires authentication", the same.
-- **Newsgroups**: NNTP's `AUTHINFO GENERIC NTLM` (or `MSN`), as
-  Microsoft's news servers had it. In Internet News (or Outlook Express),
-  tick "This server requires me to log on" and "Log on using Secure
+  `NTLM` and `MSN` adjacent to `PLAIN`. In Outlook Express (or Internet
+  Mail), give the servers of the BBS to the account. For incoming mail,
+  select "Log on using Secure Password Authentication". For the outgoing
+  server, select the same option under "My server requires
+  authentication".
+- **Newsgroups**: the `AUTHINFO GENERIC NTLM` (or `MSN`) of NNTP, as on
+  the news servers of Microsoft. In Internet News (or Outlook Express),
+  select "This server requires me to log on" and "Log on using Secure
   Password Authentication".
 - **The web forum**: `/forum/login/ntlm` asks the browser for NTLM (or
-  MSN), and the sign-in page links to it. Internet Explorer, the Program
-  Viewer's browser, answers with the name and password it already has
-  (MSN's or Windows'), or asks for them. The exchange needs one connection from start to
-  end, so a proxy in front of the BBS has to keep connections as they are.
-- **Chat**: Comic Chat, MSN 2.x's chat program, is an IRC client: point it
-  at the BBS's IRC server ([IRC](IRC)), which it signs in to by password.
+  MSN). The sign-in page has a link to it. Internet Explorer, the browser
+  of the Program Viewer, answers with the name and password that it
+  already has (from MSN or Windows), or it asks for them. The exchange
+  must use one connection from start to end. Thus, a proxy in front of
+  the BBS must keep the connections as they are.
+- **Chat**: Comic Chat, the chat program of MSN 2.x, is an IRC client.
+  Point it at the IRC server of the BBS ([IRC](IRC)). It signs in with a
+  password.
 
-A server with `tls = required` asks for TLS before any sign-in, NTLM's
-too, and Windows 95 and 98 programs can't speak the TLS that a modern
-server does, so leave TLS optional on the servers these clients use.
+A server with `tls = required` asks for TLS before all sign-ins, also
+before NTLM. Programs for Windows 95 and 98 cannot use the TLS of a
+modern server. Thus, keep TLS optional on the servers that these clients
+use.
 
 ## Not served yet
 
-- The Program Viewer's own pages: MSN's start page, its channels and
-  OnStage shows, and the MSN Sign-In dialer. What the Viewer asks for
-  first isn't documented anywhere found so far; it needs the client
-  itself looked at.
-- DPA (Distributed Password Authentication), the other package MSN's
-  later Windows 98 mail used for Secure Password Authentication. It isn't
-  NTLM, and isn't documented.
-- MSN's own 16-character passwords: the security package spread the 15th
-  and 16th characters over the first 14 for the LM hash. Passwords longer
-  than 14 characters sign in by the NT hash, which needs the client to
-  send it.
+- The pages of the Program Viewer: the MSN start page, its channels and
+  OnStage shows, and the MSN Sign-In dialer. We did not find a document
+  that tells what the Viewer asks for first. It is necessary to examine
+  the client.
+- DPA (Distributed Password Authentication), the other package that the
+  later Windows 98 mail of MSN used for Secure Password Authentication.
+  DPA is not NTLM, and there is no document for it.
+- The 16-character passwords of MSN: for the LM hash, the security
+  package spread the 15th and 16th characters over the first 14.
+  Passwords longer than 14 characters sign in with the NT hash. For this,
+  the client must send the NT hash.
 
-MSN 2.0 kept MSN Classic's Exchange mail for its members; that is served
-by [MSN Classic](MSN-Classic).
+MSN 2.0 kept the Exchange mail of MSN Classic for its members.
+[MSN Classic](MSN-Classic) serves that mail.

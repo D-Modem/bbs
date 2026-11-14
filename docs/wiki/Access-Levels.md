@@ -1,10 +1,10 @@
-Every user has an **access level** (0 to 255) and **flags** (letters A to
-Z). The sysop decides what each level may do, and what level and flags
-each message area, file area, door and menu requires. Sysops pass every
-check.
+Each user has an **access level** (0 to 255) and **flags** (letters A to
+Z). The sysop sets what each level can do. The sysop also sets the level
+and flags that each message area, file area, door and menu requires.
+Sysops pass all checks.
 
-None of this is required. If you set nothing up, every user's level is 20
-and nothing requires more.
+This configuration is optional. If you set nothing, the level of all
+users is 20, and nothing requires more.
 
 ## Levels
 
@@ -30,31 +30,32 @@ downloads = 20
 name = Trusted
 ```
 
-A user gets the settings of the highest `[level]` at or below their own
-level, so in the example above, level 35 gets `[level 20]`'s settings. A
-level below every `[level]` section has no limits. Each `[level]` can set:
+A user gets the settings of the highest `[level]` that is at or below the
+level of the user. Thus, in the example above, level 35 gets the settings
+of `[level 20]`. A level below all `[level]` sections has no limits. Each
+`[level]` can set:
 
 | Key | Default | What it sets |
 |---|---|---|
-| `name` | `Level N` | shown in the profile and to the API |
-| `time` | `0` | minutes online a day; the caller is warned at 5 and 1 minutes left and hung up at the end (and gets at least a minute of a call, to read and log off). A door's time limit is cut to what is left |
-| `downloads` | `0` | files a day, by any way (the BBS, FTP, 3270, the API) |
-| `ratio` | `0` | files a user may download for each they have uploaded (0: no ratio); the files uploaded are those still in the areas |
-| `ratio_free` | `0` | files a user may download before the ratio counts: with `ratio = 3` and `ratio_free = 10`, someone with 2 uploads may download 16 |
+| `name` | `Level N` | the name that the profile and the API show |
+| `time` | `0` | minutes online each day. The BBS gives a warning to the caller when 5 and 1 minutes remain. At the end, it hangs up (the caller gets a minimum of one minute of a call, to read and log out). The BBS decreases the time limit of a door to the time that remains |
+| `downloads` | `0` | files each day, by all methods (the BBS, FTP, 3270, the API) |
+| `ratio` | `0` | the number of files that a user can download for each file that the user uploaded (0: no ratio). The uploaded files are those that are still in the areas |
+| `ratio_free` | `0` | the number of files that a user can download before the ratio starts. With `ratio = 3` and `ratio_free = 10`, a user with 2 uploads can download 16 |
 | `post` | `yes` | post in message areas |
-| `mail` | `yes` | mail other users (and netmail); without it, only the sysop |
-| `chat` | `yes` | chat rooms (a page's private room is the page's) |
+| `mail` | `yes` | send mail to other users (and netmail). Without it, the user can send mail only to the sysop |
+| `chat` | `yes` | chat rooms (the private room of a page follows the page) |
 | `page` | `yes` | page the sysop |
 | `download`, `upload` | `yes` | files |
 | `doors` | `yes` | doors |
 
-Days follow the server's local time, so time and download allowances
-start again at midnight.
+Days follow the local time of the server. Thus, the time and download
+allowances start again at midnight.
 
 ## Requirements
 
-A requirement for an area, door or menu is written as a list of terms,
-and the user must meet all of them:
+A requirement for an area, door or menu is a list of terms. The user
+must meet all of them:
 
 | Term | Meaning |
 |---|---|
@@ -63,39 +64,40 @@ and the user must meet all of them:
 | `!X` | does not have flag X |
 | `sysop` | sysops only |
 
-So `30 F !X` means level 30 or more, with flag F and without flag X. An
-empty requirement lets in anyone who is logged in. A locked user meets no
+Thus, `30 F !X` means level 30 or more, with flag F and without flag X.
+An empty requirement lets all logged-in users in. A locked user meets no
 requirement.
 
 | Where | How | Notes |
 |---|---|---|
-| message area | `bbs area require AREA READ POST` | who sees it (in lists, newsgroups by NNTP, the API) and who posts |
-| file area | `bbs filearea require AREA DOWNLOAD UPLOAD` | an area is listed to those who may do either |
+| message area | `bbs area require AREA READ POST` | the users who see it (in lists, in newsgroups through NNTP, in the API) and the users who post |
+| file area | `bbs filearea require AREA DOWNLOAD UPLOAD` | the BBS lists an area to the users who can do one of the two |
 | door | `require = 30 L` in its `[door]` | |
-| menu | `require = 50` in its `[menu]` | to be taken into it |
-| menu item | `x = menu:extras Extras \| 50 X` | the item is shown only to those who meet what follows `\|` |
+| menu | `require = 50` in its `[menu]` | to go into it |
+| menu item | `x = menu:extras Extras \| 50 X` | the BBS shows the item only to the users who meet the terms after `\|` |
 
 On the command line, `-` means no requirement: `bbs area require General - 20`.
 
 ## Validation
 
-New users start at `new_user_level`. Their welcome tells them they are
-waiting for the sysop to validate them, and they can mail the sysop even
-if their level cannot send mail. The sysop validates them in any of three
-ways:
+New users start at `new_user_level`. Their welcome tells them that they
+wait for the sysop to validate them. They can send mail to the sysop,
+also if their level cannot send mail. The sysop validates them in one of
+three ways:
 
-- on the BBS: `V` on the main menu (*Validate users (N)*) goes through
-  those waiting: validate, set another level, lock, skip;
-- by the command: `bbs user waiting`, `bbs user validate NAME`,
-  `bbs user level NAME N`, `bbs user flags NAME +AB -C`;
-- by the API: `PATCH /api/v1/admin/users/{name}` with `level` and
+- On the BBS: `V` on the main menu (*Validate users (N)*) shows the
+  users who wait, one at a time. For each, you can validate, set a
+  different level, lock or skip.
+- With the commands: `bbs user waiting`, `bbs user validate NAME`,
+  `bbs user level NAME N`, `bbs user flags NAME +AB -C`.
+- With the API: `PATCH /api/v1/admin/users/{name}` with `level` and
   `flags` (`"AB"`, or an edit `"+A -B"`).
 
-Users can see their own level, flags, time left and downloads in their
-profile (and in `access` at `GET /api/v1/me`), but not anyone else's. No
-one can change their own.
+Users can see their own level, flags, time that remains and downloads in
+their profile (and in `access` at `GET /api/v1/me`). They cannot see the
+values of other users. Users cannot change their own values.
 
-Drop files give doors the caller's level as their security level (255 for
-sysops).
+Drop files give the level of the caller to doors as the security level
+(255 for sysops).
 
 **See also:** [Administration](Administration), [Configuration](Configuration), [Security](Security)
