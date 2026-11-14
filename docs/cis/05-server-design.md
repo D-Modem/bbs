@@ -6,41 +6,41 @@ The fork adds two CompuServe front ends:
 - **ASCII**: the classic terminal service.
 - **HMI**: the WinCIM/CIM GUI service.
 
-Both run on top of the BBS's existing users, message base, mail, file areas, chat hub, transfers and listeners.
+The two front ends run on the existing users, message base, mail, file areas, chat hub, transfers and listeners of the BBS.
 
-Protocol and UX details are in docs [02](02-terminal-ux.md), [03](03-link-protocols.md) and [04](04-cim-hmi.md).
+The details of the protocols and the user interface are in docs [02](02-terminal-ux.md), [03](03-link-protocols.md) and [04](04-cim-hmi.md).
 
 ## 1. Why D-Modem/bbs fits
 
-Reviewed at commit `b9a9acc` (7 Nov 2026): about 87k lines of Go, Go 1.24, created 10 Oct 2026.
+We examined commit `b9a9acc` (7 Nov 2026): about 87k lines of Go, Go 1.24, created 10 Oct 2026.
 
 | CompuServe needs | D-Modem/bbs already has |
 |---|---|
-| Telnet and modem callers, 8-bit clean | `internal/telnet` (BINARY, ECHO, SGA, NAWS, TTYPE, IAC doubling). Modem callers come via the D-Modem softmodem, so **real dial-up into CompuServe** is possible. |
-| Listeners, limits, TLS, bans, panic isolation | `internal/server` (`Listener{Kind: telnet\|raw\|rlogin\|ssh}`, per-IP limits, `handle()`), `internal/guard` |
-| One core with several front ends | `internal/app` defines a `Frontend` interface. `textui` and `ui3270` are two front ends over the same screens. **This is the shape we want.** |
+| Telnet and modem callers, 8-bit clean | `internal/telnet` (BINARY, ECHO, SGA, NAWS, TTYPE, IAC doubling). Modem callers come through the D-Modem softmodem. Thus, **real dial-up into CompuServe** is possible. |
+| Listeners, limits, TLS, bans, panic isolation | `internal/server` (`Listener{Kind: telnet\|raw\|rlogin\|ssh}`, limits for each IP, `handle()`), `internal/guard` |
+| One core with more than one front end | `internal/app` defines a `Frontend` interface. `textui` and `ui3270` are two front ends over the same screens. **This is the shape that we want.** |
 | Users, sessions, who's online, "jobs" | `store.User`, `bbs.Node` (node number ≈ CIS job number), calls log |
 | Forum messages with threads | `store.Message{AreaID, ReplyTo, Thread, …}`, areas with groups and read/post access |
-| CompuServe Mail | Private mail in `store` (`AreaID = 0`, inbox per user) |
-| Forum libraries | `store.FileArea` / `store.File` (downloads count, uploader, descriptions), file store, archive readers |
+| CompuServe Mail | Private mail in `store` (`AreaID = 0`, an inbox for each user) |
+| Forum libraries | `store.FileArea` / `store.File` (download count, uploader, descriptions), file store, archive readers |
 | XMODEM / YMODEM / Kermit | `internal/xfer`, a protocol registry (`xfer.Protocols`) with `Send(Port, files)` / `Receive(Port, sink)` |
 | CB Simulator and forum conferences | Chat hub with rooms, permanent rooms, paging (`bbs/chat*.go`) |
 | DB, migrations, backups | SQLite, PostgreSQL or MySQL. Additive `ALTER TABLE` migrations (`store/schema.go migrate`). Backups. |
-| Bonus | HTTP API, web terminal (xterm.js), web forum, NNTP: the CIS forums for free in a browser or newsreader |
+| Bonus | HTTP API, web terminal (xterm.js), web forum, NNTP: the CIS forums in a browser or newsreader with no extra work |
 
-Building all of this from scratch would take months. The CompuServe-specific work (login, page tree, the ASCII command language, B+, HMI) is about the same either way.
+To build all of this from the start would take months. The work that is specific to CompuServe (login, page tree, the ASCII command language, B+, HMI) is about the same in the two cases.
 
 ## 2. Constraints and risks
 
-1. **We must fork; a library import won't work.** Everything useful is under `internal/`, and Go forbids importing `internal` packages from another module. Keep the fork mergeable (§4).
-2. **The licence is AGPL-3.0-only**, with a commercial licence as the alternative. Our fork must stay AGPL. Anyone using the service over the network must be offered the source (a `GO SOURCE` page linking the repo covers this). Sending changes upstream requires their CLA (CONTRIBUTING.md).
-3. **The project is young:** about 4 weeks old, about 62 commits, one org. Expect API churn. Mitigate by keeping our code in new packages and touching few upstream files.
-4. **Probe collisions.** For ANSI callers the BBS sends `ENQ` (answerback) and `CSI > 0 q` (XTVERSION) at connect. Both mean something to CompuServe clients:
+1. **We must fork. A library import will not operate.** All the useful code is under `internal/`, and Go does not let a different module import `internal` packages. Keep the fork mergeable (§4).
+2. **The licence is AGPL-3.0-only**, with a commercial licence as the alternative. Our fork must stay AGPL. We must offer the source to all persons who use the service over the network (a `GO SOURCE` page with a link to the repository is sufficient). To send changes upstream, we must sign their CLA (CONTRIBUTING.md).
+3. **The project is young:** about 4 weeks old, about 62 commits, one organization. Expect API changes. To decrease this risk, keep our code in new packages and change few upstream files.
+4. **Probe collisions.** For ANSI callers, the BBS sends `ENQ` (answerback) and `CSI > 0 q` (XTVERSION) at connect. These two have a meaning for CompuServe clients:
    - `ENQ` starts the B-protocol handshake (doc 03 §3.1).
-   - `ESC [ > 0 q` is CIM's application-mode query (doc 04 §2.4).
+   - `ESC [ > 0 q` is the application-mode query of CIM (doc 04 §2.4).
 
-   **CIS listeners must skip the BBS's terminal probing** and run their own identification (`ESC I`).
-5. **The app screens are BBS-shaped.** `internal/app` defines BBS menus (message areas, profile…). CompuServe's page tree, `!` prompts and forum command language are different. **We reuse the services under `app`, not its screens.** Our front ends are new packages.
+   **CIS listeners must skip the terminal probes of the BBS** and run their own identification (`ESC I`).
+5. **The app screens have the shape of a BBS.** `internal/app` defines BBS menus (message areas, profile…). The page tree, `!` prompts and forum command language of CompuServe are different. **We use the services under `app` again, but not its screens.** Our front ends are new packages.
 
 ## 3. Architecture
 
@@ -70,14 +70,14 @@ Building all of this from scratch would take months. The CompuServe-specific wor
 
 | Package | Purpose |
 |---|---|
-| `internal/cis/login` | Network dialogue: `CONNECT` banner, `Host Name:` (CIS/CPS/CISAGREE), `User ID:` parsing (`+`, `/INT:60`, `/secure:1`, `/GO:x`, `;TTY`, `*NAVIG`), password or SLP (doc 04 §2.3), `?LOG xxx` codes, banner and logoff text |
+| `internal/cis/login` | Network dialogue: `CONNECT` banner, `Host Name:` (CIS/CPS/CISAGREE), `User ID:` parse (`+`, `/INT:60`, `/secure:1`, `/GO:x`, `;TTY`, `*NAVIG`), password or SLP (doc 04 §2.3), `?LOG xxx` codes, banner and logoff text |
 | `internal/cis/termid` | `ESC I` reply parser and checksum, the `ENQ` B-version test, `Caps` struct, GIF caps (`ESC [ > 0 g`) |
-| `internal/xfer/cisb.go` | CIS B / Interim / B+ engine: quoting, checksum and CRCs, packets, window, `Tr`/`TI`, and **Transport Layer** `M`/`L` for HMI. Registered in `xfer.Protocols` as `B` and `Q` (Quick B). Upstream-friendly, since it is just another protocol. |
+| `internal/xfer/cisb.go` | CIS B / Interim / B+ engine: quotes, checksum and CRCs, packets, window, `Tr`/`TI`, and **Transport Layer** `M`/`L` for HMI. Registered in `xfer.Protocols` as `B` and `Q` (Quick B). Easy to send upstream, because it is only one more protocol. |
 | `internal/cis/aproto` | A protocol (low priority) |
-| `internal/cis/core` | CompuServe's domain on top of `store`/`bbs`: page tree and GO resolver, forums, libraries, mail address forms (`INTERNET:` etc.), CB model, billing meter, PPN allocation. **It knows nothing about bytes or screens.** |
+| `internal/cis/core` | The CompuServe domain on top of `store`/`bbs`: page tree and GO resolver, forums, libraries, mail address forms (`INTERNET:` and other forms), CB model, billing meter, PPN allocation. **It knows nothing about bytes or screens.** |
 | `internal/cis/ascii` | Terminal front end: line input with ^U/^V/^O/^C/^P semantics, pager, `!` prompts, BRIEF/PAGED/COMMAND/MENU modes, DEFAULT settings, forum command language (doc 02 §4.5), EDIT/LINEDIT, Mail, CB slash-commands, download protocol menu |
 | `internal/cis/hmi` | GUI front end: `ESC [ >` handshake, HMI message codec (u16/u24/varint/text/DOS date), streams, dispatcher onto `cis/core` |
-| `internal/cis/wiretap` | Per-session byte log of both directions, with B+/HMI decode. Viewable through the existing HTTP API. **This is the reverse-engineering tool.** |
+| `internal/cis/wiretap` | A byte log of the two directions for each session, with B+/HMI decode. You can see it through the existing HTTP API. **This is the reverse-engineering tool.** |
 | `content/` | The page tree (YAML): page IDs, GO aliases, menus, articles, help text, the forum list |
 
 ### 3.2 Changes to upstream files (keep this list short)
@@ -85,33 +85,33 @@ Building all of this from scratch would take months. The CompuServe-specific wor
 | Upstream file | Change |
 |---|---|
 | `internal/server/server.go` | In `handle()`, dispatch `Listener.Kind == "cis"` and `"cim"` to `cis/login.Run(...)`. Add the two kinds to the config parser (`config.go`). |
-| `internal/xfer/xfer.go` | Append `B` and `Q` to `Protocols` (or register them from `cisb.go`'s `init`). |
-| `internal/store/schema.go` | New tables, plus additive columns via the existing `migrate` list (§5). |
+| `internal/xfer/xfer.go` | Add `B` and `Q` to `Protocols` (or register them from the `init` of `cisb.go`). |
+| `internal/store/schema.go` | New tables, and additive columns through the existing `migrate` list (§5). |
 | `cmd/bbs/main.go` | Load `content/`, and add a `cis` subcommand (seed forums, allocate IDs). |
-| `bbs.conf.sample` | `[listen cis]` and `[listen cim]` examples, plus a `[cis]` section. |
+| `bbs.conf.sample` | `[listen cis]` and `[listen cim]` examples, and a `[cis]` section. |
 
 ## 4. Fork workflow
 
 - Fork `D-Modem/bbs` to our GitHub and clone it into this project. Add `upstream` as a remote.
-- Our work lives in `internal/cis/**`, `internal/xfer/cisb*.go`, `content/` and `docs/cis/`. Upstream files carry only the hooks in §3.2.
-- Rebase or merge `upstream/main` weekly, with CI running `go vet` and `go test ./...` (upstream already has `.github/workflows/ci.yml`).
-- Candidates for upstream PRs, if we sign their CLA: `xfer/cisb.go` (B+ is useful to any BBS) and a generic listener-kind hook.
+- Our work is in `internal/cis/**`, `internal/xfer/cisb*.go`, `content/` and `docs/cis/`. Upstream files contain only the hooks in §3.2.
+- Rebase or merge `upstream/main` each week, with CI that runs `go vet` and `go test ./...` (upstream already has `.github/workflows/ci.yml`).
+- Possible upstream PRs, if we sign their CLA: `xfer/cisb.go` (B+ is useful to all BBSes) and a generic listener-kind hook.
 
 ## 5. Data mapping onto `store`
 
 | CompuServe | Stored as |
 |---|---|
-| User ID `70000,123` | `users.name = "70000,123"`, so the whole BBS login, access and who's-online machinery works unchanged on the ID. The display name goes in a new `users.real_name`. New `users.slp_key` (doc 04 §2.3). Allocate octal-only IDs from 70000,100; sysops from 76701,x. |
+| User ID `70000,123` | `users.name = "70000,123"`. Thus, the full login, access and who's-online functions of the BBS operate on the ID with no change. The display name goes in a new `users.real_name`. New `users.slp_key` (doc 04 §2.3). Allocate octal-only IDs from 70000,100. Sysops from 76701,x. |
 | Forum | New `cis_forums(id, go_word, name, welcome, version_tag, sysop_ids)`. |
-| Forum section 0–17 | One `store.Area` per section: `Group = forum`, plus new `areas.cis_forum`, `areas.cis_section`. |
-| Forum message number | CIS numbers messages per forum (`#: 210094`), while `store.Message.ID` is global. Add `messages.cis_num` (unique per forum, monotonic) and map `ReplyTo`/`Thread` directly. |
-| Membership | New `cis_members(forum, user, name, joined, high_msg, options)`. The per-forum name comes from JOIN, and options from OPT (mode, prompt char, sections). |
-| Library n | `store.FileArea` plus new `file_areas.cis_forum` / `cis_lib`. |
-| File entry | `store.File` plus new `title`, `keywords`, `dtype` (A/B). `Downloads` is "Accesses". The uploader PPN is the user's name. |
+| Forum section 0–17 | One `store.Area` for each section: `Group = forum`, and new `areas.cis_forum`, `areas.cis_section`. |
+| Forum message number | CIS gives message numbers for each forum (`#: 210094`), but `store.Message.ID` is global. Add `messages.cis_num` (unique for each forum, monotonic) and map `ReplyTo`/`Thread` directly. |
+| Membership | New `cis_members(forum, user, name, joined, high_msg, options)`. The name for each forum comes from JOIN, and the options from OPT (mode, prompt char, sections). |
+| Library n | `store.FileArea` and new `file_areas.cis_forum` / `cis_lib`. |
+| File entry | `store.File` and new `title`, `keywords`, `dtype` (A/B). `Downloads` is "Accesses". The uploader PPN is the name of the user. |
 | Mail | Existing private mail. Add `from_addr`/`to_addrs` (address forms), `expire`, `binary`. |
-| CB | Chat hub rooms named `cb:<band>:<ch>`, forum conferences as `co:<forum>:<room>`. Handles live in `cis_handles`, and the job number is `bbs.Node.Num`. |
+| CB | Chat hub rooms with the names `cb:<band>:<ch>`, forum conferences as `co:<forum>:<room>`. Handles are in `cis_handles`, and the job number is `bbs.Node.Num`. |
 | DEFAULT settings | `users.prefs` (it already holds `key=value` preferences): `brief=yes paged=no top=command editor=edit width=79 …` |
-| Billing | Session times are in the calls log already; a new `cis_charges` view prices them with the period rate tables (doc 02 §7). |
+| Billing | Session times are already in the calls log. A new `cis_charges` view calculates their prices with the rate tables of the period (doc 02 §7). |
 
 ## 6. Connection lifecycle (on `cis` and `cim` listeners)
 
@@ -133,7 +133,7 @@ session     a bbs.Node is registered for its life: who's online, chat delivery, 
 logoff      "Thank you for using CompuServe!" / "Off at …" / "Connect time = h:mm"; calls log
 ```
 
-The B-protocol `ENQ` test runs when a download or graphic is about to be sent, not at login. The result is cached in `Caps`.
+The B-protocol `ENQ` test runs immediately before the server sends a download or graphic, not at login. The server caches the result in `Caps`.
 
 ## 7. Interaction walkthroughs
 
@@ -174,42 +174,42 @@ C: 0x0F keepalive        H: 0x01          …   C: 0x07 logoff
 
 ### 7.3 One world
 
-- A WinCIM user posts in IBMCOM section 4. `core.Forums.Post` stores it in the section's `store.Area`, and a terminal user's `REA NEW` sees it.
-- The upstream **NNTP server and web forum** expose the same messages, without extra work.
+- A WinCIM user posts in IBMCOM section 4. `core.Forums.Post` stores the post in the `store.Area` of the section, and the `REA NEW` of a terminal user shows it.
+- The upstream **NNTP server and web forum** show the same messages, with no extra work.
 - CB:
   - A terminal user on `/TUN 12` and a WinCIM chat user share the hub room `cb:A:12`.
-  - ASCII renders `(12,Handle) text`; HMI renders its chat message (to be reverse-engineered).
-  - IRC users can join the same room through upstream's ircd, if enabled.
+  - ASCII renders `(12,Handle) text`. HMI renders its chat message (we must reverse-engineer this).
+  - IRC users can join the same room through the ircd of upstream, if it is enabled.
 
 ## 8. Concurrency
 
-The upstream model is one goroutine per caller with node registration in `bbs`, and we keep it. Additions:
-- `link` reads with per-byte deadlines (`xfer.Port` already has `SetReadDeadline`) for B+ timeouts.
-- During a transfer, the ASCII front end hands the port to `xfer` and takes it back afterwards.
+The upstream model is one goroutine for each caller, with node registration in `bbs`. We keep this model. Additions:
+- `link` reads with deadlines for each byte (`xfer.Port` already has `SetReadDeadline`) for B+ timeouts.
+- During a transfer, the ASCII front end gives the port to `xfer`, and takes it back after the transfer.
 - The HMI session runs a reader goroutine (B+ Transport Layer → messages) and a writer that merges replies with async events (chat, mail-waiting).
-- Chat and CB fan-out uses the upstream hub, so slow clients never block a room.
+- Chat and CB fan-out uses the upstream hub. Thus, slow clients never block a room.
 
 ## 9. Testing
 
 | Layer | How |
 |---|---|
-| `xfer/cisb` | Spec vectors (checksum `0x2A`, CRC `0x57FF`, doc 03). Fuzz the decoder. Loopback host↔client over `net.Pipe` with noise, drops and duplicates. Test against OzCIS's B+ in DOSBox-X. |
+| `xfer/cisb` | Specification vectors (checksum `0x2A`, CRC `0x57FF`, doc 03). Fuzz the decoder. Loopback host↔client over `net.Pipe` with noise, drops and duplicates. Test against the B+ of OzCIS in DOSBox-X. |
 | `termid` | Real ID strings: WinCIM, OzCIS, Wilhite. |
-| `cis/ascii` | Golden transcripts from the captures in doc 02, as exact bytes. TAPCIS's command strings (doc 02 §4.5) as acceptance tests. |
+| `cis/ascii` | Golden transcripts from the captures in doc 02, as exact bytes. The command strings of TAPCIS (doc 02 §4.5) as acceptance tests. |
 | `login/SLP` | Test vectors from the 24high emulator, checked independently. |
 | `hmi` | Replay recorded WinCIM sessions from the wire tap. |
-| End to end | `telnet localhost 2323`. DOSBox-X `serial1=modem` (dial `ATDT host:2323`) with TAPCIS, OzCIS and AutoSIG. WinCIM 2.x/3.x under Wine (`CommType=WINSOCK`, port 4144). **Real modems via D-Modem.** |
+| End to end | `telnet localhost 2323`. DOSBox-X `serial1=modem` (dial `ATDT host:2323`) with TAPCIS, OzCIS and AutoSIG. WinCIM 2.x/3.x under Wine (`CommType=WINSOCK`, port 4144). **Real modems through D-Modem.** |
 
 ## 10. Milestones
 
-0. **Fork and setup:** fork, build, run the stock BBS, add a CI job, add `[listen cis]` and dispatch to a stub `login.Run`.
+0. **Fork and setup:** fork, build, run the standard BBS, add a CI job, add `[listen cis]` and dispatch to a stub `login.Run`.
 1. **Login and top menu:** Host Name, User ID, password, banner, page tree from `content/`, `GO`/`T`/`M`/`B`/`F`/`R`/`H`, pager, `OFF`/`BYE`/`LOG`.
-2. **DEFAULT settings:** BRIEF/PAGED/COMMAND/MENU in `users.prefs`; `SET`; `;TTY`.
+2. **DEFAULT settings:** BRIEF/PAGED/COMMAND/MENU in `users.prefs`. `SET`. `;TTY`.
 3. **Forums, ASCII:** JOIN, sections, `REA`/`SCA`/`BRO` command language, headers, post/reply, EDIT, OPTIONS, exit stats.
 4. **Libraries and transfers:** BRO/DIR/DOW/UPL, protocol menu (XMODEM and Kermit from upstream), then **CIS B/B+** in `xfer`.
-5. **Mail:** menu and `Mail!` command modes, address forms, `INTERNET:` gateway (upstream's SMTP work in TODO.md may help).
+5. **Mail:** menu and `Mail!` command modes, address forms, `INTERNET:` gateway (the SMTP work of upstream in TODO.md can help).
 6. **CB Simulator** and forum conferences on the chat hub.
 7. **CIM:** `cim` listener, SLP, `ESC I`/AP handshake, B+ Transport Layer, HMI session, pages, menus, articles. Get WinCIM to the main menu.
-8. **HMI features:** forums, mail read → send → libraries → chat (reverse-engineering at each step; doc 04 §5).
-9. **Offline-reader pass:** TAPCIS, AutoSIG and OzCIS run their scripts cleanly.
+8. **HMI features:** forums, mail read → send → libraries → chat (reverse engineering at each step. Refer to doc 04 §5).
+9. **Offline-reader pass:** TAPCIS, AutoSIG and OzCIS run their scripts with no errors.
 10. **Polish:** billing display, RLE/GIF pages, sysop tools in the upstream config UI, content import.
