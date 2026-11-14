@@ -1,13 +1,15 @@
-The HTTP API's server also serves the message areas as a web forum, at
-`/forum/` (and `/`, which goes there). It is laid out like the bulletin
-boards of their day: categories of forums, topics, and posts with their
-authors beside them, in one of several [themes](#themes). The look is the
-BBS's own CSS, built into the `bbs` binary; nothing is loaded from
-elsewhere, and no script runs on the pages.
+The server of the HTTP API also shows the message areas as a web forum.
+The forum is at `/forum/`. The path `/` also goes to the forum. The layout
+is similar to the bulletin boards of their time. The forum has categories
+of forums, topics, and posts. The name of the author is adjacent to each
+post. You can select one of many [themes](#themes). The CSS is the BBS's
+own CSS, and it is in the `bbs` binary. The pages load nothing from other
+locations, and no script runs on the pages.
 
-It is the same BBS: the same accounts, areas and messages. A post on the
-forum is a message on the terminals, in QWK packets, on NNTP and FidoNet
-(as its area is), and a terminal caller's reply shows in its topic.
+The forum is the same BBS. It has the same accounts, areas and messages.
+A post on the forum is also a message on the terminals, in QWK packets,
+on NNTP and on FidoNet (if its area is on these networks). When a
+terminal caller replies, the reply shows in the topic.
 
 ```ini
 [http]
@@ -21,68 +23,91 @@ address = :8443
 | Setting | Default | What it sets |
 |---|---|---|
 | `forum` | `yes` | the forum at `/forum/` (with `no`, `/` goes to the web terminal again) |
-| `forum_guests` | `yes` | those not logged in may read the areas anyone may read (areas with a `read` requirement never) |
-| `forum_theme` | `ipb3` | the theme callers get until they choose one ([below](#themes)) |
-| `forum_flags` | `yes` | posters' countries' flags by their names ([below](#flags)) |
+| `forum_guests` | `yes` | users who are not logged in can read the areas that all users can read (never areas with a `read` requirement) |
+| `forum_theme` | `ipb3` | the theme that callers get until they select a theme ([below](#themes)) |
+| `forum_flags` | `yes` | the flag of the poster's country adjacent to the name ([below](#flags)) |
 
 ## The pages
 
 | Page | What it shows |
 |---|---|
-| `/forum/` | the board: the areas by their group (the areas' `group`, else *Message Areas*), each with its topics, replies, newest post and whether it has any new; the board's statistics; who is online |
-| `/forum/area/N` | an area's topics, newest activity first, 20 to a page; *Mark this forum read* |
-| `/forum/area/N/new` | a new topic, with a poll if wanted |
-| `/forum/topic/N` | a topic's posts, 20 to a page, and a reply box; the poll, if it has one |
-| `/forum/post/N` | a message, found in its topic (links to a message from elsewhere) |
-| `/forum/user/NAME` | a user's profile and recent posts |
-| `/forum/online` | who is online, on every kind of line |
-| `/forum/search?q=` | messages with the words (three letters at least) |
-| `/forum/login`, `/forum/register` | logging in, and signing up (when `new_users` allows it) |
+| `/forum/` | the board: the areas in their group (the `group` of the area, or *Message Areas*), each with its topics, replies, newest post and an indication of new posts; the statistics of the board; the users who are online |
+| `/forum/area/N` | the topics of an area, newest activity first, 20 on each page; *Mark this forum read* |
+| `/forum/area/N/new` | a new topic, with an optional poll |
+| `/forum/topic/N` | the posts of a topic, 20 on each page, and a reply box; the poll, if the topic has one |
+| `/forum/post/N` | a message, in its topic (for links to a message from other locations) |
+| `/forum/user/NAME` | the profile and recent posts of a user |
+| `/forum/online` | the users who are online, on all types of line |
+| `/forum/search?q=` | messages that contain the words (minimum three letters) |
+| `/forum/login`, `/forum/register` | log in, and sign up (when `new_users` permits it) |
 
-A *Terminal* tab goes to the [web terminal](HTTP-API#the-web-terminal)
-when it is on.
+When the [web terminal](HTTP-API#the-web-terminal) is on, a *Terminal* tab
+goes to it.
 
 ## Topics
 
-A topic is a message that replies to nothing in its area, and every reply
-to it or to its replies, however deep. Replies on the terminals thread
-into topics as they do here. When the first post of a topic is deleted,
-the next oldest becomes its first. Topics are marked read as they are
-read (per user, per topic), and an area's as the BBS's new scan counts
-them; *Mark this forum read* marks the area read to its newest message,
-on the terminals' new scan too.
+A topic is a message that is not a reply to a message in its area. The
+topic also includes all replies to it and all replies to these replies, at
+all levels. Replies on the terminals go into topics in the same way. If a
+user deletes the first post of a topic, the next oldest post becomes the
+first post.
 
-Posting needs what posting on the terminals needs (the area's `post`
-requirement; news-only areas take no posts). Posts are as on the BBS:
-text, quoted with `> `, links made links when shown. Lines longer than a
-terminal's (79 columns) are wrapped at spaces, not cut, so that the
-terminals see the whole paragraph. The user's signature is added as on
-the terminals, and an area that allows aliases lets the post be under one
-(the real name is not shown).
+The forum marks topics as read when a user reads them (for each user and
+each topic). It marks an area as read in the same way as the new scan of
+the BBS. *Mark this forum read* marks the area as read up to its newest
+message. This also applies to the new scan on the terminals.
+
+To post, a user must have the same permissions as for a post on the
+terminals (the `post` requirement of the area). News-only areas do not
+accept posts. Posts are the same as on the BBS:
+
+- Posts are text. Quotes start with `> `.
+- Links show as links.
+- The forum wraps lines that are longer than a terminal line (79 columns)
+  at spaces. It does not cut them. Thus, the terminals show the full
+  paragraph.
+- The forum adds the user's signature, as on the terminals.
+- If an area permits aliases, a user can post under an alias. The forum
+  does not show the real name.
 
 On a post:
 
-- **Quote** begins a reply with the post quoted (`name wrote:` and the
-  lines with `> `), shown as a quote box.
-- **Like** is the BBS's vote on a message (not on one's own).
-- **Delete** is for the post's writer and the sysop.
-- A poll is answered by those who may post in its area; answering again
-  changes the answer.
+- **Quote** starts a reply that quotes the post (`name wrote:` and the
+  lines with `> `). The quote shows in a quote box.
+- **Like** is the BBS's vote on a message. Users cannot vote on their own
+  messages.
+- **Delete** is for the writer of the post and for the sysop.
+- Users who can post in the area of a poll can answer the poll. A second
+  answer replaces the first answer.
 
 ## Flags
 
-With a country database (`[general] geoip`) each post keeps its poster's
-country, found when it is posted: by the address for those on the web,
-telnet or SSH, by the caller ID for modem callers (`[general]
-phone_country`, see [Modem Callers](Modem-Callers#where-callers-are)).
-The forum shows it as a flag by the poster's name, in every theme (an
-emoji, the country's name on hovering), and by each caller's line on
-*Online Users*. Only the country is kept, never the address or number;
-posts from before, from elsewhere (FidoNet, Usenet, QWK) or from where the
-database does not know have none. `forum_flags = no` shows none (what is
-kept stays). The database's `geoip_credit` goes at the foot of each page
-while flags are shown. Behind a reverse proxy, name it in
-`[http] trusted_proxies`, or every poster is in the proxy's country.
+If you set a country database (`[general] geoip`), each post keeps the
+country of its poster. The BBS finds the country when the user posts:
+
+- For users on the web, telnet or SSH, it uses the address.
+- For modem callers, it uses the caller ID (`[general]
+  phone_country`, refer to [Modem Callers](Modem-Callers#where-callers-are)).
+
+The forum shows the country as a flag adjacent to the poster's name, in
+all themes. The flag is an emoji. When you move the pointer over it, it
+shows the name of the country. *Online Users* also shows a flag adjacent
+to the line of each caller.
+
+The BBS keeps only the country. It never keeps the address or the number.
+These posts have no flag:
+
+- Posts from before you set the database.
+- Posts from other sources (FidoNet, Usenet, QWK).
+- Posts from locations that the database does not know.
+
+`forum_flags = no` shows no flags (the BBS keeps the data). While the
+forum shows flags, the `geoip_credit` of the database shows at the bottom
+of each page.
+
+If the BBS is behind a reverse proxy, put the proxy in
+`[http] trusted_proxies`. If you do not do this, all posters get the
+country of the proxy.
 
 ## Themes
 
@@ -123,39 +148,63 @@ while flags are shown. Behind a reverse proxy, name it in
 | `ipb4` | modern: a community suite of the late 2010s in the manner of Invision Community 4.7: a pale page, a white header with the board's name and the user's menu, a blue navigation bar with white tabs and a search box, white boxes with soft shadows, big round forum icons, stacked post counts, round photos, *Who's Online* and statistics beside the forums, posts with the author's pane on the left, *2 hours ago* times, likes as reactions, a reply box with the poster's photo |
 | `ipb2` | classic: a board of the mid-2000s in the manner of Invision Power Board 2: a white page, boxes outlined in navy, blue gradient title bars, pale blue rows, small Verdana; *Logged in as* and *Welcome Guest* bars, *Last Post Info*, *Fast Reply*, big blue buttons |
 
-All are this BBS's own CSS and templates, drawn to look like the boards
-they recall; no code or images are taken from them. `forum_theme` is the
-forum's; anyone (guests too) may choose another at the foot of every page,
-kept in a cookie (`bbs_forum_theme`) for a year. A theme lays out the
-board, topic lists, topics and profiles its own way, and shows the rest
-(posting, searching, signing in) in its colours. A theme may build on another's templates (the phpBB 3.2 and 3.3 themes wear 3.1's, vBulletin 6's wears 5's, SMF 3.0's and 2.1's wear Curve's, XenForo 2.3's wears 2's, MyBB 1.8's wears 1.6's, which wears 1.2's, FluxBB 1.5's wears PunBB 1.2's, and YaBB 2.5's wears 2's, which wears 1's, with stylesheets of their own).
+All themes are this BBS's own CSS and templates. Their appearance is
+similar to the boards that they recall. They contain no code or images
+from those boards.
+
+`forum_theme` sets the theme of the forum. All users (also guests) can
+select a different theme at the bottom of each page. The forum keeps the
+selection in a cookie (`bbs_forum_theme`) for one year. A theme has its
+own layout for the board, the topic lists, the topics and the profiles.
+The other pages (posting, searching, signing in) show in the colors of
+the theme.
+
+Some themes use the templates of a different theme, with their own
+stylesheets:
+
+- The phpBB 3.2 and 3.3 themes use the templates of 3.1.
+- vBulletin 6 uses the templates of 5.
+- SMF 3.0 and 2.1 use the templates of Curve.
+- XenForo 2.3 uses the templates of 2.
+- MyBB 1.8 uses the templates of 1.6, and 1.6 uses the templates of 1.2.
+- FluxBB 1.5 uses the templates of PunBB 1.2.
+- YaBB 2.5 uses the templates of 2, and 2 uses the templates of 1.
 
 ## Logins
 
-A login is the HTTP API's session token (lasting `session_hours`), kept in
-an `HttpOnly`, `SameSite=Lax` cookie for `/forum` alone (`Secure` with
-TLS). Logins are throttled and logged as anywhere else; a token for the
-API is not taken as a cookie. Logging out revokes the token. Every form a
-logged-in user sends carries a token of their session's, and is refused
-without it.
+A login is the session token of the HTTP API (it lasts `session_hours`).
+The forum keeps the token in an `HttpOnly`, `SameSite=Lax` cookie that is
+only for `/forum` (`Secure` with TLS). The BBS limits and logs logins as
+it does for all other logins. The forum does not accept an API token as a
+cookie. When a user logs out, the BBS revokes the token. Each form that a
+logged-in user sends contains a token from the user's session. The forum
+refuses a form without this token.
 
 ### Sign-in codes
 
-Signed in on the BBS (telnet, SSH, a modem by modemmenu, a 3270), a user
-asks *Your profile*, `C` (PF10), for a sign-in code: eight letters and
-digits, `ABCD-EFGH`, good once, for five minutes; a new one ends the last.
-The Sign In page takes the code alone, with no name or password: a
-password typed nowhere on the machine at hand, or for a user whose
-password is modemmenu's. Anywhere else a password is asked (the web
-terminal, the image boards, the API, FTP), the code serves once for the
-password, with the user's name.
+A user who is signed in on the BBS (telnet, SSH, a modem by modemmenu, a
+3270) can get a sign-in code from *Your profile*, `C` (PF10). The code has
+eight letters and digits, `ABCD-EFGH`. You can use it one time, for five
+minutes. A new code cancels the previous code.
 
-Codes are kept in memory (a restart ends them) as their SHA-256, never
-logged; a wrong one is a failed login, throttled and in the hack log like
-any other; a locked account's opens nothing.
+The Sign In page accepts the code alone, with no name or password. Use it
+in these conditions:
 
-The pages allow nothing from elsewhere (`Content-Security-Policy:
-default-src 'self'`), no framing, and keep no copies (`no-store`).
-Requests count against the API's `rate` per address.
+- You do not want to type a password on the computer that you use.
+- The user's password is the password of modemmenu.
 
-**See also:** [HTTP API](HTTP-API), [Message areas](Message-Areas), [Writing messages](Writing-Messages)
+At all other locations that ask for a password (the web terminal, the
+image boards, the API, FTP), you can use the code one time in place of
+the password, with the user's name.
+
+The BBS keeps the codes in memory as their SHA-256 (a restart cancels
+them). It never logs them. A wrong code is a failed login. The BBS limits
+it and writes it in the hack log, as for all other failed logins. A code
+for a locked account opens nothing.
+
+The pages permit nothing from other locations (`Content-Security-Policy:
+default-src 'self'`). They do not permit framing, and they keep no copies
+(`no-store`). Requests count against the `rate` of the API for each
+address.
+
+**Refer to:** [HTTP API](HTTP-API), [Message areas](Message-Areas), [Writing messages](Writing-Messages)
