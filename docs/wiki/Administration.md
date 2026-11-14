@@ -1,7 +1,8 @@
-This page lists the `bbs` commands a sysop uses day to day. Each command
-works on the configuration the BBS runs with (`-config FILE`; without it,
-the defaults and `bbs.db` in the current directory). All of them are safe
-to run while the BBS is serving callers.
+This page lists the `bbs` commands that a sysop uses each day. Each
+command uses the configuration of the BBS (`-config FILE`). Without
+`-config FILE`, it uses the defaults and `bbs.db` in the current
+directory. You can safely run all of these commands while the BBS serves
+callers.
 
 ## Users
 
@@ -20,7 +21,7 @@ bbs user del NAME                   # their mail goes; their messages stay
 bbs db copy DATABASE                # into a new one: a path, postgres://..., mysql://...
 ```
 
-See [Databases](Databases).
+Refer to [Databases](Databases).
 
 ## Access
 
@@ -33,7 +34,7 @@ bbs area require AREA READ POST     # "30 F", sysop, - for none
 bbs filearea require AREA DOWNLOAD UPLOAD
 ```
 
-See [Access levels](Access-Levels).
+Refer to [Access levels](Access-Levels).
 
 ## SSH keys
 
@@ -43,7 +44,7 @@ bbs sshkey list [USER]
 bbs sshkey del ID
 ```
 
-Users can also add their own keys from their profile or through the API: see [SSH](SSH).
+Users can also add their own keys from their profile or through the API. Refer to [SSH](SSH).
 
 ## Message areas
 
@@ -59,14 +60,14 @@ bbs area keep AREA MESSAGES DAYS    # keep the newest MESSAGES, for DAYS (0: no 
 bbs area purge                      # take away what areas keep no more, now
 ```
 
-The BBS applies each area's limits every hour while it runs, and `bbs
-area purge` applies them at once. Messages beyond the newest `MESSAGES`,
-and messages older than `DAYS`, are deleted along with their votes and
-polls.
+While the BBS runs, it applies the limits of each area every hour. `bbs
+area purge` applies them immediately. The BBS deletes the messages after
+the newest `MESSAGES`, and the messages older than `DAYS`. It also
+deletes their votes and polls.
 
 A sysop can also add areas from inside the BBS (`+` in the message areas)
-and delete any message. For newsgroups, see
-[Newsgroups and NNTP](Newsgroups-and-NNTP); for echoes, see
+and delete all messages. For newsgroups, refer to
+[Newsgroups and NNTP](Newsgroups-and-NNTP). For echoes, refer to
 [FidoNet](FidoNet).
 
 ## File areas
@@ -81,7 +82,7 @@ bbs file list AREA
 bbs file del AREA NAME
 ```
 
-See [Files and FTP](Files-and-FTP).
+Refer to [Files and FTP](Files-and-FTP).
 
 ## Image boards
 
@@ -94,12 +95,12 @@ bbs chan ban add ADDRESS DAYS [BOARD|-] [REASON...]
 bbs chan ban list | del ID
 ```
 
-See [Image boards](Image-Boards).
+Refer to [Image boards](Image-Boards).
 
 ## Mail exchange
 
 The BBS exchanges mail with its peers on its own schedule. These commands
-do it now.
+do the exchange now.
 
 ```
 bbs news sync [PEER]                # exchange articles with news peers now
@@ -124,8 +125,8 @@ bbs room topic ROOM ["TOPIC"]       # set its topic (none: clear it)
 bbs room del ROOM                   # it goes with its last caller
 ```
 
-A running BBS picks up these changes at its next start; BBSServ's `ROOM`
-command makes them at once. See [IRC](IRC#permanent-rooms).
+A BBS that runs gets these changes at its next start. The `ROOM` command
+of BBSServ makes them immediately. Refer to [IRC](IRC#permanent-rooms).
 
 ## The rest
 

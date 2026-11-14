@@ -1,39 +1,40 @@
-File areas hold files for callers to download and upload. Callers browse
-them on the BBS (*F* on the main menu), and can also use an FTP client,
-logging in with their BBS name and password; each area is a directory
-there.
+File areas contain files that callers can download and upload. Callers
+look at the file areas on the BBS (*F* on the main menu). They can also
+use an FTP client, and log in with their BBS name and password. On FTP,
+each area is a directory.
 
 ## On the BBS
 
 | Action | Key | PF | What it does |
 |---|---|---|---|
-| an area | its number | `S` by it | its files, by name |
-| new files | `N` | PF5 | the files added since your last call (the last 30 days on a first call), in every area, newest first |
-| find | `F` | PF10 | files whose name or descriptions have the words (in any case) |
-| batch | `B` | | the files tagged, to download together (text terminals) |
+| an area | its number | `S` adjacent to it | shows its files, by name |
+| new files | `N` | PF5 | shows the files that came after your last call (the last 30 days on a first call), in all areas, newest first |
+| find | `F` | PF10 | shows the files that have the words in their name or descriptions (with upper or lower case) |
+| batch | `B` | | shows the tagged files, to download them together (text terminals) |
 
-A file's details show its description and, for an archive, a longer
-description. If an archive is uploaded with a `FILE_ID.DIZ` at its top
-level, that file becomes the long description, and its first meaningful
-line becomes the description unless the uploader gave one. (CP437 art is
-decoded, colours and control characters are removed, and at most 20
-lines are kept.) From the details, a caller can:
+The details of a file show its description. For an archive, they also
+show a longer description. If an uploaded archive has a `FILE_ID.DIZ` at
+its top level, that file becomes the long description. If the uploader
+did not give a description, the first line of that file with useful text
+becomes the description. (The BBS decodes CP437 art, removes colours and
+control characters, and keeps a maximum of 20 lines.) From the details,
+a caller can do these actions:
 
 | Action | Key | PF | Notes |
 |---|---|---|---|
-| download | `D` | | by a transfer protocol ([File transfers](File-Transfers)) |
-| tag | `T` | | into the batch, or out of it |
-| view | `V` | PF6 | what is in a ZIP, tar or tar.gz: names, sizes, dates |
-| describe, remove | `E`, `R` | PF5, PF9 | its uploader's or a sysop's |
+| download | `D` | | with a transfer protocol ([File transfers](File-Transfers)) |
+| tag | `T` | | puts the file into the batch, or removes it |
+| view | `V` | PF6 | shows the contents of a ZIP, tar or tar.gz: names, sizes, dates |
+| describe, remove | `E`, `R` | PF5, PF9 | for the uploader or a sysop |
 
-In an area, `T` tags files by number (`1 3 5-7`), and `*` marks the
-tagged ones. The batch is sent all at once by YMODEM, ZMODEM or Kermit
-(XMODEM sends only one file). A file counts as downloaded, and leaves the
-batch, once the protocol has moved on to the next file or the transfer
-has ended successfully. The day's downloads and the
-[ratio](Access-Levels) are checked for the whole batch before it starts.
-On a 3270, files are uploaded and downloaded with IND$FILE on the area's
-command line (see [TN3270](TN3270)).
+In an area, `T` tags files by number (`1 3 5-7`). A `*` shows the tagged
+files. The BBS sends the full batch together with YMODEM, ZMODEM or
+Kermit (XMODEM sends only one file). A file counts as downloaded, and
+leaves the batch, when the protocol starts the next file or when the
+transfer ends correctly. Before the batch starts, the BBS checks the
+downloads of the day and the [ratio](Access-Levels) for the full batch.
+On a 3270, callers upload and download files with IND$FILE on the
+command line of the area (refer to [TN3270](TN3270)).
 
 ```
 ; bbs.conf
@@ -61,35 +62,40 @@ bbs file list Games
 
 ## The FTP server
 
-The FTP server is built on
-[ftpserverlib](https://github.com/fclairamb/ftpserverlib) with the BBS's
-own file system: `/` lists the areas, each area lists its files, and
-nothing else on the server's disk can be reached. Files are stored under
-their record's number (`files_dir/1`, `files_dir/2` and so on), so a name a
-user gives never becomes a path. Users can:
+The FTP server uses
+[ftpserverlib](https://github.com/fclairamb/ftpserverlib) with the file
+system of the BBS. `/` lists the areas, and each area lists its files.
+Users cannot get to other items on the disk of the server. The BBS
+stores each file with the number of its record (`files_dir/1`,
+`files_dir/2` and other numbers). Thus, a name from a user never becomes
+a path. Users can do these actions:
 
-- download anything (resuming too);
-- upload a new file into an area (not a sysop-only one), whose name is
-  letters, digits and a few marks (no dots in front, no slashes, nothing a
-  shell or Windows minds), up to `max_file_size` and what is left of
-  `upload_quota`; an upload is written to a temporary file, hashed, and
-  only then recorded and put in place;
-- delete their own files (sysops any).
+- Download all files (also with resume).
+- Upload a new file into an area (but not into an area for the sysop
+  only). The name must contain only letters, digits and some marks (no
+  dots at the start, no slashes, no characters that cause problems for a
+  shell or Windows). The maximum size is `max_file_size` and the
+  remainder of `upload_quota`. The BBS writes an upload to a temporary
+  file and calculates its hash. Only then does it record the file and
+  put it in its location.
+- Delete their own files (sysops can delete all files).
 
-Everything else (overwriting, appending, resuming uploads, renaming,
-directories, SITE, MFMT, CHMOD) is refused. Active mode is off, to prevent
-FTP bounce attacks, and data connections must come from the same address
-as the control connection. Logins are checked like any BBS login, with
-its failure delay and throttling by address.
+The server refuses all other actions (overwrite, append, resume of
+uploads, rename, directories, SITE, MFMT, CHMOD). Active mode is
+disabled, to prevent FTP bounce attacks. Data connections must come from
+the same address as the control connection. The BBS checks logins in the
+same way as all BBS logins, with the failure delay and the throttling by
+address.
 
-`tls = required` (the default) refuses `USER` before TLS, so no password
-crosses the network in the clear. `implicit` uses TLS from the first byte.
-`optional` and `no` are there for old clients, and `bbs check` warns about
-them. `anonymous = yes` lets `anonymous` and `ftp` log in to download
-only.
+`tls = required` (the default) refuses `USER` before TLS. Thus, no
+password goes across the network in clear text. `implicit` uses TLS from
+the first byte. `optional` and `no` are for old clients, and `bbs check`
+gives a warning about them. `anonymous = yes` lets `anonymous` and `ftp`
+log in, to download only.
 
 Open the FTP port and the passive port range in the firewall. An FTP
-session is not a node: it does not appear in Who's online or count against
-`max_nodes`. `[ftp] max_clients` and `max_per_ip` limit FTP sessions.
+session is not a node. It does not show in Who's online, and it does not
+count against `max_nodes`. `[ftp] max_clients` and `max_per_ip` set the
+limits of FTP sessions.
 
 **See also:** [File transfers](File-Transfers), [Security](Security)
