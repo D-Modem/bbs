@@ -1,123 +1,138 @@
 # Future work
 
-Ideas not yet started, with what is known of them.
+This file lists ideas that are not started yet, with the known facts
+about them.
 
 ## An MSN Classic front end
 
-*Status: started; the link, the RPC, sign-in, the directory, bulletin
-boards, e-mail and its address book, chat, Find, file downloads and
-the 1996 client's NTLM sign-in (`internal/marvel`, `[marvel]`,
-`frontend = marvel`) are done.  Not yet tried with a real client.*
+*Status: started. These parts are complete: the link, the RPC, sign-in,
+the directory, bulletin boards, e-mail and its address book, chat, Find,
+file downloads and the NTLM sign-in of the 1996 client (`internal/marvel`,
+`[marvel]`, `frontend = marvel`). We did not try it with a real client
+yet.*
 
-For the MSN client of Windows 95 (MSN 1.0 to 1.3), over TCP (port 569) and
-by modem, from the marvel-msn project's protocol notes.  Next:
+This front end is for the MSN client of Windows 95 (MSN 1.0 to 1.3), over
+TCP (port 569) and by modem. It uses the protocol notes of the marvel-msn
+project. The next tasks are:
 
-- **Uploads**: a file library as an MSN BBS whose messages carry the
-  files as attachments (MOSAF objects in a rich-text body, MOS2 packed),
-  which also lets a file be saved where the caller says rather than
-  opened from the temporary folder.
+- **Uploads**: a file library as an MSN BBS. Its messages contain the
+  files as attachments (MOSAF objects in a rich-text body, MOS2 packed).
+  This also lets the caller save a file in a location that the caller
+  selects. Now the client opens the file from the temporary folder.
 - **MSN Today**: the Media Viewer title (MEDVIEW), a page of news.
 
 ## MSN 2.x
 
-*Status: started; the NTLM ("MSN" security package) sign-in on mail,
-news and the web forum (`internal/ntlm`, `[security] ntlm`) is done.*
+*Status: started. The NTLM ("MSN" security package) sign-in on mail,
+news and the web forum (`internal/ntlm`, `[security] ntlm`) is complete.*
 
-For MSN 2.0 to 2.6 (Windows 95 and 98), whose programs are internet
-clients.  Next:
+This work is for MSN 2.0 to 2.6 (Windows 95 and 98). The programs of
+these versions are internet clients. The next tasks are:
 
-- **The Program Viewer**: what it loads at sign-in (the start page, its
-  channel list), and the MSN Sign-In dialer, found from the client.
+- **The Program Viewer**: find from the client what the Program Viewer
+  loads at sign-in (the start page and its channel list), and the MSN
+  Sign-In dialer.
 - **DPA**: the Distributed Password Authentication package of the later
-  Windows 98 mail, if it can be learned.
+  Windows 98 mail, if we can learn how it operates.
 
 ## An AOL front end
 
-*Status: started; FDO91 (`internal/aol/fdo`), P3 (`internal/aol/p3`) and
-the host's sign-on (`internal/aol`, `[aol]`) are done.*
+*Status: started. FDO91 (`internal/aol/fdo`), P3 (`internal/aol/p3`) and
+the sign-on of the host (`internal/aol`, `[aol]`) are complete.*
 
-For AOL 3.0 and 4.0 for Windows, the real clients, over TCP (port 5190, the
-client's `AmericaOnline.aol.com`) and by modem.
+This front end is for AOL 3.0 and 4.0 for Windows, the real clients. It
+operates over TCP (port 5190, the `AmericaOnline.aol.com` of the client)
+and by modem.
 
-- **FDO91** (done): atom streams read and written, all eight encoding
-  styles and large atoms; a compiler from FDO91 source that matches
-  Ada32.dll byte for byte on AtomForge's corpus (1,889 forms, 74,369
-  single atoms, 44 live captures); a decompiler whose text compiles back
-  to the same bytes.
-- **P3** (done): packets (CRC-16/ARC, AOL 4.0's `**`), and the host's
-  end of a link: INIT acknowledged, DATA in order in and within a window
-  of 16 out, ACKs every 8 or soon after, NAKs and go-back-N resends,
-  heartbeats after 12 seconds, 10 of them and the link is down.
-- **Host** (started): `[aol]`, sharing 5190 with `[oscar]` through its P3
-  hook; `Dd` signs on with a BBS account (a node, as any caller), then
-  `async_online`, the client's main window (32-296) and the BBS's own
-  Welcome; `pE` answered with `XS`; other tokens with `uni_wait_off`.
-  Streams go as `aT`, or `at` pieces when long; the client's long ones
-  are put together.  Not yet tried with a real client.
-- **Chat and IMs** (done, untried with a real client): `CJ` into the
-  main room in the client's room window (32-117, 4.0's 43-22783), lines
-  as `AB`, comings and goings as `CA`/`CB`, `Aa` said; `iS`/`is` IMs as
-  BBS private messages (kept for one away), shown in 32-223 (4.0's
-  32-6736); `iO` asks who is on.
-- **Keywords and mail** (done, untried with a real client): `Kk` from
-  the Keyword window (de_data) or a host button (the word as it is) to
-  Help, Chat, Mail, Who; `m4` MIP mail (header and text in one stream or
-  two) to BBS mail; the mailbox, a mail and Who are host windows whose
-  buttons send keywords; new mail counted on the Welcome window.
-- **Rooms and boards** (done, untried with a real client): `LP` and
-  the keywords Rooms and Room *name* to any chat room; message areas as
-  boards (topics, posts, a post window whose Send is `de_ez_send_form`
-  with token `Zp`), all host windows.
-- **Read Mail** (done, untried with a real client): the client's own
-  New, Old and Sent Mail lists (`m7`, `m9`, `m8`) as MIP lists, `m3`
-  opens one, `m2` Ignore / Keep As New / Delete. The order of the atoms
-  in a list entry is a guess from the mail tool's code.
-- **Modem callers** (done in menu, untried with a real modem): modemmenu
-  plays AOLnet, SprintNet or Tymnet as the client's CCL script expects,
-  then joins the line to the host.
-- **Tokens**, next: the client asks for art it lacks (`fh`): none is
-  served yet.
-- **To decide**: AOL 4.0's RSA handshake (revival servers turn it off in
-  the client); which client forms (32-xxxx) are in its own database and
-  which the host must send.
+- **FDO91** (complete): bbs reads and writes atom streams, with all eight
+  encoding styles and large atoms. A compiler from FDO91 source gives the
+  same bytes as Ada32.dll on the corpus of AtomForge (1,889 forms, 74,369
+  single atoms, 44 live captures). The text from the decompiler compiles
+  back to the same bytes.
+- **P3** (complete): packets (CRC-16/ARC, the `**` of AOL 4.0), and the
+  host end of a link. bbs acknowledges INIT. DATA comes in, in sequence,
+  and goes out in a window of 16. bbs sends ACKs after each 8 packets or
+  after a short time. It sends NAKs and does go-back-N resends. It sends
+  heartbeats after 12 seconds. After 10 of them, the link is down.
+- **Host** (started): `[aol]` shares 5190 with `[oscar]` through its P3
+  hook. `Dd` signs on with a BBS account (a node, as for all callers).
+  Then bbs sends `async_online`, the main window of the client (32-296)
+  and the Welcome of the BBS. bbs answers `pE` with `XS`. It answers
+  other tokens with `uni_wait_off`. Streams go as `aT`, or as `at` pieces
+  when they are long. bbs joins the long streams of the client. We did
+  not try it with a real client yet.
+- **Chat and IMs** (complete, not tried with a real client): `CJ` puts
+  the caller into the main room, in the room window of the client
+  (32-117, 43-22783 in 4.0). Lines go as `AB`. Arrivals and departures go
+  as `CA`/`CB`. bbs says `Aa`. `iS`/`is` IMs become BBS private messages
+  (kept for one caller who is away). They show in 32-223 (32-6736 in
+  4.0). `iO` asks which callers are on.
+- **Keywords and mail** (complete, not tried with a real client): `Kk`
+  comes from the Keyword window (de_data) or from a host button (the word
+  as it is). It goes to Help, Chat, Mail or Who. `m4` MIP mail (header
+  and text in one stream or two) becomes BBS mail. The mailbox, a mail
+  and Who are host windows. Their buttons send keywords. The Welcome
+  window shows the count of new mail.
+- **Rooms and boards** (complete, not tried with a real client): `LP`
+  and the keywords Rooms and Room *name* go to a chat room. Message areas
+  show as boards (topics, posts, and a post window whose Send is
+  `de_ez_send_form` with token `Zp`). All of these are host windows.
+- **Read Mail** (complete, not tried with a real client): bbs sends the
+  New, Old and Sent Mail lists of the client (`m7`, `m9`, `m8`) as MIP
+  lists. `m3` opens one mail. `m2` does Ignore / Keep As New / Delete.
+  The sequence of the atoms in a list entry is a guess from the code of
+  the mail tool.
+- **Modem callers** (complete in menu, not tried with a real modem):
+  modemmenu emulates AOLnet, SprintNet or Tymnet, as the CCL script of the
+  client expects. Then it connects the line to the host.
+- **Tokens**, the next task: the client asks for art that it does not
+  have (`fh`). bbs does not serve art yet.
+- **Open decisions**: the RSA handshake of AOL 4.0 (revival servers
+  disable it in the client). Also, which client forms (32-xxxx) are in
+  the database of the client, and which forms the host must send.
 
 ## Doors for 3270 callers: an ANSI to 3270 layer
 
-*Status: being thought about; other ways to solve it may win.*
+*Status: under study. Other solutions are possible.*
 
-Doors are ANSI programs, so 3270 callers do not see the Doors menu.  A
-layer between a door and a 3270 could show them:
+Doors are ANSI programs. Thus 3270 callers do not see the Doors menu. A
+layer between a door and a 3270 can show the doors:
 
-- **Emulate, then draw.**  A small ANSI-BBS emulator (80x25: cursor
-  movement, ED/EL, SGR, save/restore cursor, and answers to `ESC[6n`, which
-  many doors use to detect ANSI) keeps the door's screen; every ~50 ms the
-  cells that changed go to the 3270 as SBA/SA orders and characters
-  (Write with keyboard restore).  go3270-sec already has the raw writes,
-  the query replies and Load PS.
-- **Characters.**  ASCII and Latin-1 letters are in EBCDIC CP037.  What
-  CP437 has beyond them (box drawing single/double/mixed, ░▒▓█ ▀▄▌▐,
-  ☺♥♦♣♠•◘○ and arrows: about 70 glyphs) goes in one programmed-symbol set,
-  drawn by program at the terminal's cell size (from its query reply), as
-  the logo is: no font file.  Each cell selects the set with an SA
-  character-set attribute, which takes no screen position.  Without
-  programmed symbols (x3270, wc3270, Vista): GE / CP310 line drawing and
-  ASCII for the blocks.
-- **Colours.**  Seven 3270 colours for ANSI's eight; bright and normal the
-  same (or the intensified attribute for bold); ANSI backgrounds by the SA
-  background-colour attribute where the emulator has it (PCOMM, it
-  seems), else reverse video.  Blink and underscore map directly.
-- **Input: the hard part.**  A 3270 sends nothing until Enter, a PF/PA key
-  or Clear.  An unformatted screen lets the caller type at the door's
-  cursor; on Enter the BBS diffs the screen against what it drew to find
-  the keys, and sends them and a CR.  PF keys for arrows, PgUp/PgDn,
-  Home/End; PA1 for Esc; an empty Enter for a lone CR.  Menu-driven doors
-  (LORD, BRE, Usurper, TradeWars) would be fine; hotkey and real-time ones
-  sluggish.
-- **Size.**  Doors want 25 lines: a model 3 (32x80) or bigger fits, with
-  room for a help line; a model 2 (24x80) loses or scrolls one.
-- **Testing.**  The emulator, diffing and data stream by unit tests; the
-  fallback path with s3270; a whole DOS door session by a scripted 3270
-  client.  Programmed symbols only against a fake terminal here: PCOMM to
-  be tried by hand.
-- **Shape.**  An option on a `[door]` (`tn3270 = yes`) that shows the door
-  on the 3270 Doors menu and puts this layer between them.
+- **Emulate, then draw.**  A small ANSI-BBS emulator keeps the screen of
+  the door. It has 80x25 cells, and it does cursor movement, ED/EL, SGR,
+  save/restore cursor, and answers to `ESC[6n`. Many doors use this request
+  to detect ANSI. At intervals of about 50 ms, the changed cells go to
+  the 3270 as SBA/SA orders and characters (Write with keyboard restore).
+  go3270-sec already has the raw writes, the query replies and Load PS.
+- **Characters.**  ASCII and Latin-1 letters are in EBCDIC CP037. CP437
+  has more characters than these: box drawing (single, double and mixed),
+  ░▒▓█ ▀▄▌▐, ☺♥♦♣♠•◘○ and arrows. These are about 70 glyphs. They go in
+  one programmed-symbol set. A program draws them at the cell size of
+  the terminal (from its query reply), as it draws the logo. No font
+  file is necessary. Each cell selects the set with an SA character-set
+  attribute. This attribute does not use a screen position. If the
+  terminal has no programmed symbols (x3270, wc3270, Vista), use GE /
+  CP310 line drawing, and ASCII for the blocks.
+- **Colours.**  3270 has seven colours for the eight colours of ANSI.
+  Bright and normal are the same (or bold uses the intensified
+  attribute). ANSI backgrounds use the SA background-colour attribute if
+  the emulator has it (we think that PCOMM has it). If not, they use
+  reverse video. Blink and underscore map directly.
+- **Input: the difficult part.**  A 3270 sends nothing until the caller
+  pushes Enter, a PF/PA key or Clear. An unformatted screen lets the
+  caller type at the cursor of the door. On Enter, the BBS compares the
+  screen with the screen that it drew, to find the keys. Then it sends
+  the keys and a CR. PF keys are for arrows, PgUp/PgDn and Home/End. PA1
+  is for Esc. An empty Enter is for a CR alone. Doors that use menus
+  (LORD, BRE, Usurper, TradeWars) will operate correctly. Doors that use
+  hotkeys and real-time doors will be slow.
+- **Size.**  Doors use 25 lines. A model 3 (32x80) or larger has
+  sufficient space, with space for a help line. A model 2 (24x80) loses
+  one line or scrolls it.
+- **Tests.**  Unit tests for the emulator, the comparison and the data
+  stream. Tests with s3270 for the fallback path. A test of a full DOS
+  door session with a scripted 3270 client. Tests of programmed symbols
+  only against a simulated terminal here. Someone must try PCOMM
+  manually.
+- **Shape.**  An option on a `[door]` (`tn3270 = yes`). This option shows
+  the door on the 3270 Doors menu and puts this layer between them.
