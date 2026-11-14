@@ -1,6 +1,7 @@
-News feeds, each caller's own weather, and stock quotes, under one item
-of the main menu (**[N]**), as CompuServe, Prodigy and AOL had them. Each
-part is on when its section is in the configuration.
+The BBS gives news feeds, the local weather of each caller, and stock
+quotes, under one item of the main menu (**[N]**), as CompuServe,
+Prodigy and AOL did. Each part is enabled when its section is in the
+configuration.
 
 ```
 News, weather, quotes
@@ -8,7 +9,7 @@ News, weather, quotes
   [Q] Stock quotes          [B] Back to the main menu
 ```
 
-Sysop menus reach them with the actions `news` (the menu above),
+Sysop menus get to them with the actions `news` (the menu above),
 `headlines`, `weather` and `quotes`.
 
 ## News feeds
@@ -19,16 +20,17 @@ contact = sysop@example.org
 catalog = all
 ```
 
-A feed's items are posted to a message area of their own, read-only (only
-the sysop posts), made the first time the feed is read and listed under
-its group. So the news is read wherever areas are: the terminals and
-3270s, newsreaders (make the area a newsgroup with `bbs area newsgroup`),
-QWK packets, the web forum, gopher and Gemini. **Headlines** lists the
-news areas, each with its newest story.
+The BBS posts the items of a feed to a read-only message area of their
+own (only the sysop posts). The BBS makes the area the first time that it
+reads the feed, and lists it under its group. Thus, callers can read the
+news in all locations where they read areas: the terminals and 3270s,
+newsreaders (make the area a newsgroup with `bbs area newsgroup`), QWK
+packets, the web forum, gopher and Gemini. **Headlines** lists the news
+areas, each with its newest story.
 
-An item becomes a short message: its headline, its summary as plain text,
-a link to the whole story, and where and when it is from. That is what
-feeds are published for; the BBS does not fetch the stories themselves.
+An item becomes a short message: its headline, its summary as plain
+text, a link to the full story, and its source and time. Feeds are
+published for this purpose. The BBS does not get the stories.
 
 ```
 Subj: AI stocks climb after trillions wiped from market values
@@ -42,34 +44,36 @@ https://www.bbc.co.uk/news/articles/c35ynnpzdq51o
 -- BBC News, Fri 6 Nov 2026 21:06 UTC
 ```
 
-RSS 0.9x to 2.0, RSS 1.0 (RDF), Atom and JSON Feed are read, in any
-character set. Each feed is read every `every` minutes (with a little
-jitter, and less often after failures or when the site asks with
-`Retry-After`), and asked only for what changed (`If-None-Match`,
-`If-Modified-Since`). An item is posted once: its Message-ID is made from
-the feed and the item's id, and remembered after the message is purged.
-The first reading of a feed posts at most `max_items` of its newest.
+The BBS reads RSS 0.9x to 2.0, RSS 1.0 (RDF), Atom and JSON Feed, in all
+character sets. It reads each feed every `every` minutes. It adds a
+small random variation, and reads less frequently after failures or
+when the site asks with `Retry-After`. It asks only for changes
+(`If-None-Match`, `If-Modified-Since`). The BBS posts an item one time
+only. It makes the Message-ID from the feed and the id of the item, and
+it remembers it after it purges the message. The first time that the BBS
+reads a feed, it posts a maximum of `max_items` of the newest items.
 
-`contact` is sent in the User-Agent. The SEC refuses readers without a way
-to reach the person running them, and the National Weather Service asks
-for one.
+The BBS sends `contact` in the User-Agent. The SEC refuses readers that
+do not give a method to contact the person who runs them. The National
+Weather Service asks for a contact.
 
 ### The catalogue
 
-`bbs feeds catalog` lists the feeds the BBS knows. `catalog =` takes `all`,
-groups or names:
+`bbs feeds catalog` lists the feeds that the BBS knows. `catalog =`
+accepts `all`, groups or names:
 
 | Group | Feeds |
 |---|---|
-| News | BBC World, NPR, AP News (by way of Google News: AP has no feeds of its own), The Guardian, Al Jazeera, CBC, Deutsche Welle, Global Voices |
+| News | BBC World, NPR, AP News (through Google News: AP has no feeds of its own), The Guardian, Al Jazeera, CBC, Deutsche Welle, Global Voices |
 | Business | BBC Business, NPR Business, SEC press releases, SEC 8-K filings (EDGAR) |
 | Technology | BBC Technology, Ars Technica, The Register, Hacker News |
 | Science | NASA, USGS earthquakes of magnitude 4.5 and more |
 | Government | the Federal Register (significant documents), Congress.gov (most-viewed bills, bills presented to the President, House and Senate floor), the White House, National Weather Service news |
 
-The US government's feeds are in the public domain. The outlets' are
-theirs: the BBS shows what they publish in their feeds, with the link.
-Reuters and AP stopped publishing feeds (2020, 2024).
+The feeds of the US government are in the public domain. The feeds of
+the outlets belong to the outlets. The BBS shows what they publish in
+their feeds, with the link. Reuters and AP stopped their feeds (2020,
+2024).
 
 ### Feeds of your own
 
@@ -83,18 +87,21 @@ every = 60
 keep_days = 14
 ```
 
-`title` is who the messages are from (the feed's own title if not said),
-`area` the area (the section's name if not said), `keep_days` how long
-messages are kept when the area is made (`bbs area keep` changes it after).
-A section named as a catalogue feed changes it (`[feed nasa]` with
-`area = Space`), and `enabled = no` leaves it out.
+- `title` is the sender of the messages (the title of the feed if you do
+  not set it).
+- `area` is the area (the name of the section if you do not set it).
+- `keep_days` is the time that the BBS keeps messages when it makes the
+  area (`bbs area keep` changes it later).
 
-`bbs feeds read [NAME...]` reads the feeds now, `bbs feeds list` shows
-what is configured.
+A section with the name of a catalogue feed changes that feed (for
+example, `[feed nasa]` with `area = Space`). `enabled = no` removes it.
 
-A news area that is a newsgroup is offered to news peers like any other:
-leave feed newsgroups out of a peer's `groups` unless you mean to pass the
-news on.
+`bbs feeds read [NAME...]` reads the feeds now. `bbs feeds list` shows
+the configured feeds.
+
+The BBS offers a news area that is a newsgroup to news peers, as all
+other newsgroups. Do not put feed newsgroups in the `groups` of a peer
+unless you want to send the news to that peer.
 
 ## Your weather
 
@@ -107,34 +114,38 @@ quake_min = 2.5
 alerts_at_login = yes
 ```
 
-The first time, the caller says where they are: a US ZIP code, a town
-(`Springfield, IL`, `Leeds, UK`, `Paris, France`, `Tokyo`), or a latitude
-and longitude. Towns are looked up in Open-Meteo's gazetteer (GeoNames);
-when there are several of that name, the caller chooses. ZIP codes are
-the US Census Bureau's tabulation areas, built into the BBS. The place is
-kept with the account.
+The first time, the caller gives the location: a US ZIP code, a town
+(`Springfield, IL`, `Leeds, UK`, `Paris, France`, `Tokyo`), or a
+latitude and longitude. The BBS looks up towns in the gazetteer of
+Open-Meteo (GeoNames). If there are some towns with that name, the
+caller selects one. ZIP codes are the tabulation areas of the US Census
+Bureau, which are part of the BBS. The BBS keeps the location with the
+account.
 
-The weather screen has, in order:
+The weather screen has these parts, in this sequence:
 
-- **Warnings, watches and advisories** in force at that point, from the
-  National Weather Service (US only), the most serious first, with what
-  to do.
-- **The forecast**: the National Weather Service's seven days in the US;
-  elsewhere Open-Meteo's (the weather now, then seven days). Open-Meteo
-  is free for non-commercial use and its data is CC BY 4.0, so the screen
-  credits it; `international = no` leaves it out.
-- **Earthquakes** of the past week within `quake_radius` km of
-  `quake_min` or more (and great ones, 6 and more, from four times as
-  far), from the USGS, worldwide. Those with a PAGER alert above green or
-  a tsunami flag are marked.
+- **Warnings, watches and advisories** that apply at that point now,
+  from the National Weather Service (US only). The most serious come
+  first, with the instructions.
+- **The forecast**: the seven days of the National Weather Service in
+  the US. In other countries, the forecast of Open-Meteo (the weather
+  now, then seven days). Open-Meteo is free for non-commercial use and
+  its data is CC BY 4.0. Thus, the screen gives its credit.
+  `international = no` removes it.
+- **Earthquakes** of the past week within `quake_radius` km, of
+  `quake_min` or more (and great earthquakes, 6 and more, from four times
+  that distance), from the USGS, worldwide. The screen marks the
+  earthquakes with a PAGER alert above green or a tsunami flag.
 
-Units are US (°F, mph) in the US and metric elsewhere; the caller can
-change them. With `alerts_at_login`, a caller is told of Severe and
-Extreme warnings where they are as they log in.
+Units are US (°F, mph) in the US and metric in other countries. The
+caller can change them. With `alerts_at_login`, the BBS tells a caller
+about Severe and Extreme warnings at the location of the caller at the
+login.
 
-What is fetched is kept a while (the NWS's points a day, forecasts half an
-hour, alerts five minutes, the earthquake list ten minutes, shared by all),
-so callers in one town cost one request.
+The BBS keeps the data that it gets for some time (the points of the NWS
+for a day, forecasts for half an hour, alerts for five minutes, the
+earthquake list for ten minutes, shared by all callers). Thus, callers in
+one town cause only one request.
 
 ## Stock quotes
 
@@ -144,20 +155,23 @@ file = /var/lib/bbs/quotes.json.gz
 default = SPY DIA QQQ AAPL MSFT
 ```
 
-The quotes are IEX's (the Investors Exchange): its own trades and quotes,
-not the whole market's, with IEX's credit on each screen. Every caller has
-a list of symbols (`default` until they add or remove one); a symbol
-chosen shows its last trade, open, high, low, close, extended-hours price,
-bid and ask, and IEX volume (all the market's, from Alpaca's paid plan).
+The quotes come from IEX (the Investors Exchange). They are the trades
+and quotes of IEX only, not of the full market, with the credit of IEX
+on each screen. Each caller has a list of symbols (`default` until the
+caller adds or removes one). For a selected symbol, the screen shows its
+last trade, open, high, low, close, extended-hours price, bid and ask,
+and IEX volume (the volume of the full market comes from the paid plan
+of Alpaca).
 
 ### The day before's prices, free (HIST)
 
-IEX publishes each session's whole TOPS feed the next day, free. `bbs
-quotes fetch` reads the latest session's file into `file`. The file is
-some 16 GB, so it is read as it downloads and nothing of it is kept but
-the quotes (a few hundred KB); at 60 MB/s it takes under five minutes. A
-download cut off is taken up where it stopped. Run it each morning as an
-event:
+IEX publishes the full TOPS feed of each session on the next day, free
+of charge. `bbs
+quotes fetch` reads the file of the latest session into `file`. The file
+is about 16 GB. Thus, the BBS reads it during the download, and keeps
+only the quotes (some hundred KB). At 60 MB/s, it takes less than five
+minutes. If a download stops, the BBS continues it from the point where
+it stopped. Run it each morning as an event:
 
 ```
 [event quotes]
@@ -166,8 +180,9 @@ at = 06:30
 timeout = 3600
 ```
 
-The change from the day before needs the day before's prices: the first
-time, fetch the session before by its date, then the latest:
+To calculate the change from the day before, the BBS must have the
+prices of the day before. The first time, get the previous session by
+its date, then the latest:
 
 ```
 bbs quotes fetch 20261105
@@ -175,12 +190,12 @@ bbs quotes fetch
 bbs quotes show AAPL SPY
 ```
 
-`bbs quotes load FILE` reads a TOPS capture you have (pcap or pcapng,
-gzipped or not), and the BBS reads the new file when it changes, with no
-restart.
+`bbs quotes load FILE` reads a TOPS capture that you have (pcap or
+pcapng, with or without gzip). The BBS reads the new file when it
+changes, with no restart.
 
-IEX's terms for HIST data ask for its credit ("Data provided for free by
-IEX"), which the screens show.
+The terms of IEX for HIST data ask for its credit ("Data provided for
+free by IEX"). The screens show it.
 
 ### Live (TOPS)
 
@@ -191,16 +206,17 @@ interface = eth1
 delay = 15 minutes
 ```
 
-A sysop who receives IEX's TOPS feed (its real-time feed, or its free
-delayed one; both need a connection to IEX) can give its UDP address. The
-BBS joins the multicast group and keeps the quotes as they come; `delay`
-is told to callers. Without trades yet today, the screens show the file's.
+A sysop who receives the TOPS feed of IEX (its real-time feed, or its
+free delayed feed. The two must have a connection to IEX) can give its
+UDP address. The BBS joins the multicast group and keeps the quotes when
+they arrive. The BBS tells callers the `delay`. If there are no trades
+yet today, the screens show the data from the file.
 
-The feed is IEX-TP carrying TOPS 1.6 (DEEP's messages are read too:
-trades, quotes, official prices, trading status, system events). Test
-securities are left out; odd lots count toward volume but not the last
-sale, high or low; trades outside regular hours are the extended-hours
-price.
+The feed is IEX-TP that carries TOPS 1.6 (the BBS also reads the
+messages of DEEP: trades, quotes, official prices, trading status,
+system events). The BBS ignores test securities. Odd lots count toward
+volume, but not toward the last sale, high or low. Trades outside
+regular hours are the extended-hours price.
 
 ### Live from Alpaca
 
@@ -212,30 +228,32 @@ alpaca_feed = iex
 alpaca_symbols = 30
 ```
 
-[Alpaca](https://alpaca.markets/data)'s market data needs no connection
-to IEX: an account (a paper-trading one will do) gives a key and secret.
-Its free plan (`alpaca_feed = iex`) has IEX's trades and quotes, live; a
-paid one (`sip`) every US exchange's, and `delayed_sip` them 15 minutes
-late.
+The market data of [Alpaca](https://alpaca.markets/data) does not need a
+connection to IEX. An account (a paper-trading account is sufficient)
+gives a key and secret. Its free plan (`alpaca_feed = iex`) has the
+trades and quotes of IEX, live. A paid plan (`sip`) has those of all US
+exchanges. `delayed_sip` gives them 15 minutes late.
 
-A symbol a caller looks at is fetched then (Alpaca's snapshot: the day so
-far, and the day before's close for the change), and followed on Alpaca's
-stream: the default symbols and those looked at most recently, up to
-`alpaca_symbols` (the free plan allows 30 at a time). What is followed is
-fetched again every five minutes; the rest when it is next looked at, if
-a minute old. The quotes begin again with each session's first trade, so
-nothing need run each morning. The session (before the open, regular
-hours, after hours, closed) is by the clock: a weekday with no trades by
-9:35 is taken for a holiday.
+When a caller looks at a symbol, the BBS gets it at that time (the
+snapshot of Alpaca: the day until now, and the close of the day before
+for the change). Then the BBS follows it on the stream of Alpaca. It
+follows the default symbols and the symbols that callers looked at most
+recently, up to `alpaca_symbols` (the free plan permits 30 at a time).
+The BBS gets the followed symbols again every five minutes. It gets the
+other symbols when a caller next looks at them, if they are one minute
+old. The quotes start again with the first trade of each session. Thus,
+nothing must run each morning. The BBS finds the session (before the
+open, regular hours, after hours, closed) from the clock. If a weekday
+has no trades by 9:35, the BBS thinks that it is a holiday.
 
 `bbs quotes alpaca AAPL MSFT` tries the keys: the snapshots, then the
-stream for a few seconds. Keep the configuration file 0640, as the keys
-are in it.
+stream for some seconds. Keep the configuration file at 0640, because
+the keys are in it.
 
-Alpaca's terms are for personal, non-commercial use: to make its data
-available to others through your own application, they ask for 30 days'
-written notice first, and its written consent to republish it. Tell them
-of the BBS before you turn this on. `listen` and `alpaca_key` are one or
-the other.
+The terms of Alpaca are for personal, non-commercial use. To make its
+data available to others through your own application, they ask for 30
+days of written notice first, and their written consent to republish it.
+Tell them about the BBS before you enable this function. Use `listen`
+or `alpaca_key`, not the two together.
 
 **See also:** [Message areas](Message-Areas), [Newsgroups and NNTP](Newsgroups-and-NNTP), [Sysop tools](Sysop-Tools)
