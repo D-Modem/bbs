@@ -1,6 +1,6 @@
-This page covers starting the BBS for the first time, running it under
-systemd, and running it as a user of its own. For day-to-day work once it
-is running, see [Administration](Administration).
+This page tells you how to start the BBS for the first time, how to run
+it under systemd, and how to run it as its own user. For daily work after
+the BBS starts, refer to [Administration](Administration).
 
 ## First start
 
@@ -12,28 +12,32 @@ bbs -config /etc/bbs/bbs.conf user add sysop -sysop
 bbs -config /etc/bbs/bbs.conf serve
 ```
 
-Without `-config`, bbs runs with its defaults: telnet and TN3270 on port
-2300, modem callers (raw) on 127.0.0.1:2323, and the database in `bbs.db`
-in the current directory. The database can also be PostgreSQL, MySQL or
-MariaDB: see [Databases](Databases).
+Without `-config`, bbs uses its defaults:
+
+- Telnet and TN3270 on port 2300.
+- Modem callers (raw) on 127.0.0.1:2323.
+- The database in `bbs.db` in the current directory.
+
+The database can also be PostgreSQL, MySQL or MariaDB. Refer to
+[Databases](Databases).
 
 ## Under systemd
 
 [bbs.service.sample](https://github.com/D-Modem/bbs/blob/HEAD/bbs.service.sample)
-runs the BBS under systemd as its own user, with the database in
-`/var/lib/bbs` and its sockets in `/run/bbs`. `systemctl reload bbs` applies
-the settings that can change while callers are on (see
+runs the BBS under systemd as its own user. The database is in
+`/var/lib/bbs` and the sockets are in `/run/bbs`. `systemctl reload bbs`
+applies the settings that you can change while callers are on (refer to
 [Configuration](Configuration#changing-it-while-callers-are-on)).
 
 ## Running as a user of its own
 
-Ports below 1024 (telnet's 23, finger's 79, gopher's 70) need root or the
-`CAP_NET_BIND_SERVICE` capability. There are two ways to give the BBS
-those ports without running it as root:
+Ports below 1024 (23 for telnet, 79 for finger, 70 for gopher) must have
+root or the `CAP_NET_BIND_SERVICE` capability. There are two methods to
+give these ports to the BBS without root:
 
 - systemd starts the BBS as its own user with that capability
-  (bbs.service.sample's `User=bbs` and `AmbientCapabilities=`), or
-- the BBS is started as root and gives up root itself:
+  (`User=bbs` and `AmbientCapabilities=` in bbs.service.sample).
+- You start the BBS as root, and the BBS then stops its root access:
 
 ```
 [general]
@@ -41,25 +45,34 @@ user = bbs
 ; group = bbs     (the user's own group by default)
 ```
 
-When it is started as root, `bbs serve` reads the configuration and binds
-every port and unix socket it listens on (the listeners, the HTTP API and
-metrics, FTP, NNTP, IRC, finger, gopher, Gemini and binkp). Then it gives up root,
-takes the user's supplementary groups (such as `socket_group`'s and
-docker's), and runs itself again as the user. It stays the same process,
-with the same PID for systemd and `systemctl reload`, and keeps the
-sockets. Nothing is written as root: the database, logs, host keys and
-backups all belong to the user. A unix socket without `socket_group`
-belongs to the user too.
+If you start `bbs serve` as root, it reads the configuration. It then
+binds all the ports and unix sockets on which it listens (the listeners,
+the HTTP API and metrics, FTP, NNTP, IRC, finger, gopher, Gemini and
+binkp). Then it stops its root access and takes the supplementary groups
+of the user (for example, the group of `socket_group` and the docker
+group). Then it runs itself again as the user. It stays the same process,
+with the same PID for systemd and `systemctl reload`, and it keeps the
+sockets.
 
-Other commands started as root (`bbs user add`, `bbs init`, `bbs backup`)
-also give up root first, so that the database stays the user's. `bbs
-check` and `bbs config` stay root, because the configuration file is
-root's to write. `bbs backup restore` restores files as root and then
-hands them to the user, except the configuration.
+The BBS writes nothing as root. The database, logs, host keys and backups
+all belong to the user. A unix socket without `socket_group` also belongs
+to the user.
 
-The user must be able to read the configuration (`chown root:bbs
-/etc/bbs/bbs.conf; chmod 0640`), write where the database and files are
-kept, and run the program. Under systemd, leave `User=` out when you use
-this method; bbs.service.sample explains how.
+If you start other commands as root (`bbs user add`, `bbs init`, `bbs
+backup`), they also stop their root access first. Thus, the database
+stays with the user. `bbs check` and `bbs config` keep root access,
+because only root can write the configuration file. `bbs backup restore`
+restores files as root. Then it gives them to the user, but not the
+configuration.
+
+The user must have these permissions:
+
+- Read the configuration (`chown root:bbs
+  /etc/bbs/bbs.conf; chmod 0640`).
+- Write in the locations of the database and the files.
+- Run the program.
+
+Under systemd, do not use `User=` with this method. bbs.service.sample
+tells you how.
 
 **See also:** [Configuration](Configuration), [Administration](Administration)

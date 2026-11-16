@@ -1,9 +1,15 @@
-The BBS can be an AOL host for AOL's own Windows clients (3.0, 4.0 and
-later) over TCP. A caller signs on in the client with their BBS name and
-password, and the BBS draws its Welcome window. People Connection is the
-BBS's chat, and Instant Messages are its private messages, with callers on
-every other route, mail is BBS mail, and keywords go to each of these.
-This is early work, not yet tried with a real client.
+The BBS can be an AOL host for the Windows clients of AOL (3.0, 4.0 and
+later) over TCP. A caller signs on in the client with the BBS name and
+password. Then the BBS draws its Welcome window. These functions of AOL
+connect to the BBS:
+
+- People Connection is the chat of the BBS.
+- Instant Messages are the private messages of the BBS. They go to and
+  from callers on all other routes.
+- Mail is BBS mail.
+- Keywords go to each of these functions.
+
+This is early work. We did not try it with a real client yet.
 
 ```ini
 [aol]
@@ -12,85 +18,92 @@ address = :5190
 
 | Setting | Default | What it sets |
 |---|---|---|
-| `address` | `:5190` | where to listen |
-| `max_clients` | `256` | clients at once |
-| `max_per_ip` | `4` | from one address |
+| `address` | `:5190` | the address on which to listen |
+| `max_clients` | `256` | the maximum number of clients at one time |
+| `max_per_ip` | `4` | the maximum number of clients from one address |
 
-Port 5190 is also the [AIM and ICQ](AIM-and-ICQ) server's. With `[oscar]`
-on the same address, the two share it: a connection that begins as an AOL
-client's goes to the AOL host, and everything else stays with OSCAR.
+The [AIM and ICQ](AIM-and-ICQ) server also uses port 5190. If `[oscar]`
+is on the same address, the two servers share it. If a connection starts
+as an AOL client connection, it goes to the AOL host. All other
+connections stay with OSCAR.
 
 ## Pointing the client at the BBS
 
-The client's TCP connection (`TCP.CCL` in its folder) dials
-`AmericaOnline.aol.com` on port 5190. Either point that name at the BBS in
-the hosts file of the client's machine
-(`C:\Windows\hosts` on Windows 95 and 98), or give the machine the BBS's
-[DNS server](DNS), or change the name in `TCP.CCL`.
-Then pick "TCP/IP" as the connection in the client's Setup.
+The TCP connection of the client (`TCP.CCL` in its folder) dials
+`AmericaOnline.aol.com` on port 5190. Do one of these steps:
+
+- Point that name at the BBS in the hosts file of the machine of the
+  client (`C:\Windows\hosts` on Windows 95 and 98).
+- Give the [DNS server](DNS) of the BBS to the machine.
+- Change the name in `TCP.CCL`.
+
+Then, in the Setup of the client, select "TCP/IP" as the connection.
 
 ## Signing on
 
-The screen name and password on the client's Welcome window are a BBS
-account's. "New User" does not make an account; callers join by telnet or
-the web first. A failed sign-on is shown in the client, and counts against
-the address as failed logins do everywhere else. The deny list and bans in
-`[security]` apply.
+The screen name and password on the Welcome window of the client are
+those of a BBS account. "New User" does not make an account. Callers
+must join by telnet or the web first. The client shows a failed sign-on.
+It counts against the address, as failed logins do on all other routes.
+The deny list and bans in `[security]` apply.
 
-A signed-on client is a node, as any caller is, and appears in Who's On
-as `AOL`. Sign Off in the client signs off and hangs up.
+A client that signed on is a node, as all callers are. It shows in Who's
+On as `AOL`. Sign Off in the client signs off and hangs up.
 
 ## Chat and Instant Messages
 
-People Connection takes the client into the BBS's main chat room, in the
-client's own room window: the people there are listed, and lines come and
-go with callers on terminals, IRC, AIM, ICQ and MSN in the same room. A
-line beginning `/me ` is an action.
+People Connection takes the client into the main chat room of the BBS,
+in the room window of the client. The window lists the people in the
+room. Lines come and go with callers in the same room on terminals, IRC,
+AIM, ICQ and MSN. A line that starts with `/me ` is an action.
 
-The room window's List Rooms (or the keyword Rooms) lists the BBS's chat
-rooms with how many are in each, and a button goes into one. The keyword
-Room and a name, such as `room tea`, goes into that room, making it if no
-one is there yet, as `/join` does elsewhere.
+List Rooms in the room window (or the keyword Rooms) lists the chat
+rooms of the BBS, with the number of people in each. A button goes into
+a room. The keyword Room and a name, for example `room tea`, goes into
+that room. If no one is in the room yet, the BBS makes it, as `/join`
+does on other routes.
 
-An Instant Message goes to a BBS user wherever they are on, as a private
-message (an IM in AIM, a PRIVMSG on IRC, a line on a terminal). One away
-has it when they next sign on, as on every other route, and the sender is
-told. Messages to the client open its own Instant Message window, one for
-each person. Screen names are compared without their spaces, so
-`CarolAnn` is the user Carol Ann (AOL's screen names have no spaces).
+An Instant Message goes to a BBS user as a private message, on all
+routes where the user is on (an IM in AIM, a PRIVMSG on IRC, a line on a
+terminal). If the user is away, the user gets it at the next sign-on, as
+on all other routes. The BBS tells the sender. Messages to the client
+open its Instant Message window, one window for each person. The BBS
+compares screen names without their spaces. Thus, `CarolAnn` is the user
+Carol Ann (AOL screen names have no spaces).
 
 ## Mail
 
-Compose Mail in the client sends BBS mail to each name it is addressed
-to, by screen name as for IMs. 4.0's formatted mail arrives as plain text.
-The Welcome window says how much new mail is waiting, and new mail while
-signed on is shown in a message box.
+Compose Mail in the client sends BBS mail to each name in the address,
+by screen name as for IMs. Formatted mail from 4.0 arrives as plain
+text. The Welcome window shows the quantity of new mail. If new mail
+arrives while the client is signed on, the client shows it in a message
+box.
 
-The keyword Mail opens the BBS's mailbox window, newest first with new
-mail marked `*`. A button reads a mail, which marks it read, and the mail's
-window can delete it.
+The keyword Mail opens the mailbox window of the BBS. The newest mail is
+first, and new mail has the mark `*`. A button reads a mail and marks it
+as read. The window of the mail can delete it.
 
-The client's own mail windows work too: Read New Mail on the toolbar
-(`m7`), Old Mail (`m9`, mail already read) and Sent Mail (`m8`). Each is
-filled with a MIP list, newest first. Opening a mail (`m3`) sends it
-whole and marks it read. Ignore marks a mail read, Keep As New marks it
-unread again, and Delete puts it in the BBS trash (`m2`). These answers
-were worked out from the client's mail tool and have not yet been tried
-with a real client.
+The mail windows of the client also operate: Read New Mail on the
+toolbar (`m7`), Old Mail (`m9`, mail that the user read) and Sent Mail
+(`m8`). The BBS fills each one with a MIP list, newest first. When the
+user opens a mail (`m3`), the BBS sends all of it and marks it as read.
+Ignore marks a mail as read. Keep As New marks it as unread again.
+Delete puts it in the BBS trash (`m2`). We found these answers from the
+mail tool of the client. We did not try them with a real client yet.
 
 ## Message boards
 
-The keyword Boards lists the BBS's message areas the caller may read,
-with their new messages. A board lists its topics, the one written in
-last first, with `*` on those with posts not yet read. A topic shows its
-posts in order and marks them read. Start a topic and Reply open a window
-with a subject and the text, and Send posts it, as from any other route.
-A long topic shows its first 30 posts; the rest are read by telnet or the
-web.
+The keyword Boards lists the message areas of the BBS that the caller
+can read, with their new messages. A board lists its topics, with the
+topic that has the latest post first. A `*` shows the topics with posts
+that the caller did not read. A topic shows its posts in sequence and
+marks them as read. Start a topic and Reply open a window with a subject
+and the text. Send posts it, as from all other routes. A long topic shows
+its first 30 posts. Read the other posts by telnet or the web.
 
 ## Keywords
 
-The client's Keyword window (Ctrl+K) takes:
+The Keyword window of the client (Ctrl+K) accepts these keywords:
 
 | Keyword | Goes to |
 |---|---|
@@ -99,14 +112,15 @@ The client's Keyword window (Ctrl+K) takes:
 | `Rooms` | the chat rooms |
 | `Room` *name* | that chat room |
 | `Boards` | the message boards |
-| `Who` | who is on now, by any route |
+| `Who` | the users who are on now, by all routes |
 | `Help` | the list of keywords |
 
 ## How it is built
 
-- `internal/aol/p3`: P3, the client's link layer (packets, checksums,
-  acknowledgements, resends).
-- `internal/aol/fdo`: FDO91, the forms language the client draws windows
-  from. It has a compiler from FDO91 source, so the host's windows are
-  written as source.
-- `internal/aol`: the host, which handles each token the client sends.
+- `internal/aol/p3`: P3, the link layer of the client (packets,
+  checksums, acknowledgements, resends).
+- `internal/aol/fdo`: FDO91, the forms language that the client uses to
+  draw windows. It has a compiler from FDO91 source. Thus, we write the
+  windows of the host as source.
+- `internal/aol`: the host, which processes each token that the client
+  sends.

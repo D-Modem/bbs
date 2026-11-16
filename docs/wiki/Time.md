@@ -1,11 +1,11 @@
 The BBS can keep its own time and serve it. It can follow time servers
-over NTP, NTS (NTP secured with keys from a TLS exchange) and PTP. It can
-also be an NTP server, an NTS-KE server and a PTP grandmaster. All of it
-is off unless its section is in the configuration.
+over NTP, NTS (NTP with keys from a TLS exchange) and PTP. It can also be
+an NTP server, an NTS-KE server and a PTP grandmaster. All of these
+functions are disabled until you put their section in the configuration.
 
-The protocols' packets come from Meta's
-[facebook/time](https://github.com/facebook/time) (Apache-2.0). The
-servers and clients are the BBS's own.
+The packets of the protocols come from
+[facebook/time](https://github.com/facebook/time) of Meta (Apache-2.0).
+The servers and clients are part of the BBS.
 
 ## Following time servers
 
@@ -16,37 +16,43 @@ poll = 64
 set_clock = no
 ```
 
-Each poll, every server is asked. NTP and NTS servers are asked four
-times, and the answer with the shortest round trip counts. The clock then
-takes the median of the servers' offsets, so one wrong server is outvoted.
+At each poll, the BBS asks all servers. It asks NTP and NTS servers four
+times, and the answer with the shortest round trip counts. Then the clock
+uses the median of the offsets of the servers. Thus, the other servers
+outvote one incorrect server.
 
 - `ntp HOST[:PORT]` is plain NTP.
-- `nts HOST[:PORT]` is NTS. The port is the NTS-KE port (4460 if none).
-  The key exchange gives eight cookies, each request spends one and asks
-  for one back, and a new exchange is made when cookies run out or the
-  server stops knowing them. `root_cas` names a PEM file to trust instead
-  of the system's roots, for a private server.
+- `nts HOST[:PORT]` is NTS. The port is the NTS-KE port (4460 if you do
+  not give a port). The key exchange gives eight cookies. Each request
+  uses one cookie and asks for one back. The BBS makes a new exchange
+  when no cookies remain or when the server does not know them.
+  `root_cas` names a PEM file to trust in place of the roots of the
+  system, for a private server.
 - `ptp HOST` asks a PTP grandmaster for unicast transmission (announce
-  every 2 s, sync every 1 s, for 60 s at a time, renewed). It needs ports
-  319 and 320, so the BBS must start as root (it binds them before it
-  becomes `[general] user`).
+  every 2 s, sync every 1 s, for 60 s at a time, renewed). It must have
+  ports 319 and 320. Thus, the BBS must start as root (it binds the ports
+  before it becomes `[general] user`).
 
-With `set_clock = no` (the default), the system clock is left alone. The
-BBS keeps the offset it measures and serves the corrected time. With
-`set_clock = yes` (Linux), it steps the system clock when it is more than
-128 ms out and slews it otherwise, and tells the kernel the clock is
-synchronised. That needs root, or `CAP_SYS_TIME` kept after the BBS gives
-up root (systemd: `AmbientCapabilities=CAP_SYS_TIME`). Don't turn it on
-next to chrony or ntpd, which would fight it. If it can't set the clock,
-it says so once in the log and falls back to correcting its own time.
+With `set_clock = no` (the default), the BBS does not change the system
+clock. The BBS keeps the offset that it measures and serves the
+corrected time.
 
-With no servers, the BBS tells of the system clock: stratum 3 while the
-kernel says it is synchronised, unsynchronised otherwise. `stratum` says
-otherwise, for example `stratum = 1` and `refid = GPS` on a machine whose
-clock a GPS keeps.
+With `set_clock = yes` (Linux), the BBS steps the system clock when the
+clock has an error of more than 128 ms. If the error is smaller, it slews
+the clock. It also tells the kernel that the clock is synchronised. This
+must have root, or `CAP_SYS_TIME` kept after the BBS stops its root
+access (systemd: `AmbientCapabilities=CAP_SYS_TIME`). Do not enable it
+with chrony or ntpd, because they will change the clock in opposite
+directions. If the BBS cannot set the clock, it writes this one time in
+the log. Then it corrects only its own time.
 
-`bbs time` asks the configured servers once and prints each offset.
-`bbs time nts time.cloudflare.com` asks one server instead:
+If there are no servers, the BBS reports the system clock: stratum 3
+while the kernel says that the clock is synchronised, and unsynchronised
+if not. `stratum` sets a different value. For example, use `stratum = 1`
+and `refid = GPS` on a machine with a clock that a GPS controls.
+
+`bbs time` asks the configured servers one time and prints each offset.
+`bbs time nts time.cloudflare.com` asks only that server:
 
 ```
 $ bbs time nts time.cloudflare.com ntp pool.ntp.org
@@ -63,10 +69,11 @@ rate = 2       ; requests a second an address may make (0: no limit)
 burst = 16     ; and at once
 ```
 
-Only client requests (mode 3) are answered, so the control and private
-modes used for amplification attacks get nothing. Addresses banned by the
-guard (`[security]`) get nothing either. The stratum told is one past the
-server followed, and the reference ID is that server's address.
+The server answers only client requests (mode 3). Thus, the control and
+private modes that amplification attacks use get no answer. Addresses
+that the guard (`[security]`) banned also get no answer. The stratum
+that the server gives is one more than the stratum of the server that it
+follows. The reference ID is the address of that server.
 
 ## NTS-KE server
 
@@ -78,14 +85,17 @@ tls_key = /etc/bbs/key.pem
 ntp_host = time.example.org   ; told to clients ("": this host)
 ```
 
-NTS needs `[ntp]` too: the key exchange hands out cookies, and the NTP
-server answers requests that carry them, authenticated. The cookie key
-changes each day, and the last week's keys are kept, so cookies stay good.
-A restart makes new keys. Clients then get an NTS NAK and exchange keys
-again by themselves. The certificate is read again when its file changes,
-so a renewal needs no restart. AES-SIV-CMAC-256, AES-128-GCM-SIV and
-AES-SIV-CMAC-512 are offered. GCM-SIV goes only to clients that say they
-make its keys as the RFC says (chrony before 4.4 did not).
+NTS must also have `[ntp]`. The key exchange gives cookies, and the NTP
+server answers requests that contain them, with authentication. The
+cookie key changes each day. The BBS keeps the keys of the last week, so
+that the cookies stay valid. A restart makes new keys. Then clients get
+an NTS NAK and do the key exchange again automatically.
+
+The BBS reads the certificate again when its file changes. Thus, a
+renewal does not need a restart. The server offers AES-SIV-CMAC-256,
+AES-128-GCM-SIV and AES-SIV-CMAC-512. It gives GCM-SIV only to clients
+that say that they make its keys as the RFC specifies (chrony before 4.4
+did not).
 
 A chrony client:
 
@@ -107,23 +117,24 @@ timestamping = software
 The BBS is a two-step, end-to-end grandmaster on UDP ports 319 and 320.
 
 - **Multicast** (with `interface`): announce and sync go to 224.0.1.129.
-  Delay requests are answered to the client directly, the hybrid mode
-  linuxptp and others accept.
-- **Unicast**: clients that ask (linuxptp's `unicast_master_table`,
-  Meta's ptp4u clients, `ptp HOST` on another BBS) are granted announce,
-  sync and delay responses, up to `max_clients`, no faster than
-  `log_min_interval`.
+  The BBS sends the answers to delay requests directly to the client.
+  This is the hybrid mode that linuxptp and other clients accept.
+- **Unicast**: the BBS gives announce, sync and delay responses to
+  clients that ask for them (the `unicast_master_table` of linuxptp, the
+  ptp4u clients of Meta, `ptp HOST` on a different BBS). It accepts up
+  to `max_clients`, not faster than `log_min_interval`.
 
-Time on the wire is TAI (UTC + `utc_offset`, 37). The clock class is 6
-while the BBS's clock is synchronised, 248 otherwise. The time source
-says where the time comes from (NTP, PTP, GNSS, or the internal
+The time on the wire is TAI (UTC + `utc_offset`, 37). The clock class is
+6 while the clock of the BBS is synchronised, and 248 if not. The time
+source tells the source of the time (NTP, PTP, GNSS, or the internal
 oscillator).
 
-Timestamps are the kernel's on Linux (`SO_TIMESTAMPING`). Elsewhere
-packets are stamped as they are read and written. `timestamping =
-hardware` uses the network card's clock, which has to be kept on the
-system clock (`phc2sys -s CLOCK_REALTIME -c eth0 -O 0`). The card is set
-up as root, before the BBS gives root up.
+On Linux, the kernel makes the timestamps (`SO_TIMESTAMPING`). On other
+systems, the BBS stamps packets when it reads and writes them.
+`timestamping = hardware` uses the clock of the network card. You must
+keep that clock on the system clock
+(`phc2sys -s CLOCK_REALTIME -c eth0 -O 0`). The BBS configures the card
+as root, before it stops its root access.
 
 A linuxptp client, by unicast:
 
@@ -141,12 +152,14 @@ unicast_master_table 1
 ## Tested with
 
 - chrony 4.5 as an NTP and NTS client of the BBS, and as an NTP and NTS
-  server the BBS follows (port negotiation included).
+  server that the BBS follows (also port negotiation).
 - linuxptp 4.0 `ptp4l` as a multicast and as a unicast client of the
-  grandmaster (within about a microsecond, software timestamps, over a
-  virtual Ethernet link), and as a unicast grandmaster the BBS follows.
-- Meta's NTS-KE server, whose cookies the BBS's NTP server opens.
+  grandmaster (with an error of about a microsecond, software
+  timestamps, over a virtual Ethernet link), and as a unicast
+  grandmaster that the BBS follows.
+- The NTS-KE server of Meta. The NTP server of the BBS opens its cookies.
 
 In that test, the BBS read a `ptp4l` grandmaster on software timestamps
-37 seconds off: that grandmaster sends the system clock's UTC as PTP's
-TAI. A grandmaster whose card's clock is on TAI doesn't have this problem.
+with an error of 37 seconds. The cause is that this grandmaster sends the
+UTC of the system clock as the TAI of PTP. A grandmaster with a card
+clock on TAI does not have this problem.

@@ -1,6 +1,6 @@
 **[bbs](Home)**
 
-**Getting going**
+**Start here**
 - [Building](Building)
 - [Running](Running)
 - [Administration](Administration)

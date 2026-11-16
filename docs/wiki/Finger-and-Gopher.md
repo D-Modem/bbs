@@ -1,13 +1,16 @@
-Three small servers tell the world about the BBS. Finger shows who is on
-and who a user is. Gopher serves the system's own gopherspace, with the
-message and file areas the sysop opens to it. Gemini serves the same
-capsule, and finger's users, over TLS. Each is off unless its section is
-in the configuration.
+Three small servers give the world data about the BBS:
 
-Finger's and gopher's usual ports are below 1024, so either run the BBS with
-`AmbientCapabilities=CAP_NET_BIND_SERVICE` (see
+- Finger shows the users who are on, and data about a user.
+- Gopher serves the gopherspace of the system, with the message and file
+  areas that the sysop opens to it.
+- Gemini serves the same capsule, and the users of finger, over TLS.
+
+Each server is disabled until you put its section in the configuration.
+
+The usual ports of finger and gopher are below 1024. Thus, run the BBS
+with `AmbientCapabilities=CAP_NET_BIND_SERVICE` (refer to
 [bbs.service.sample](https://github.com/D-Modem/bbs/blob/HEAD/bbs.service.sample)),
-or use another port.
+or use a different port.
 
 ## Finger
 
@@ -37,9 +40,9 @@ Calls:        14
 Posts:        5
 ```
 
-Finger never shows addresses, caller IDs or anything about locked
-accounts, and it forwards nothing (`user@otherhost` is refused).
-`online = no` and `users = no` turn off its two halves.
+Finger never shows addresses, caller IDs or data about locked accounts.
+It forwards nothing (it refuses `user@otherhost`). `online = no` and
+`users = no` disable its two parts.
 
 ## Gopher
 
@@ -55,17 +58,19 @@ max_per_ip = 8
 ```
 
 The root menu has *About this system* (name, location, sysop, number of
-users and the message of the day), *Who's online*, and, if the sysop has
-opened them, *Message areas* and *File areas*. An area lists its messages
-50 at a time (oldest first, with *More...*). A message is served as text,
-and a file as it is (type 9, or as an image for GIF, PNG and JPEG).
+users and the message of the day) and *Who's online*. If the sysop
+opened them, it also has *Message areas* and *File areas*. An area lists
+its messages 50 at a time (oldest first, with *More...*). The server
+sends a message as text. It sends a file as it is (type 9, or as an
+image for GIF, PNG and JPEG).
 
-Gopher has no login, so everything it shows, it shows to anyone. That is
-why it shows no message areas and no files by default, and `bbs check`
-warns when `areas` or `files` is set. `areas` matches area names in any
-case (`*` matches all of them), and an area that does not match cannot be
-reached, whatever is asked. Selectors are not paths: they name records in
-the BBS's database, and nothing on the server's disk can be reached.
+Gopher has no login. Thus, it shows all its data to all users. For this
+reason, it shows no message areas and no files by default, and `bbs
+check` gives a warning when you set `areas` or `files`. `areas` matches
+area names with upper or lower case (`*` matches all of them). Users
+cannot get to an area that does not match, for all requests. Selectors
+are not paths. They name records in the database of the BBS. Users
+cannot get to items on the disk of the server.
 
 ```
 $ curl gopher://bbs.example.org/1/areas
@@ -87,22 +92,26 @@ max_clients = 32
 max_per_ip = 8
 ```
 
-[Gemini](https://geminiprotocol.net/) is gopher's younger cousin: one
-request a connection, always over TLS, pages in gemtext. The capsule is
-gopher's: the home page links *About this system*, *Who's online*, *Look
-up a user* (it asks for a name and shows what finger would) and, if the
-sysop opened them, *Message areas* and *File areas*. `gemini://host/~alice`
-goes straight to a user. A message is a gemtext page with its headers
-first; its lines are shown as text, so a line in a message cannot become
-a link or a heading. A file goes as it is, typed by its name
-(`application/octet-stream` if the name says nothing).
+[Gemini](https://geminiprotocol.net/) is a newer protocol that is
+similar to gopher. It uses one request for each connection, always over
+TLS, with pages in gemtext. The capsule is the same as the capsule of
+gopher. The home page has links to *About this system*, *Who's online*
+and *Look up a user* (it asks for a name and shows the same data as
+finger). If the sysop opened them, it also has links to *Message areas*
+and *File areas*. `gemini://host/~alice` goes directly to a user.
 
-Gemini clients trust a capsule's certificate the first time they see it
-and warn if it ever changes, so self-signed certificates are the usual
-thing. The BBS never makes one by itself: with no `cert_file` and
-`key_file`, make one with `bbs gemini cert` before starting it. It asks
-what goes in the certificate, shows it, and makes it only when you say
-yes:
+A message is a gemtext page with its headers first. The server shows its
+lines as text. Thus, a line in a message cannot become a link or a
+heading. The server sends a file as it is, with a type from its name
+(`application/octet-stream` if the name does not give a type).
+
+Gemini clients trust the certificate of a capsule the first time that
+they see it. They give a warning if it changes. Thus, self-signed
+certificates are usual. The BBS never makes a certificate automatically.
+If there is no `cert_file` and `key_file`, make one with
+`bbs gemini cert` before you start the BBS. The command asks for the
+contents of the certificate and shows them. It makes the certificate
+only when you say yes:
 
 ```
 $ bbs -config /etc/bbs/bbs.conf gemini cert
@@ -121,21 +130,26 @@ Make it? (yes/no) [no]: yes
 Made: bbs.example.org, gemini.example.org until 2046-11-09, SHA-256 3F2A...
 ```
 
-The first host name is the certificate's common name; addresses (IPv4 or
-IPv6) can be listed too. The files go beside the database
-(`gemini-cert.pem`, `gemini-key.pem`). Keep them with your backups: a new
-certificate makes every client that has been before warn, which is why
-`bbs gemini cert` will not replace one without `-force` (and then keeps
-the old one as `.old`). `bbs check` shows the certificate's names, expiry
-and SHA-256 fingerprint, or that there is none yet; without one, `bbs
-serve` stops and says to make it. A certificate from a certificate
-authority (Let's Encrypt's, say) works too: set `cert_file` and
-`key_file`.
+The first host name is the common name of the certificate. You can also
+list addresses (IPv4 or IPv6). The files go adjacent to the database
+(`gemini-cert.pem`, `gemini-key.pem`). Keep them with your backups. A
+new certificate causes a warning on all clients that connected before.
+For this reason, `bbs gemini cert` does not replace a certificate
+without `-force` (and with `-force`, it keeps the old certificate as
+`.old`).
 
-What gopher shows anyone, Gemini shows anyone: no areas and no files by
-default, `bbs check` warns when `areas` or `files` is set, and file areas
-with a download requirement are never shown. `users = no` turns off the
-user lookup. Port 1965 is above 1024 and needs no privilege.
+`bbs check` shows the names, the expiry date and the SHA-256 fingerprint
+of the certificate, or it tells you that there is no certificate yet. If
+there is no certificate, `bbs
+serve` stops and tells you to make one. A certificate from a certificate
+authority (for example, Let's Encrypt) also operates: set `cert_file`
+and `key_file`.
+
+Gemini shows all users the same data that gopher shows all users. By
+default, it shows no areas and no files. `bbs check` gives a warning
+when you set `areas` or `files`. Gemini never shows file areas that have
+a download requirement. `users = no` disables the user lookup. Port 1965
+is above 1024 and does not need a privilege.
 
 ```
 $ amfora gemini://bbs.example.org

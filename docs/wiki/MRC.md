@@ -1,12 +1,13 @@
 [Multi Relay Chat](https://wiki.mysticbbs.com/doku.php?id=mrc) is a chat
-network of BBSes: Mystic, Synchronet, ENiGMA½ and others share its rooms.
-The BBS joins it as its own MRC connector, with one connection to the MRC
-server carrying all its users. No connector program is needed.
+network of BBSes. Mystic, Synchronet, ENiGMA½ and other BBSes share its
+rooms. The BBS connects to it as its own MRC connector. One connection to
+the MRC server carries all the users of the BBS. You do not have to
+install a connector program.
 
-MRC's rooms are the BBS's chat rooms that begin with the prefix (`mrc-`):
-`mrc-lobby` is MRC's lobby. Whoever is in that room on the BBS, from a
-terminal, a 3270, the web or IRC (`#mrc-lobby`), is in MRC's lobby, under
-their name.
+The MRC rooms are the chat rooms of the BBS that start with the prefix
+(`mrc-`). `mrc-lobby` is the MRC lobby. All users in that room on the
+BBS are in the MRC lobby, with their names. This applies to users from a
+terminal, a 3270, the web or IRC (`#mrc-lobby`).
 
 ```ini
 [mrc]
@@ -19,45 +20,48 @@ telnet = bbs.example.org:23
 | Setting | Default | What it sets |
 |---|---|---|
 | `address` | `mrc.bottomlessabyss.net:5000` | the MRC server (5001 with TLS) |
-| `tls` | `no` | TLS to it |
-| `prefix` | `mrc-` | what begins MRC's rooms here |
-| `system_name` | the BBS's name | the BBS as MRC shows it (Mystic's `\|NN` colour codes allowed) |
-| `web`, `telnet`, `ssh`, `sysop`, `description` | (the sysop's name, the BBS's) | what MRC's `INFO` tells of the BBS |
-| `require` | (anyone who may chat) | who may go into MRC's rooms ([access levels](Access-Levels)) |
+| `tls` | `no` | TLS to the MRC server |
+| `prefix` | `mrc-` | the start of the names of MRC rooms on this BBS |
+| `system_name` | the name of the BBS | the name of the BBS that MRC shows (the `\|NN` colour codes of Mystic are permitted) |
+| `web`, `telnet`, `ssh`, `sysop`, `description` | (the name of the sysop, the BBS) | the data about the BBS that the MRC `INFO` gives |
+| `require` | (all users who can chat) | the users who can go into the MRC rooms ([access levels](Access-Levels)) |
 
 ## Chatting
 
-- `/join mrc-lobby` in the BBS's chat (`JOIN #mrc-lobby` on IRC) goes into
-  MRC's lobby. Others on the network see the user arrive, and see them
-  leave when they go.
-- Lines said there go to MRC as `<name> text`, and `/me` as an action.
-  Lines from other systems show as `carol@Far_BBS: text` (on IRC, from
-  `carol_Far_BBS!mrc@far_bbs`). MRC's colour codes are removed.
-- `!COMMAND` is a command for the MRC server, not a line for the room:
-  `!motd`, `!list` (its rooms), `!chatters`, `!bbses`, `!info N`
-  and the rest (the server says which it does not know). Its answers come to whoever asked. `!!text`
-  says a line that begins with `!`.
-- Private messages to a user here come to them alone.
+- `/join mrc-lobby` in the chat of the BBS (`JOIN #mrc-lobby` on IRC)
+  puts the user in the MRC lobby. Other users on the network see the
+  user arrive. They also see the user leave.
+- Lines that the user writes there go to MRC as `<name> text`. `/me`
+  goes as an action. Lines from other systems show as
+  `carol@Far_BBS: text` (on IRC, from `carol_Far_BBS!mrc@far_bbs`). The
+  BBS removes the MRC colour codes.
+- `!COMMAND` is a command for the MRC server, not a line for the room.
+  Examples are `!motd`, `!list` (its rooms), `!chatters`, `!bbses`,
+  `!info N` and other commands. The server tells you which commands it
+  does not know. Its answers go only to the user who asked. `!!text` sends
+  a line that starts with `!`.
+- Private messages to a user on this BBS go only to that user.
 
-A user in two of MRC's rooms here (an IRC client in two channels) is in
-one on MRC, the last they spoke in. MRC has a user in one room at a time.
+On MRC, a user is in one room at a time. Thus, if a user is in two MRC
+rooms on this BBS (an IRC client in two channels), the user is in one
+room on MRC. This is the last room in which the user wrote.
 
-Each user is kept present (`IAMHERE`) every minute. If the connection
-drops, the BBS connects again after 30 seconds and puts back everyone
-who was there.
+Each minute, the BBS tells MRC that each user is present (`IAMHERE`). If
+the connection stops, the BBS connects again after 30 seconds. Then it
+puts back all the users who were there.
 
-A sysop can make `mrc-lobby` a [permanent room](IRC#permanent-rooms), so
-that it is listed even when no one here is in it.
+A sysop can make `mrc-lobby` a [permanent room](IRC#permanent-rooms).
+Then the BBS lists the room when it has no users on this BBS.
 
 ## The protocol
 
-The BBS speaks MRC's protocol as Synchronet's `mrc-connector.js` and `mrc-session.js` do:
+The BBS uses the MRC protocol in the same way as the `mrc-connector.js` and `mrc-session.js` of Synchronet:
 
-- the handshake `SYSTEM~BBSSEC/os_arch/1.3.5`, then the server's hello;
-- lines of `FromUser~FromSite~FromRoom~ToUser~MsgExt~ToRoom~Body~`;
-- `INFO*`, `IMALIVE` and `CAPABILITIES` for the BBS;
-- `IMALIVE` in answer to the server's `PING`;
-- `IAMHERE` for each user, `NEWROOM:old:new` to move, `LOGOFF` to go;
-- names without spaces (underscores), at most 30 characters.
+- The handshake `SYSTEM~BBSSEC/os_arch/1.3.5`, then the hello of the server.
+- Lines of `FromUser~FromSite~FromRoom~ToUser~MsgExt~ToRoom~Body~`.
+- `INFO*`, `IMALIVE` and `CAPABILITIES` for the BBS.
+- `IMALIVE` as the answer to the `PING` of the server.
+- `IAMHERE` for each user, `NEWROOM:old:new` to move, `LOGOFF` to leave.
+- Names without spaces (underscores), with a maximum of 30 characters.
 
 **See also:** [Chat and paging](Chat-and-Paging), [IRC](IRC)

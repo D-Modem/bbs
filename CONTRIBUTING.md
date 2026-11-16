@@ -1,7 +1,11 @@
 # Contributing
 
-Contributions are welcome: issues, fixes and features alike.  Before
-sending a change, run `make test` (see the wiki's [Development](https://github.com/D-Modem/bbs/wiki/Development) page).
+We accept contributions: issues, fixes and new features. Before you send
+a change, run `make test`. For more information, refer to the
+[Development](https://github.com/D-Modem/bbs/wiki/Development) page of the
+wiki.
+
+Write all technical documentation in ASD-STE100 Simplified Technical English. Follow docs/STYLE.md.
 
 ## The contributor agreement
 
