@@ -153,13 +153,18 @@ func (u *ui) Menu(m *view.Menu) (string, error) {
 				right = u.cols - 3 // what each does beside it
 			}
 			scr = append(scr, u.boxed(row, 2, row+len(m.Items)+1, right, go3270.Blue)...)
+			// the labels after the widest key (a word in a Line menu)
+			labelAt := 7
+			for _, it := range m.Items {
+				labelAt = max(labelAt, 4+len(it.Key)+2)
+			}
 			for i, it := range m.Items {
 				scr = append(scr, u.text(row+1+i, 4, it.Key, go3270.Yellow, true))
 				end := 44
 				if right > 44 {
 					end = 31
 				}
-				scr = append(scr, u.spanFields(row+1+i, 7, end, it.Label, go3270.Green)...) // its tags' colors
+				scr = append(scr, u.spanFields(row+1+i, labelAt, end, it.Label, go3270.Green)...) // its tags' colors
 				if right > 44 && it.Help != "" {
 					scr = append(scr, u.text(row+1+i, 32, bbs.Trunc(it.Help, right-33), go3270.Turquoise, false))
 				}

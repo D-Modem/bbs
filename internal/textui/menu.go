@@ -2,6 +2,7 @@ package textui
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	"github.com/D-Modem/bbs/internal/rip"
 	"github.com/D-Modem/bbs/internal/screens"
@@ -35,9 +36,16 @@ func (s *session) menu(title string, items []choice, prompt string, list, line b
 		if list {
 			t.Println("")
 			t.Println(t.C(Cyan, title))
+			// keys are one character, or words (all as wide as the widest)
+			keyW := 1
+			for _, it := range items {
+				keyW = max(keyW, utf8.RuneCountInString(it.key))
+			}
 			cols, width := 2, 22
 			if t.Narrow() {
-				cols, width = 1, max(t.Cols-7, 10)
+				cols, width = 1, max(t.Cols-keyW-6, 10)
+			} else if 2+2*(keyW+3+width) > t.Cols {
+				width = max((t.Cols-2)/2-keyW-3, 10)
 			}
 			helps := false
 			for _, it := range items {
@@ -45,11 +53,12 @@ func (s *session) menu(title string, items []choice, prompt string, list, line b
 			}
 			var cells []string
 			for _, it := range items {
-				cell := t.C(Yellow, "["+it.key+"]") + " " + screens.Fit(it.label, width)
+				pad := strings.Repeat(" ", keyW-utf8.RuneCountInString(it.key))
+				cell := t.C(Yellow, "["+it.key+"]") + pad + " " + screens.Fit(it.label, width-1) + " " // a space before the next column
 				if helps && !t.Narrow() {
 					// one column, what each does beside it
 					cols = 1
-					if room := t.Cols - 2 - 4 - width - 2 - 1; it.help != "" && room > 10 {
+					if room := t.Cols - 2 - keyW - 3 - width - 2 - 1; it.help != "" && room > 10 {
 						cell += "  " + t.C(Dim, trunc(it.help, room))
 					}
 				}

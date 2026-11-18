@@ -1,6 +1,7 @@
 package textui
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -21,9 +22,14 @@ func TestMenuKeys(t *testing.T) {
 	}
 	m.Line = true
 	m.Items = append(m.Items, view.Item{Key: "JOIN", Label: "Join"})
-	s, _ = deskTerm("nope\rjoin\r", false)
+	s, c = deskTerm("nope\rjoin\r", false)
 	if k, err := s.Menu(m); err != nil || k != "JOIN" {
 		t.Fatalf("%q %v", k, err)
+	}
+	// the labels line up after keys of all widths
+	out := regexp.MustCompile("\x1b\\[[0-9;]*m").ReplaceAllString(c.out.String(), "")
+	if !strings.Contains(out, "[M]    Messages") || !strings.Contains(out, "[JOIN] Join") {
+		t.Errorf("%q", out)
 	}
 	s, _ = deskTerm("\r", false)
 	if k, err := s.Menu(m); err != nil || k != "" {
