@@ -68,7 +68,7 @@ const (
 
 // Item is a menu's choice.
 type Item struct {
-	Key   string // one character
+	Key   string // one character, or a word (Menu.Line)
 	Label string
 	Help  string // what it does, beside it where the screen has room ("": none)
 }
@@ -84,6 +84,26 @@ type Menu struct {
 	// Brief: the prompt alone, the items when the caller asks (?): an
 	// expert's menus
 	Brief bool
+	// Hidden are keys that are not shown but may be chosen
+	Hidden []string
+	// Line: the caller types a line (a key may be a word), not one key
+	Line bool
+}
+
+// Has is whether key (any case) is a key of the menu's, shown or hidden;
+// it is that key as the menu gives it.
+func (m *Menu) Has(key string) (string, bool) {
+	for _, it := range m.Items {
+		if strings.EqualFold(it.Key, key) {
+			return it.Key, true
+		}
+	}
+	for _, k := range m.Hidden {
+		if strings.EqualFold(k, key) {
+			return k, true
+		}
+	}
+	return "", false
 }
 
 // Column is a table's column.

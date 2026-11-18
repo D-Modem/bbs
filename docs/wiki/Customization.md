@@ -144,9 +144,25 @@ there.
 
 ## Menus
 
-Each `[menu NAME]` section makes a menu. `[menu main]` replaces the
-built-in main menu on text terminals and on 3270s. Users get to the
-other menus from the main menu and from each other.
+The sysop can replace the main menu and add other menus. Callers go
+from the main menu to the other menus, and from these menus to more
+menus. If the sysop does not give a main menu, the BBS uses its built-in
+main menu. The built-in main menu is a menu file of the Classic theme
+([`internal/app/menus/main.menu`](https://github.com/D-Modem/bbs/tree/HEAD/internal/app/menus/main.menu)).
+You can copy it to `menus_dir` and change it.
+
+There are two ways to write a menu:
+
+- A `[menu NAME]` section in `bbs.conf`, with one line for each item.
+  This way is short. Each item does one command.
+- A menu file `NAME.menu` in `menus_dir`. This way gives all the
+  functions: an item can do more than one command, a key can be a word,
+  and there are special keys and hidden items.
+
+A menu name is lower-case letters, digits, `_` and `-`. If two menus
+have the same name, `bbs check` refuses the configuration.
+
+### Menus in bbs.conf
 
 ```
 [menu main]
@@ -154,12 +170,13 @@ title = {cyan}{bright}@BBS@{reset}
 screen = mainmenu          ; shown instead of the list of items (optional)
 prompt = "Command: "       ; (optional)
 m = areas Message areas
-e = mail E-mail ({yellow}@NEWMAIL@{default} new)
+e = mail E-mail@NOTE@
 d = doors Doors
 l = door:lord Legend of the Red Dragon
 b = screen:bulletins Bulletins
 g = area:general Straight to General
 x = menu:extras Extras
+s = sysop Sysop tools | sysop
 q = logoff Goodbye
 
 [menu extras]
@@ -168,20 +185,162 @@ u = users User list
 z = back Back
 ```
 
-Each item is `KEY = ACTION Label`. The key is one character (not `;` or
-`#`, which start comments). The action is what the item does:
+Each item is `KEY = COMMAND Label`. The key is one character (not `;` or
+`#`, which start comments). The command is one of the
+[commands](#commands). Write its data after a colon: `door:lord`. After
+`|`, an item can have an [access requirement](Access-Levels). Only
+callers who meet the requirement see the item.
 
-| Action | What it does |
+### Menu files
+
+Set the directory of the menu files:
+
+```
+[general]
+menus_dir = /etc/bbs/menus
+```
+
+The file `NAME.menu` is the menu `NAME`. Thus, `main.menu` replaces the
+built-in main menu. A menu file has one `[menu]` section and one
+`[item KEY]` section for each item:
+
+```
+; /etc/bbs/menus/messages.menu
+[menu]
+title = {cyan}Messages{reset}
+prompt = "{yellow}@USER@{default}> "
+screen = messages          ; shown instead of the list of items (optional)
+require = 20               ; who can go into the menu (optional)
+fail = main                ; where other callers go (optional)
+
+[item @first]              ; done one time, when the menu opens
+do = screen:msgnews
+
+[item r]
+label = Read the areas
+do = areas
+
+[item n]
+label = Areas, then mail
+do = areas ; mail
+
+[item JOIN]                ; a word: the caller types it, then Enter
+label = Join an area
+do = area:general
+
+[item q]
+label = Back
+do = menu.return
+
+[item x]                   ; the key operates, but it is not in the list
+hidden = yes
+do = menu.main
+```
+
+The `[menu]` section can have these keys. All of them are optional.
+
+| Key | What it is |
 |---|---|
-| `areas` `mail` `who` `users` `profile` `info` `files` `boards` `doors` `chat` `page` `callers` `feedback` `qwk` `sysop` | the built-in parts (`callers`: the last callers. `feedback`: mail to the sysop. `qwk`: [offline mail](Offline-Mail). `boards`: the [image boards](Image-Boards). `sysop`: the [sysop tools](Sysop-Tools), for sysops) |
+| `title` | the title of the menu, with @-codes and tags. The default is the name of the menu |
+| `prompt` | the prompt. The default is the `command_prompt` string |
+| `screen` | a screen that the BBS shows instead of the list of items |
+| `require` | the [access requirement](Access-Levels) to go into the menu. The main menu does not use it |
+| `fail` | the menu for callers who do not meet `require`. If there is no `fail`, the caller stays in the menu before |
+
+An `[item KEY]` section can have these keys:
+
+| Key | What it is |
+|---|---|
+| `do` | the [commands](#commands), with `;` between them. This key is necessary |
+| `label` | the text in the list, with @-codes and tags. It is necessary, but not for a special key or a hidden item |
+| `require` | the [access requirement](Access-Levels) to see and use the item |
+| `hidden` | `yes`: the key operates, but the BBS does not show it in the list |
+
+The key of an item is one of these:
+
+- One character, for example `r` or `*`. The case of a letter is not
+  important.
+- A word of 2 to 12 letters and digits, for example `JOIN`. If a menu
+  has a word, the caller types a line and pushes Enter. Then a key of one
+  character also needs Enter.
+- A special key:
+  - `@first`: the BBS does it one time, when the caller goes into the
+    menu.
+  - `@every`: the BBS does it each time before it shows the menu.
+  - `@enter`: the BBS does it when the caller pushes Enter and types no
+    key.
+
+The BBS does the commands of an item in sequence. A command that goes
+to a different menu (`menu.gosub`, `menu.goto`, `menu.return`,
+`menu.main`) is the last command that the BBS does.
+
+### Commands
+
+| Command | What it does |
+|---|---|
+| `areas` | the message areas |
+| `mail` | e-mail |
+| `who` | who is online |
+| `users` | the user list |
+| `profile` | the profile of the caller |
+| `info` | system information |
+| `files` | the file areas |
+| `boards` | the [image boards](Image-Boards) |
+| `doors` | the list of doors |
+| `chat` | chat |
+| `page` | pages the sysop |
+| `callers` | the last callers |
+| `feedback` | mail to the sysop |
+| `qwk` | [offline mail](Offline-Mail) |
+| `news` | news, weather and stock quotes |
+| `headlines` | the news headlines |
+| `weather` | the weather of the caller |
+| `quotes` | stock quotes |
+| `validate` | the users that wait for validation (for sysops) |
+| `sysop` | the [sysop tools](Sysop-Tools) (for sysops) |
 | `terminal` | the terminal details of a 3270 |
 | `logoff` | logs out (on a text terminal, it asks first) |
-| `back` | goes back to the previous menu |
 | `door:NAME` | goes directly into a door |
-| `menu:NAME` | goes to a different menu |
 | `screen:NAME` | shows a screen |
 | `area:NAME` | goes directly into a message area |
 | `script:NAME` | runs a script of `scripts_dir` ([Scripting](Scripting)) |
+| `menu.gosub NAME` | goes to the menu `NAME`. `menu.return` in that menu comes back. The short name is `menu:NAME` |
+| `menu.goto NAME` | goes to the menu `NAME`, in place of this menu |
+| `menu.return` | goes back to the menu before. The short name is `back` |
+| `menu.main` | goes back to the main menu |
+
+In a menu file, write the data after a space or after a colon:
+`menu.gosub extras` and `menu.gosub:extras` are the same.
+
+These names are also correct: `msg.areas` (`areas`), `mail.read`
+(`mail`), `mail.feedback` (`feedback`), `info.who` (`who`), `info.users`
+(`users`), `info.system` (`info`), `info.callers` (`callers`),
+`user.profile` (`profile`), `file.areas` (`files`).
+
+Some commands are not always available. The BBS does not show an item
+if its first command is not available to the caller:
+
+- `files`: only if there are file areas.
+- `doors`: only if a door is open to the caller.
+- `boards` and `news`: only if the BBS has them.
+- `chat` and `page`: only if the [level](Access-Levels) of the caller
+  lets the caller chat or page.
+- `sysop`: only for sysops.
+- `validate`: only for sysops, and only if users wait for validation.
+- `terminal`: only on a 3270.
+
+`@NOTE@` in a label gives a note from the first command of the item:
+
+| Command | `@NOTE@` |
+|---|---|
+| `mail` | ` (3 new)`: the new mail. Nothing if there is no new mail |
+| `chat` | ` (2 paging)`: callers who page the sysop. Only for sysops |
+| `validate` | ` (4)`: the users that wait |
+| `news` | the name of what there is, for example `News and weather` |
+
+A caller can go into a maximum of 10 menus, each from the menu before.
+
+### Menus on a 3270 and on RIP terminals
 
 With `screen =`, a text terminal shows the screen, which shows the keys
 itself. A 3270 shows the `.3270` (or `.asc` or `.txt`) version of the
@@ -190,9 +349,11 @@ Thus, a menu that is drawn only as ANSI art still operates on a 3270.
 
 On a 3270, the caller types the key in the option field. PF3 goes back
 (on the main menu, it logs out if there is a `logoff` item). Doors are
-only for text terminals. On a 3270, a door item tells this. `bbs check`
-refuses a menu that names a menu, door or screen that does not exist. It
-lists the menus that it read.
+only for text terminals. On a 3270, a door item tells this. A RIP
+terminal shows the items as buttons.
+
+`bbs check` refuses a menu that names a command, menu, door, screen or
+script that does not exist. It lists the menus that it read.
 
 ## Strings
 

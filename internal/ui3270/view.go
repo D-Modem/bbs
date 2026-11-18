@@ -170,7 +170,11 @@ func (u *ui) Menu(m *view.Menu) (string, error) {
 			prompt = bbs.Trunc(screens.Unmark(m.Prompt), 20) // filled in already, tags marked for a text terminal
 		}
 		scr = append(scr, u.text(u.rows-3, 2, prompt, go3270.Turquoise, false))
-		scr = append(scr, u.input(u.rows-3, 4+len([]rune(prompt)), 2, "opt", false)...)
+		width := 2
+		if m.Line {
+			width = 12 // a word
+		}
+		scr = append(scr, u.input(u.rows-3, 4+len([]rune(prompt)), width, "opt", false)...)
 		resp, v, err := u.show(scr, nil)
 		if err != nil {
 			return "", err
@@ -186,10 +190,8 @@ func (u *ui) Menu(m *view.Menu) (string, error) {
 		if key == "" {
 			continue
 		}
-		for _, it := range m.Items {
-			if strings.EqualFold(it.Key, key) {
-				return it.Key, nil
-			}
+		if k, ok := m.Has(key); ok {
+			return k, nil
 		}
 		msg = "No such option."
 	}

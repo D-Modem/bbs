@@ -13,14 +13,15 @@ type choice struct{ key, label, help string }
 // menu shows a menu and reads its key: the title and items (unless list
 // is false: a screen of the sysop's showed them) in two columns, or one
 // on a narrow screen, or as buttons on a RIP terminal; then the prompt.
-// Enter is '\r'.
-func (s *session) menu(title string, items []choice, prompt string, list bool) (rune, error) {
+// Enter is "\r".  With line, the caller types a line (a word, or one
+// character and Enter), not one key.
+func (s *session) menu(title string, items []choice, prompt string, list, line bool) (string, error) {
 	t := s.t
 	if t.RIP && list {
 		// what the last choice printed is read before the buttons cover it
 		if t.sinceKey > 0 {
 			if err := t.Pause(); err != nil {
-				return 0, err
+				return "", err
 			}
 		}
 		ri := make([]rip.Item, len(items))
@@ -60,9 +61,22 @@ func (s *session) menu(title string, items []choice, prompt string, list bool) (
 		}
 		t.Print(prompt)
 	}
+	if line {
+		l, err := t.Input("", 12)
+		if err != nil {
+			return "", err
+		}
+		if t.ripScene {
+			t.RIPClear()
+		}
+		if l = strings.TrimSpace(l); l == "" {
+			return "\r", nil
+		}
+		return l, nil
+	}
 	k, err := t.Key()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	if t.ripScene {
 		t.RIPClear()
@@ -71,5 +85,5 @@ func (s *session) menu(title string, items []choice, prompt string, list bool) (
 	} else {
 		t.Println("")
 	}
-	return k, nil
+	return string(k), nil
 }

@@ -76,6 +76,55 @@ pause = (more)
 	}
 }
 
+// TestMenusDir: menus_dir's NAME.menu files read beside [menu NAME]s; a
+// menu given in both places, a bad file, and a command that names what
+// is not there refused.
+func TestMenusDir(t *testing.T) {
+	dir := t.TempDir()
+	menus := filepath.Join(dir, "menus")
+	os.Mkdir(menus, 0755)
+	write := func(name, body string) { os.WriteFile(filepath.Join(menus, name), []byte(body), 0644) }
+	load := func(body string) (*Config, error) {
+		p := filepath.Join(dir, "bbs.conf")
+		os.WriteFile(p, []byte("[listen telnet]\ntype = telnet\naddress = :2300\n[general]\nmenus_dir = "+menus+"\n"+body), 0600)
+		return Load(p)
+	}
+	write("main.menu", "[menu]\ntitle = Main\n[item x]\nlabel = Extras\ndo = menu.gosub extras\n[item g]\nlabel = Bye\ndo = logoff\n")
+	c, err := load("[menu extras]\nq = back Back\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Menus["main"] == nil || c.Menus["main"].Items[0].Do[0].Arg != "extras" || c.Menus["extras"] == nil {
+		t.Fatalf("%+v", c.Menus)
+	}
+	for body, want := range map[string]string{
+		"[menu main]\nq = back Back\n": "also given as [menu main]",
+		"":                             "there is no [menu extras]",
+	} {
+		if _, err := load(body); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%q: %v, want %q", body, err, want)
+		}
+	}
+	write("extras.menu", "[menu]\nfail = nowhere\n[item q]\nlabel = Back\ndo = menu.return\n")
+	if _, err := load(""); err == nil || !strings.Contains(err.Error(), "extras.menu: fail = nowhere") {
+		t.Errorf("fail: %v", err)
+	}
+	write("extras.menu", "[item q]\nlabel = Back\ndo = menu.main ; door:lord\n")
+	if _, err := load(""); err == nil || !strings.Contains(err.Error(), "extras.menu Q: there is no [door lord]") {
+		t.Errorf("door: %v", err)
+	}
+	write("extras.menu", "[item q]\nlabel = Back\n")
+	if _, err := load(""); err == nil || !strings.Contains(err.Error(), "extras.menu: line 1: [item q] do: no command") {
+		t.Errorf("no do: %v", err)
+	}
+	// a menu may name a built-in menu
+	write("extras.menu", "[item q]\nlabel = Main\ndo = menu.goto main\n")
+	os.Remove(filepath.Join(menus, "main.menu"))
+	if _, err := load(""); err != nil {
+		t.Errorf("menu.goto main, built in: %v", err)
+	}
+}
+
 // customize gives a BBS screens, menus and strings (startFull's prep).
 func customize(t *testing.T, files map[string]string) func(*bbs.BBS, string) {
 	return func(b *bbs.BBS, top string) { customizeBBS(t, b, top, files) }
