@@ -153,13 +153,18 @@ func (u *ui) Menu(m *view.Menu) (string, error) {
 				right = u.cols - 3 // what each does beside it
 			}
 			scr = append(scr, u.boxed(row, 2, row+len(m.Items)+1, right, go3270.Blue)...)
+			// the labels after the widest key (a word in a Line menu)
+			labelAt := 7
+			for _, it := range m.Items {
+				labelAt = max(labelAt, 4+len(it.Key)+2)
+			}
 			for i, it := range m.Items {
 				scr = append(scr, u.text(row+1+i, 4, it.Key, go3270.Yellow, true))
 				end := 44
 				if right > 44 {
 					end = 31
 				}
-				scr = append(scr, u.spanFields(row+1+i, 7, end, it.Label, go3270.Green)...) // its tags' colors
+				scr = append(scr, u.spanFields(row+1+i, labelAt, end, it.Label, go3270.Green)...) // its tags' colors
 				if right > 44 && it.Help != "" {
 					scr = append(scr, u.text(row+1+i, 32, bbs.Trunc(it.Help, right-33), go3270.Turquoise, false))
 				}
@@ -170,7 +175,11 @@ func (u *ui) Menu(m *view.Menu) (string, error) {
 			prompt = bbs.Trunc(screens.Unmark(m.Prompt), 20) // filled in already, tags marked for a text terminal
 		}
 		scr = append(scr, u.text(u.rows-3, 2, prompt, go3270.Turquoise, false))
-		scr = append(scr, u.input(u.rows-3, 4+len([]rune(prompt)), 2, "opt", false)...)
+		width := 2
+		if m.Line {
+			width = 12 // a word
+		}
+		scr = append(scr, u.input(u.rows-3, 4+len([]rune(prompt)), width, "opt", false)...)
 		resp, v, err := u.show(scr, nil)
 		if err != nil {
 			return "", err
@@ -186,10 +195,8 @@ func (u *ui) Menu(m *view.Menu) (string, error) {
 		if key == "" {
 			continue
 		}
-		for _, it := range m.Items {
-			if strings.EqualFold(it.Key, key) {
-				return it.Key, nil
-			}
+		if k, ok := m.Has(key); ok {
+			return k, nil
 		}
 		msg = "No such option."
 	}

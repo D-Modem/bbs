@@ -4,17 +4,19 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/D-Modem/bbs/internal/app"
 	"github.com/D-Modem/bbs/internal/bbs"
 	"github.com/D-Modem/bbs/internal/config"
 	"github.com/D-Modem/bbs/internal/screens"
 	"github.com/D-Modem/bbs/internal/script"
 )
 
-// customSections reads screens_dir, scripts_dir, the [menu NAME]s and
-// [strings].
+// customSections reads screens_dir, scripts_dir, the [menu NAME]s,
+// menus_dir's NAME.menu files and [strings].
 func (c *Config) customSections(cf *config.File) error {
 	if dir := cf.Get("general", "").String("screens_dir", ""); dir != "" {
 		if fi, err := os.Stat(dir); err != nil || !fi.IsDir() {
@@ -36,6 +38,7 @@ func (c *Config) customSections(cf *config.File) error {
 		}
 	}
 	c.Menus = map[string]*bbs.Menu{}
+	where := map[string]string{} // where each menu is given, for messages
 	for _, s := range cf.All("menu") {
 		m, err := menu(s)
 		if err != nil {
@@ -45,38 +48,50 @@ func (c *Config) customSections(cf *config.File) error {
 			return fmt.Errorf("[menu %s] given twice", m.Name)
 		}
 		c.Menus[m.Name] = m
+		where[m.Name] = "[menu " + m.Name + "]"
+	}
+	if dir := cf.Get("general", "").String("menus_dir", ""); dir != "" {
+		files, err := filepath.Glob(filepath.Join(dir, "*.menu"))
+		if fi, serr := os.Stat(dir); serr != nil || !fi.IsDir() || err != nil {
+			return fmt.Errorf("[general] menus_dir %s is not a directory", dir)
+		}
+		for _, p := range files {
+			name := strings.ToLower(strings.TrimSuffix(filepath.Base(p), ".menu"))
+			mf, err := config.Load(p)
+			if err != nil {
+				return fmt.Errorf("menus_dir: %v", err)
+			}
+			m, err := bbs.ParseMenuFile(name, mf)
+			if err != nil {
+				return fmt.Errorf("menus_dir: %s: %v", filepath.Base(p), err)
+			}
+			if c.Menus[m.Name] != nil {
+				return fmt.Errorf("menus_dir: %s: the menu %s is also given as [menu %s] in the configuration", filepath.Base(p), m.Name, m.Name)
+			}
+			c.Menus[m.Name] = m
+			where[m.Name] = filepath.Base(p)
+		}
 	}
 	// what menus name must be there
 	doors := map[string]bool{}
 	for _, d := range c.Doors {
 		doors[strings.ToLower(d.Name)] = true
 	}
+	hasMenu := func(name string) bool { return c.Menus[name] != nil || app.BuiltinMenu(name) != nil }
 	for _, m := range c.Menus {
+		at := where[m.Name]
+		if m.Fail != "" && !hasMenu(m.Fail) {
+			return fmt.Errorf("%s: fail = %s, but there is no menu %s", at, m.Fail, m.Fail)
+		}
 		for _, it := range m.Items {
-			switch it.Action {
-			case "menu":
-				if c.Menus[strings.ToLower(it.Arg)] == nil {
-					return fmt.Errorf("[menu %s] %s: there is no [menu %s]", m.Name, it.Key, it.Arg)
-				}
-			case "door":
-				if !doors[strings.ToLower(it.Arg)] {
-					return fmt.Errorf("[menu %s] %s: there is no [door %s]", m.Name, it.Key, it.Arg)
-				}
-			case "screen":
-				if c.Screens == nil {
-					return fmt.Errorf("[menu %s] %s: screen:%s, but no screens_dir", m.Name, it.Key, it.Arg)
-				}
-			case "script":
-				if c.ScriptsDir == "" {
-					return fmt.Errorf("[menu %s] %s: script:%s, but no scripts_dir", m.Name, it.Key, it.Arg)
-				}
-				if !script.For(c.ScriptsDir).Has(it.Arg) {
-					return fmt.Errorf("[menu %s] %s: there is no %s.js in %s", m.Name, it.Key, it.Arg, c.ScriptsDir)
+			for _, cmd := range it.Do {
+				if err := c.checkCommand(cmd, hasMenu, doors); err != nil {
+					return fmt.Errorf("%s %s: %v", at, it.Key, err)
 				}
 			}
 		}
 		if m.Screen != "" && c.Screens == nil {
-			return fmt.Errorf("[menu %s] screen = %s, but no screens_dir", m.Name, m.Screen)
+			return fmt.Errorf("%s screen = %s, but no screens_dir", at, m.Screen)
 		}
 	}
 	c.Text = map[string]string{}
@@ -86,6 +101,32 @@ func (c *Config) customSections(cf *config.File) error {
 				return fmt.Errorf("[strings] %s: no such string (%s)", k, strings.Join(stringKeys(), ", "))
 			}
 			c.Text[k] = s.String(k, "")
+		}
+	}
+	return nil
+}
+
+// checkCommand: what a menu command names is there.
+func (c *Config) checkCommand(cmd bbs.Command, hasMenu func(string) bool, doors map[string]bool) error {
+	switch bbs.Commands[cmd.Name].Arg {
+	case bbs.MenuArg:
+		if !hasMenu(cmd.Arg) {
+			return fmt.Errorf("there is no [menu %s]", cmd.Arg)
+		}
+	case bbs.DoorArg:
+		if !doors[strings.ToLower(cmd.Arg)] {
+			return fmt.Errorf("there is no [door %s]", cmd.Arg)
+		}
+	case bbs.ScreenArg:
+		if c.Screens == nil {
+			return fmt.Errorf("screen:%s, but no screens_dir", cmd.Arg)
+		}
+	case bbs.ScriptArg:
+		if c.ScriptsDir == "" {
+			return fmt.Errorf("script:%s, but no scripts_dir", cmd.Arg)
+		}
+		if !script.For(c.ScriptsDir).Has(cmd.Arg) {
+			return fmt.Errorf("there is no %s.js in %s", cmd.Arg, c.ScriptsDir)
 		}
 	}
 	return nil

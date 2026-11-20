@@ -301,11 +301,11 @@ func main() {
 			fmt.Printf("scripts: %s (%s)\n", cfg.ScriptsDir, strings.Join(script.For(cfg.ScriptsDir).Names(), ", "))
 		}
 		for _, m := range cfg.Menus {
-			keys := ""
+			var keys []string
 			for _, it := range m.Items {
-				keys += it.Key
+				keys = append(keys, it.Key)
 			}
-			fmt.Printf("[menu %s] %q, keys %s\n", m.Name, m.Title, keys)
+			fmt.Printf("[menu %s] %q, keys %s\n", m.Name, m.Title, strings.Join(keys, " "))
 		}
 		if h := cfg.HTTP; h != nil {
 			fmt.Printf("http: %s, tls %v, anonymous %v", h.Address, h.TLS, h.Anonymous)

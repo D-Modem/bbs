@@ -85,6 +85,7 @@ The system: its name, database, log, logins, and what callers see.
 | `motd_file` |  | yes | the message of the day, after the login: motd, then the file (read at each login) Examples: `/etc/bbs/motd.txt`. |
 | `screens_dir` |  |  | the sysop's screens (display files): logon, newuser, welcome, goodbye and those menus name; NAME.ans (ANSI, CP437), NAME.asc (text), NAME.3270. screens.sample has some to start from. Examples: `/etc/bbs/screens`. |
 | `scripts_dir` |  |  | the sysop's JavaScript: NAME.js runs from a menu's script:NAME, logon.js after each login; scripts.sample has some to start from. Examples: `/etc/bbs/scripts`. |
+| `menus_dir` |  |  | the sysop's menu files: NAME.menu is the menu NAME (main.menu replaces the built-in main menu). docs/wiki/Customization.md gives the format. Examples: `/etc/bbs/menus`. |
 | `page_command` |  | yes | a caller pages the sysop and no sysop is on: tell them this way ({user}, {node} and {reason} filled in; no shell). E.g. a push by ntfy.sh: Examples: `curl -s -d "{user} on node {node}: {reason}" https://ntfy.sh/my-bbs-pages`. |
 | `goodbye` |  | yes | shown when a caller logs off. Examples: `Thanks for calling.`. |
 | `qwk_id` |  | yes | QWK offline mail: the packets' name (BBSID.QWK), up to 8 letters and digits; by default made of the name. See docs/wiki/Offline-Mail.md. Examples: `DMODEM`. |

@@ -47,6 +47,9 @@ log = syslog
 ; the sysop's JavaScript: NAME.js runs from a menu's script:NAME, logon.js
 ; after each login; scripts.sample has some to start from
 ;scripts_dir = /etc/bbs/scripts
+; the sysop's menu files: NAME.menu is the menu NAME (main.menu replaces
+; the built-in main menu).  docs/wiki/Customization.md gives the format
+;menus_dir = /etc/bbs/menus
 ; a caller pages the sysop and no sysop is on: tell them this way ({user},
 ; {node} and {reason} filled in; no shell).  E.g. a push by ntfy.sh:
 ;page_command = curl -s -d "{user} on node {node}: {reason}" https://ntfy.sh/my-bbs-pages
@@ -1292,8 +1295,15 @@ address = 127.0.0.1:2513
 ; Menus of the sysop's.  [menu main] takes the place of the built-in main
 ; menu (on 3270s too); others are reached from it.  Each item is
 ; KEY = ACTION Label: one character (not ; or #), then what it does:
-;   areas mail who users profile info files doors chat page terminal
-;   logoff back, or door:NAME menu:NAME screen:NAME area:NAME
+;   areas mail who users profile info files boards doors chat page
+;   callers feedback qwk news headlines weather quotes validate sysop
+;   terminal logoff back menu.main, or door:NAME menu:NAME menu.goto:NAME
+;   screen:NAME area:NAME script:NAME; "| REQUIREMENT" after the label
+;   shows the item only to those who meet it.  @NOTE@ in a label: the
+;   new mail of a mail item, the callers that page a sysop on chat.
+; A menus_dir file NAME.menu does the same, with more: items that do
+; more than one command, words as keys, @first, @every and @enter, hidden
+; items (docs/wiki/Customization.md)
 ; Labels, titles and prompts take @-codes (@USER@, @NEWMAIL@, @BBS@ ...)
 ; and tags ({yellow}, {bright}, {reset} ...: docs/wiki/Customization.md).
 ; screen = NAME shows that display file instead of the list of items

@@ -2,6 +2,7 @@ package textui
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	"github.com/D-Modem/bbs/internal/rip"
 	"github.com/D-Modem/bbs/internal/screens"
@@ -13,14 +14,15 @@ type choice struct{ key, label, help string }
 // menu shows a menu and reads its key: the title and items (unless list
 // is false: a screen of the sysop's showed them) in two columns, or one
 // on a narrow screen, or as buttons on a RIP terminal; then the prompt.
-// Enter is '\r'.
-func (s *session) menu(title string, items []choice, prompt string, list bool) (rune, error) {
+// Enter is "\r".  With line, the caller types a line (a word, or one
+// character and Enter), not one key.
+func (s *session) menu(title string, items []choice, prompt string, list, line bool) (string, error) {
 	t := s.t
 	if t.RIP && list {
 		// what the last choice printed is read before the buttons cover it
 		if t.sinceKey > 0 {
 			if err := t.Pause(); err != nil {
-				return 0, err
+				return "", err
 			}
 		}
 		ri := make([]rip.Item, len(items))
@@ -34,9 +36,16 @@ func (s *session) menu(title string, items []choice, prompt string, list bool) (
 		if list {
 			t.Println("")
 			t.Println(t.C(Cyan, title))
+			// keys are one character, or words (all as wide as the widest)
+			keyW := 1
+			for _, it := range items {
+				keyW = max(keyW, utf8.RuneCountInString(it.key))
+			}
 			cols, width := 2, 22
 			if t.Narrow() {
-				cols, width = 1, max(t.Cols-7, 10)
+				cols, width = 1, max(t.Cols-keyW-6, 10)
+			} else if 2+2*(keyW+3+width) > t.Cols {
+				width = max((t.Cols-2)/2-keyW-3, 10)
 			}
 			helps := false
 			for _, it := range items {
@@ -44,11 +53,12 @@ func (s *session) menu(title string, items []choice, prompt string, list bool) (
 			}
 			var cells []string
 			for _, it := range items {
-				cell := t.C(Yellow, "["+it.key+"]") + " " + screens.Fit(it.label, width)
+				pad := strings.Repeat(" ", keyW-utf8.RuneCountInString(it.key))
+				cell := t.C(Yellow, "["+it.key+"]") + pad + " " + screens.Fit(it.label, width-1) + " " // a space before the next column
 				if helps && !t.Narrow() {
 					// one column, what each does beside it
 					cols = 1
-					if room := t.Cols - 2 - 4 - width - 2 - 1; it.help != "" && room > 10 {
+					if room := t.Cols - 2 - keyW - 3 - width - 2 - 1; it.help != "" && room > 10 {
 						cell += "  " + t.C(Dim, trunc(it.help, room))
 					}
 				}
@@ -60,9 +70,22 @@ func (s *session) menu(title string, items []choice, prompt string, list bool) (
 		}
 		t.Print(prompt)
 	}
+	if line {
+		l, err := t.Input("", 12)
+		if err != nil {
+			return "", err
+		}
+		if t.ripScene {
+			t.RIPClear()
+		}
+		if l = strings.TrimSpace(l); l == "" {
+			return "\r", nil
+		}
+		return l, nil
+	}
 	k, err := t.Key()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	if t.ripScene {
 		t.RIPClear()
@@ -71,5 +94,5 @@ func (s *session) menu(title string, items []choice, prompt string, list bool) (
 	} else {
 		t.Println("")
 	}
-	return k, nil
+	return string(k), nil
 }

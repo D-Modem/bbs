@@ -1,0 +1,88 @@
+; The main menu of the Classic theme: the built-in main menu.  A
+; [menu main] in bbs.conf, or a main.menu in menus_dir, replaces it.
+; An item whose command is not available to the caller is not shown
+; (no file areas, no doors, chat not allowed for the caller's level).
+
+[menu]
+title = Main menu
+
+[item M]
+label = Message areas
+do = areas
+
+[item E]
+label = E-mail@NOTE@
+do = mail
+
+[item W]
+label = Who's online
+do = who
+
+[item U]
+label = User list
+do = users
+
+[item P]
+label = Your profile
+do = profile
+
+[item I]
+label = System info
+do = info
+
+[item F]
+label = File areas
+do = files
+
+[item D]
+label = Doors
+do = doors
+
+[item B]
+label = Image boards
+do = boards
+
+[item N]
+label = @NOTE@
+do = news
+
+[item C]
+label = Chat@NOTE@
+do = chat
+
+[item S]
+label = Page the sysop
+do = page
+
+[item V]
+label = Validate users@NOTE@
+do = validate
+
+[item O]
+label = Offline mail (QWK)
+do = qwk
+
+[item L]
+label = Last callers
+do = callers
+
+[item K]
+label = Feedback to the sysop
+do = feedback
+
+[item *]
+label = Sysop tools
+do = sysop
+
+[item T]
+label = Your terminal
+do = terminal
+
+[item G]
+label = Goodbye
+do = logoff
+
+; Q also logs off, as G does
+[item Q]
+hidden = yes
+do = logoff

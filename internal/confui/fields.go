@@ -73,7 +73,7 @@ var labels = map[string]string{
 	"general.logo": "Logo (PNG)", "general.database": "Database", "general.log": "Log",
 	"general.files_dir": "File areas' files", "general.max_file_size": "Largest file",
 	"general.upload_quota": "Uploads a day (each)", "general.screens_dir": "Display files",
-	"general.scripts_dir": "Scripts", "general.max_nodes": "Callers at once",
+	"general.scripts_dir": "Scripts", "general.menus_dir": "Menu files", "general.max_nodes": "Callers at once",
 	"general.attempts": "Login attempts", "general.fail_delay": "Delay after a wrong one (s)",
 	"general.login_timeout": "Time to log in (s)", "general.idle_timeout": "Idle time out (s)",
 	"general.throttle_failures": "Failures before a lock-out", "general.throttle_time": "Within (s)",

@@ -142,21 +142,19 @@ func (s *session) Menu(m *view.Menu) (string, error) {
 			prompt = p + " (? for the menu) "
 		}
 	}
-	k, err := s.menu(m.Title, items, "\n"+prompt, !shown && !brief)
-	if err == nil && brief && k == '?' {
-		k, err = s.menu(m.Title, items, "\n"+prompt, true)
+	k, err := s.menu(m.Title, items, "\n"+prompt, !shown && !brief, m.Line)
+	if err == nil && brief && k == "?" {
+		k, err = s.menu(m.Title, items, "\n"+prompt, true, m.Line)
 	}
 	for {
-		if err != nil || k == '\r' {
+		if err != nil || k == "\r" {
 			return "", err
 		}
-		for _, it := range m.Items {
-			if strings.EqualFold(it.Key, string(k)) {
-				return it.Key, nil
-			}
+		if key, ok := m.Has(k); ok {
+			return key, nil
 		}
 		// not an item's: asked again, as a 3270 does
-		k, err = s.menu(m.Title, items, "\n"+prompt, false)
+		k, err = s.menu(m.Title, items, "\n"+prompt, false, m.Line)
 	}
 }
 
