@@ -96,6 +96,7 @@ The system: its name, database, log, logins, and what callers see.
 | `files_dir` |  |  | file areas: where the files are kept (by number, never by their names), the largest file, and what a user may upload a day (sysops: no limit) Examples: `/var/lib/bbs/files`. |
 | `max_file_size` |  |  | file areas: where the files are kept (by number, never by their names), the largest file, and what a user may upload a day (sysops: no limit) Examples: `64M`. |
 | `upload_quota` |  |  | file areas: where the files are kept (by number, never by their names), the largest file, and what a user may upload a day (sysops: no limit) Examples: `256M`. |
+| `zmodem_zstd` |  |  | ZMODEM compresses files with zstd when the caller's program can do it too (D-Modem's GUI and app); other programs get plain ZMODEM. Examples: `yes`. |
 | `new_users` |  | yes | callers may make their own accounts (NEW at the login, PF5 on a 3270) Examples: `yes`. |
 | `max_nodes` |  | yes | callers at once, on all listeners together. Examples: `32`. |
 | `attempts` |  | yes | logins before hanging up, seconds after a wrong one. Examples: `3`. |

@@ -79,6 +79,7 @@ const (
 type zline struct {
 	*line
 	crc32 bool // send binary headers and data with CRC-32
+	zstd  bool // the receiver decompresses zstd (and Zstd lets us compress)
 }
 
 // zgetc reads a byte undoing ZDLE escapes: a byte, a frame end (gotCRC*),
@@ -377,6 +378,11 @@ func SendZMODEM(p Port, files []Outgoing) error {
 		}
 		if h.typ == zrinit {
 			z.crc32 = h.p[3]&canfc32 != 0
+			z.zstd = Zstd && h.p[2]&canZstd != 0
+			// a second ZRINIT (one for our ZRQINIT, one the receiver sent
+			// first) would answer our ZFILE, and its ZRPOS then come
+			// stale in the data: drop it
+			z.purge(200 * time.Millisecond)
 			break
 		}
 		if h.typ == zabort || h.typ == zcan {
@@ -423,11 +429,16 @@ func (z *zline) sendFile(f Outgoing, left int) error {
 	meta := append(append([]byte(f.Name), 0), info...)
 	meta = append(meta, 0)
 	var pos int64
+	compress := z.zstd && f.Size > 0 && worthCompressing(f.Name) && sampleCompresses(f.Data)
+	zf := header{typ: zfile}
+	if compress {
+		zf.p[1] = ztZstd // ZF2
+	}
 	for try := 0; ; try++ {
 		if try >= zRetries {
 			return ErrRetries
 		}
-		if err := z.sendBin(header{typ: zfile}); err != nil {
+		if err := z.sendBin(zf); err != nil {
 			return err
 		}
 		if err := z.write(z.subpacket(meta, zcrcw)); err != nil {
@@ -455,7 +466,12 @@ func (z *zline) sendFile(f Outgoing, left int) error {
 		break
 	}
 	r := f.Data
-	buf := make([]byte, zSubpacket)
+	bufSize := zSubpacket
+	if compress {
+		bufSize = zstdChunk
+	}
+	buf := make([]byte, bufSize)
+	chunk := bufSize // a frame's bytes of the file: halved by each ZRPOS, back by each ZACK
 	errs := 0
 	lastRpos := int64(-1)
 	for {
@@ -472,25 +488,43 @@ func (z *zline) sendFile(f Outgoing, left int) error {
 		if err := z.sendBin(posHeader(zdata, pos)); err != nil {
 			return err
 		}
-		sent := 0
+		sent := 0 // the file's bytes in the segment
+		wire := 0 // what went on the line for them
 		eof := false
 		var out bytes.Buffer
 		for {
-			n, err := io.ReadFull(r, buf)
+			n, err := io.ReadFull(r, buf[:chunk])
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				eof = true
 			} else if err != nil {
 				return err
 			}
+			data := buf[:n]
+			if compress && n > 0 {
+				// one frame; a segment ends only where a frame does
+				data = zstdFrame(data)
+				for len(data) > zSubpacket {
+					out.Write(z.subpacket(data[:zSubpacket], zcrcg))
+					wire += zSubpacket
+					data = data[zSubpacket:]
+					if out.Len() >= 4096 {
+						if err := z.write(out.Bytes()); err != nil {
+							return err
+						}
+						out.Reset()
+					}
+				}
+			}
 			end := byte(zcrcg)
 			if eof {
 				end = zcrce
-			} else if sent+n >= zSegment {
+			} else if wire+len(data) >= zSegment {
 				end = zcrcw
 			}
-			out.Write(z.subpacket(buf[:n], end))
+			out.Write(z.subpacket(data, end))
 			pos += int64(n)
 			sent += n
+			wire += len(data)
 			if out.Len() >= 4096 || end != zcrcg {
 				if err := z.write(out.Bytes()); err != nil {
 					return err
@@ -530,6 +564,9 @@ func (z *zline) sendFile(f Outgoing, left int) error {
 			case zack:
 				if !eof && h.pos() == pos {
 					errs = 0
+					if compress && chunk < zstdChunk {
+						chunk *= 2
+					}
 					break answer
 				}
 			case zrpos:
@@ -542,6 +579,10 @@ func (z *zline) sendFile(f Outgoing, left int) error {
 					return ErrRetries
 				}
 				pos = h.pos()
+				if compress && chunk > zstdMinChunk {
+					// an error costs a frame: smaller ones, on a bad line
+					chunk /= 2
+				}
 				z.purge(200 * time.Millisecond)
 				break answer
 			case zrinit:
@@ -562,18 +603,31 @@ func (z *zline) sendFile(f Outgoing, left int) error {
 }
 
 // zrinitHeader is our ZRINIT: full duplex, overlapped I/O, CRC-32, no
-// buffer limit.
-var zrinitHeader = header{typ: zrinit, p: [4]byte{0, 0, 0, canfdx | canovio | canfc32}}
+// buffer limit, and zstd if Zstd lets us.
+func zrinitHeader() header {
+	h := header{typ: zrinit, p: [4]byte{0, 0, 0, canfdx | canovio | canfc32}}
+	if Zstd {
+		h.p[2] = canZstd
+	}
+	return h
+}
+
+// resumer is an Incoming that can go on from what an earlier, cut short,
+// transfer of the same file left: Resume is the length it has.
+type resumer interface{ Resume() int64 }
 
 // ReceiveZMODEM receives a ZMODEM batch.
 func ReceiveZMODEM(p Port, sink Sink) error {
 	z := &zline{line: newLine(p)}
-	if err := z.sendHex(zrinitHeader); err != nil {
+	if err := z.sendHex(zrinitHeader()); err != nil {
 		return err
 	}
 	var in Incoming
 	var name string
 	var pos, size int64
+	var got bool      // data came for the file
+	var packed bool   // the file comes in zstd frames
+	var frames []byte // a frame's bytes so far
 	errs := 0
 	fail := func(err error) error {
 		if in != nil {
@@ -587,10 +641,11 @@ func ReceiveZMODEM(p Port, sink Sink) error {
 			return fail(ErrRetries)
 		}
 		z.purge(200 * time.Millisecond)
+		frames = frames[:0]
 		if in != nil {
 			return z.sendHex(posHeader(zrpos, pos))
 		}
-		return z.sendHex(zrinitHeader)
+		return z.sendHex(zrinitHeader())
 	}
 	for {
 		h, c32, err := z.recvHeader(zWait)
@@ -605,7 +660,7 @@ func ReceiveZMODEM(p Port, sink Sink) error {
 		}
 		switch h.typ {
 		case zrqinit:
-			z.sendHex(zrinitHeader)
+			z.sendHex(zrinitHeader())
 		case zsinit:
 			// the sender's attention string: taken and ignored
 			if _, _, err := z.recvData(c32, zWait); err != nil {
@@ -624,9 +679,9 @@ func ReceiveZMODEM(p Port, sink Sink) error {
 				continue
 			}
 			n, info, _ := bytes.Cut(data, []byte{0})
-			if in != nil && pos == 0 && string(n) == name {
+			if in != nil && !got && string(n) == name {
 				// the same ZFILE again: our ZRPOS was lost
-				z.sendHex(posHeader(zrpos, 0))
+				z.sendHex(posHeader(zrpos, pos))
 				continue
 			}
 			if in != nil {
@@ -639,6 +694,12 @@ func ReceiveZMODEM(p Port, sink Sink) error {
 					size = v
 				}
 			}
+			packed = h.p[1] == ztZstd // ZF2
+			if packed && !Zstd {
+				// zstd, though we did not say we take it
+				z.sendHex(header{typ: zskip})
+				continue
+			}
 			in, err = sink(name, size)
 			if err != nil {
 				// refused: on to the next
@@ -646,11 +707,17 @@ func ReceiveZMODEM(p Port, sink Sink) error {
 				z.sendHex(header{typ: zskip})
 				continue
 			}
-			pos = 0
-			z.sendHex(posHeader(zrpos, 0))
+			pos, got, frames = 0, false, frames[:0]
+			if r, ok := in.(resumer); ok && size > 0 {
+				// on from what a transfer cut short left
+				if pos = r.Resume(); pos > size {
+					pos = 0
+				}
+			}
+			z.sendHex(posHeader(zrpos, pos))
 		case zdata:
 			if in == nil {
-				z.sendHex(zrinitHeader)
+				z.sendHex(zrinitHeader())
 				continue
 			}
 			if h.pos() != pos {
@@ -659,6 +726,7 @@ func ReceiveZMODEM(p Port, sink Sink) error {
 				}
 				continue
 			}
+			frames = frames[:0]
 			// subpackets until the frame ends
 			for {
 				data, end, err := z.recvData(c32, zWait)
@@ -671,11 +739,27 @@ func ReceiveZMODEM(p Port, sink Sink) error {
 					}
 					break
 				}
+				if packed {
+					var bad error
+					if data, frames, bad = z.unpack(frames, data); bad == nil && len(frames) > 0 &&
+						(end == gotCRCW || end == gotCRCE) {
+						bad = fmt.Errorf("%w: a segment ends in a zstd frame", ErrProtocol)
+					}
+					if bad != nil {
+						if err := retry(); err != nil {
+							return err
+						}
+						break
+					}
+				}
 				if size >= 0 && pos+int64(len(data)) > size {
 					return fail(fmt.Errorf("%w: more data than the file's size", ErrProtocol))
 				}
-				if _, err := in.Write(data); err != nil {
-					return fail(err)
+				if len(data) > 0 {
+					if _, err := in.Write(data); err != nil {
+						return fail(err)
+					}
+					got = true
 				}
 				pos += int64(len(data))
 				errs = 0
@@ -687,7 +771,7 @@ func ReceiveZMODEM(p Port, sink Sink) error {
 				}
 			}
 		case zeof:
-			if in == nil || h.pos() != pos {
+			if in == nil || h.pos() != pos || len(frames) > 0 {
 				continue // stale: the sender is still coming back
 			}
 			if err := in.Commit(); err != nil {
@@ -695,7 +779,7 @@ func ReceiveZMODEM(p Port, sink Sink) error {
 				return fail(err)
 			}
 			in = nil
-			z.sendHex(zrinitHeader)
+			z.sendHex(zrinitHeader())
 		case zfin:
 			z.sendHex(header{typ: zfin})
 			// the sender's "OO", if it comes
@@ -712,4 +796,30 @@ func ReceiveZMODEM(p Port, sink Sink) error {
 			z.sendHex(header{typ: znak})
 		}
 	}
+}
+
+// unpack adds a subpacket's bytes to the zstd frames so far, and gives the
+// content of the frames it completes, and what is left of the next one.
+func (z *zline) unpack(frames, data []byte) ([]byte, []byte, error) {
+	frames = append(frames, data...)
+	var out []byte
+	for {
+		n, err := zstdFrameLen(frames)
+		if err != nil {
+			return nil, frames[:0], err
+		}
+		if n == 0 {
+			break
+		}
+		content, err := zstdDecode(frames[:n])
+		if err != nil {
+			return nil, frames[:0], err
+		}
+		out = append(out, content...)
+		frames = append(frames[:0], frames[n:]...)
+	}
+	if len(frames) > zstdMaxSize+zstdMaxSize/8 {
+		return nil, frames[:0], fmt.Errorf("%w: zstd frame too large", ErrProtocol)
+	}
+	return out, frames, nil
 }

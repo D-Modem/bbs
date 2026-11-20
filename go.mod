@@ -23,6 +23,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/jlaffaye/ftp v0.2.0
+	github.com/klauspost/compress v1.18.0
 	github.com/miekg/dns v1.1.72
 	github.com/spf13/afero v1.15.0
 	golang.org/x/crypto v0.52.0

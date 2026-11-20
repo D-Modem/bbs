@@ -71,6 +71,15 @@ func (s started) Read(p []byte) (int, error) {
 	return s.r.Read(p)
 }
 
+// Seek goes to a place in the file (a ZMODEM ZRPOS, or a resume).
+func (s started) Seek(off int64, whence int) (int64, error) {
+	sk, ok := s.r.(io.Seeker)
+	if !ok {
+		return 0, errors.New("the file cannot seek")
+	}
+	return sk.Seek(off, whence)
+}
+
 // Download sends files: many at once by a batch protocol, one by XMODEM.
 func (s *session) Download(fs []app.FileRef) error {
 	t := s.t
@@ -148,8 +157,11 @@ type incoming struct {
 // Write writes p to the upload.
 func (in *incoming) Write(p []byte) (int, error) { return in.up.Write(p) }
 
-// Abort throws the upload away.
+// Abort throws the upload away (or keeps it for a resume).
 func (in *incoming) Abort() { in.up.Abort() }
+
+// Resume goes on from what an earlier upload of the file left: its length.
+func (in *incoming) Resume() int64 { return in.up.Resume() }
 
 // Commit makes the upload a file of its area, and gives it to done.
 func (in *incoming) Commit() error {
@@ -232,7 +244,7 @@ func (s *session) Upload(a *store.FileArea) error {
 			refused = append(refused, name)
 			return nil, files.ErrTooLarge
 		}
-		up, err := s.b.Files.Upload(s.user, a, name, "")
+		up, err := s.b.Files.UploadResumable(s.user, a, name, "", size)
 		if err != nil {
 			refused = append(refused, name+" ("+err.Error()+")")
 			return nil, err

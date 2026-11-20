@@ -25,6 +25,25 @@ that the file areas do not accept. An upload goes through the same
 checks, size limit and daily allowance as an FTP upload. The BBS keeps the
 upload only if it is complete.
 
+### ZMODEM resume
+
+If a ZMODEM upload stops before its end, the BBS keeps the part that
+came for 7 days. When the same user sends the same file (the same name
+and size) to the same area again, the BBS continues from the end of that
+part. The BBS also continues a download from the position that the
+terminal program asks for (crash recovery).
+
+### ZMODEM with zstd
+
+The D-Modem GUI and the D-Modem app can compress ZMODEM transfers with
+zstd. The BBS does this automatically when the program of the caller
+can do it. Other terminal programs get normal ZMODEM. Text files usually
+need many fewer bytes. The BBS does not compress files that
+are compressed now (for example, ZIP, ARJ, LZH, JPEG and MP3 files).
+
+To stop zstd, set `zmodem_zstd = no` in `[general]`. The specification
+is `docs/zmodem-zstd.md` in the D-Modem repository.
+
 XMODEM, YMODEM and ZMODEM must have an 8-bit clean line: a modem, rlogin,
 or telnet in binary mode. The BBS asks for binary mode. If a client does
 not accept binary mode, the BBS shows a warning to the client.

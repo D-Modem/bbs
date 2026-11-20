@@ -46,6 +46,9 @@ func (c *Config) files(g *config.Section) error {
 	if c.UploadQuota, err = parseSize(g, "upload_quota", 256<<20); err != nil {
 		return err
 	}
+	if c.ZmodemZstd, err = g.Bool("zmodem_zstd", true); err != nil {
+		return err
+	}
 	return nil
 }
 

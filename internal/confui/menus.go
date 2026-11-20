@@ -249,7 +249,7 @@ func (e *Editor) systemMenu() page {
 	return page{title: "System configuration", items: func() []item {
 		out := e.fields(g, "database", "log")
 		out = append(out, heading("File locations"))
-		out = append(out, e.fields(g, "files_dir", "max_file_size", "upload_quota", "screens_dir", "scripts_dir", "menus_dir")...)
+		out = append(out, e.fields(g, "files_dir", "max_file_size", "upload_quota", "zmodem_zstd", "screens_dir", "scripts_dir", "menus_dir")...)
 		out = append(out, e.field(sec("chan"), "dir"), e.field(sec("fido"), "dir"))
 		out = append(out, heading("Security"))
 		out = append(out, e.fields(sec("security"), "deny_file", "name_deny_file", "hack_log", "ban_minutes", "ntlm")...)

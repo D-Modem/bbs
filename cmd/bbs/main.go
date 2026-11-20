@@ -90,6 +90,7 @@ import (
 	"github.com/D-Modem/bbs/internal/sockets"
 	"github.com/D-Modem/bbs/internal/store"
 	"github.com/D-Modem/bbs/internal/vhost"
+	"github.com/D-Modem/bbs/internal/xfer"
 	"github.com/D-Modem/bbs/internal/ymsg"
 	"github.com/D-Modem/menu/authd"
 )
@@ -536,6 +537,7 @@ func serve(cfg *server.Config, path string) int {
 	if len(cfg.Events) > 0 {
 		b.Events = &events.Scheduler{Events: cfg.Events, Log: b.Log}
 	}
+	xfer.Zstd = cfg.ZmodemZstd
 	if b.Files, err = files.Open(st, cfg.FilesDir, cfg.MaxFileSize, cfg.UploadQuota); err != nil {
 		lg.Printf("files: %v", err)
 		return 1
