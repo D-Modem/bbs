@@ -2,6 +2,8 @@ package files
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"os"
 	"path/filepath"
@@ -162,5 +164,44 @@ func TestStaleUploadsCleared(t *testing.T) {
 	}
 	if _, err := os.Stat(stale); !errors.Is(err, os.ErrNotExist) {
 		t.Error("stale upload kept")
+	}
+}
+
+// TestUploadResume: an upload of a known size cut short is kept; the next
+// upload of the same file takes it by Resume and goes on after it, hashed
+// whole; one that does not call Resume starts again; nothing is left.
+func TestUploadResume(t *testing.T) {
+	s, alice, _, a := setup(t, 1<<20, 0)
+	want := []byte("the whole of the file, in two parts\n")
+	up, err := s.UploadResumable(alice, a, "two.txt", "", int64(len(want)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	up.Write(want[:10])
+	up.Abort()
+	// a different size is a different file: nothing to go on from
+	other, _ := s.UploadResumable(alice, a, "two.txt", "", 99)
+	if n := other.Resume(); n != 0 {
+		t.Errorf("other size resumed at %d", n)
+	}
+	other.Abort()
+	up, _ = s.UploadResumable(alice, a, "two.txt", "", int64(len(want)))
+	if n := up.Resume(); n != 10 {
+		t.Fatalf("resumed at %d", n)
+	}
+	up.Write(want[10:])
+	f, err := up.Commit()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(want)
+	if f.Size != int64(len(want)) || f.SHA256 != hex.EncodeToString(sum[:]) {
+		t.Errorf("file %+v", f)
+	}
+	if data, _ := os.ReadFile(filepath.Join(s.Dir, "1")); !bytes.Equal(data, want) {
+		t.Errorf("stored %q", data)
+	}
+	if left, _ := filepath.Glob(filepath.Join(s.Dir, "tmp", "*")); len(left) != 0 {
+		t.Errorf("tmp left %v", left)
 	}
 }

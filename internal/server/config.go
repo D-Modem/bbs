@@ -59,6 +59,7 @@ type Config struct {
 	FilesDir     string // file areas' files
 	MaxFileSize  int64
 	UploadQuota  int64         // a user's uploads a day (0: no limit)
+	ZmodemZstd   bool          // ZMODEM compresses with zstd where the caller's program can
 	FTP          *ftp.Settings // nil: no FTP server
 	FTPAdvertise string        // the FTP server's address, as users are told it
 

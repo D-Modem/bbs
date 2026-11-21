@@ -79,6 +79,9 @@ tn3270_vector = yes
 files_dir = /var/lib/bbs/files
 max_file_size = 64M
 upload_quota = 256M
+; ZMODEM compresses files with zstd when the caller's program can do it
+; too (D-Modem's GUI and app); other programs get plain ZMODEM
+zmodem_zstd = yes
 ; callers may make their own accounts (NEW at the login, PF5 on a 3270)
 new_users = yes
 ; callers at once, on all listeners together

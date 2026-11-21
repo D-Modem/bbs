@@ -122,6 +122,7 @@ type Upload struct {
 	name  string
 	desc  string
 	tmp   *os.File
+	part  string // where the upload is kept if it is cut short ("": thrown away)
 	hash  hash.Hash
 	size  int64
 	limit int64
@@ -168,6 +169,65 @@ func (s *Store) Upload(u *store.User, a *store.FileArea, name, desc string) (*Up
 		hash: sha256.New(), limit: limit, quota: quota}, nil
 }
 
+// partAge is how long an upload cut short is kept for a resume.
+const partAge = 7 * 24 * time.Hour
+
+// partPath is where an upload of name and size into a by u is kept when it
+// is cut short: one per user, area, name and size.
+func (s *Store) partPath(u *store.User, a *store.FileArea, name string, size int64) string {
+	sum := sha256.Sum256([]byte(name))
+	return filepath.Join(s.Dir, "tmp", fmt.Sprintf("part-%d-%d-%d-%x", u.ID, a.ID, size, sum[:8]))
+}
+
+// UploadResumable is Upload of a file whose size the other side told: if it
+// is cut short, what came is kept (for a week) so that a protocol that can
+// (ZMODEM) goes on from there by Resume.
+func (s *Store) UploadResumable(u *store.User, a *store.FileArea, name, desc string, size int64) (*Upload, error) {
+	up, err := s.Upload(u, a, name, desc)
+	if err != nil || size <= 0 {
+		return up, err
+	}
+	old, _ := filepath.Glob(filepath.Join(s.Dir, "tmp", "part-*"))
+	for _, f := range old {
+		if fi, err := os.Stat(f); err == nil && time.Since(fi.ModTime()) > partAge {
+			os.Remove(f)
+		}
+	}
+	up.part = s.partPath(u, a, name, size)
+	return up, nil
+}
+
+// Resume takes what an earlier upload of the same file left, if there is
+// any, and goes on after it: the length it has (0: from the start).  Only
+// before the first Write.
+func (up *Upload) Resume() int64 {
+	if up.part == "" || up.done || up.size != 0 {
+		return up.size
+	}
+	f, err := os.Open(up.part)
+	if err != nil {
+		return 0
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil || fi.Size() == 0 || fi.Size() > up.limit {
+		return 0
+	}
+	if _, err := io.Copy(up.tmp, f); err != nil {
+		up.tmp.Truncate(0)
+		up.tmp.Seek(0, io.SeekStart)
+		return 0
+	}
+	f.Seek(0, io.SeekStart)
+	io.Copy(up.hash, f)
+	up.size = fi.Size()
+	os.Remove(up.part)
+	up.s.mu.Lock()
+	up.s.uploading[up.user.ID] += up.size
+	up.s.mu.Unlock()
+	return up.size
+}
+
 // Write writes to the upload, failing once it passes its limit.
 func (up *Upload) Write(p []byte) (int, error) {
 	if up.done {
@@ -206,6 +266,9 @@ func (up *Upload) Abort() {
 	}
 	up.finish()
 	up.tmp.Close()
+	if up.part != "" && up.size > 0 && os.Rename(up.tmp.Name(), up.part) == nil {
+		return // kept for a resume
+	}
 	os.Remove(up.tmp.Name())
 }
 
@@ -243,6 +306,9 @@ func (up *Upload) Commit() (*store.File, error) {
 	}
 	if err != nil {
 		return fail(err)
+	}
+	if up.part != "" {
+		os.Remove(up.part)
 	}
 	if err := os.Rename(tmp, up.s.path(id)); err != nil {
 		up.s.DB.DeleteFile(id)
