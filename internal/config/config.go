@@ -1,5 +1,5 @@
 // Package config reads the BBS configuration: an INI file in the style of
-// modemmenu.conf.
+// dmodem-login.conf.
 //
 //	[general]
 //	name = D-Modem BBS

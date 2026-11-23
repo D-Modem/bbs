@@ -112,7 +112,7 @@ server on unix sockets. The list that follows gives what the tests cover.
 
 - **Unit tests:** text cleaning, names and passwords, the configuration,
   telnet negotiation and the 3270 handoff.
-- **Sessions and lines:** a modem caller with a trusted modemmenu header,
+- **Sessions and lines:** a modem caller with a trusted dmodem-login header,
   and one with a header that is not trusted; a login and a post; a new
   user; rlogin with a correct password, a wrong password, and trusted;
   limits by caller ID; all lines busy; a telnet ANSI client; a TN3270

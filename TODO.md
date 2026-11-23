@@ -83,7 +83,7 @@ and by modem.
   The sequence of the atoms in a list entry is a guess from the code of
   the mail tool.
 - **Modem callers** (complete in menu, not tried with a real modem):
-  modemmenu emulates AOLnet, SprintNet or Tymnet, as the CCL script of the
+  dmodem-login emulates AOLnet, SprintNet or Tymnet, as the CCL script of the
   client expects. Then it connects the line to the host.
 - **Tokens**, the next task: the client asks for art that it does not
   have (`fh`). bbs does not serve art yet.

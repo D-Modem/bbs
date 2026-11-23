@@ -52,7 +52,7 @@ func openPty(t *testing.T) (*os.File, *os.File) {
 }
 
 // handOver is a caller whose line (a pty's terminal) is handed to the
-// listener at name with header, as modemmenu's handoff item does: the
+// listener at name with header, as dmodem-login's handoff item does: the
 // dialog on the line, and the connection
 func (e *env) handOver(name, header, after string) (*dialog, *net.UnixConn) {
 	m, s := openPty(e.t)

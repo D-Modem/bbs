@@ -14,7 +14,7 @@ import (
 // signs in with it once, within CodeTTL, where they would type a password:
 // the web forum's sign-in (the code alone), the web terminal, the API.  A
 // password typed nowhere, for a user whose password is another system's
-// (modemmenu's) or who would rather not type it on a shared machine.
+// (dmodem-login's) or who would rather not type it on a shared machine.
 
 // CodeTTL is how long a sign-in code lasts.
 const CodeTTL = 5 * time.Minute

@@ -17,7 +17,7 @@ import (
 )
 
 // The handoff: a caller's line itself, a terminal, passed to the BBS over
-// a unix socket (SCM_RIGHTS) with the session header, by modemmenu's item
+// a unix socket (SCM_RIGHTS) with the session header, by dmodem-login's item
 // with handoff = yes (or app_dmodem's profile with handoff = yes, the
 // modem's pty).  The BBS reads and writes the terminal; nothing copies
 // between.  What the sender had read of the line and not used comes on

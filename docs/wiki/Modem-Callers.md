@@ -4,7 +4,7 @@ ways:
 - Directly from the call through
   [app_dmodem](https://github.com/D-Modem/D-Modem/blob/main/docs/asterisk.md),
   the Asterisk application of D-Modem.
-- Through [modemmenu](https://github.com/D-Modem/menu) after its login.
+- Through [dmodem-login](https://github.com/D-Modem/login) after its login.
 
 This page tells about the two ways. It also tells how to give callers
 the same password on all routes, and how the BBS finds the locations of
@@ -36,13 +36,13 @@ the BBS the screen size. All other terminals get plain text. Text is
 session header (`header = yes`), the BBS gets the rate and caller ID of
 the call. Also set `header = yes` on the listener.
 
-## Behind modemmenu
+## Behind dmodem-login
 
-modemmenu logs in the caller first, and offers the BBS as an item in its
-menu. There are three ways for modemmenu to give the caller to the BBS.
+dmodem-login logs in the caller first, and offers the BBS as an item in its
+menu. There are three ways for dmodem-login to give the caller to the BBS.
 The list starts with the simplest and ends with the most closely linked.
 
-**rlogin** is the default of modemmenu for a BBS. It sends the password
+**rlogin** is the default of dmodem-login for a BBS. It sends the password
 of the caller as the rlogin client user, and the name as the server user
 (the convention of Synchronet). The BBS checks them against its own
 accounts. If they do not agree (the user has no account on the BBS, or a
@@ -50,7 +50,7 @@ different password), the BBS asks the caller to log in, with the name
 already filled in.
 
 ```
-; modemmenu.conf
+; dmodem-login.conf
 [item bbs]
 key = B
 label = Bulletin board
@@ -66,14 +66,14 @@ address = 127.0.0.1:2513
 ```
 
 **A unix socket with the session header** lets the BBS trust the login of
-modemmenu (`trust_user`). Callers do not need an account on the BBS
+dmodem-login (`trust_user`). Callers do not need an account on the BBS
 first: `create_users = yes` creates one for each new name. This type of
 account has no BBS password of its own. It logs in in this way, or with
-the modemmenu password (refer to the text below). The rate, caller ID and
+the dmodem-login password (refer to the text below). The rate, caller ID and
 number from the header show in the log and in Who's online.
 
 ```
-; modemmenu.conf
+; dmodem-login.conf
 [item bbs]
 key = B
 label = Bulletin board
@@ -95,50 +95,54 @@ socket_group = asterisk
 ```
 
 `trust_user` trusts all processes that can connect. Thus, make sure that
-only the user of modemmenu can get to the socket (the group of Asterisk
+only the user of dmodem-login can get to the socket (the group of Asterisk
 with mode 0660, or mode 0600 and the same user). `bbs check` gives a
 warning about a trusting socket or port that others can get to.
 
 **telnet** also operates (`mode = telnet`, `port = 2300`). The telnet
-client of modemmenu says that it is an `ANSI` terminal, and the caller
+client of dmodem-login says that it is an `ANSI` terminal, and the caller
 logs in again.
 
 ## The same password for telnet, SSH and the web
 
-Accounts that modemmenu logs in have no password on the BBS. With the
-auth socket of modemmenu, the same persons can log in to the BBS by all
+Accounts that dmodem-login logs in have no password on the BBS. With the
+auth socket of dmodem-login, the same persons can log in to the BBS by all
 other routes (telnet, SSH, TN3270, the web forum and terminal, the API,
-FTP, NNTP, IRC) with their modemmenu password. The BBS asks modemmenu.
-modemmenu asks its own backends (its users file, LDAP, SQL, or the
+FTP, NNTP, IRC) with their dmodem-login password. The BBS asks dmodem-login.
+dmodem-login asks its own backends (its users file, LDAP, SQL, or the
 accounts of the system through PAM), as it does at its own login prompt.
 The BBS keeps no part of the password.
 
 ```
-; modemmenu.conf: answered by modemmenu -serve, or modemmenu -authd alone
+; dmodem-login.conf: answered by dmodem-login -serve, or dmodem-login -authd alone
 [authd]
-listen = /run/modemmenu/auth.sock
+listen = /run/dmodem-login/auth.sock
 socket_mode = 0660
 socket_group = bbs
 allow_users = bbs
 
 ; bbs.conf
-[modemmenu]
-auth_socket = /run/modemmenu/auth.sock
+[dmodem-login]
+auth_socket = /run/dmodem-login/auth.sock
 ```
 
-| `[modemmenu]` key | Default | What it sets |
+| `[dmodem-login]` key | Default | What it sets |
 |---|---|---|
-| `auth_socket` | none | the `[authd] listen` of modemmenu |
-| `create_users` | `yes` | if modemmenu knows a user and the BBS does not, the user gets an account at the first login (by any route), as `create_users` does for a listener. The name must be a name that the BBS accepts, and `name_deny_file` must not refuse it |
-| `timeout` | `15` | seconds for the answer of modemmenu (the answer for an incorrect password comes after its `fail_delay`) |
+| `auth_socket` | none | the `[authd] listen` of dmodem-login |
+| `create_users` | `yes` | if dmodem-login knows a user and the BBS does not, the user gets an account at the first login (by any route), as `create_users` does for a listener. The name must be a name that the BBS accepts, and `name_deny_file` must not refuse it |
+| `timeout` | `15` | seconds for the answer of dmodem-login (the answer for an incorrect password comes after its `fail_delay`) |
 
-The BBS asks modemmenu only about accounts that modemmenu created
+The old name of dmodem-login is modemmenu, and the old name of this
+section is `[modemmenu]`. The BBS still reads `[modemmenu]`. Do not use
+`[modemmenu]` and `[dmodem-login]` in the same file.
+
+The BBS asks dmodem-login only about accounts that dmodem-login created
 (external accounts with no BBS password). An account with its own BBS
-password keeps it, and the modemmenu password does not open it. An
+password keeps it, and the dmodem-login password does not open it. An
 incorrect password counts as a failed login, as all others do
-(throttling, the hack log). If modemmenu does not answer, the BBS tells
+(throttling, the hack log). If dmodem-login does not answer, the BBS tells
 the caller that there is a problem, and does not count it against the
-caller. Change these passwords in modemmenu (or its backend), not in the
+caller. Change these passwords in dmodem-login (or its backend), not in the
 BBS.
 
 Callers can also sign in without a password. While a caller is signed in

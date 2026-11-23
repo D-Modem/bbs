@@ -16,8 +16,8 @@ tells the type of caller to expect:
 | `type` | What comes in |
 |---|---|
 | `telnet` | a telnet client. With `tn3270 = yes` (the default), 3270s get 3270 screens |
-| `raw` | bytes as they come: the `mode = tcp` of app_dmodem, a modemmenu `tcp` or `unix` item |
-| `rlogin` | RFC 1282, as the `rlogin` items of modemmenu use it |
+| `raw` | bytes as they come: the `mode = tcp` of app_dmodem, a dmodem-login `tcp` or `unix` item |
+| `rlogin` | RFC 1282, as the `rlogin` items of dmodem-login use it |
 | `ssh` | SSH: the text BBS, with login by password or key ([SSH](SSH)) |
 
 `address` is `host:port`, or a path for a unix socket (with
@@ -82,7 +82,7 @@ numbered lines.
 |---|---|
 | Board configuration | the name of the BBS, the name of the sysop, the location, postal address, dial-in numbers and internet addresses. The banner, message of the day, goodbye, logo. Menus and prompts |
 | System configuration | the user and group that the BBS runs as. The database and log. The location of files and their maximum size. Deny lists, the hack log, bans. Scheduled events. All sections of the file as they are |
-| Connections and modems | modem lines and all listeners. Callers at one time, logins, time-outs, lock-outs. Passwords by the auth socket of modemmenu ([Modem callers](Modem-Callers#the-same-password-for-telnet-ssh-and-the-web)). The caller ID country and GeoIP |
+| Connections and modems | modem lines and all listeners. Callers at one time, logins, time-outs, lock-outs. Passwords by the auth socket of dmodem-login ([Modem callers](Modem-Callers#the-same-password-for-telnet-ssh-and-the-web)). The caller ID country and GeoIP |
 | Internet services | telnet, TN3270, SSH and RLogin listeners. Finger, gopher, Gemini, FTP, news, the web (API, forum, image boards) |
 | Online services | [AOL](AOL), [CompuServe](CompuServe) (its listeners) and [The Microsoft Network](MSN-Classic) (its TCP host and dial-in listeners) |
 | Messengers and chat | [AIM and ICQ](AIM-and-ICQ), [MSN Messenger](MSN-Messenger), [Yahoo! Messenger](Yahoo-Messenger), the [IRC](IRC) server, [IRC network links](IRC-Linking) and their peers, [MRC](MRC) |
@@ -97,7 +97,7 @@ letter of the menu) go directly to these menus from all locations: File
 (review, check, save, quit), Setup, Lines, Internet, Online (the online
 services and the messengers), Mail, Networks, Time and Help.
 
-modemmenu checks system passwords (PAM, LDAP). It logs in callers and
+dmodem-login checks system passwords (PAM, LDAP). It logs in callers and
 gives them to the BBS (refer to [Modem callers](Modem-Callers)). For how
 to run the BBS as its own user (Run as user in System configuration),
 refer to [Running](Running#running-as-a-user-of-its-own).

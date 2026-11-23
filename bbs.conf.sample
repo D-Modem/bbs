@@ -141,8 +141,8 @@ line_speed_ask = no
 ;                        a client that says it is a 3270 (IBM-3278-2-E,
 ;                        IBM-DYNAMIC) gets the 3270 screens
 ;          raw           the caller's bytes as they come, no protocol:
-;                        app_dmodem's mode = tcp, modemmenu tcp/unix items
-;          rlogin        RFC 1282, as modemmenu's rlogin items speak it
+;                        app_dmodem's mode = tcp, dmodem-login tcp/unix items
+;          rlogin        RFC 1282, as dmodem-login's rlogin items speak it
 ;          ssh           SSH: passwords or users' keys (host_keys, legacy)
 ;   address = host:port  or a unix socket's path (/run/bbs/bbs.sock)
 ;   via = ...            how its callers came, in who's online
@@ -169,11 +169,11 @@ line_speed_ask = no
 ;                        and unix sockets: no limit, they are modem servers)
 ;   header = no          yes: a session header comes first, NAME=value lines
 ;                        and an empty line: app_dmodem's DMODEM_* or a
-;                        modemmenu item's MODEM_* (rate, caller ID, number)
+;                        dmodem-login item's MODEM_* (rate, caller ID, number)
 ;   header_timeout = 10  seconds for the header
 ;   handoff = no         type = raw on a unix socket, with header = yes:
 ;                        the caller's line itself may come with the header
-;                        (SCM_RIGHTS, modemmenu's item with handoff = yes),
+;                        (SCM_RIGHTS, dmodem-login's item with handoff = yes),
 ;                        the session then on that terminal, nothing copied;
 ;                        closing the connection gives the line back
 ;   trust_user = no      yes: the header's MODEM_USER (an rlogin's server
@@ -339,15 +339,15 @@ address = 127.0.0.1:2323
 ; old clients only: CBC ciphers and 1024-bit DH too
 ;legacy = no
 
-; modemmenu's rlogin item: the caller's modemmenu login and password are
+; dmodem-login's rlogin item: the caller's dmodem-login login and password are
 ; checked here (the same accounts on both, or the caller logs in again)
 [listen rlogin]
 type = rlogin
 address = 127.0.0.1:2513
 
-; modemmenu's unix item with header = yes: modemmenu has logged the caller
-; in, and the BBS believes it.  Only modemmenu may connect: the socket's
-; group is Asterisk's (which modemmenu runs as)
+; dmodem-login's unix item with header = yes: dmodem-login has logged the caller
+; in, and the BBS believes it.  Only dmodem-login may connect: the socket's
+; group is Asterisk's (which dmodem-login runs as)
 ;[listen menu]
 ;type = raw
 ;address = /run/bbs/menu.sock
@@ -357,7 +357,7 @@ address = 127.0.0.1:2513
 ;socket_mode = 0660
 ;socket_group = asterisk
 
-; the same with the caller's line itself (modemmenu's item with
+; the same with the caller's line itself (dmodem-login's item with
 ; handoff = yes): the BBS on the modem's terminal, nothing copied between
 ;[listen handoff]
 ;type = raw
@@ -369,13 +369,13 @@ address = 127.0.0.1:2513
 ;socket_mode = 0660
 ;socket_group = asterisk
 
-; modemmenu's auth socket ([authd] there): the accounts modemmenu logs in
+; dmodem-login's auth socket ([authd] there): the accounts dmodem-login logs in
 ; (no password here) log in by telnet, SSH, the web ... with their
-; modemmenu password, asked of modemmenu's backends.  See
-; docs/wiki/Modem-Callers.md
-;[modemmenu]
-;auth_socket = /run/modemmenu/auth.sock
-; a user modemmenu knows and the BBS does not gets an account at their
+; dmodem-login password, asked of dmodem-login's backends.  See
+; docs/wiki/Modem-Callers.md.  [modemmenu], its old name, is read too
+;[dmodem-login]
+;auth_socket = /run/dmodem-login/auth.sock
+; a user dmodem-login knows and the BBS does not gets an account at their
 ; first login, any way in
 ;create_users = yes
 ; seconds for its answer

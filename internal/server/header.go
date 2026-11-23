@@ -10,7 +10,7 @@ import (
 	"github.com/D-Modem/bbs/internal/bbs"
 )
 
-// The session header, as modemmenu (server.go) and app_dmodem write it:
+// The session header, as dmodem-login (server.go) and app_dmodem write it:
 // KEY=value lines, then an empty line, then the caller's bytes.
 
 const (

@@ -7,18 +7,18 @@
 //     (IBM-3278-2-E, IBM-DYNAMIC, ...) is negotiated into TN3270 by go3270
 //     and gets the 3270 screens; any other gets the text BBS.
 //   - raw: no protocol, the caller's bytes as they come: app_dmodem's
-//     mode = tcp, a modemmenu tcp or unix item, a terminal on a serial line
+//     mode = tcp, a dmodem-login tcp or unix item, a terminal on a serial line
 //     server.
 //   - ssh: SSH, with the BBS's passwords or users' keys (or "new", for the
 //     BBS's own login prompt); the text BBS.
-//   - rlogin: RFC 1282, as modemmenu's rlogin items speak it: the server
+//   - rlogin: RFC 1282, as dmodem-login's rlogin items speak it: the server
 //     user is the name, the client user the password (Synchronet's
 //     convention), or with trust_user the name alone logs in.
 //
 // Any of them may read a session header first: NAME=value lines and an
 // empty line, the DMODEM_* of app_dmodem's header = yes or the MODEM_* of
-// a modemmenu item's header = yes, with the call's rate, caller ID and
-// number dialed, and with trust_user the user modemmenu logged in.
+// a dmodem-login item's header = yes, with the call's rate, caller ID and
+// number dialed, and with trust_user the user dmodem-login logged in.
 package server
 
 import (

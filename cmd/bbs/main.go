@@ -92,7 +92,7 @@ import (
 	"github.com/D-Modem/bbs/internal/vhost"
 	"github.com/D-Modem/bbs/internal/xfer"
 	"github.com/D-Modem/bbs/internal/ymsg"
-	"github.com/D-Modem/menu/authd"
+	"github.com/D-Modem/login/authd"
 )
 
 // usage prints the commands and exits 2.

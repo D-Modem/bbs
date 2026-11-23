@@ -18,7 +18,7 @@ the file is laid out.
 | [`[event NAME]`](#event-name) | scheduled events: a program (no shell), daily at a time or every N minutes; see the wiki's Sysop tools. |
 | [`[backup]`](#backup) | Backups: this file, the database (a SQLite file, whatever the engine, taken whole at one moment while callers are on) and the files' directories (file areas, image boards, FidoNet, screens, scripts), one archive (bbs-YYYYMMDD-HHMMSS.tar.gz) a backup. |
 | [`[acme NAME]`](#acme-name) | Certificates from Let's Encrypt, ZeroSSL or any ACME CA, got and renewed by the BBS itself (in the manner of acme.sh), for every TLS server here: one given no cert_file (or tls_cert) and key_file uses them, the one whose names cover the name the client asks for, or the first. |
-| [`[modemmenu]`](#modemmenu) | modemmenu's auth socket ([authd] there): the accounts modemmenu logs in (no password here) log in by telnet, SSH, the web ... |
+| [`[dmodem-login]`](#dmodem-login) | dmodem-login's auth socket ([authd] there): the accounts dmodem-login logs in (no password here) log in by telnet, SSH, the web ... |
 | [`[http]`](#http) | The HTTP API (REST, server-sent events, and WebSockets in JSON and protobuf): see docs/wiki/HTTP-API.md. |
 | [`[chan]`](#chan) | How the image boards are run. |
 | [`[level NAME]`](#level-name) | An access level: a user's level gets what the [level] at or below it says. |
@@ -126,7 +126,7 @@ There may be any number of these, each with its own NAME.
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `type` | `telnet` |  | a telnet server; with tn3270 = yes (the default), a client that says it is a 3270 (IBM-3278-2-E, IBM-DYNAMIC) gets the 3270 screens raw the caller's bytes as they come, no protocol: app_dmodem's mode = tcp, modemmenu tcp/unix items rlogin RFC 1282, as modemmenu's rlogin items speak it ssh SSH: passwords or users' keys (host_keys, legacy) Examples: `telnet`, `raw`, `ssh`, `rlogin`. |
+| `type` | `telnet` |  | a telnet server; with tn3270 = yes (the default), a client that says it is a 3270 (IBM-3278-2-E, IBM-DYNAMIC) gets the 3270 screens raw the caller's bytes as they come, no protocol: app_dmodem's mode = tcp, dmodem-login tcp/unix items rlogin RFC 1282, as dmodem-login's rlogin items speak it ssh SSH: passwords or users' keys (host_keys, legacy) Examples: `telnet`, `raw`, `ssh`, `rlogin`. |
 | `address` | `host:port` |  | or a unix socket's path (/run/bbs/bbs.sock) Examples: `:2300`, `:992`, `127.0.0.1:2323`, `:2324`, `:2222`, `127.0.0.1:2513`, `/run/bbs/menu.sock`, `/run/bbs/handoff.sock`. |
 | `via` | `...` |  | how its callers came, in who's online (telnet, modem, rlogin by type) |
 | `ansi` | `auto` |  | the terminal's ANSI color: auto asks the terminal (or believes its terminal type), yes, no. |
@@ -136,9 +136,9 @@ There may be any number of these, each with its own NAME.
 | `vt` | `auto` |  | ask terminals what they are (answerback, DA1, DA2, XTVERSION; ESC Z for a VT52): DEC line drawing for VTs without UTF-8, bold on monochrome VTs, a VT52's escapes; no: ask nothing. |
 | `rip` | `auto` |  | RIPscrip menus and screens for terminals that answer ESC [ ! (BBS terminals; modern ones are not asked), yes, no. |
 | `max_per_ip` | `4` |  | connections at once from one address (loopback and unix sockets: no limit, they are modem servers) |
-| `header` | `no` |  | yes: a session header comes first, NAME=value lines and an empty line: app_dmodem's DMODEM_* or a modemmenu item's MODEM_* (rate, caller ID, number) Examples: `yes`. |
+| `header` | `no` |  | yes: a session header comes first, NAME=value lines and an empty line: app_dmodem's DMODEM_* or a dmodem-login item's MODEM_* (rate, caller ID, number) Examples: `yes`. |
 | `header_timeout` | `10` |  | seconds for the header. |
-| `handoff` | `no` |  | type = raw on a unix socket, with header = yes: the caller's line itself may come with the header (SCM_RIGHTS, modemmenu's item with handoff = yes), the session then on that terminal, nothing copied; closing the connection gives the line back. Examples: `yes`. |
+| `handoff` | `no` |  | type = raw on a unix socket, with header = yes: the caller's line itself may come with the header (SCM_RIGHTS, dmodem-login's item with handoff = yes), the session then on that terminal, nothing copied; closing the connection gives the line back. Examples: `yes`. |
 | `trust_user` | `no` |  | yes: the header's MODEM_USER (an rlogin's server user) is logged in without a password. Only where nothing but trusted menus can connect. Examples: `yes`. |
 | `create_users` | `no` |  | yes, with trust_user: a user unknown here gets an account (with no password of its own) Examples: `yes`. |
 | `socket_mode` | `0660` |  | a unix socket's permissions. |
@@ -218,14 +218,14 @@ There may be any number of these, each with its own NAME.
 | `dir` |  |  | where the account and certificates are kept (default acme/ beside the database) Examples: `/var/lib/bbs/acme`. |
 
 
-## `[modemmenu]`
+## `[dmodem-login]`
 
-modemmenu's auth socket ([authd] there): the accounts modemmenu logs in (no password here) log in by telnet, SSH, the web ... with their modemmenu password, asked of modemmenu's backends.  See docs/wiki/Modem-Callers.md.
+dmodem-login's auth socket ([authd] there): the accounts dmodem-login logs in (no password here) log in by telnet, SSH, the web ... with their dmodem-login password, asked of dmodem-login's backends.  See docs/wiki/Modem-Callers.md.  [modemmenu], its old name, is read too.
 
 | key | default | live | what it does |
 |---|---|---|---|
-| `auth_socket` |  |  | modemmenu's auth socket ([authd] there): the BBS asks it to check passwords of accounts modemmenu knows. Examples: `/run/modemmenu/auth.sock`. |
-| `create_users` |  |  | a user modemmenu knows and the BBS does not gets an account at their first login, any way in. Examples: `yes`. |
+| `auth_socket` |  |  | dmodem-login's auth socket ([authd] there): the BBS asks it to check passwords of accounts dmodem-login knows. Examples: `/run/dmodem-login/auth.sock`. |
+| `create_users` |  |  | a user dmodem-login knows and the BBS does not gets an account at their first login, any way in. Examples: `yes`. |
 | `timeout` |  |  | seconds for its answer. Examples: `15`. |
 
 

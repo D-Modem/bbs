@@ -106,7 +106,7 @@ type Config struct {
 	Guard           *guard.Guard     // [security]
 	KeepNTLM        bool             // [security] ntlm: keep the hashes NTLM sign-ins check
 	RunAs           *sockets.Account // [general] user and group: who serve becomes, its ports bound (nil: as it is started)
-	MenuAuth        *MenuAuth        // [modemmenu]: passwords asked of modemmenu (nil: none)
+	MenuAuth        *MenuAuth        // [dmodem-login]: passwords asked of dmodem-login (nil: none)
 	Events          []*events.Event
 	acmeHTTPDefault bool // [acme] has no http_address: acmeHTTP settles it
 }
@@ -228,8 +228,16 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.backupSection(cf.Get("backup", "")); err != nil {
 		return nil, fmt.Errorf("[backup] %w", err)
 	}
-	if err := c.modemmenuSection(cf.Get("modemmenu", "")); err != nil {
-		return nil, fmt.Errorf("[modemmenu] %w", err)
+	// [modemmenu]: the old name of [dmodem-login], still read
+	login, loginName := cf.Get("dmodem-login", ""), "dmodem-login"
+	if old := cf.Get("modemmenu", ""); old != nil {
+		if login != nil {
+			return nil, fmt.Errorf("[modemmenu] and [dmodem-login]: one only ([modemmenu] is the old name)")
+		}
+		login, loginName = old, "modemmenu"
+	}
+	if err := c.loginSection(login); err != nil {
+		return nil, fmt.Errorf("[%s] %w", loginName, err)
 	}
 	for _, sec := range cf.All("event") {
 		e, err := c.event(sec)
@@ -274,7 +282,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "acme", "backup", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "gemini", "time", "ntp", "nts", "ptp", "dns", "dnsrecord", "irc", "oscar", "aol", "msn", "marvel", "ymsg", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
+		case "general", "security", "acme", "backup", "dmodem-login", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "gemini", "time", "ntp", "nts", "ptp", "dns", "dnsrecord", "irc", "oscar", "aol", "msn", "marvel", "ymsg", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
 			"feeds", "feed", "weather", "quotes",
 			"mail", "smarthost", "pop3", "imap", "smtp", "mx", "lmtp":
 		default:
@@ -456,16 +464,16 @@ func (c *Config) event(sec *config.Section) (*events.Event, error) {
 	return e, nil
 }
 
-// MenuAuth is [modemmenu]'s: modemmenu's auth socket, asked for the
+// MenuAuth is [dmodem-login]'s: dmodem-login's auth socket, asked for the
 // passwords of the accounts it logs in.
 type MenuAuth struct {
 	Socket  string
-	Create  bool          // a user modemmenu knows and the BBS does not gets an account
+	Create  bool          // a user dmodem-login knows and the BBS does not gets an account
 	Timeout time.Duration // for its answer
 }
 
-// modemmenuSection reads [modemmenu].
-func (c *Config) modemmenuSection(sec *config.Section) error {
+// loginSection reads [dmodem-login] (or [modemmenu], its old name).
+func (c *Config) loginSection(sec *config.Section) error {
 	if sec == nil {
 		return nil
 	}
