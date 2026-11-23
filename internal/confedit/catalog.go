@@ -331,15 +331,8 @@ func (k *Kind) free(key string) bool {
 
 // Kind is a kind of section (nil: none such).
 func (c *Catalog) Kind(name string) *Kind {
-	if alias, ok := oldKinds[name]; ok {
-		name = alias
-	}
 	return c.byName[name]
 }
-
-// oldKinds are the old names of kinds of sections, still read: the
-// catalog gives the current kind's keys and help for them
-var oldKinds = map[string]string{"modemmenu": "dmodem-login"}
 
 // Key is a key of a kind of section: one of the sample's, or one of the
 // sysop's own (a menu's item); nil if it is neither.

@@ -91,10 +91,8 @@ var labels = map[string]string{
 	"chan.dir":      "Image boards' files", "fido.dir": "FidoNet's packets",
 	"general.user": "Run as user", "general.group": "and group",
 	"dmodem-login.auth_socket": "dmodem-login's auth socket", "dmodem-login.create_users": "Make accounts it knows",
-	"dmodem-login.timeout":  "Its answer within (s)",
-	"modemmenu.auth_socket": "dmodem-login's auth socket", "modemmenu.create_users": "Make accounts it knows",
-	"modemmenu.timeout": "Its answer within (s)",
-	"backup.dir":        "Backup directory", "backup.at": "Daily at (HH:MM)", "backup.keep": "Backups kept",
+	"dmodem-login.timeout": "Its answer within (s)",
+	"backup.dir":           "Backup directory", "backup.at": "Daily at (HH:MM)", "backup.keep": "Backups kept",
 	"backup.files": "With the files",
 }
 
