@@ -39,7 +39,7 @@ func (e *Editor) mainMenu() page {
 		return []item{
 			withHelp(e.submenu(mBoard, name, e.boardMenu), "The BBS's name, sysop and where it is; what callers see; the menus and prompts."),
 			withHelp(e.submenu(mSystem, "", e.systemMenu), "The database and log, where files are kept, security, the user it runs as, scheduled events, and every section of the file."),
-			withHelp(e.submenu(mLines, e.count("listen", nil, "listener"), e.connectionsMenu), "Modem lines and listeners (the ports callers come in by), callers' limits, modemmenu's passwords, caller ID."),
+			withHelp(e.submenu(mLines, e.count("listen", nil, "listener"), e.connectionsMenu), "Modem lines and listeners (the ports callers come in by), callers' limits, dmodem-login's passwords, caller ID."),
 			heading("What callers reach"),
 			withHelp(e.submenu(mInternet, "", e.servicesMenu), "Telnet, TN3270, SSH and RLogin for terminals; finger, gopher, Gemini, FTP, news and the web."),
 			withHelp(e.submenu(mOnline, e.onCount("aol", "marvel"), e.onlineMenu), "The BBS as America Online, CompuServe and The Microsoft Network, for their own 1990s client programs."),
@@ -73,13 +73,13 @@ var helpOfItem = map[string]string{
 	"Scheduled events":         "Programs run daily at a time or every so many minutes ([event NAME]): polling, fetching, clean-ups.",
 	"All settings, by section": "Every section of the file as it is, each with all its keys, for what the other menus do not reach.",
 	// Connections and modems
-	"Modem lines":   "The listeners modem callers come in by (raw, or with header = yes): app_dmodem's and modemmenu's.",
+	"Modem lines":   "The listeners modem callers come in by (raw, or with header = yes): app_dmodem's and dmodem-login's.",
 	"All listeners": "Every listener ([listen NAME]): the ports and sockets callers come in by, of every type.",
 	// Internet services
 	"Telnet":                        "Telnet listeners: terminals (SyncTERM, NetRunner, telnet), and 3270s where TN3270 is on.",
 	"TN3270":                        "3270 terminals: which telnet listeners take them, and the pictures and logo they get.",
 	"SSH":                           "SSH listeners: terminals by SSH, logged in by their BBS name and password.",
-	"RLogin":                        "RLogin listeners: for front ends that log callers in themselves (modemmenu, a BBS's door server).",
+	"RLogin":                        "RLogin listeners: for front ends that log callers in themselves (dmodem-login, a BBS's door server).",
 	"News (NNTP)":                   "The NNTP server for newsreaders, this site's name in the news, and the peer news servers.",
 	"Web: API, forum, image boards": "The HTTP server: the API, the web forum, the image boards, the logins.",
 	"Certificates (ACME)":           "Certificates from Let's Encrypt or another ACME CA, got and renewed by the BBS for its TLS servers.",
@@ -293,7 +293,7 @@ func (e *Editor) isModem(s confedit.Section) bool {
 }
 
 // connectionsMenu is Connections and modems: modem lines and all listeners,
-// callers' limits, modemmenu's auth socket, caller ID and GeoIP.
+// callers' limits, dmodem-login's auth socket, caller ID and GeoIP.
 func (e *Editor) connectionsMenu() page {
 	g := sec("general")
 	return page{title: "Connections and modems", items: func() []item {
@@ -310,8 +310,8 @@ func (e *Editor) connectionsMenu() page {
 			"throttle_failures", "throttle_time", "page_command")...)
 		out = append(out, heading("Line speeds (telnet, SSH and web callers)"))
 		out = append(out, e.fields(g, "line_speeds", "line_speed", "line_speed_ask")...)
-		out = append(out, heading("Passwords by modemmenu (its auth socket)"))
-		out = append(out, e.fields(sec("modemmenu"), "auth_socket", "create_users", "timeout")...)
+		out = append(out, heading("Passwords by dmodem-login (its auth socket)"))
+		out = append(out, e.fields(e.loginSec(), "auth_socket", "create_users", "timeout")...)
 		out = append(out, heading("Caller ID and where callers are"))
 		out = append(out, e.fields(g, "phone_country", "geoip", "geoip_credit", "geoip_credit_url",
 			"geoip_users", "geoip_prefill")...)
@@ -627,4 +627,13 @@ func (e *Editor) fidoPage() page {
 		}))
 		return out
 	}}
+}
+
+// loginSec is [dmodem-login], or [modemmenu] (its old name) in a file
+// that has only that one, so that the setup edits the section in use.
+func (e *Editor) loginSec() confedit.Section {
+	if old := sec("modemmenu"); e.doc.Has(old) && !e.doc.Has(sec("dmodem-login")) {
+		return old
+	}
+	return sec("dmodem-login")
 }

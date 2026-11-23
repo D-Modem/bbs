@@ -32,8 +32,8 @@ key.
 Users add their own keys in one of these ways:
 
 - On the text BBS, in *Your profile* (`K`), after they type their
-  password again. For an account that modemmenu made, this is the
-  modemmenu password or a
+  password again. For an account that dmodem-login made, this is the
+  dmodem-login password or a
   [sign-in code](Web-Forum#sign-in-codes).
 - Through the [HTTP API](HTTP-API), with `POST /api/v1/me/keys` and the
   session token of a login (not an API key).

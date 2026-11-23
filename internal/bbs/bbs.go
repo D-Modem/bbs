@@ -173,7 +173,7 @@ type BBS struct {
 	MailWatch func(user int64)
 	// ImageBoards are the image boards, for the terminals (nil: none)
 	ImageBoards ImageBoards
-	// MenuAuth checks the passwords of accounts modemmenu logs in (its
+	// MenuAuth checks the passwords of accounts dmodem-login logs in (its
 	// auth socket): external accounts, and with MenuAuthCreate new ones
 	// (nil: none)
 	MenuAuth interface {
@@ -627,10 +627,10 @@ func (b *BBS) authenticate(who, source, name string, check func() (*store.User, 
 	return u, nil
 }
 
-// menuLogin asks modemmenu whether pw is the password of an account it
+// menuLogin asks dmodem-login whether pw is the password of an account it
 // logs in: an external one here, or (MenuAuthCreate) one not here yet,
 // made then.  An account with a password of its own here is not
-// modemmenu's to answer for.  store.ErrNotFound: no.
+// dmodem-login's to answer for.  store.ErrNotFound: no.
 func (b *BBS) menuLogin(who, name, pw string) (*store.User, error) {
 	u, err := b.Store.UserByName(name)
 	switch {
@@ -645,7 +645,7 @@ func (b *BBS) menuLogin(who, name, pw string) (*store.User, error) {
 	}
 	ok, backend, err := b.MenuAuth.Check(name, pw)
 	if err != nil {
-		return nil, fmt.Errorf("modemmenu's auth socket: %w", err)
+		return nil, fmt.Errorf("dmodem-login's auth socket: %w", err)
 	}
 	if !ok {
 		return nil, store.ErrNotFound
@@ -657,9 +657,9 @@ func (b *BBS) menuLogin(who, name, pw string) (*store.User, error) {
 		if err != nil {
 			return nil, err
 		}
-		b.Log.Printf("%s: new external user %s (modemmenu, %s)", who, u.Name, backend)
+		b.Log.Printf("%s: new external user %s (dmodem-login, %s)", who, u.Name, backend)
 	}
-	b.Log.Printf("%s: %s's password by modemmenu (%s)", who, u.Name, backend)
+	b.Log.Printf("%s: %s's password by dmodem-login (%s)", who, u.Name, backend)
 	b.Store.KeepOSCARKeys(u.ID, pw) // for AIM's digest logins, if kept
 	b.Store.KeepCISKey(u.ID, pw)    // and CompuServe's
 	b.Store.KeepMSNKey(u.ID, pw)    // and MSN's

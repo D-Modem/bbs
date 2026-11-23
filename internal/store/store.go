@@ -23,7 +23,7 @@ var ErrNotFound = errors.New("not found")
 var ErrExists = errors.New("already exists")
 
 // NoPassword is the stored password of an account that cannot log in by
-// password: one an upstream menu (modemmenu) logs in.
+// password: one an upstream menu (dmodem-login) logs in.
 const NoPassword = "!"
 
 // BcryptCost is the cost of new password hashes.

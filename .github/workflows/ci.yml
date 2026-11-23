@@ -1,6 +1,6 @@
 # build: on the Go of go.mod's toolchain line, gofmt, go.mod and go.sum
 # tidy, the build, go vet and the tests with the race detector (make test).
-# menu (its authd login client) and go3270 come from GitHub directly
+# login (its authd login client) and go3270 come from GitHub directly
 # (GOPRIVATE, as the Makefile does), at the versions go.mod pins; their
 # own CI builds and tests bbs's main against their changes.
 #

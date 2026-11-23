@@ -11,7 +11,7 @@ c3270, wc3270, Vista, PCOMM) gets full 3270 screens with PF keys, through
 BBS, with ANSI colour if the terminal has it. Modem callers connect
 through the D-Modem suite. They connect through
 [app_dmodem](https://github.com/D-Modem/D-Modem) directly from Asterisk, or
-through [modemmenu](https://github.com/D-Modem/menu) after its login.
+through [dmodem-login](https://github.com/D-Modem/login) after its login.
 
 ```
 D-Modem BBS
@@ -78,7 +78,7 @@ future work is in [TODO.md](TODO.md).
 | [D-Modem](https://github.com/D-Modem/D-Modem) | The open V.92 softmodem: dmodemd, libdmodem and the Asterisk, FreeSWITCH and ARI modules |
 | [app](https://github.com/D-Modem/app) | The D-Modem app for Android and iOS: a dial-up modem on a SIP call |
 | [hardware](https://github.com/D-Modem/hardware) | pico-serial: RP2040 serial adapters and phone-line USB sticks |
-| [menu](https://github.com/D-Modem/menu) | modemmenu: the login and the menu that dial-up callers see first |
+| [menu](https://github.com/D-Modem/login) | dmodem-login: the login and the menu that dial-up callers see first |
 | [bbs](https://github.com/D-Modem/bbs) | A bulletin board for telnet, SSH, TN3270 and modem callers |
 | [go3270](https://github.com/D-Modem/go3270) | A Go library for 3270 terminal servers, used by bbs |
 | [brand](https://github.com/D-Modem/brand) | Logos, colours, type and the naming guide |

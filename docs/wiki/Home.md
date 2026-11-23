@@ -10,7 +10,7 @@ c3270, wc3270, Vista, PCOMM) gets full 3270 screens with PF keys, through
 [go3270](https://github.com/D-Modem/go3270). All other clients get a text
 BBS, with ANSI colour if the terminal has it. Modem callers connect
 through the D-Modem suite: through [app_dmodem](https://github.com/D-Modem/D-Modem)
-directly from Asterisk, or through [modemmenu](https://github.com/D-Modem/menu)
+directly from Asterisk, or through [dmodem-login](https://github.com/D-Modem/login)
 after its login.
 
 ```
@@ -128,7 +128,7 @@ settings. The build makes it from `bbs.conf.sample`.
 | [Scripting](Scripting) | the screens of the sysop in JavaScript, on all terminals |
 | [Access levels](Access-Levels) | levels, flags, requirements, daily limits, validation |
 | [SSH](SSH) | the SSH listener, keys, host keys |
-| [Modem callers](Modem-Callers) | app_dmodem and modemmenu, and the locations of callers |
+| [Modem callers](Modem-Callers) | app_dmodem and dmodem-login, and the locations of callers |
 | [TN3270](TN3270) | 3270 terminals, PF keys, 3270 graphics |
 | [Sixel graphics](Sixel-Graphics) | the logo and pictures on sixel terminals |
 | [PETSCII and RIP](PETSCII-and-RIP) | Commodore 64s and 128s; RIPscrip graphics and buttons |

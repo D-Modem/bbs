@@ -182,7 +182,7 @@ refuses a form without this token.
 
 ### Sign-in codes
 
-A user who is signed in on the BBS (telnet, SSH, a modem by modemmenu, a
+A user who is signed in on the BBS (telnet, SSH, a modem by dmodem-login, a
 3270) can get a sign-in code from *Your profile*, `C` (PF10). The code has
 eight letters and digits, `ABCD-EFGH`. You can use it one time, for five
 minutes. A new code cancels the previous code.
@@ -191,7 +191,7 @@ The Sign In page accepts the code alone, with no name or password. Use it
 in these conditions:
 
 - You do not want to type a password on the computer that you use.
-- The user's password is the password of modemmenu.
+- The user's password is the password of dmodem-login.
 
 At all other locations that ask for a password (the web terminal, the
 image boards, the API, FTP), you can use the code one time in place of
