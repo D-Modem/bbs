@@ -311,7 +311,7 @@ func (e *Editor) connectionsMenu() page {
 		out = append(out, heading("Line speeds (telnet, SSH and web callers)"))
 		out = append(out, e.fields(g, "line_speeds", "line_speed", "line_speed_ask")...)
 		out = append(out, heading("Passwords by dmodem-login (its auth socket)"))
-		out = append(out, e.fields(e.loginSec(), "auth_socket", "create_users", "timeout")...)
+		out = append(out, e.fields(sec("dmodem-login"), "auth_socket", "create_users", "timeout")...)
 		out = append(out, heading("Caller ID and where callers are"))
 		out = append(out, e.fields(g, "phone_country", "geoip", "geoip_credit", "geoip_credit_url",
 			"geoip_users", "geoip_prefill")...)
@@ -627,13 +627,4 @@ func (e *Editor) fidoPage() page {
 		}))
 		return out
 	}}
-}
-
-// loginSec is [dmodem-login], or [modemmenu] (its old name) in a file
-// that has only that one, so that the setup edits the section in use.
-func (e *Editor) loginSec() confedit.Section {
-	if old := sec("modemmenu"); e.doc.Has(old) && !e.doc.Has(sec("dmodem-login")) {
-		return old
-	}
-	return sec("dmodem-login")
 }

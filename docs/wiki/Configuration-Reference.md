@@ -220,7 +220,7 @@ There may be any number of these, each with its own NAME.
 
 ## `[dmodem-login]`
 
-dmodem-login's auth socket ([authd] there): the accounts dmodem-login logs in (no password here) log in by telnet, SSH, the web ... with their dmodem-login password, asked of dmodem-login's backends.  See docs/wiki/Modem-Callers.md.  [modemmenu], its old name, is read too.
+dmodem-login's auth socket ([authd] there): the accounts dmodem-login logs in (no password here) log in by telnet, SSH, the web ... with their dmodem-login password, asked of dmodem-login's backends.  See docs/wiki/Modem-Callers.md.
 
 | key | default | live | what it does |
 |---|---|---|---|

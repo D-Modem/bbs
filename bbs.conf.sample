@@ -372,7 +372,7 @@ address = 127.0.0.1:2513
 ; dmodem-login's auth socket ([authd] there): the accounts dmodem-login logs in
 ; (no password here) log in by telnet, SSH, the web ... with their
 ; dmodem-login password, asked of dmodem-login's backends.  See
-; docs/wiki/Modem-Callers.md.  [modemmenu], its old name, is read too
+; docs/wiki/Modem-Callers.md.
 ;[dmodem-login]
 ;auth_socket = /run/dmodem-login/auth.sock
 ; a user dmodem-login knows and the BBS does not gets an account at their

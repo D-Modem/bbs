@@ -228,16 +228,8 @@ func load(cf *config.File) (*Config, error) {
 	if err := c.backupSection(cf.Get("backup", "")); err != nil {
 		return nil, fmt.Errorf("[backup] %w", err)
 	}
-	// [modemmenu]: the old name of [dmodem-login], still read
-	login, loginName := cf.Get("dmodem-login", ""), "dmodem-login"
-	if old := cf.Get("modemmenu", ""); old != nil {
-		if login != nil {
-			return nil, fmt.Errorf("[modemmenu] and [dmodem-login]: one only ([modemmenu] is the old name)")
-		}
-		login, loginName = old, "modemmenu"
-	}
-	if err := c.loginSection(login); err != nil {
-		return nil, fmt.Errorf("[%s] %w", loginName, err)
+	if err := c.loginSection(cf.Get("dmodem-login", "")); err != nil {
+		return nil, fmt.Errorf("[dmodem-login] %w", err)
 	}
 	for _, sec := range cf.All("event") {
 		e, err := c.event(sec)
@@ -282,7 +274,7 @@ func load(cf *config.File) (*Config, error) {
 	}
 	for _, s := range cf.Sections {
 		switch s.Kind {
-		case "general", "security", "acme", "backup", "dmodem-login", "modemmenu", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "gemini", "time", "ntp", "nts", "ptp", "dns", "dnsrecord", "irc", "oscar", "aol", "msn", "marvel", "ymsg", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
+		case "general", "security", "acme", "backup", "dmodem-login", "event", "listen", "ftp", "news", "nntp", "peer", "qwknet", "fido", "binkp", "link", "door", "finger", "gopher", "gemini", "time", "ntp", "nts", "ptp", "dns", "dnsrecord", "irc", "oscar", "aol", "msn", "marvel", "ymsg", "mrc", "irclink", "ircpeer", "menu", "strings", "http", "level", "chan",
 			"feeds", "feed", "weather", "quotes",
 			"mail", "smarthost", "pop3", "imap", "smtp", "mx", "lmtp":
 		default:
@@ -472,7 +464,7 @@ type MenuAuth struct {
 	Timeout time.Duration // for its answer
 }
 
-// loginSection reads [dmodem-login] (or [modemmenu], its old name).
+// loginSection reads [dmodem-login].
 func (c *Config) loginSection(sec *config.Section) error {
 	if sec == nil {
 		return nil

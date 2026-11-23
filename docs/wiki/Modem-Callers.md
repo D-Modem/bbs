@@ -133,8 +133,8 @@ auth_socket = /run/dmodem-login/auth.sock
 | `timeout` | `15` | seconds for the answer of dmodem-login (the answer for an incorrect password comes after its `fail_delay`) |
 
 The old name of dmodem-login is modemmenu, and the old name of this
-section is `[modemmenu]`. The BBS still reads `[modemmenu]`. Do not use
-`[modemmenu]` and `[dmodem-login]` in the same file.
+section is `[modemmenu]`. The BBS does not read `[modemmenu]`. If your
+file has `[modemmenu]`, change its name to `[dmodem-login]`.
 
 The BBS asks dmodem-login only about accounts that dmodem-login created
 (external accounts with no BBS password). An account with its own BBS
