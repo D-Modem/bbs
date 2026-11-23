@@ -9,8 +9,8 @@ News, weather, quotes
   [Q] Stock quotes          [B] Back to the main menu
 ```
 
-Sysop menus get to them with the actions `news` (the menu above),
-`headlines`, `weather` and `quotes`.
+The menus of the sysop open them with the [commands](Customization#commands)
+`news` (the menu above), `headlines`, `weather` and `quotes`.
 
 ## News feeds
 
@@ -46,7 +46,7 @@ https://www.bbc.co.uk/news/articles/c35ynnpzdq51o
 
 The BBS reads RSS 0.9x to 2.0, RSS 1.0 (RDF), Atom and JSON Feed, in all
 character sets. It reads each feed every `every` minutes. It adds a
-small random variation, and reads less frequently after failures or
+small random variation. It reads less frequently after failures, or
 when the site asks with `Retry-After`. It asks only for changes
 (`If-None-Match`, `If-Modified-Since`). The BBS posts an item one time
 only. It makes the Message-ID from the feed and the id of the item, and
@@ -163,12 +163,12 @@ last trade, open, high, low, close, extended-hours price, bid and ask,
 and IEX volume (the volume of the full market comes from the paid plan
 of Alpaca).
 
-### The day before's prices, free (HIST)
+### Prices of the day before, free of charge (HIST)
 
 IEX publishes the full TOPS feed of each session on the next day, free
 of charge. `bbs
 quotes fetch` reads the file of the latest session into `file`. The file
-is about 16 GB. Thus, the BBS reads it during the download, and keeps
+is about 16 GB. Thus, the BBS reads it while it downloads it, and keeps
 only the quotes (some hundred KB). At 60 MB/s, it takes less than five
 minutes. If a download stops, the BBS continues it from the point where
 it stopped. Run it each morning as an event:
@@ -228,8 +228,8 @@ alpaca_feed = iex
 alpaca_symbols = 30
 ```
 
-The market data of [Alpaca](https://alpaca.markets/data) does not need a
-connection to IEX. An account (a paper-trading account is sufficient)
+For the market data of [Alpaca](https://alpaca.markets/data), a
+connection to IEX is not necessary. An account (a paper-trading account is sufficient)
 gives a key and secret. Its free plan (`alpaca_feed = iex`) has the
 trades and quotes of IEX, live. A paid plan (`sip`) has those of all US
 exchanges. `delayed_sip` gives them 15 minutes late.
@@ -244,9 +244,9 @@ other symbols when a caller next looks at them, if they are one minute
 old. The quotes start again with the first trade of each session. Thus,
 nothing must run each morning. The BBS finds the session (before the
 open, regular hours, after hours, closed) from the clock. If a weekday
-has no trades by 9:35, the BBS thinks that it is a holiday.
+has no trades by 9:35, the BBS sets that day as a holiday.
 
-`bbs quotes alpaca AAPL MSFT` tries the keys: the snapshots, then the
+`bbs quotes alpaca AAPL MSFT` tests the keys: the snapshots, then the
 stream for some seconds. Keep the configuration file at 0640, because
 the keys are in it.
 

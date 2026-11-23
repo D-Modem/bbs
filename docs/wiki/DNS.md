@@ -52,7 +52,7 @@ command = exec /usr/sbin/pppd nodetach noauth local lock passive 192.168.77.1:19
 ```
 
 If the BBS is on the same machine, the address of the PPP side
-(192.168.77.1) is the address of the machine while a call is up. Thus,
+(192.168.77.1) is the address of the machine while a call is connected. Thus,
 `address = :53` answers it.
 
 The Dial-Up Networking of Windows 95 to XP uses the server that the link
@@ -252,12 +252,13 @@ addresses of this machine.
 
 The BBS answers the names of the services to all users who ask. It
 resolves other names only for the networks of `allow`. By default, these
-are this machine and the private ranges, 10/8, 172.16/12, 192.168/16,
-100.64/10 and the equivalent IPv6 ranges. Thus, the BBS is not an open
+are this machine and the private ranges: 10/8, 172.16/12, 192.168/16,
+100.64/10, the link-local range 169.254/16, and the equivalent IPv6
+ranges (fc00::/7, fe80::/10). Thus, the BBS is not an open
 resolver for the internet. It refuses other users. Each address can send
 `rate` queries each second by UDP.
 
-## Running beside the system's resolver
+## The resolver of the system
 
 The BBS reads the servers of the host from `/etc/resolv.conf` (again
 when it changes). If that file lists only the stub of systemd-resolved
@@ -271,12 +272,11 @@ connect, the address of the PPP side (`192.168.77.1:53`). Or disable the
 stub listener of resolved (`DNSStubListener=no` in
 `/etc/systemd/resolved.conf`).
 
-## What is not done
+## Limits
 
-- The BBS does no DNSSEC checks of its own. It passes on answers as the
+- The BBS does no DNSSEC checks of its own. It sends answers as the
   upstream servers give them (it keeps the DO and CD bits, and keeps them
   separate in the cache).
 - The BBS gives only A and AAAA records for the names of the services.
   It answers all other types (HTTPS, MX ...) with no records.
-- We did not try any of this with the real clients on a dial-up line
-  yet.
+- We did not test this with the real clients on a dial-up line.

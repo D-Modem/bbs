@@ -32,8 +32,8 @@ address = :25
 ```
 
 Each server runs only if its section is there. All of them use the guard
-of the BBS (bans, throttling). Each has `max_clients`, `max_per_ip` and
-`idle_timeout`. `tls` has these values:
+of the BBS (bans, throttling). Each has `max_clients` (64), `max_per_ip` (10) and
+`idle_timeout` (1800 seconds for IMAP, 600 for the other servers). `tls` has these values:
 
 - `no`.
 - `optional` (the server offers STARTTLS).
@@ -47,11 +47,10 @@ does for the other ports.
 
 The address of a user is the name in lower case, with dots in place of
 spaces, at the domain: `Alice Smith` is `alice.smith@example.org`.
-`bbs mail address
-NAME` prints it. The BBS ignores `+tags` (`alice.smith+lists@` goes to
-Alice). `postmaster@`, `abuse@`, `hostmaster@` and `webmaster@` go to
-`[mail]
-postmaster`, or to the first sysop.
+`bbs mail address NAME` prints it. The BBS ignores `+tags` (`alice.smith+lists@` goes to
+Alice). `postmaster@`, `abuse@`, `mailer-daemon@`, `hostmaster@` and
+`webmaster@` go to the user in `[mail] postmaster`, or to the first
+sysop.
 
 When you write mail on the BBS, the recipient can be the name of a user,
 a FidoNet address (`Name@1:234/5`) or an internet address
@@ -86,19 +85,20 @@ permanently removes mail that is in the trash for longer than
 POP3 sees the inbox. The BBS marks retrieved mail as read. `DELE` puts
 mail in the trash.
 
-## Sending to the internet
+## Send to the internet
 
 `[mail] outbound` sets how mail for other domains goes out:
 
-- `direct` (the default): the BBS looks up the MX of each domain and
-  delivers on port 25. It uses STARTTLS when the other server offers it.
-  Many home and cloud networks block outgoing port 25. Also, receivers
+- `direct` (the default without `[smarthost]`): the BBS finds the MX of
+  each domain and delivers on port 25. It uses STARTTLS when the other server offers it.
+  Many home and cloud networks block outbound connections to port 25. Also, receivers
   want SPF, DKIM and a reverse DNS name for the host. Thus, this method
-  needs some DNS work (refer to the text below).
+  must have some DNS records (refer to the text below).
 - `smarthost`: all mail goes through a different mail server (that of
   your provider, a relay such as Postfix, or a service like Mailgun),
   that you give in `[smarthost]`. That server does the delivery. If you
-  have such a server, this is the easy method.
+  have such a server, this is the easy method. If there is a
+  `[smarthost]` section, `smarthost` is the default.
 - `none`: only mail between users on this BBS, and FidoNet.
 
 ```
@@ -108,12 +108,12 @@ outbound = smarthost
 
 [smarthost]
 address = smtp.example.net:587
-tls = starttls               ; or implicit (465), or no
+tls = starttls               ; (the default) or implicit (465), or no
 username = bbs@example.org
 password = secret
 ```
 
-Outgoing mail waits in a queue. The BBS tries it again with longer
+Outbound mail waits in a queue. The BBS tries it again at longer
 intervals (five minutes, then up to four hours) for `queue_days` (5).
 When a server permanently refuses a recipient, or when the days end, the
 sender gets a note in the inbox with the reason. `bbs mail queue` lists
@@ -133,9 +133,9 @@ _dmarc.example.org.       TXT "v=DMARC1; p=quarantine"
 ```
 
 Also, a reverse DNS (PTR) name of `mail.example.org` for 203.0.113.5 is
-necessary. The hosting provider sets it.
+necessary. The provider of the server sets it.
 `bbs mail dkim /etc/bbs/dkim.pem` makes the DKIM key and prints its
-record. With a
+record. The selector is `bbs` (`[mail] dkim_selector`). With a
 smarthost, use the SPF and DKIM that its provider gives.
 
 ## Mail from the internet
@@ -161,7 +161,7 @@ address = :25
 dnsbl = zen.spamhaus.org, bl.spamcop.net
 ```
 
-At the first `MAIL FROM`, the BBS looks up the address of the connection
+At the first `MAIL FROM`, the BBS finds the address of the connection
 in all the lists at the same time. If a list has it, the BBS refuses the
 mail with `554 5.7.1` and the reason of the list. The reason is the TXT
 record of the list, which often has a link where the sender can ask for
@@ -169,8 +169,8 @@ removal. The BBS logs the refusal.
 
 If a list does not answer in ten seconds, or answers with an error, the
 BBS refuses no mail because of that list. Thus, mail is not lost when a
-list does not operate. The BBS never looks up addresses on this machine
-and on private networks. It also does not look up users who send
+list does not operate. The BBS never queries addresses on this machine
+and on private networks. It also does not query users who send
 through `[smtp]`, because they log in. Thus, a user on a listed home
 connection can still send.
 
@@ -186,7 +186,7 @@ register the address of the resolver with them).
 DNSBLs look only at the address of the sender. SPF, DKIM and DMARC
 (above) check that mail which claims a domain comes from that domain.
 Together, they stop most spam. For content filters (SpamAssassin,
-rspamd), put Postfix in front and give mail to the BBS by LMTP (refer to
+rspamd), put Postfix in front of the BBS and give mail to the BBS by LMTP (refer to
 the text below).
 
 ### LMTP

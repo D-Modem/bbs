@@ -38,22 +38,22 @@ terminal program asks for (crash recovery).
 The D-Modem GUI and the D-Modem app can compress ZMODEM transfers with
 zstd. The BBS does this automatically when the program of the caller
 can do it. Other terminal programs get normal ZMODEM. Text files usually
-need many fewer bytes. The BBS does not compress files that
-are compressed now (for example, ZIP, ARJ, LZH, JPEG and MP3 files).
+become much smaller. The BBS does not compress files that
+are already compressed (for example, ZIP, ARJ, LZH, JPEG and MP3 files).
 
-To stop zstd, set `zmodem_zstd = no` in `[general]`. The specification
+To disable zstd, set `zmodem_zstd = no` in `[general]`. The specification
 is `docs/zmodem-zstd.md` in the D-Modem repository.
 
 XMODEM, YMODEM and ZMODEM must have an 8-bit clean line: a modem, rlogin,
 or telnet in binary mode. The BBS asks for binary mode. If a client does
-not accept binary mode, the BBS shows a warning to the client.
+not accept binary mode, the BBS shows a warning to the caller.
 
 ## 3270 callers
 
 3270 callers use the file transfer of their emulator, IND$FILE. Use this
 procedure:
 
-1. Go to a file area (8 on the main menu, then S adjacent to an area).
+1. Go to a file area (`F` on the main menu, then `S` adjacent to an area).
 2. Put the cursor on the command line.
 3. Start a transfer. Use *send* to upload into the area, or *receive* to
    download one of its files. Use the name of the file as the host file

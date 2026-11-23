@@ -7,7 +7,7 @@ Futaba before the two). They have these items:
 - Anonymous replies.
 - Bumps, sage and tripcodes.
 
-You need only the `bbs` binary. Go code makes the thumbnails, and the
+Only the `bbs` binary is necessary. Go code makes the thumbnails, and the
 pages load nothing from other locations.
 
 The image boards are different from the [web forum](Web-Forum). They are
@@ -34,9 +34,9 @@ address = :8443
 ;thread_wait = 60        ; seconds between an address's threads
 ;reply_wait = 15         ; and between its posts
 ;max_comment = 2000      ; characters
-;strip_metadata = yes    ; take EXIF (where a phone took it) out of JPEGs
+;strip_metadata = yes    ; remove EXIF (the location of a phone photo) from JPEGs
 ;style = yotsuba-b       ; the style everyone gets until they choose
-;captcha = yes           ; those not signed in answer a captcha to post
+;captcha = yes           ; users who are not signed in answer a captcha to post
 ;captcha_length = 6      ; its letters, 4 to 10
 ;captcha_level = normal  ; easy, normal or hard to read
 ;captcha_lifetime = 600  ; seconds one lasts
@@ -101,7 +101,7 @@ terminal can:
 
 The thumbnail shows above the post. The thumbnail of a spoiler tells that
 it is a spoiler. **V** shows the full image, as large as the screen
-permits. A caller can set pictures off (or on) in the profile, **M**. The
+permits. A caller can disable (or enable) pictures in the profile, **M**. The
 setting stays.
 
 To start a thread, send its image with the transfer protocol of the
@@ -110,7 +110,7 @@ Terminals without a protocol (a 3270, the web terminal) can reply, or
 start threads on `text_only` boards. The tools for staff (deletion, bans,
 reports) are only on the web.
 
-## Posting
+## Posts
 
 The post form is at the top of the index of a board. It has these fields:
 name, options, subject, comment, an image, and a password to delete the
@@ -151,7 +151,7 @@ ten minutes. **New one** gives a different captcha. The answer goes in
 the form, sealed (AES-GCM, with the secret of the boards). Thus, the BBS
 keeps only the fact that the captcha is used.
 
-To set the captcha off, set `captcha = no` in `[chan]`. Use
+To disable the captcha, set `captcha = no` in `[chan]`. Use
 `captcha_length`, `captcha_level` and `captcha_lifetime` to make it
 longer or shorter, more or less difficult. The `captcha` setting of a
 board (`yes`, `no`, `default`) replaces the setting of `[chan]` for that
@@ -206,7 +206,7 @@ database does not know, have no flag. If the BBS is behind a reverse
 proxy, put the proxy in `trusted_proxies`. If you do not do this, all
 posters have the address of the proxy, and its ID and its flag. The BBS
 keeps the ID and the flag with each post when the user posts it. If you
-set them off, the posts that exist stay as they were.
+disable them, the posts that exist stay as they were.
 
 ## Threads
 
@@ -235,7 +235,7 @@ has `"archived": 1` and `"archived_on"`.
 
 After `[chan] archive_days` (3), the BBS removes a thread from the
 archive, with its files. It does this check when a user makes a thread,
-and when a user looks at the archive or the thread. `archive_days = 0`
+and when a user opens the archive or the thread. `archive_days = 0`
 keeps them always. `bbs chan board set DIR archive no` prunes the
 threads of a board as before, and deletes them immediately. On the
 terminals, the thread list of the board has *Archive* (A): the archived
@@ -254,7 +254,7 @@ With JavaScript (the pages also operate without it):
 - Click a thumbnail to open the image in its location.
 - Move the pointer over a `>>123` to show that post.
 
-## Deleting and reporting
+## Delete and report posts
 
 To delete posts, do these steps:
 
@@ -287,7 +287,7 @@ to each post, and an option to post as `## Admin` or `## Mod`.
 From the command line:
 
 ```
-bbs chan board add DIR TITLE [DESCRIPTION] [-nsfw] [-forced-anon] [-text-only] [-locked] [-login] [-oekaki]   (-login: only users post)
+bbs chan board add DIR TITLE [DESCRIPTION] [-nsfw] [-forced-anon] [-text-only] [-locked] [-login] [-oekaki] [-ids] [-flags]   (-login: only users post)
 bbs chan board set DIR KEY VALUE
 bbs chan board list
 bbs chan board del DIR            ; its posts and images too
@@ -303,7 +303,7 @@ bbs chan ban del ID
 | `bump_limit`, `image_limit` | 300, 150 | the limits of a thread |
 | `max_file` | `[chan]`'s | the largest image |
 | `default_name` | Anonymous | the name for a post without a name |
-| `nsfw` | no | not worksafe: Yotsuba, and not in the images of the front page |
+| `nsfw` | no | not worksafe: Yotsuba, and not in the images of the front page (`worksafe` is the opposite setting) |
 | `forced_anon` | no | no names or tripcodes |
 | `text_only` | no | threads do not need an image |
 | `oekaki` | no | posters can draw their pictures in the page ([below](#oekaki)) |
@@ -517,4 +517,4 @@ If the BBS is behind a reverse proxy, put the proxy in the
 posters have the address of the proxy, and flood control and bans apply
 to all users. Refer to [HTTP API: behind a proxy](HTTP-API#behind-a-proxy).
 
-**Refer to:** [Web forum](Web-Forum), [HTTP API](HTTP-API)
+**See also:** [Web forum](Web-Forum), [HTTP API](HTTP-API)

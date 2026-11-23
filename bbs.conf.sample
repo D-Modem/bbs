@@ -153,7 +153,7 @@ line_speed_ask = no
 ;                        and friends yes; "ansi" BBS terminals no), yes, no
 ;   sixel = auto         the logo as sixel graphics on terminals that say
 ;                        they have them (device attributes); no.  auto for
-;                        telnet, no for raw and rlogin (slow modem lines)
+;                        telnet and ssh, no for raw and rlogin (slow modem lines)
 ;   petscii = no         Commodore 64s and 128s: yes (every caller is one),
 ;                        auto (a caller that is not ANSI is watched while it
 ;                        logs in: a key only a C64 has, or DEL asked for
@@ -974,8 +974,8 @@ address = 127.0.0.1:2513
 ; The Microsoft Network of 1995 to 1998, for the MSN client that came with
 ; Windows 95: users sign in with their BBS names and passwords, the
 ; message areas are its Categories, and each area is an MSN bulletin
-; board to read and post in.  Over TCP its port is 569, which the client
-; can't be told otherwise; modem callers come through a listener with
+; board to read and post in.  Over TCP its port is 569.  You cannot
+; give the client a different port; modem callers come through a listener with
 ; frontend = marvel.  See docs/wiki/MSN-Classic.md
 ;[marvel]
 ;address = :569

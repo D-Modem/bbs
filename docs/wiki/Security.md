@@ -7,7 +7,7 @@ callers out, and the settings for telnet over TLS.
 - Passwords: the BBS stores them with bcrypt (cost 12). The refusal of
   an unknown user takes the same time as the refusal of an incorrect
   password. After each failure, the BBS waits `fail_delay`. After
-  `attempts` failures, the BBS hangs up. `throttle_failures` refuses an
+  `attempts` failures, the BBS disconnects the caller. `throttle_failures` refuses an
   address or caller ID that continues to fail (or continues to sign up).
 - Text from users: the BBS cleans all text before it stores it, and
   again before it shows it. No escape sequences, control characters, C1
@@ -17,8 +17,8 @@ callers out, and the settings for telnet over TLS.
 - Limits on all items: lengths of names, subjects and lines, message
   size, telnet subnegotiations, session headers, rlogin fields, and 64 KB
   for the answer of a 3270 screen. Timeouts for each step (telnet and
-  TN3270 negotiation, headers, the login, idle callers, writes to callers
-  who stopped to read). `max_nodes` callers at one time and `max_per_ip`
+  TN3270 negotiation, headers, the login, idle callers, and writes to
+  callers that do not read). `max_nodes` callers at one time and `max_per_ip`
   from one address.
 - The BBS creates the database with mode 0600. It makes unix sockets
   private and then opens them to `socket_mode`. They are never wider
@@ -52,8 +52,7 @@ callers out, and the settings for telnet over TLS.
     peer. It checks the articles of peers (the headers that RFC 5536
     requires, the sizes of the article, its headers and lines). It cleans
     them before a caller sees them.
-  - `tls =
-    required` refuses `AUTHINFO` before `STARTTLS`. With `no` and
+  - `tls = required` refuses `AUTHINFO` before `STARTTLS`. With `no` and
     `optional`, `bbs check` gives a warning.
   - Commands, lines and articles have limits. Clients at one time and
     from one address also have limits.
@@ -73,7 +72,7 @@ callers out, and the settings for telnet over TLS.
 - Doors: a DOS door runs in a container with no network, as the user of
   the BBS. It sees only the directory of the doors and the directory of
   its node. The line of the caller connects to it only through COM1. A
-  hang-up, the time limit and the idle time stop it. The drop files
+  disconnection, the time limit and the idle time stop it. The drop files
   contain no password.
 - Chat: the BBS cleans the text of callers as it cleans all other text
   from them. The text has limits (200 characters for each line, 8 lines
@@ -132,8 +131,8 @@ callers out, and the settings for telnet over TLS.
 [security]
 deny_file = /etc/bbs/deny.txt          ; addresses refused
 name_deny_file = /etc/bbs/names.txt    ; names no new account may have
-hack_log = /var/log/bbs/hack.log       ; who tried what
-ban_minutes = 60                       ; a throttled address is banned this long
+hack_log = /var/log/bbs/hack.log       ; failed logins and refused callers
+ban_minutes = 60                       ; the time of the ban on a throttled address
 ```
 
 - `deny_file` lists addresses and networks, one on each line

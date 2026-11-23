@@ -42,7 +42,7 @@ page. `R` (PF5) reads from the first new message. `P` (PF6) posts a
 message. `L` (PF9) posts a poll: a question and 2 to 10 answers, with
 `|` between them.
 
-## Reading
+## Read a message
 
 | Action | Key | PF |
 |---|---|---|

@@ -51,13 +51,13 @@ that the BBS does not serve, the BBS tells the client, and the log gives
 the reason (without `https_address`, the BBS does not serve MSNP8 and
 later).
 
-We did not try these with the real clients yet. The tests use scripted
-clients.
+We did not test these versions with the real clients yet. The tests use
+scripted clients.
 
-## Pointing a client at the BBS
+## Connect a client to the BBS
 
-The clients were made for the servers of Microsoft. Thus, you must point
-each client at the BBS:
+The clients were made for the servers of Microsoft. Thus, you must configure
+each client to connect to the BBS:
 
 - With the [DNS server](DNS) of the BBS (`[dns]`), the machines of
   callers that use it come here for all of these names, with no hosts
@@ -69,7 +69,7 @@ each client at the BBS:
   `HKEY_CURRENT_USER\Software\Microsoft\MessengerService` in the
   registry to the host of the BBS (with `:1863` if the port is
   different). An entry in the hosts file that sends
-  `messenger.hotmail.com` to the BBS can also operate. We did not try
+  `messenger.hotmail.com` to the BBS can also operate. We did not test
   these methods with the real clients yet.
 - Third-party clients (aMSN, Miranda, Trillian and others) accept a
   server and port in the settings of the account.
@@ -122,7 +122,7 @@ server accepts those, and also current ciphers. If a proxy does TLS in
 front of the BBS, set `http_address` in place of `https_address`, and
 send the requests of the proxy there.
 
-## Signing in
+## Sign in
 
 Each MSN user is a BBS user. The user signs in with `name@domain` as the
 e-mail address and with the BBS password. You can type a name with
@@ -160,8 +160,7 @@ friend on a different route, a client that is on gets it immediately. If
 you add or remove a contact on MSN, the change applies on all routes. If
 a user adds an MSN user, that user is on the reverse list of the MSN
 user. Thus, the client asks "X has added you to their contact list". The
-BBS keeps groups made on MSN with the friends in them. If a group is
-empty, it is removed at the next sign-in.
+BBS keeps groups made on MSN with the friends in them. The BBS removes an empty group at the next sign-in.
 
 The block list is the [blocked list](Chat-and-Paging#blocking) of the
 user. The chat command `/block` uses the same list. The BBS refuses the

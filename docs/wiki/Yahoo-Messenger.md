@@ -46,11 +46,11 @@ The BBS serves YMSG 9 to 16, with three logins:
   `login.yahoo.com`, gets a token, and proves it on the pager. This login
   must have `https_address`.
 
-## Pointing a client at the BBS
+## Connect a client to the BBS
 
-The clients were made for the servers of Yahoo. Thus, you must point
-each client at the BBS. We did not try these procedures with the real
-clients yet.
+The clients were made for the servers of Yahoo. Thus, you must configure
+each client to connect to the BBS. We did not test these procedures with
+the real clients yet.
 
 - With the [DNS server](DNS) of the BBS (`[dns]`), the machines of
   callers that use it come here for all of these names, with no hosts
@@ -74,7 +74,7 @@ clients yet.
 
 The deny list and bans in `[security]` apply, as on all other routes.
 
-## Signing in
+## Sign in
 
 Each Yahoo user is a BBS user. The Yahoo ID is the BBS name in lower
 case without its spaces (`carolann` is Carol Ann). The password is the
@@ -131,7 +131,7 @@ user come at the sign-in, with the time that they were sent. The notices
 of the BBS (new mail, a page for the sysop, errors) come from the
 `system` ID.
 
-## Sending files
+## Send files
 
 Files go between Yahoo! Messenger users, through the BBS. The BBS holds
 them in a temporary file only until the receiver gets them (a maximum of
@@ -153,7 +153,7 @@ to the BBS (as for the other names above):
   uploads the file, and the receiver gets a link from which to download
   it.
 
-We did not try these methods with the real clients yet. We tried them
+We did not test these methods with the real clients yet. We tested them
 only with scripted clients that do the same as libyahoo2. The BBS does
 not pass on direct connections between two clients. Thus, clients that
 try a direct connection first then use the relay or the upload.

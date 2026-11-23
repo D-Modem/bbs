@@ -2,7 +2,7 @@ The BBS can be a server on an IRC network: a hub that links to many
 other servers, in and out, and routes between them. It uses TS6, the
 server protocol of Solanum (Libera.Chat), charybdis, ircd-ratbox and
 ircd-hybrid (EFnet). It also uses P10, the server protocol of ircu
-(Undernet). It does not need its own ircd.
+(Undernet). A separate ircd is not necessary.
 
 - **All BBS users are on the network.** All online users, on a terminal,
   a 3270, the web, [IRC](IRC), [AIM or ICQ](AIM-and-ICQ), are users
@@ -14,7 +14,7 @@ ircd-hybrid (EFnet). It also uses P10, the server protocol of ircu
   text in one goes to the other. The users of the network are in the
   member list of the room.
 - **The BBS never fights for a nick that is in use.** Sometimes a BBS
-  user comes on and the nick is in use on the network. Or a link starts,
+  user logs in and the nick is in use on the network. Or a link starts,
   and a user there has that nick. In these cases, the BBS gives the BBS
   user the name `Nick|Tag`, where Tag is the short tag of the BBS
   (`alice|DM`). The BBS cuts it to the nick length of the network. If
@@ -158,14 +158,14 @@ has the nick of a BBS user, the BBS gives that user the name `Nick|Tag`
 before it sends the user. When two users of other servers collide, the
 TS6 rules apply: the server kills the newer user, or both users if they
 have the same age. If an oper or services kill a BBS user from the
-network, the user comes back on the network at the next login. The BBS
+network, the user is on the network again at the next login. The BBS
 passes on channel modes, bans and similar items (`TMODE`, `BMASK`,
 `ENCAP` ...) as they come. The BBS sets no modes of its own.
 
 The BBS answers `WHOIS`, `VERSION`, `MOTD`, `ADMIN`, `INFO`, `TIME` and
 `LINKS` for itself. It passes on these requests for other servers.
 
-## Testing against a real ircd
+## Tests against a real ircd
 
 The `TestLive` of `internal/irclink` links to a real ircd if you
 configure one. Refer to the top of `live_test.go`. We ran it against

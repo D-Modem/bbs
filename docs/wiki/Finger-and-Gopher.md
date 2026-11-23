@@ -49,8 +49,8 @@ It forwards nothing (it refuses `user@otherhost`). `online = no` and
 ```
 [gopher]
 address = :70
-hostname = bbs.example.org   ; what the menus say to come back to
-port = 70                    ; and on which port (behind NAT, a forward)
+hostname = bbs.example.org   ; the host in the links of the menus
+port = 70                    ; the port in the links (behind NAT, a forwarded port)
 areas = general,announcements ; message areas anyone may read (a wildmat)
 files = no                   ; yes: file areas listed and downloadable
 max_clients = 32
@@ -68,9 +68,9 @@ Gopher has no login. Thus, it shows all its data to all users. For this
 reason, it shows no message areas and no files by default, and `bbs
 check` gives a warning when you set `areas` or `files`. `areas` matches
 area names with upper or lower case (`*` matches all of them). Users
-cannot get to an area that does not match, for all requests. Selectors
+cannot access an area that does not match, for all requests. Selectors
 are not paths. They name records in the database of the BBS. Users
-cannot get to items on the disk of the server.
+cannot access items on the disk of the server.
 
 ```
 $ curl gopher://bbs.example.org/1/areas
@@ -87,7 +87,7 @@ hostname = bbs.example.org   ; offered by bbs gemini cert
 ;key_file = /etc/bbs/gemini-key.pem
 areas = general,announcements ; as gopher's
 files = no
-users = yes                  ; /users: look up a user, as finger does
+users = yes                  ; /users: find a user, as finger does
 max_clients = 32
 max_per_ip = 8
 ```
@@ -140,8 +140,7 @@ without `-force` (and with `-force`, it keeps the old certificate as
 
 `bbs check` shows the names, the expiry date and the SHA-256 fingerprint
 of the certificate, or it tells you that there is no certificate yet. If
-there is no certificate, `bbs
-serve` stops and tells you to make one. A certificate from a certificate
+there is no certificate, `bbs serve` stops and tells you to make one. A certificate from a certificate
 authority (for example, Let's Encrypt) also operates: set `cert_file`
 and `key_file`.
 
@@ -149,7 +148,7 @@ Gemini shows all users the same data that gopher shows all users. By
 default, it shows no areas and no files. `bbs check` gives a warning
 when you set `areas` or `files`. Gemini never shows file areas that have
 a download requirement. `users = no` disables the user lookup. Port 1965
-is above 1024 and does not need a privilege.
+is above 1024. Thus, it does not need a privilege.
 
 ```
 $ amfora gemini://bbs.example.org

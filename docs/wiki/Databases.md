@@ -40,7 +40,7 @@ Thus, keep the file at mode 0640, with the group of the BBS as the owner.
 
 ## What differs
 
-The differences are very small, by design. The BBS has one version of
+The differences are very small. This is intentional. The BBS has one version of
 its SQL. Each engine gets its own form of the parts that are different
 (ids, placeholders, upserts, booleans, and the rules for duplicates).
 
@@ -63,16 +63,16 @@ its SQL. Each engine gets its own form of the parts that are different
 - **SQLite** uses one connection (it accepts one writer at a time). The
   servers use up to ten.
 
-## Moving to another engine
+## Move to a different engine
 
 ```
 bbs db copy postgres://bbs:PASSWORD@db.example.org/bbs
 ```
 
 This command copies all tables of the configured database into a new,
-empty database (prepared as `bbs init` does). It keeps the ids. When the
-copy is complete, set `database =` to the new database. Stop the BBS
-while it copies. The copy operates in all directions: SQLite to
+empty database (prepared as `bbs init` does). It keeps the ids. Stop the
+BBS before the copy starts. When the copy is complete, set `database =`
+to the new database. The copy operates in all directions: SQLite to
 PostgreSQL, MySQL to SQLite, PostgreSQL to MySQL, and other directions.
 
 ## Backups

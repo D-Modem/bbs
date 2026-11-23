@@ -8,32 +8,32 @@ newsreader shows on a 3270.
 ```
 bbs area newsgroup General bbs.general
 bbs area newsgroup General -          ; no longer a newsgroup
-bbs news sync                         ; sync with every peer now
-bbs news sync upstream                ; or one
+bbs news sync                         ; exchange articles with all peers now
+bbs news sync upstream                ; or with one peer
 ```
 
 ```
 ; bbs.conf
 [news]
-hostname = news.example.org    ; this site in Path and Message-IDs
+hostname = news.example.org    ; the name of this site in Path and Message-IDs
 organization = D-Modem BBS
 max_article = 64K
 
 [nntp]
 address = :563
-tls = implicit                 ; or required: STARTTLS before AUTHINFO
+tls = implicit                 ; or required (STARTTLS before AUTHINFO), optional, no (the default)
 cert_file = /etc/bbs/cert.pem
 key_file = /etc/bbs/key.pem
-read = anyone                  ; or users: log in first
+read = anyone                  ; (the default) or users: log in first
 post = yes
 
 [peer upstream]
 address = news.example.net:119
-tls = starttls
+tls = starttls                 ; or implicit, or no (the default)
 username = bbs
 password = secret
 groups = bbs.*
-accept_from = news.example.net ; may feed us by IHAVE
+accept_from = news.example.net ; the hosts that can feed us by IHAVE
 ```
 
 ## The server
@@ -59,14 +59,16 @@ multipart). It cleans them as it cleans all other text from callers.
 
 ## Peers
 
-The BBS syncs with its peers every `interval` seconds, and each time that
-you run `bbs news sync`:
+The BBS exchanges articles with its peers every `interval` seconds (600),
+and each time that you run `bbs news sync`. `pull` and `push` (both
+`yes`) enable the two directions. One run moves a maximum of `max_per_run`
+articles (1000) in each direction:
 
 - *pull*: for each of our newsgroups that the peer carries (and that
   `groups` matches: a wildmat, `bbs.*,!bbs.test`), the BBS gets the
   articles after the last article that it got, with `OVER` and
   `ARTICLE`. The first time, it gets only the latest `initial` articles
-  of each group.
+  (100) of each group.
 - *push*: the BBS sends with `IHAVE` our articles that came after the last
   push. These are articles from the BBS, from a reader, or from a
   different peer. The BBS never sends an article back to the peer that
@@ -74,13 +76,13 @@ you run `bbs news sync`:
   the BBS uses `POST`. The first time, the BBS only records the start
   point. It does not send the full history to a new peer.
 - The peer can *feed* us with `IHAVE` from the addresses in
-  `accept_from`. No other system can use `IHAVE`. The BBS looks up the
+  `accept_from`. No other system can use `IHAVE`. The BBS resolves the
   names there when it loads the configuration (at the start and at each
   reload), not on each connection. If the address of a peer changes, do
   a reload, or list its addresses.
 
-The BBS takes each article only one time. It keeps a history of
-Message-IDs, also of the articles that it refused. It never takes an
+The BBS accepts each article only one time. It keeps a history of
+Message-IDs, also of the articles that it refused. It never accepts an
 article if this site is already in its Path. Thus, two peers that carry
 the same group do not make a loop. The BBS stores the article in the
 first of its newsgroups that this site carries. It puts the name of this

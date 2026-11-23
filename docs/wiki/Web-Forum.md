@@ -55,7 +55,7 @@ first post.
 The forum marks topics as read when a user reads them (for each user and
 each topic). It marks an area as read in the same way as the new scan of
 the BBS. *Mark this forum read* marks the area as read up to its newest
-message. This also applies to the new scan on the terminals.
+message. This change also applies to the new scan on the terminals.
 
 To post, a user must have the same permissions as for a post on the
 terminals (the `post` requirement of the area). News-only areas do not
@@ -66,7 +66,7 @@ accept posts. Posts are the same as on the BBS:
 - The forum wraps lines that are longer than a terminal line (79 columns)
   at spaces. It does not cut them. Thus, the terminals show the full
   paragraph.
-- The forum adds the user's signature, as on the terminals.
+- The forum adds the signature of the user, as on the terminals.
 - If an area permits aliases, a user can post under an alias. The forum
   does not show the real name.
 
@@ -156,8 +156,8 @@ from those boards.
 select a different theme at the bottom of each page. The forum keeps the
 selection in a cookie (`bbs_forum_theme`) for one year. A theme has its
 own layout for the board, the topic lists, the topics and the profiles.
-The other pages (posting, searching, signing in) show in the colors of
-the theme.
+The other pages (new posts, search, sign-in) show in the colors of the
+theme.
 
 Some themes use the templates of a different theme, with their own
 stylesheets:
@@ -182,7 +182,7 @@ refuses a form without this token.
 
 ### Sign-in codes
 
-A user who is signed in on the BBS (telnet, SSH, a modem by dmodem-login, a
+A user who is logged in on the BBS (telnet, SSH, a modem by dmodem-login, a
 3270) can get a sign-in code from *Your profile*, `C` (PF10). The code has
 eight letters and digits, `ABCD-EFGH`. You can use it one time, for five
 minutes. A new code cancels the previous code.
@@ -207,4 +207,4 @@ default-src 'self'`). They do not permit framing, and they keep no copies
 (`no-store`). Requests count against the `rate` of the API for each
 address.
 
-**Refer to:** [HTTP API](HTTP-API), [Message areas](Message-Areas), [Writing messages](Writing-Messages)
+**See also:** [HTTP API](HTTP-API), [Message areas](Message-Areas), [Writing messages](Writing-Messages)

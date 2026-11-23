@@ -12,9 +12,9 @@ Sicily). The password never goes on the network. Only an answer to a
 challenge goes, which the client calculates from the hash of the
 password. The BBS answers this sign-in on its mail, news and web servers.
 Thus, the programs of MSN 2.x sign in to the BBS as they did to MSN. This
-is early work. We did not try it with a real client yet.
+is early work. We did not test it with a real client yet.
 
-## Turning it on
+## Enable it
 
 ```ini
 [security]
@@ -55,7 +55,7 @@ domain). The password is the BBS password.
   must use one connection from start to end. Thus, a proxy in front of
   the BBS must keep the connections as they are.
 - **Chat**: Comic Chat, the chat program of MSN 2.x, is an IRC client.
-  Point it at the IRC server of the BBS ([IRC](IRC)). It signs in with a
+  Configure it to connect to the IRC server of the BBS ([IRC](IRC)). It signs in with a
   password.
 
 A server with `tls = required` asks for TLS before all sign-ins, also

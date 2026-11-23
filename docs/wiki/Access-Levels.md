@@ -10,15 +10,15 @@ users is 20, and nothing requires more.
 
 ```ini
 [general]
-new_user_level = 10      ; a new account's level
-validated_level = 20     ; what validating a user raises them to
+new_user_level = 10      ; the level of a new account
+validated_level = 20     ; the level after the sysop validates the user
 
 [level 10]
 name = New user
 time = 30                ; minutes online a day (0: no limit)
 downloads = 2            ; files a day (0: no limit)
 post = no
-mail = no                ; still to the sysop: to ask for validation
+mail = no                ; mail to the sysop stays possible (to ask for validation)
 chat = no
 
 [level 20]
@@ -38,7 +38,7 @@ of `[level 20]`. A level below all `[level]` sections has no limits. Each
 | Key | Default | What it sets |
 |---|---|---|
 | `name` | `Level N` | the name that the profile and the API show |
-| `time` | `0` | minutes online each day. The BBS gives a warning to the caller when 5 and 1 minutes remain. At the end, it hangs up (the caller gets a minimum of one minute of a call, to read and log out). The BBS decreases the time limit of a door to the time that remains |
+| `time` | `0` | minutes online each day. The BBS gives a warning to the caller when 5 and 1 minutes remain. At the end, it disconnects the caller. Each call gets a minimum of one minute, to read and log out. The BBS decreases the time limit of a door to the time that remains |
 | `downloads` | `0` | files each day, by all methods (the BBS, FTP, 3270, the API) |
 | `ratio` | `0` | the number of files that a user can download for each file that the user uploaded (0: no ratio). The uploaded files are those that are still in the areas |
 | `ratio_free` | `0` | the number of files that a user can download before the ratio starts. With `ratio = 3` and `ratio_free = 10`, a user with 2 uploads can download 16 |

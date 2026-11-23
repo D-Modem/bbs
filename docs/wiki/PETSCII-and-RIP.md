@@ -42,7 +42,7 @@ read capitals. Then:
 
 | If the caller | The BBS |
 |---|---|
-| pushes a key that only a Commodore has: DEL (0x14), a cursor key (not down, 0x11, which is XON), F1-F8 (0x85-0x8C), CLR (0x93), or types a shifted letter (0xC1-0xDA, unless a UTF-8 continuation byte comes immediately after it) | changes to PETSCII immediately. It clears the screen (also the remaining characters of the questions), and shows the logon screen and the name prompt again |
+| pushes a key that only a Commodore has: DEL (0x14), a cursor key (not down, 0x11, which is XON), F1-F8 (0x85-0x8C), CLR (0x93), or types a shifted letter (0xC1-0xDA, unless a UTF-8 continuation byte comes immediately after it) | changes to PETSCII immediately. It clears the screen (also the characters of the questions that remain on it), and shows the logon screen and the name prompt again |
 | types a name in lower case | knows that it is not a Commodore (the unshifted letters of a Commodore arrive as ASCII capitals). It asks nothing |
 | types a name all in capitals | asks `PRESS DEL (OR BACKSPACE)`. The DEL of a Commodore changes it to PETSCII (and the BBS reads the name as lower case, as it was typed). All other keys keep ASCII |
 

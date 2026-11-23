@@ -1,8 +1,7 @@
 This page lists the `bbs` commands that a sysop uses each day. Each
 command uses the configuration of the BBS (`-config FILE`). Without
 `-config FILE`, it uses the defaults and `bbs.db` in the current
-directory. You can safely run all of these commands while the BBS serves
-callers.
+directory. You can run all of these commands safely while the BBS has callers.
 
 ## Users
 
@@ -12,7 +11,7 @@ bbs user add NAME [-sysop]          # asks for the password (or reads it from a 
 bbs user passwd NAME
 bbs user lock NAME                  # and unlock
 bbs user sysop NAME                 # and unsysop
-bbs user del NAME                   # their mail goes; their messages stay
+bbs user del NAME                   # deletes the account and its mail (messages stay)
 ```
 
 ## The database
@@ -76,6 +75,7 @@ and delete all messages. For newsgroups, refer to
 bbs filearea list
 bbs filearea add NAME "DESCRIPTION" [-sysop-upload]
 bbs filearea del NAME
+bbs filearea echo NAME TAG|-             # make it a FidoNet file echo (- : no longer)
 bbs filearea group NAME GROUP|-          # a CompuServe forum's library (- : none)
 bbs file add AREA PATH ["DESCRIPTION"]   # as the first sysop
 bbs file list AREA
@@ -106,7 +106,7 @@ do the exchange now.
 bbs news sync [PEER]                # exchange articles with news peers now
 bbs fido poll [LINK]                # call FidoNet links now
 bbs fido scan [LINK]                # pack new mail into the outbound
-bbs fido toss [LINK]                # take in what has come
+bbs fido toss [LINK]                # import the mail that came in
 bbs fido node ADDRESS               # a system in the nodelist
 bbs fido nodes WORDS...             # systems by name, place or sysop
 bbs fido subs LINK                  # the echoes and file echoes a link has
@@ -122,17 +122,17 @@ bbs user qwknode|unqwknode NAME     # an account a QWK node calls this hub as
 bbs room list                       # the permanent rooms, with their topics
 bbs room add ROOM ["TOPIC"]         # kept open when empty (IRC: held by BBSServ)
 bbs room topic ROOM ["TOPIC"]       # set its topic (none: clear it)
-bbs room del ROOM                   # it goes with its last caller
+bbs room del ROOM                   # the room closes after its last caller leaves
 ```
 
-A BBS that runs gets these changes at its next start. The `ROOM` command
+A BBS that runs gets these changes when it starts again. The `ROOM` command
 of BBSServ makes them immediately. Refer to [IRC](IRC#permanent-rooms).
 
 ## The rest
 
 ```
 bbs check                           # read the configuration, show its warnings
-bbs init                            # make the database, with two areas
+bbs init                            # make the database, with two message areas and a file area
 bbs [serve]                         # answer callers
 ```
 
