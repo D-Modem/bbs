@@ -18,7 +18,7 @@ key_file = /etc/bbs/tls/key.pem
 | Setting | Default | What it sets |
 |---|---|---|
 | `address` | `:8443` | the address on which it listens |
-| `tls` | `yes` | TLS must have `cert_file` and `key_file`. `tls = no` is for `127.0.0.1` behind a proxy that has TLS. `bbs check` gives a warning about it on all other addresses |
+| `tls` | `yes` | TLS must have `cert_file` and `key_file`, or a certificate from [`[acme]`](Certificates). `tls = no` is for `127.0.0.1` behind a proxy that has TLS. `bbs check` gives a warning about it on all other addresses |
 | `trusted_proxies` | (none) | reverse proxies in front (addresses or CIDR ranges, with spaces or commas between them). The server believes them when they tell the source of a request: [below](#behind-a-proxy) |
 | `secure_cookies` | as `tls` | the login cookies of the forum and image boards go over HTTPS only. Set `yes` when a proxy in front has the TLS |
 | `anonymous` | `yes` | `/system` and `/who` without a token |
@@ -64,13 +64,13 @@ The address of the caller is the last address in `X-Forwarded-For` (or
 the `for=` of `Forwarded`, or `X-Real-IP`) that is not a trusted proxy.
 The caller sent the addresses before it, and the server does not trust
 them. The server then uses that address for the request in all
-functions: rate limits, logins and the logs, the forum, the throttling
+functions: rate limits, logins and the logs, the forum, the throttle
 of the web terminal, the flood control and bans of the
 [image boards](Image-Boards), and the `[security]` deny lists and bans
 (a refused caller gets 403). Connections from a trusted proxy do not
 count against `max_per_ip`, because they carry many callers. The server
 accepts requests from all other sources as they come, and ignores their
-forwarding headers.
+`X-Forwarded-For`, `Forwarded` and `X-Real-IP` headers.
 
 ## Tokens and scopes
 
@@ -253,7 +253,7 @@ caller logs in at the prompt of the BBS, as on telnet: no token is
 necessary.
 
 The caller gets ANSI colour and UTF-8 (the CP437 of ANSI art shows as
-Unicode), menus, messages, mail, chat, paging and doors. The caller does
+Unicode), menus, messages, mail, chat, pages and doors. The caller does
 not get file transfers (download files by the API or FTP). Its xterm.js
 has the image addon. Thus, the pictures (sixel) of the
 [image boards](Image-Boards) show in it.
@@ -268,7 +268,7 @@ The page permits scripts only from the BBS, cannot be in a frame, and
 accepts WebSockets only from its own host (and the `cors` origin).
 Connections count against `max_per_ip` and `rate`. Logins count against
 the throttle, as the logins of a terminal do. Behind a proxy on
-127.0.0.1 without `trusted_proxies`, the proxy must do the throttling,
+127.0.0.1 without `trusted_proxies`, the proxy must throttle the logins,
 because the BBS sees all callers as the proxy. `terminal = no` disables
 the page.
 
@@ -278,7 +278,7 @@ With `metrics = 127.0.0.1:9100`, `/metrics` at that address has these
 items, in the text format of Prometheus: `bbs_nodes`,
 `bbs_nodes_by_via{via}`, `bbs_max_nodes`, `bbs_users`, `bbs_messages`,
 `bbs_logins_total`, `bbs_login_failures_total`, `bbs_posts_total`,
-`bbs_mail_total`, `bbs_pages_total`, `bbs_chat_lines_total`,
+`bbs_mail_sent_total`, `bbs_pages_total`, `bbs_chat_lines_total`,
 `bbs_pages_waiting` and `bbs_fido_outbound_files{link}`.
 
 ## Security

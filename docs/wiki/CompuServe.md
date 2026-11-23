@@ -17,11 +17,11 @@ frontend = compuserve
 
 A `raw` listener also operates: modem callers through app_dmodem dial
 directly into CompuServe. `connect = 9600` sets the `CONNECT` line that
-the service shows before `Host Name:`. It is on by default for telnet,
-because the scripts of CIM expect it over TCP. It is off for raw
-listeners, because the modem already sent it.
+the service shows before `Host Name:`. It is `9600` by default on telnet
+listeners, because the scripts of CIM expect it over TCP. Raw listeners
+have no `CONNECT` line by default, because the modem already sent one.
 
-## Logging on
+## The logon
 
 ```
 Host Name: CIS
@@ -29,12 +29,12 @@ User ID: 72000,1
 Password:
 ```
 
-- **Host Name:** `CIS`, `CPS` or `CISAGREE`, the names that the scripts
-  of CompuServe send.
+- **Host Name:** `CIS`, `CPS`, `CISAGREE` or `COMPUSERVE`. The scripts
+  of CompuServe send these names.
 - **User ID:** the account number written as a CompuServe ID: account 1
   is `72000,1`. It uses only octal digits, as the IDs of CompuServe did.
-  A caller can also type the BBS name. In that case, the service shows
-  the ID at logon. The ID can have the usual options, for example
+  A caller can also type the BBS name. Then the service shows the ID at
+  logon. The ID can have the usual options, for example
   `/INT:60`, `;TTY` and `/GO:word`.
 - **Password:** the BBS password.
 - **Bad logon:** an incorrect ID or password gets
@@ -64,10 +64,10 @@ can do these actions:
   mark `*` on unread letters. When you read a letter, the service marks
   it as read.
 
-CIM cannot yet send mail, post to forums, download, or use the CB.
-WinCIM sends mail and forum messages through its own transactions, which
-nobody has recovered yet. For now, use a terminal program for those
-tasks.
+CIM cannot send mail, post to forums, download, or use the CB.
+WinCIM sends mail and forum messages through its own transactions. The
+format of these transactions is not known. Use a terminal program for
+these tasks.
 
 Point WinCIM at the listener over TCP (with the [DNS
 server](DNS) of the BBS, `HostIPAddress` can be `compuserve.com`). In
@@ -92,8 +92,7 @@ then, a Secure Login fails with `No.`, and the log gives the reason. Log
 on one time from a terminal, or set `DisableSecureLogin=ON` in CIS.INI
 for one plain login.
 
-We did not try any of this with a real WinCIM yet. That is the next set
-of tests.
+We did not test this with a real WinCIM.
 
 ## Commands
 
@@ -102,7 +101,7 @@ of tests.
 | a number | selects that menu item |
 | `T` | the TOP menu |
 | `M` | the previous menu |
-| `B` | back one page |
+| `B` | the page before |
 | `F` | forward one page |
 | `R` | sends the page again |
 | `N` / `P` | the next or previous item of the menu |
@@ -127,7 +126,7 @@ groups. When you leave, you confirm the changes. The screens follow the
 ALT-P script of TAPCIS (PARAMS.SCR, 1991), which configures a new member
 through them.
 
-The kept settings do these functions:
+The permanent settings do these functions:
 
 - PAGED, BRIEF, WIDTH and LINES apply at each logon.
 - **Mail waiting: Go to MAIL** goes directly into Mail when letters wait.
@@ -138,7 +137,7 @@ The kept settings do these functions:
 
 The service keeps and shows the other settings, as scripts expect, but
 they do nothing here: terminal type, parity, delays, first service, TOP
-goes to, forum mode and graphics support. Forums are always in command
+goes to, forum mode and graphics. Forums are always in command
 mode. To log on with the defaults one time, add `;TTY` to the User ID
 (`72000,1;TTY`).
 
@@ -177,7 +176,7 @@ Fm: sysop 72000,2
 To: alice 72000,1
 ```
 
-Membership (JOIN) and conferences are not available yet.
+Membership (JOIN) and conferences are not available.
 
 ## Libraries
 
@@ -274,7 +273,7 @@ programs of the BBS see the name of the caller.
 | `/TUN n` | tunes to channel n (1-36) |
 | `/MON 1,4`, `/UNM 1,4` | also listens to other channels, or stops |
 | `/STA` | the number of users on each channel |
-| `/UST [n]` | the users on CB: job, User ID, channel (`17s` scrambled, `Tlk` talking), node, handle |
+| `/UST [n]` | the users on CB: job, User ID, channel (`17s` scrambled, `Tlk` in a talk), node, handle |
 | `/WHO` | the User ID of the last user who sent a line |
 | `/HAN name` | changes your handle |
 | `/SCR key`, `/SMC key`, `/XCL key`, `/UNS` | scrambles the text that you send and unscrambles the text that you get, one of the two, or neither |
@@ -284,13 +283,13 @@ programs of the BBS see the name of the caller.
 | `/TIM`, `/JOB`, `/HELP` | the time, your job number (the BBS node), the commands |
 | `/EXI`, `/OFF` | leaves CB, or logs off |
 
-Scrambling operates as it did on CompuServe. The key permutes all text
+The scramble function operates as it did on CompuServe. The key permutes all text
 that you send, and the key reverses the permutation on all text that you
 get. Thus, only callers who use the same key can read each other.
 
-## What is there and what is coming
+## Status
 
-| Done | Coming, in order |
+| Done | Planned, in order |
 |---|---|
 | The logon, `ESC I`, the menus and articles (`internal/cis/pages.txt`), GO, FIND, SET, permanent settings (GO DEFAULT) | Forum JOIN and member options |
 | Forums on the message areas, with the forum command language | |
@@ -299,7 +298,7 @@ get. Thus, only callers who use the same key can read each other.
 | CompuServe Mail on the private mail of the BBS | Binary mail |
 | The CB Simulator on the chat rooms | Forum conferences (CO) |
 | CIM: Secure Login, the B Plus Transport Layer, HMI pages, menus, articles and Find | |
-| CIM: reading forums and Mail, library lists | CIM: sending mail, posting, downloads, CB |
+| CIM: read forums and Mail, library lists | CIM: send mail, post, downloads, CB |
 
 The research for all of this, with sources, is in
 [docs/cis](https://github.com/D-Modem/bbs/tree/main/docs/cis).

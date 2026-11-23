@@ -37,8 +37,8 @@ and digits, in capitals (`D-Modem BBS` is `DMODEMBB`). `qwk_id` in
 qwk_id = DMODEM
 ```
 
-If you change it later, the readers of callers do not operate correctly,
-because they file packets under this ID.
+Do not change the ID later. The readers of callers keep packets under
+this ID, and do not operate correctly after a change.
 
 ## The REP
 
@@ -60,7 +60,7 @@ record of the contents of each REP for 90 days.
 
 A REP has a maximum of 16 MB and 1000 messages.
 
-## Getting it
+## Get the packet and send the REP
 
 | Where | The packet | The REP |
 |---|---|---|
@@ -72,7 +72,7 @@ A REP has a maximum of 16 MB and 1000 messages.
 The FTP directory `/qwk` is for logged-in users, not for anonymous users.
 It hides a file area with the name `qwk` from them. The BBS makes the
 packet in that directory when the user asks for it (and again after a
-minute). The packet counts as taken when the user has read all of it.
+minute). The packet counts as received when the user has read all of it.
 
 The menus of a sysop can offer it with `qwk` ([customization](Customization)).
 
@@ -81,7 +81,7 @@ The menus of a sysop can offer it with `qwk` ([customization](Customization)).
 QWK networks (DOVE-Net, the QWK side of FSXNet, and others) connect
 BBSes through a **hub**. Each **node** calls the hub as a user. It puts a
 REP of the messages that its callers wrote in the conferences of the
-network. Then it takes a packet of the messages from all other systems.
+network. Then it gets a packet of the messages from all other systems.
 This BBS can be a node or a hub.
 
 ### As a node
@@ -93,7 +93,7 @@ conference of the hub.
 ```ini
 [qwknet dovenet]
 address = hub.example.org:21
-tls = explicit            ; FTPS (AUTH TLS); implicit, or no
+tls = explicit            ; FTPS with AUTH TLS (the default), implicit or no
 user = MYBBS
 password = secret
 dir = /qwk                ; where the hub keeps its packet ("/": the root)
@@ -108,17 +108,17 @@ BBS does these steps:
 1. It puts `HUBID.REP` in the directory of the hub. This file contains
    the messages written here in those areas since the last call (a
    maximum of 1000 for each call).
-2. It takes `HUBID.QWK` and posts its contents in the areas of its
+2. It gets `HUBID.QWK` and posts its contents in the areas of its
    conferences, with the name of each writer. It ignores conferences
    that are not in the list. It also ignores mail to the account of the
    node.
 
-`HUBID` is the packet that the BBS finds in the directory of the hub, or
-`hub_id`. The first call sends no messages that are already here. Only
+`HUBID` is the name of the packet that the BBS finds in the directory
+of the hub, or `hub_id`. The first call sends no messages that are already here. Only
 messages written on this BBS go up. Messages that came by a network, a
 news peer or FidoNet stay here. The BBS knows each message from the hub
-by its conference and number. Thus, if it takes a packet two times, it
-posts nothing two times. If the answered message came by the network,
+by its conference and number. Thus, if it gets a packet two times, it
+posts each message only one time. If the answered message came by the network,
 answers keep their threads in the two directions.
 
 `bbs qwknet call [NET]` (or `POST /api/v1/admin/qwknet/call`) calls now.
@@ -132,7 +132,7 @@ bbs user add MYNODE
 bbs user qwknode MYNODE
 ```
 
-The account of a node takes its packet and puts its REP in the same way
+The account of a node gets its packet and puts its REP in the same way
 as all callers. [FTP](Files-and-FTP) (`/qwk`) is the best method. The
 BBS posts the contents of its REP with the names of the writers on the
 node, not the name of the account. The BBS still checks its access on

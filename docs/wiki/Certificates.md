@@ -19,7 +19,7 @@ domains = bbs.example.org, mail.example.org
 address = :443
 ```
 
-A web server and a mail server need only these settings. The CA checks
+For a web server and a mail server, only these settings are necessary. The CA checks
 the names over HTTP on port 80. The BBS answers these checks itself.
 Then all TLS servers with no `cert_file` and `key_file` (or `tls_cert`
 and `tls_key`) use the certificate. The BBS gets the first certificate
@@ -106,7 +106,7 @@ this host:
   environment variables of lego, for example `CF_DNS_API_TOKEN` for
   Cloudflare. Refer to
   [lego's DNS providers](https://go-acme.github.io/lego/dns/).
-- **`acmesh:dns_xx`**: one of the approximately 150
+- **`acmesh:dns_xx`**: one of about 150
   [dnsapi scripts](https://github.com/acmesh-official/acme.sh/wiki/dnsapi)
   of acme.sh, run with the functions of acme.sh loaded. Set `acmesh` to
   the path of acme.sh. Their credentials are the variables of acme.sh
@@ -142,7 +142,7 @@ ZeroSSL and Google must have External Account Binding: `eab_kid` and
 `eab_hmac_key` from the CA. For ZeroSSL, as with acme.sh, an `email` is
 sufficient: the client gets the binding for it.
 
-The client makes the account when it first needs it, and agrees to the
+The client makes the account the first time that it must have one. It agrees to the
 terms of the CA. It keeps the account under `acme/accounts/` with the
 host name of the CA.
 
@@ -192,7 +192,7 @@ port 80 or 443, it answers the challenges of that renewal itself: the
 renewal puts them in `acme/challenges/` for it. `bbs serve` reads the new
 certificate within one minute.
 
-## Trying it out
+## Tests
 
 Use `ca = letsencrypt-staging` until you get a certificate. Then remove
 it. The production limits of Let's Encrypt are strict for repeated
@@ -231,7 +231,7 @@ hostname = gemini.example.org
 cert_file = ca
 ```
 
-`tls_cert = ca` (`cert_file = ca` for Gemini) does not need a key file.
+With `tls_cert = ca` (`cert_file = ca` for Gemini), a key file is not necessary.
 At its start, `bbs serve` makes the CA if there is none (in `ca/`
 adjacent to the database). It signs a certificate for the names of each
 server, and looks again each day.
@@ -246,7 +246,7 @@ The CA is a root with sub-CAs below it. Each has its own key:
   sub-CA (`bbs ca subca proxy`).
 
 The BBS sends each certificate with the certificate of its sub-CA after
-it. Thus, clients need only the root. The key of a sub-CA signs only the
+it. Thus, clients must have only the root. The key of a sub-CA signs only the
 certificates of servers. The key of the root stays with the BBS. The
 servers of the BBS sign with these names:
 
@@ -286,13 +286,13 @@ The `.inf` and `.reg` write the certificate in the location where Windows
 keeps the trusted roots of the machine
 (`HKLM\SOFTWARE\Microsoft\SystemCertificates\ROOT`). This operates from
 Windows 95, and Internet Explorer is not necessary. We did not try the
-package on the old Windows versions yet.
+package on the old Windows versions.
 
 ### Old Windows: SHA-1
 
 Windows 95 to 2000, and XP before Service Pack 3, do not know SHA-256.
 Make the CA with `bbs ca init -sha1` (before other functions make it).
-Then it signs with SHA-1, as the CAs of that time did. Current systems
+Then it signs with SHA-1, as the CAs of that time did. New systems
 refuse SHA-1 certificates. Thus, use it only for a BBS whose callers
 have machines that old.
 

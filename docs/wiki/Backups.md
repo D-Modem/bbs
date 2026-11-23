@@ -11,7 +11,7 @@ bbs -config /etc/bbs/bbs.conf backup restore ARCHIVE -yes
 ```
 
 The Maintenance menu of the [configuration screens](Configuration#editing-it-the-configuration-screens)
-does the same tasks: Back up now, the list of backups, and the
+does the same tasks: Back up now, Backups made, and the
 `[backup]` settings.
 
 ## What a backup holds
@@ -34,7 +34,7 @@ If there are more than `keep` archives, the BBS deletes the oldest.
 
 | Key | Default | What it sets |
 |---|---|---|
-| `dir` | `backups` adjacent to an SQLite database | the location of the archives. Another disk is better, or copy them to a different machine. (A database on a server has no default: set one) |
+| `dir` | `backups` adjacent to an SQLite database | the location of the archives. Use a different disk, or copy the archives to a different machine. A database on a server has no default: set one |
 | `at` | none | daily, at this time (`03:30`) |
 | `keep` | `7` | the number of archives to keep (0: all) |
 | `files` | `yes` | also the directories of the files. `no`: only the configuration, the database and the host keys |
@@ -42,7 +42,7 @@ If there are more than `keep` archives, the BBS deletes the oldest.
 Changes start at a reload (`systemctl reload bbs`) or when the
 Configuration screen saves them.
 
-## Restoring a backup
+## Restore a backup
 
 `bbs backup restore ARCHIVE` lists the contents of the archive and the
 destination of each part. It uses the configuration of *this* system,
@@ -60,7 +60,7 @@ these steps:
   (configure it as for `bbs db copy`). The restore copies the database of
   the archive into it. If the database already has users, the restore
   stops before it unpacks or changes anything. In that case, create a new
-  database, point `database` at it, and do the restore again.
+  database, set `database` to it, and do the restore again.
 - It does not change items that are not in the archive (for example, the
   files, with `files = no`).
 

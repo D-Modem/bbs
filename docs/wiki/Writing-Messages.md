@@ -1,5 +1,5 @@
 Callers write posts and mail in one of three editors. The editor
-changes with the terminal:
+that a caller gets depends on the terminal:
 
 - The full-screen editor on ANSI terminals.
 - The line editor on other text terminals.
@@ -58,7 +58,7 @@ commands operate when they are alone on a line:
 
 A reply starts with a quote of the message that you answer.
 
-## Choosing
+## Select an editor
 
 On an ANSI terminal, `[E]ditor full/line` in *Your profile* changes
 between the two editors. The BBS keeps the selection ([`editor`](Terminal-Identification#what-a-caller-sets)).

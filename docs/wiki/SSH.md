@@ -13,7 +13,7 @@ address = :2222
 ssh -p 2222 alice@bbs.example.org
 ```
 
-## Logging in
+## Log in
 
 | SSH user | Logs in with | Then |
 |---|---|---|
@@ -56,11 +56,11 @@ deletes or uses to log in, by its SHA-256 fingerprint.
 
 The listener offers only a terminal session: a shell request, with a pty
 if the client asks for one. The terminal type and size of the pty go to
-the text BBS, as for telnet:
+the text BBS, as for telnet. For example:
 
 - `xterm-256color` means ANSI and UTF-8.
 - `ansi` and `syncterm` mean ANSI and CP437.
-- For all other types, the BBS asks the caller.
+- For a type that the BBS does not know, the BBS asks the caller.
 
 `ansi`, `utf8` and `sixel` on the listener set these values, as they do
 on telnet. The listener refuses these items: commands (`ssh host ls`),
@@ -84,7 +84,8 @@ not there, the listener creates them (mode 0600) when it starts for the
 first time. The log and `bbs check` show their fingerprints. Keys from
 `ssh-keygen` (OpenSSH or PEM format, without a passphrase) also operate.
 
-The listener creates a missing key according to its name:
+If a key file is not there, the listener creates a key of the type that
+the file name gives:
 
 - RSA (3072 bits) if the name contains `rsa`.
 - ECDSA P-256 if the name contains `ecdsa`.
@@ -98,9 +99,9 @@ As sshd does, the BBS refuses a key file that other users can read.
 legacy = yes
 ```
 
-This setting adds some algorithms to the usual algorithms: the AES-CBC
-and 3DES-CBC ciphers and the 1024-bit `diffie-hellman-group1-sha1` key
-exchange. These algorithms are for old clients that have no newer
+This setting adds some algorithms to the usual algorithms: the
+`aes128-cbc` and `3des-cbc` ciphers and the 1024-bit
+`diffie-hellman-group1-sha1` key exchange. These algorithms are for old clients that have no newer
 algorithms (old SyncTERM and PuTTY builds, cryptlib). These algorithms
 are weak, and `bbs check` gives a warning about them. Without `legacy`,
 the server offers curve25519, ECDH and DH of 2048 bits or more, with

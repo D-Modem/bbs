@@ -1,7 +1,7 @@
 [Multi Relay Chat](https://wiki.mysticbbs.com/doku.php?id=mrc) is a chat
 network of BBSes. Mystic, Synchronet, ENiGMA½ and other BBSes share its
 rooms. The BBS connects to it as its own MRC connector. One connection to
-the MRC server carries all the users of the BBS. You do not have to
+the MRC server carries all the users of the BBS. It is not necessary to
 install a connector program.
 
 The MRC rooms are the chat rooms of the BBS that start with the prefix
@@ -26,7 +26,7 @@ telnet = bbs.example.org:23
 | `web`, `telnet`, `ssh`, `sysop`, `description` | (the name of the sysop, the BBS) | the data about the BBS that the MRC `INFO` gives |
 | `require` | (all users who can chat) | the users who can go into the MRC rooms ([access levels](Access-Levels)) |
 
-## Chatting
+## Chat on MRC
 
 - `/join mrc-lobby` in the chat of the BBS (`JOIN #mrc-lobby` on IRC)
   puts the user in the MRC lobby. Other users on the network see the
@@ -48,7 +48,7 @@ room on MRC. This is the last room in which the user wrote.
 
 Each minute, the BBS tells MRC that each user is present (`IAMHERE`). If
 the connection stops, the BBS connects again after 30 seconds. Then it
-puts back all the users who were there.
+adds again all the users who were there.
 
 A sysop can make `mrc-lobby` a [permanent room](IRC#permanent-rooms).
 Then the BBS lists the room when it has no users on this BBS.

@@ -7,7 +7,7 @@ the BBS starts, refer to [Administration](Administration).
 ```
 bbs -config /etc/bbs/bbs.conf config    # edit the configuration in its screens (starts from the sample)
 bbs -config /etc/bbs/bbs.conf check     # read the configuration and show its warnings
-bbs -config /etc/bbs/bbs.conf init      # make the database, with two message areas
+bbs -config /etc/bbs/bbs.conf init      # make the database, with two message areas and one file area
 bbs -config /etc/bbs/bbs.conf user add sysop -sysop
 bbs -config /etc/bbs/bbs.conf serve
 ```
@@ -46,10 +46,11 @@ user = bbs
 ```
 
 If you start `bbs serve` as root, it reads the configuration. It then
-binds all the ports and unix sockets on which it listens (the listeners,
-the HTTP API and metrics, FTP, NNTP, IRC, finger, gopher, Gemini and
-binkp). Then it stops its root access and takes the supplementary groups
-of the user (for example, the group of `socket_group` and the docker
+binds all the ports and unix sockets on which it listens: the listeners,
+the HTTP API and metrics, FTP, NNTP, the mail servers, IRC, finger,
+gopher, Gemini, binkp, NTS, the HTTP port of the ACME client, DNS, NTP,
+PTP and the chat services. Then it stops its root access and takes the
+supplementary groups of the user (for example, the group of `socket_group` and the docker
 group). Then it runs itself again as the user. It stays the same process,
 with the same PID for systemd and `systemctl reload`, and it keeps the
 sockets.

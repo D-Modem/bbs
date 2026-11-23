@@ -14,7 +14,7 @@ bbs area echo General FSX_GEN       ; General is the echo FSX_GEN
 bbs area echo General -             ; no longer an echo
 bbs fido poll                       ; call the links now (also: poll LINK)
 bbs fido scan                       ; pack new mail into the outbound
-bbs fido toss                       ; take in what has come
+bbs fido toss                       ; import the mail that came in
 bbs filearea echo Nodediff NODEDIFF ; a file area is the file echo NODEDIFF
 bbs fido node 21:1/100              ; a system in the nodelist
 bbs fido nodes Wellington           ; systems by name, place or sysop
@@ -30,7 +30,7 @@ bbs fido areafix hub +FSX_* %LIST   ; ask the hub's AreaFix (filefix: FileFix)
 address = 21:1/999              ; ours; more after it are AKAs
 origin = D-Modem BBS, by phone and telnet
 dir = /var/lib/bbs/fido          ; inbound, outbound, bad packets
-charset = cp437                  ; or utf-8
+charset = cp437                  ; (the default) or utf-8
 nodelist = /var/lib/bbs/fido/nodelist/FSXNET.*   ; the newest of each
 
 [binkp]                          ; answer calls (port 24554)
@@ -40,7 +40,7 @@ address = :24554
 address = 21:1/100
 host = hub.example.net:24554       ; to call it ("": it calls us)
 password = secret                ; the session password
-echoes = FSX_*                   ; the echoes exchanged, a wildmat
+echoes = FSX_*                   ; the echoes exchanged, a wildmat (default *)
 route = yes                      ; netmail for anywhere goes by it
 poll = 3600                      ; call every hour, mail or not
 fileechoes = FSX_*               ; the file echoes exchanged (none if unset)
@@ -64,7 +64,7 @@ The BBS packs the messages that users post in an echo for each link
 that carries the echo. The packed messages have MSGID, REPLY for
 threads, PID, TZUTC, CHRS, tear and origin lines, SEEN-BY and PATH. The
 BBS tosses the messages from links into the echo. It decodes them from
-their character set, according to their CHRS kludge (CP437 and the
+their character set, from their CHRS kludge (CP437 and the
 other DOS code pages, Latin-1, KOI8, Windows code pages, UTF-8). It
 cleans them as it cleans all other text from callers.
 
@@ -109,8 +109,8 @@ An area that is an echo and also a newsgroup is a gateway. The BBS
 serves echomail to newsreaders as articles (From
 `Name <Name@f1.n2.z3.fidonet.org>`, with the Message-ID made from the
 MSGID, as other gateways do). Articles from news peers go out as
-echomail. Most FidoNet echoes do not want gated traffic. Thus, ask
-first.
+echomail. Most FidoNet echoes do not accept gated traffic. Thus, ask the
+moderator first.
 
 ## Bundles
 
@@ -140,7 +140,7 @@ again when a newer file arrives. With a nodelist:
   system.
 - `host = nodelist` makes the BBS call a link at the address in its
   nodelist entry (the host of its IBN flag, or its INA).
-- `bbs fido node` and `bbs fido nodes` look up systems. Callers can also
+- `bbs fido node` and `bbs fido nodes` find systems. Callers can also
   do this: **N** (PF5 on a 3270) in their mailbox searches the nodelist.
 
 The BBS checks only the zones that the nodelists cover. It sends netmail
@@ -188,12 +188,12 @@ arrive with TICs (FTS-5006). The BBS does these steps for each file:
 
 The `Replaces` of a TIC removes the older files that it names, from the
 files that came by a file echo. The BBS hatches files that are uploaded
-here (by callers, by FTP or with `bbs file add`). This means that it
-sends them to all links that carry the echo. If a file does not agree
+here (by callers, by FTP or with `bbs file add`). That is, it sends
+them to all links that carry the echo. If a file does not agree
 with its TIC, it goes to `dir/bad`. A TIC waits one day for its file. As
 with echomail, the first scan for a link only records the start point.
 
-## Testing
+## Tests
 
 We tested the BBS against binkd 1.1a and CrashMail II 1.7, with
 echomail and netmail in the two directions. The BBS called binkd, and

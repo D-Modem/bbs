@@ -1,5 +1,5 @@
 The BBS asks the terminal of each caller what it is, in the same way as
-DEC terminals were asked. Then it adapts to the answer:
+DEC terminals were asked. Then it changes its output for the answer:
 
 - Real VTs (and emulators that are configured as a VT) get their own
   line drawing and character set.
@@ -79,7 +79,7 @@ applies:
   attributes, and ASCII only. The BBS does not read its cursor and
   keypad keys as commands.
 
-## Turning it off
+## Disable it
 
 ```ini
 [listen modem]
@@ -106,6 +106,8 @@ account. They apply from the next call:
 | `width` | `40`, `80` | the columns of a Commodore |
 | `editor` | `full`, `line` | the full-screen editor or the line editor |
 | `expert` | `on`, `off` | menus show only as their prompt. `?` shows the remainder |
+| `pictures` | `on`, `off` | the pictures of the [image boards](Image-Boards), where the terminal can show them |
+| `baud` | `off`, `300` to `115200` | the line speed for a caller without a modem (`line_speeds` in `[general]`) |
 
 A Commodore or a VT52 uses only the settings that apply to it. The
 settings show as `prefs` at `GET /api/v1/me`. To change them, use

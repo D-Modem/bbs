@@ -7,7 +7,7 @@ The packets of the protocols come from
 [facebook/time](https://github.com/facebook/time) of Meta (Apache-2.0).
 The servers and clients are part of the BBS.
 
-## Following time servers
+## Follow time servers
 
 ```
 [time]
@@ -42,7 +42,7 @@ clock has an error of more than 128 ms. If the error is smaller, it slews
 the clock. It also tells the kernel that the clock is synchronised. This
 must have root, or `CAP_SYS_TIME` kept after the BBS stops its root
 access (systemd: `AmbientCapabilities=CAP_SYS_TIME`). Do not enable it
-with chrony or ntpd, because they will change the clock in opposite
+with chrony or ntpd, because they can change the clock in opposite
 directions. If the BBS cannot set the clock, it writes this one time in
 the log. Then it corrects only its own time.
 
@@ -65,8 +65,8 @@ ntp pool.ntp.org                 offset +380µs, round trip 21ms, stratum 2, lea
 ```
 [ntp]
 address = :123
-rate = 2       ; requests a second an address may make (0: no limit)
-burst = 16     ; and at once
+rate = 2       ; the requests each second from one address (0: no limit)
+burst = 16     ; the requests at one time from one address
 ```
 
 The server answers only client requests (mode 3). Thus, the control and
@@ -82,7 +82,7 @@ follows. The reference ID is the address of that server.
 address = :4460
 tls_cert = /etc/bbs/cert.pem
 tls_key = /etc/bbs/key.pem
-ntp_host = time.example.org   ; told to clients ("": this host)
+ntp_host = time.example.org   ; the NTP host that clients get ("": this host)
 ```
 
 NTS must also have `[ntp]`. The key exchange gives cookies, and the NTP
@@ -149,7 +149,7 @@ UDPv4 192.0.2.10
 unicast_master_table 1
 ```
 
-## Tested with
+## Tests
 
 - chrony 4.5 as an NTP and NTS client of the BBS, and as an NTP and NTS
   server that the BBS follows (also port negotiation).

@@ -40,7 +40,7 @@ the call. Also set `header = yes` on the listener.
 
 dmodem-login logs in the caller first, and offers the BBS as an item in its
 menu. There are three ways for dmodem-login to give the caller to the BBS.
-The list starts with the simplest and ends with the most closely linked.
+The list starts with the simplest way.
 
 **rlogin** is the default of dmodem-login for a BBS. It sends the password
 of the caller as the rlogin client user, and the name as the server user
@@ -66,8 +66,8 @@ address = 127.0.0.1:2513
 ```
 
 **A unix socket with the session header** lets the BBS trust the login of
-dmodem-login (`trust_user`). Callers do not need an account on the BBS
-first: `create_users = yes` creates one for each new name. This type of
+dmodem-login (`trust_user`). An account on the BBS is not necessary
+before the first call: `create_users = yes` creates one for each new name. This type of
 account has no BBS password of its own. It logs in in this way, or with
 the dmodem-login password (refer to the text below). The rate, caller ID and
 number from the header show in the log and in Who's online.
@@ -97,7 +97,7 @@ socket_group = asterisk
 `trust_user` trusts all processes that can connect. Thus, make sure that
 only the user of dmodem-login can get to the socket (the group of Asterisk
 with mode 0660, or mode 0600 and the same user). `bbs check` gives a
-warning about a trusting socket or port that others can get to.
+warning about a socket or port with `trust_user` that other users can get to.
 
 **telnet** also operates (`mode = telnet`, `port = 2300`). The telnet
 client of dmodem-login says that it is an `ANSI` terminal, and the caller
@@ -133,14 +133,15 @@ auth_socket = /run/dmodem-login/auth.sock
 | `timeout` | `15` | seconds for the answer of dmodem-login (the answer for an incorrect password comes after its `fail_delay`) |
 
 The old name of dmodem-login is modemmenu, and the old name of this
-section is `[modemmenu]`. The BBS does not read `[modemmenu]`. If your
-file has `[modemmenu]`, change its name to `[dmodem-login]`.
+section is `[modemmenu]`. The BBS refuses `[modemmenu]` as an unknown
+section. If your file has `[modemmenu]`, change its name to
+`[dmodem-login]`.
 
 The BBS asks dmodem-login only about accounts that dmodem-login created
 (external accounts with no BBS password). An account with its own BBS
 password keeps it, and the dmodem-login password does not open it. An
 incorrect password counts as a failed login, as all others do
-(throttling, the hack log). If dmodem-login does not answer, the BBS tells
+(the throttle, the hack log). If dmodem-login does not answer, the BBS tells
 the caller that there is a problem, and does not count it against the
 caller. Change these passwords in dmodem-login (or its backend), not in the
 BBS.
@@ -189,7 +190,7 @@ node 4: modem on [listen modem]: rate 26400/26400, from 08005550123 (+44 800 555
 
 Who's online shows the country of each caller (from the caller ID, or
 from the address with `[general] geoip`). The node list of the sysop
-(spy, chat, kick) also shows the number, if it is a mobile, and the
+(watch, chat, kick) also shows the number, if it is a mobile, and the
 place. Posts keep the country of the poster for the
 [flags of the web forum](Web-Forum#flags).
 
@@ -239,7 +240,7 @@ BBS recognises an area code that NANPA has in service, also if
 libphonenumber does not have it yet. The BBS takes its state or province
 from NANPA. An area code that NANPA announced for a later date starts to
 operate on that date. The two data sets are part of the BBS. Thus, the
-BBS looks up nothing online. To build the tables again from newer data
+BBS does not use the internet to find a place. To build the tables again from newer data
 (`internal/phone/gen`):
 
 ```sh
@@ -259,7 +260,7 @@ numbers. They gave the same country, type and place for all numbers.
 If a call has no caller ID, the BBS uses the address from which the call
 came over VoIP, if the modem server gives it (`DMODEM_PEER` in the
 session header: `203.0.113.5`, `203.0.113.5:5060` or `sip:...@203.0.113.5`
-all operate). The BBS looks up the address in `[general] geoip`, as all
+all operate). The BBS finds the address in `[general] geoip`, as it does for all
 other addresses. This is only an estimate: a call through a VoIP provider
 gives the address of the provider, not the address of the caller.
 

@@ -261,8 +261,8 @@ The key of an item is one of these:
 - One character, for example `r` or `*`. The case of a letter is not
   important.
 - A word of 2 to 12 letters and digits, for example `JOIN`. If a menu
-  has a word, the caller types a line and pushes Enter. Then a key of one
-  character also needs Enter.
+  has a word, the caller types a line and pushes Enter. Then the caller
+  must also push Enter after a key of one character.
 - A special key:
   - `@first`: the BBS does it one time, when the caller goes into the
     menu.

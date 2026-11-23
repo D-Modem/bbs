@@ -119,7 +119,7 @@ refer to [Running](Running#running-as-a-user-of-its-own).
 
 You select most settings from a list (marked `↕`). You do not type
 them. The screens make the list from the items that the file and the
-machine have, with a word adjacent to each item:
+machine have, with a note adjacent to each item:
 
 | Setting | Offered |
 |---|---|
@@ -192,7 +192,7 @@ wait for a restart:
 
 | Section | Keys that change at once |
 |---|---|
-| `[general]` | `name`, `sysop`, `location`, `postal_address`, `phone`, `addresses`, `banner`, `banner_file`, `motd`, `motd_file`, `goodbye`, `new_users`, `max_nodes`, `attempts`, `fail_delay`, `login_timeout`, `idle_timeout`, `throttle_failures`, `throttle_time`, `page_command`, `qwk_id`, `geoip`, `geoip_credit`, `geoip_credit_url`, `phone_country`, `geoip_users`, `geoip_prefill`, `new_user_level`, `validated_level` |
+| `[general]` | `name`, `sysop`, `location`, `postal_address`, `phone`, `addresses`, `banner`, `banner_file`, `motd`, `motd_file`, `goodbye`, `new_users`, `max_nodes`, `attempts`, `fail_delay`, `login_timeout`, `idle_timeout`, `throttle_failures`, `throttle_time`, `page_command`, `qwk_id`, `line_speeds`, `line_speed`, `line_speed_ask`, `geoip`, `geoip_credit`, `geoip_credit_url`, `phone_country`, `geoip_users`, `geoip_prefill`, `new_user_level`, `validated_level` |
 | `[level N]` | all, and the levels that you add or remove |
 | `[backup]` | all ([Backups](Backups)) |
 | `[menu NAME]`, `[strings]` | all (a caller in a menu keeps the old menu until the caller leaves it) |
@@ -207,11 +207,11 @@ idle timeout. The Configuration screen of the sysop applies the file
 itself when it writes it. It tells which changes applied and which
 wait.
 
-The `ProtectSystem=strict` of bbs.service.sample stops the service from
-writes to /etc. For the Configuration screen inside the BBS to save, give
-the service `ReadWritePaths=/etc/bbs`, and give the file to the bbs
-user. `bbs
-config` run as root operates in both cases.
+The `ProtectSystem=strict` of bbs.service.sample prevents writes to /etc
+by the service. For the Configuration screen inside the BBS to save, give
+the service `ReadWritePaths=/etc/bbs` (a commented line in
+bbs.service.sample), and give the file to the bbs user. `bbs config`
+that runs as root operates in both cases.
 
 > **WARNING: IF THE BBS CAN WRITE ITS CONFIGURATION, ALL SYSOPS CAN MAKE
 > IT RUN COMMANDS.** Doors, events and `page_command` run commands. If you

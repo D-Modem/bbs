@@ -11,7 +11,7 @@ When a caller opens a door, the BBS does these steps:
 3. It connects the caller to the door.
 
 The door runs until one of these events occurs: the door ends, the
-caller hangs up (this stops the door), the time limit of the door ends,
+caller disconnects (this stops the door), the time limit of the door ends,
 or the caller types nothing for the idle time. The BBS shows the CP437
 output of a door as UTF-8 on UTF-8 terminals. The text that these
 callers type goes back as CP437. A CP437 terminal (SyncTERM, NetRunner,
@@ -46,7 +46,7 @@ time_limit = 60
 cleanup = docker rm -f bbs-door{node}
 ```
 
-The BBS fills in these values:
+The BBS replaces these words in `command`, `dir` and `cleanup`:
 
 - `{node}`.
 - `{dir}` (the directory of the node).
@@ -61,7 +61,7 @@ Thus, multi-node doors operate. `single = yes` lets only one caller at a
 time into a door that is not multi-node.
 
 dosemu2 runs the door under its CPU emulator, unless the host gives
-`/dev/kvm` to the container (`--device /dev/kvm`, not tried yet). Under
+`/dev/kvm` to the container (`--device /dev/kvm`. We did not test this). Under
 the emulator, a door starts in about a second.
 
 The BBS runs `docker` itself. Thus, its user must have the permission to
@@ -73,12 +73,12 @@ run it. That means the `docker` group, or rootless Docker or Podman
 
 The container of the door has no network (`--network none`). It runs as
 the user of the BBS, not as root. The BBS removes it when the door ends
-or the caller hangs up.
+or the caller disconnects.
 
 We tested this with a FOSSIL door that we wrote for this purpose
 (`doors/dosemu2/testdoor`). This door reads DOOR.SYS, writes CP437 and
 ANSI, and echoes keys. We tested it through the full BBS: the caller
-types, the door answers, and when the caller hangs up inside it, the
+types, the door answers, and when the caller disconnects in the door, the
 container stops.
 
 ## Linux doors
@@ -86,7 +86,8 @@ container stops.
 A Linux door is a program that uses a terminal on its standard input
 and output. Set `pty = yes` for a program that must have a terminal
 (most programs). Set `charset = utf-8` for a program that writes UTF-8.
-DOOR32.SYS gives these doors `door32_comm = local`.
+Set `door32_comm = local` to give the comm type `local` to the door in
+DOOR32.SYS (the default is `serial`).
 
 ## Doors elsewhere
 

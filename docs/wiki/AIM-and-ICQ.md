@@ -36,7 +36,7 @@ Point the client at the BBS:
 
 The deny list and bans in `[security]` apply, as on all other routes.
 
-## Signing on
+## Sign on
 
 Each AIM user is a BBS user. The user signs on with the BBS name as the
 screen name, and with the BBS password. You can type a name with spaces
@@ -129,8 +129,8 @@ its first byte) and on `tls_address`:
   as AIM 5 does.
 - **Pidgin with "Use clientLogin"**, AIM Express and the AIM of the
   phones ask `api.screenname.aol.com` (`/auth/clientLogin`) and then
-  `api.oscar.aol.com` (`/aim/startOSCARSession`). Point those names at
-  the BBS in the hosts file. With HTTPS, they must have a certificate
+  `api.oscar.aol.com` (`/aim/startOSCARSession`). In the hosts file, set those names to
+  the address of the BBS. With HTTPS, they must have a certificate
   for those names that the client trusts. In all cases, the client then
   signs on to the host that the BBS names. It uses TLS if it asked for
   it ("Use SSL") and if there is a TLS host.
@@ -151,8 +151,7 @@ Thus, the BBS answers those clients with
 [retrossl](https://github.com/D-Modem/retrossl), the SSL 3.0 and TLS 1.0
 server of D-Modem (AES, 3DES, RC4 or DES, by RSA). It does the same for
 clients that offer only SSL 3.0. All other clients get the TLS of Go.
-Thus, `tls_cert` must be
-an RSA certificate (with `[acme]`, `key_type = rsa2048`). If it is not,
+Thus, `tls_cert` must be an RSA certificate (with `[acme]`, `key_type = rsa2048`). If it is not,
 the log tells you at the start. The BBS also sends a chat room that the
 client asks for by TLS to the TLS host.
 

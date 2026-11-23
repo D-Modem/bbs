@@ -19,7 +19,7 @@ functions:
   files.
 - Find searches all of these items.
 
-This is early work. We did not try it with a real client yet.
+This is early work. We did not test it with a real client yet.
 
 ## Over TCP
 
@@ -36,9 +36,9 @@ address = :569
 
 You cannot give a port to the client: it always uses 569. It connects to
 the name in its Dial-Up Networking settings for "The Microsoft Network"
-(by default `gateway.moswest.msn.net`). Point that name at the BBS in the
-hosts file of the machine of the client (`C:\Windows\hosts`), or give the
-[DNS server](DNS) of the BBS to the machine.
+(by default `gateway.moswest.msn.net`). In the hosts file of the machine of the client (`C:\Windows\hosts`), set
+that name to the address of the BBS. Or give the [DNS server](DNS) of
+the BBS to the machine.
 
 ## By modem
 
@@ -54,12 +54,12 @@ address = 127.0.0.1:2325
 frontend = marvel
 ```
 
-Point the phone number of the client at the line that connects to that
-listener.
+Set the phone number in the client to the number of the line that
+connects to that listener.
 
 ## What callers get
 
-- **Signing in**: the member ID and password of the Sign In dialog are
+- **Sign-in**: the member ID and password of the Sign In dialog are
   those of a BBS account. An incorrect password, an unknown name, a
   locked account and a throttled address each get the applicable message
   of the client. Failed sign-ins count against the address, as on all
@@ -89,8 +89,8 @@ listener.
 - **The directory**: the BBS lists only the areas that the caller can
   read. Go words are the names of the areas and groups (with upper or
   lower case), and `today`.
-- **Bulletin boards**: up to the newest some hundred messages of an area
-  (the quantity that fits in one reply). Bodies are plain text. If the
+- **Bulletin boards**: the newest messages of an area, up to the
+  quantity that fits in one reply (some hundred). Bodies are plain text. If the
   caller cannot post on a board, the board is read-only in the client. A
   post can come as plain or rich text (compressed or not). The BBS keeps
   it as plain text, with its reply threading. The BBS refuses
@@ -123,7 +123,6 @@ listener.
   rooms with telnet, IRC and all other callers, and with linked rooms on
   other networks. `/me` at the start of a line is an action. The BBS
   does not list sysop rooms. Callers cannot make rooms from the client.
-
 - **Files**: the Files folder (go word `files`, in MSN Central and in
   Categories) has a folder for each file area from which the caller can
   download. Each file is a Download-and-Run file, as the downloads of

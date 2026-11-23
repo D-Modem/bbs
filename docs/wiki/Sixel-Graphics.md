@@ -1,5 +1,5 @@
 Some terminals have sixel graphics (xterm `-ti vt340`, mlterm, foot,
-WezTerm, Windows Terminal, iTerm2, SyncTERM and others). Telnet callers
+WezTerm, Windows Terminal, iTerm2, SyncTERM and others). Telnet and SSH callers
 with these terminals see the logo as a picture above the name of the
 system. The logo is `logo = /etc/bbs/logo.png`. If you do not set it, the
 logo is the name of the system, drawn in a pixel font.
@@ -11,8 +11,9 @@ for terminals without sixel. A caller can disable sixel (or enable it, if
 the terminal has it) in the profile. The BBS keeps this selection for the
 later calls of the caller.
 
-`sixel = auto` is the default for telnet listeners. `no` is the default
-for raw and rlogin listeners, because a picture is slow over a modem.
+`sixel = auto` is the default for telnet and ssh listeners. `no` is the
+default for raw and rlogin listeners, because a picture is slow over a
+modem.
 
 ## Pictures
 

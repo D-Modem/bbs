@@ -29,7 +29,7 @@ sees its last 20 lines.
 | `/invite WHO` | invites a user into the room (past `+i`, `+k`, `+l`) |
 | `/join ROOM KEY` | goes into a room with a key |
 | `/knock ROOM [WHY]` | asks the ops of a room that you cannot go into to let you in |
-| `/quit` | leaves the chat |
+| `/quit` | leaves the chat (also `/q`, `/x`) |
 | `/help` | shows these commands |
 
 On the text BBS, a line from a different user shows immediately when it
@@ -67,8 +67,7 @@ The BBS keeps private messages from all routes: the chat of the BBS,
 IRC, AIM, ICQ, MSN or Yahoo. If a user is not on, the BBS keeps the
 message for the user. The user gets it at the next login, with the time
 of the message (an ICQ client gets them as its offline messages).
-`/history WHO` (on IRC, `/msg
-BBSServ HISTORY nick`) shows your last lines with a user. Only the two
+`/history WHO` (on IRC, `/msg BBSServ HISTORY nick`) shows your last lines with a user. Only the two
 users in a conversation can read it again.
 
 ## Friends
@@ -89,7 +88,7 @@ Yahoo do the same. The BBS refuses the private messages of a blocked
 user on all routes (chat, IRC, AIM, MSN, Yahoo), also when you are not
 on. MSN and Yahoo show you as offline to the blocked user.
 
-## Paging the sysop
+## Page the sysop
 
 *S* on the text main menu (*Page the sysop* on a 3270) asks for the
 subject of the page. Then the BBS tells each sysop who is logged in and
@@ -119,7 +118,7 @@ page_command = /usr/local/bin/notify-sysop {user} {node} {reason}
 The BBS puts the values of `{user}`, `{node}` and `{reason}` in as full
 arguments. It also gives them as `BBS_PAGE_USER`, `BBS_PAGE_NODE` and
 `BBS_PAGE_REASON`. There is no shell. Thus, the BBS never runs text that
-a caller typed. The command can use up to 30 seconds. For example, with
+a caller typed. The BBS stops the command after 30 seconds. For example, with
 [ntfy](https://ntfy.sh):
 
 ```

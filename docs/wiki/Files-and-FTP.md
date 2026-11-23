@@ -1,5 +1,5 @@
 File areas contain files that callers can download and upload. Callers
-look at the file areas on the BBS (*F* on the main menu). They can also
+open the file areas on the BBS (*F* on the main menu). They can also
 use an FTP client, and log in with their BBS name and password. On FTP,
 each area is a directory.
 
@@ -24,7 +24,7 @@ a caller can do these actions:
 |---|---|---|---|
 | download | `D` | | with a transfer protocol ([File transfers](File-Transfers)) |
 | tag | `T` | | puts the file into the batch, or removes it |
-| view | `V` | PF6 | shows the contents of a ZIP, tar or tar.gz: names, sizes, dates |
+| view | `V` | PF6 | shows the contents of a ZIP, ARC, ARJ, LHA, tar or tar.gz archive: names, sizes, dates |
 | describe, remove | `E`, `R` | PF5, PF9 | for the uploader or a sysop |
 
 In an area, `T` tags files by number (`1 3 5-7`). A `*` shows the tagged
@@ -41,12 +41,12 @@ command line of the area (refer to [TN3270](TN3270)).
 [general]
 files_dir = /var/lib/bbs/files
 max_file_size = 64M
-upload_quota = 256M        ; a user's uploads a day; sysops have none
+upload_quota = 256M        ; the uploads of a user each day (no limit for sysops)
 
 [ftp]
 address = :2121
 passive_ports = 50000-50100
-public_host = 203.0.113.7  ; behind NAT: the address passive replies give
+public_host = 203.0.113.7  ; behind NAT: the address in passive replies
 tls = required             ; explicit FTPS: AUTH TLS before the login
 cert_file = /etc/bbs/cert.pem
 key_file = /etc/bbs/key.pem
@@ -81,8 +81,7 @@ a path. Users can do these actions:
 - Delete their own files (sysops can delete all files).
 
 The server refuses all other actions (overwrite, append, resume of
-uploads, rename, directories, SITE, MFMT, CHMOD). Active mode is
-disabled, to prevent FTP bounce attacks. Data connections must come from
+uploads, rename, directories, SITE, MFMT, CHMOD). The server disables active mode, to prevent FTP bounce attacks. Data connections must come from
 the same address as the control connection. The BBS checks logins in the
 same way as all BBS logins, with the failure delay and the throttling by
 address.

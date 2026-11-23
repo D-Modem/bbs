@@ -72,6 +72,8 @@ settings. The build makes it from `bbs.conf.sample`.
 - [VT terminals](Terminal-Identification), with DEC line drawing, monochrome
   and VT52 support.
 - [Sixel graphics](Sixel-Graphics) for the logo and pictures.
+- [CompuServe](CompuServe) for CompuServe terminal programs, offline
+  readers and CIM.
 
 **Networks**
 
@@ -83,13 +85,16 @@ settings. The build makes it from `bbs.conf.sample`.
   news servers.
 - [IRC](IRC), where the chat rooms are channels. [AIM and ICQ](AIM-and-ICQ)
   for AIM and ICQ clients on the same chat. [MSN Messenger](MSN-Messenger)
-  for MSN clients. [Yahoo! Messenger](Yahoo-Messenger) for Yahoo clients. [MRC](MRC), the chat
-  network shared with other BBSes.
+  for MSN clients. [Yahoo! Messenger](Yahoo-Messenger) for Yahoo clients.
+  [AOL clients](AOL), [MSN Classic](MSN-Classic) and [MSN 2.x](MSN-2) for
+  the old online services. [MRC](MRC), the chat network shared with other
+  BBSes.
 - [News, weather and quotes](News-Weather-and-Quotes): news feeds as read-only
   areas, the weather of each caller, and stock quotes from IEX.
 - [Finger, gopher and Gemini](Finger-and-Gopher).
 - [Time](Time): NTP, NTS and PTP. The BBS follows time servers and serves
   time.
+- [DNS for callers](DNS): the names of the old services point to the BBS.
 
 **On the web**
 
@@ -129,6 +134,7 @@ settings. The build makes it from `bbs.conf.sample`.
 | [Access levels](Access-Levels) | levels, flags, requirements, daily limits, validation |
 | [SSH](SSH) | the SSH listener, keys, host keys |
 | [Modem callers](Modem-Callers) | app_dmodem and dmodem-login, and the locations of callers |
+| [CompuServe](CompuServe) | a recreation of the CompuServe Information Service: forums, libraries, Mail, CB, CIM |
 | [TN3270](TN3270) | 3270 terminals, PF keys, 3270 graphics |
 | [Sixel graphics](Sixel-Graphics) | the logo and pictures on sixel terminals |
 | [PETSCII and RIP](PETSCII-and-RIP) | Commodore 64s and 128s; RIPscrip graphics and buttons |
@@ -149,11 +155,13 @@ settings. The build makes it from `bbs.conf.sample`.
 | [AOL clients](AOL) | a host for the clients of AOL (3.0, 4.0): sign-on with BBS accounts |
 | [MSN Messenger](MSN-Messenger) | the MSN server: MSN Messenger 1.0 to 7.5, contacts and IMs |
 | [MSN Classic](MSN-Classic) | The Microsoft Network for the client of Windows 95: sign-in, the areas as Categories, bulletin boards |
+| [MSN 2.x](MSN-2) | MSN 2.0 to 2.6 (1996 to 1998): the MSN Program Viewer, newsgroups for the bulletin boards |
 | [Yahoo! Messenger](Yahoo-Messenger) | the Yahoo server: YMSG 9 to 16, buddies, IMs, chat rooms and conferences |
 | [MRC](MRC) | Multi Relay Chat: chat rooms shared with other BBSes |
 | [News, weather and quotes](News-Weather-and-Quotes) | news feeds, NWS and Open-Meteo weather, USGS earthquakes, IEX quotes |
 | [Finger, gopher and Gemini](Finger-and-Gopher) | the users who are on, and the BBS in gopherspace and Geminispace |
 | [Time](Time) | NTP, NTS and PTP: the clock follows time servers, and the BBS serves time |
+| [DNS for callers](DNS) | the DNS server: the names of the old services, records of your own |
 | [Web forum](Web-Forum) | the message areas as a web forum |
 | [Image boards](Image-Boards) | anonymous image boards, in the style of kusaba x and 4chan |
 | [HTTP API](HTTP-API) | REST, events, WebSockets in JSON and protobuf, tokens, metrics |

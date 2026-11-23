@@ -14,20 +14,20 @@ tls_key = /etc/bbs/tls.key
 | Setting | Default | What it sets |
 |---|---|---|
 | `address` | `:6667` | plain IRC (`none`: TLS only) |
-| `tls_address` | (none) | IRC over TLS, with `tls_cert` and `tls_key` |
+| `tls_address` | (none) | IRC over TLS, with `tls_cert` and `tls_key` (or a certificate from [`[acme]`](Certificates)) |
 | `server_name` | the name of the host | the name of the server that clients see |
 | `network` | the name of the BBS | the `NETWORK` that clients show |
 | `max_clients` | `64` | the maximum number of connections at one time |
 | `max_per_ip` | `4` | the maximum from one address |
 | `service` | `BBSServ` | the nick of the [services bot](#bbsserv) |
 | `chanserv` | `ChanServ` | the nick of the [bot of the rooms](#chanserv) |
-| `chanserv_expire` | `90` | the number of days that a registered room can be unused before the BBS drops it (`0`: never) |
+| `chanserv_expire` | `90` | the number of days that a registered room can stay without users before the BBS drops it (`0`: never) |
 
 `bbs check` gives a warning about a plain `address` without a
 `tls_address`, because then passwords go in clear text. The deny list
 and bans in `[security]` apply, as on all other routes.
 
-## Logging in
+## Login
 
 Each IRC user is a BBS user. The user logs in with the BBS name and
 password in one of these ways:
@@ -166,7 +166,7 @@ Yahoo or AIM, or keeps or puts that caller out, in the same way as an
 IRC user. Talk to it with `/msg ChanServ COMMAND` or `/CS COMMAND`. On
 the text BBS, use `/cs COMMAND` in chat.
 
-| Command | Needs | What it does |
+| Command | Necessary | What it does |
 |---|---|---|
 | `REGISTER #room` | to be in it | makes the room yours |
 | `DROP #room` | the founder | unregisters it |

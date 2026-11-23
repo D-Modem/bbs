@@ -131,7 +131,7 @@ There may be any number of these, each with its own NAME.
 | `via` | `...` |  | how its callers came, in who's online (telnet, modem, rlogin by type) |
 | `ansi` | `auto` |  | the terminal's ANSI color: auto asks the terminal (or believes its terminal type), yes, no. |
 | `utf8` | `auto` |  | UTF-8 both ways: auto by the terminal type (xterm and friends yes; "ansi" BBS terminals no), yes, no. |
-| `sixel` | `auto` |  | the logo as sixel graphics on terminals that say they have them (device attributes); no. auto for telnet, no for raw and rlogin (slow modem lines) |
+| `sixel` | `auto` |  | the logo as sixel graphics on terminals that say they have them (device attributes); no. auto for telnet and ssh, no for raw and rlogin (slow modem lines) |
 | `petscii` | `no` |  | Commodore 64s and 128s: yes (every caller is one), auto (a caller that is not ANSI is watched while it logs in: a key only a C64 has, or DEL asked for after a name in capitals, makes it PETSCII), no. |
 | `vt` | `auto` |  | ask terminals what they are (answerback, DA1, DA2, XTVERSION; ESC Z for a VT52): DEC line drawing for VTs without UTF-8, bold on monochrome VTs, a VT52's escapes; no: ask nothing. |
 | `rip` | `auto` |  | RIPscrip menus and screens for terminals that answer ESC [ ! (BBS terminals; modern ones are not asked), yes, no. |
@@ -673,7 +673,7 @@ MSN Messenger: the chat for MSN Messenger 1.0 to 7.5 and Windows Messenger 4.x (
 
 ## `[marvel]`
 
-The Microsoft Network of 1995 to 1998, for the MSN client that came with Windows 95: users sign in with their BBS names and passwords, the message areas are its Categories, and each area is an MSN bulletin board to read and post in.  Over TCP its port is 569, which the client can't be told otherwise; modem callers come through a listener with frontend = marvel.  See docs/wiki/MSN-Classic.md.
+The Microsoft Network of 1995 to 1998, for the MSN client that came with Windows 95: users sign in with their BBS names and passwords, the message areas are its Categories, and each area is an MSN bulletin board to read and post in.  Over TCP its port is 569.  You cannot give the client a different port; modem callers come through a listener with frontend = marvel.  See docs/wiki/MSN-Classic.md.
 
 | key | default | live | what it does |
 |---|---|---|---|

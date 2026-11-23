@@ -28,7 +28,7 @@ and a poll.
 
 Scripts run in [goja](https://github.com/dop251/goja), in strict mode.
 goja supports ECMAScript 5.1 and much of ECMAScript 6 (`let`, arrow
-functions, classes, `Map`, template strings). A script cannot get to
+functions, classes, `Map`, template strings). A script cannot access
 files, the network, processes or timers. It has only the objects that
 the text below gives.
 
@@ -36,8 +36,8 @@ A script can compute for a maximum of two seconds between one screen and
 the next. The time that the caller is at a screen does not count. After
 two seconds, the BBS stops the script and tells the caller. If a script
 fails, the BBS logs it and tells the caller (it also tells a sysop the
-reason). If the caller hangs up or is idle, the script ends, also if it
-catches the error. `exit()` ends a script before its end.
+reason). If the caller disconnects or is idle, the script ends, also if the
+script catches the error. `exit()` ends a script before its end.
 
 ```js
 // a guestbook in eight lines

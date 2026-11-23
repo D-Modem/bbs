@@ -9,7 +9,7 @@ connect to the BBS:
 - Mail is BBS mail.
 - Keywords go to each of these functions.
 
-This is early work. We did not try it with a real client yet.
+This is early work. We did not test it with a real client yet.
 
 ```ini
 [aol]
@@ -27,19 +27,19 @@ is on the same address, the two servers share it. If a connection starts
 as an AOL client connection, it goes to the AOL host. All other
 connections stay with OSCAR.
 
-## Pointing the client at the BBS
+## Connect the client to the BBS
 
 The TCP connection of the client (`TCP.CCL` in its folder) dials
 `AmericaOnline.aol.com` on port 5190. Do one of these steps:
 
-- Point that name at the BBS in the hosts file of the machine of the
-  client (`C:\Windows\hosts` on Windows 95 and 98).
+- In the hosts file of the machine of the client (`C:\Windows\hosts` on
+  Windows 95 and 98), set that name to the address of the BBS.
 - Give the [DNS server](DNS) of the BBS to the machine.
 - Change the name in `TCP.CCL`.
 
 Then, in the Setup of the client, select "TCP/IP" as the connection.
 
-## Signing on
+## Sign on
 
 The screen name and password on the Welcome window of the client are
 those of a BBS account. "New User" does not make an account. Callers
@@ -48,7 +48,7 @@ It counts against the address, as failed logins do on all other routes.
 The deny list and bans in `[security]` apply.
 
 A client that signed on is a node, as all callers are. It shows in Who's
-On as `AOL`. Sign Off in the client signs off and hangs up.
+On as `AOL`. Sign Off in the client signs off and disconnects.
 
 ## Chat and Instant Messages
 
@@ -89,7 +89,7 @@ toolbar (`m7`), Old Mail (`m9`, mail that the user read) and Sent Mail
 user opens a mail (`m3`), the BBS sends all of it and marks it as read.
 Ignore marks a mail as read. Keep As New marks it as unread again.
 Delete puts it in the BBS trash (`m2`). We found these answers from the
-mail tool of the client. We did not try them with a real client yet.
+mail tool of the client. We did not test them with a real client yet.
 
 ## Message boards
 
