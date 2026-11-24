@@ -13,8 +13,9 @@ all: bbs bbs.service
 bbs:
 	$(GO) build -o bbs ./cmd/bbs
 
-# the systemd unit, with the path of the installed program
-bbs.service: bbs.service.in Makefile
+# the systemd unit, with the path of the installed program (FORCE: made
+# again each time, for a BINDIR given to make install)
+bbs.service: bbs.service.in FORCE
 	sed -e 's|@BINDIR@|$(BINDIR)|g' bbs.service.in > $@
 
 test:
@@ -59,4 +60,5 @@ ruffle:
 clean:
 	rm -f bbs bbs.service
 
-.PHONY: all bbs test install clean doors-image proto phone-data ruffle
+.PHONY: all bbs test install clean doors-image proto phone-data ruffle FORCE
+FORCE:
