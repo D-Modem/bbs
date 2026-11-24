@@ -9,7 +9,7 @@ Each server is disabled until you put its section in the configuration.
 
 The usual ports of finger and gopher are below 1024. Thus, run the BBS
 with `AmbientCapabilities=CAP_NET_BIND_SERVICE` (refer to
-[bbs.service.sample](https://github.com/D-Modem/bbs/blob/HEAD/bbs.service.sample)),
+[bbs.service](https://github.com/D-Modem/bbs/blob/HEAD/bbs.service.in)),
 or use a different port.
 
 ## Finger

@@ -762,7 +762,7 @@ Multi Relay Chat: the BBSes' chat network.  Its rooms are the chat rooms beginni
 
 ## `[finger]`
 
-finger: who is on ("finger @host"), and who a user is ("finger name@host"). Port 79 needs CAP_NET_BIND_SERVICE (bbs.service.sample)
+finger: who is on ("finger @host"), and who a user is ("finger name@host"). Port 79 needs CAP_NET_BIND_SERVICE (bbs.service)
 
 | key | default | live | what it does |
 |---|---|---|---|

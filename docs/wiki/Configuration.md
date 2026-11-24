@@ -184,7 +184,7 @@ change. Then it prints what changed and when the change applies.
 
 ## Changing it while callers are on
 
-`systemctl reload bbs` (`ExecReload` in bbs.service.sample, which sends
+`systemctl reload bbs` (`ExecReload` in bbs.service, which sends
 SIGHUP) makes the BBS read the file again. If the BBS cannot start with
 the new file, nothing changes, and the log gives the reason. If it can,
 the keys below apply immediately. The log lists the other changes, which
@@ -207,10 +207,11 @@ idle timeout. The Configuration screen of the sysop applies the file
 itself when it writes it. It tells which changes applied and which
 wait.
 
-The `ProtectSystem=strict` of bbs.service.sample prevents writes to /etc
+The `ProtectSystem=strict` of bbs.service prevents writes to /etc
 by the service. For the Configuration screen inside the BBS to save, give
 the service `ReadWritePaths=/etc/bbs` (a commented line in
-bbs.service.sample), and give the file to the bbs user. `bbs config`
+bbs.service, which you put in a drop-in with `systemctl edit bbs`), and
+give the file to the bbs user. `bbs config`
 that runs as root operates in both cases.
 
 > **WARNING: IF THE BBS CAN WRITE ITS CONFIGURATION, ALL SYSOPS CAN MAKE
