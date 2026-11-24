@@ -1,9 +1,20 @@
+# bbs.service: the BBS under systemd (docs/wiki/Running.md).
+# make install puts this unit in $(PREFIX)/lib/systemd/system, a directory
+# that systemd reads for /usr/local and /usr.  SYSTEMD_UNIT_DIR selects a
+# different one.
+# Then: systemctl daemon-reload && systemctl enable --now bbs
+# To change the options, the user or the groups: systemctl edit bbs
 [Unit]
 Description=BBS for telnet, TN3270 and modem callers
-After=network.target
+Documentation=https://github.com/D-Modem/bbs/wiki/Running
+Wants=network-online.target
+# the database server, when the database is not SQLite; and the auth socket
+# of dmodem-login, when auth_socket is set.  After= on a unit that is not
+# installed does nothing
+After=network-online.target postgresql.service mysql.service mariadb.service dmodem-login-authd.service
 
 [Service]
-ExecStart=/usr/local/bin/bbs -config /etc/bbs/bbs.conf serve
+ExecStart=@BINDIR@/bbs -config /etc/bbs/bbs.conf serve
 # systemctl reload bbs: bbs.conf read again, what may change while callers
 # are on put in force (the log says what waits for a restart)
 ExecReload=/bin/kill -HUP $MAINPID
@@ -13,8 +24,10 @@ Group=bbs
 # itself (docs/wiki/Running.md): then no User= and Group= here, nor
 # AmbientCapabilities, and RuntimeDirectory's directory is root's (put
 # unix sockets where the user may write, or give them a socket_group)
-# for [listen menu]'s socket_group = asterisk
-SupplementaryGroups=asterisk
+# for [listen menu]'s socket_group = asterisk.  The unit does not start if
+# the group is not there, so it is a comment here: put it in a drop-in
+# (systemctl edit bbs) on a host with Asterisk
+#SupplementaryGroups=asterisk
 # for DOS doors in Docker (README, "Doors"): the docker group is as good as
 # root, so think twice; rootless Docker or Podman is the safer way
 #SupplementaryGroups=asterisk docker

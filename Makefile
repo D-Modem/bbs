@@ -1,20 +1,32 @@
 PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
+# where make install puts bbs.service: $(PREFIX)/lib/systemd/system, which
+# systemd reads for /usr/local and /usr (the same as D-Modem's units)
+SYSTEMD_UNIT_DIR ?= $(PREFIX)/lib/systemd/system
 GO ?= go
 # go3270 is the suite's fork, github.com/D-Modem/go3270 (go.mod): fetch it
 # from GitHub directly, not through the public proxy and checksum database
 export GOPRIVATE ?= github.com/D-Modem/*
 
-all: bbs
+all: bbs bbs.service
 
 bbs:
 	$(GO) build -o bbs ./cmd/bbs
+
+# the systemd unit, with the path of the installed program
+bbs.service: bbs.service.in Makefile
+	sed -e 's|@BINDIR@|$(BINDIR)|g' bbs.service.in > $@
 
 test:
 	$(GO) vet ./...
 	$(GO) test -race ./...
 
-install: bbs
-	install -D -m 0755 bbs $(DESTDIR)$(PREFIX)/bin/bbs
+# the program, the unit (always: changes go in drop-ins, systemctl edit
+# bbs), and bbs.conf if there is none.  It does not run systemctl: then
+# systemctl daemon-reload && systemctl enable --now bbs
+install: bbs bbs.service
+	install -D -m 0755 bbs $(DESTDIR)$(BINDIR)/bbs
+	install -D -m 0644 bbs.service $(DESTDIR)$(SYSTEMD_UNIT_DIR)/bbs.service
 	@if [ ! -e $(DESTDIR)/etc/bbs/bbs.conf ]; then \
 		install -D -m 0640 bbs.conf.sample $(DESTDIR)/etc/bbs/bbs.conf; \
 	fi
@@ -45,6 +57,6 @@ ruffle:
 	@ls ruffle/ruffle.js
 
 clean:
-	rm -f bbs
+	rm -f bbs bbs.service
 
 .PHONY: all bbs test install clean doors-image proto phone-data ruffle

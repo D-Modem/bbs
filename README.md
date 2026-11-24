@@ -59,7 +59,7 @@ bbs -config /etc/bbs/bbs.conf serve
 ```
 
 [bbs.conf.sample](bbs.conf.sample) has all the options.
-[bbs.service.sample](bbs.service.sample) runs bbs under systemd.
+`make install` also installs [bbs.service](bbs.service.in), which runs bbs under systemd.
 
 ## Documentation
 

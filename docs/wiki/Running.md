@@ -23,11 +23,51 @@ The database can also be PostgreSQL, MySQL or MariaDB. Refer to
 
 ## Under systemd
 
-[bbs.service.sample](https://github.com/D-Modem/bbs/blob/HEAD/bbs.service.sample)
-runs the BBS under systemd as its own user. The database is in
+`make install` installs the unit
+[bbs.service](https://github.com/D-Modem/bbs/blob/HEAD/bbs.service.in) in
+`/usr/local/lib/systemd/system` (refer to [Building](Building)). The unit
+runs the BBS under systemd as the user `bbs`. The database is in
 `/var/lib/bbs` and the sockets are in `/run/bbs`. `systemctl reload bbs`
 applies the settings that you can change while callers are on (refer to
 [Configuration](Configuration#changing-it-while-callers-are-on)).
+
+Do these steps one time, as root, after `make install`:
+
+1. Make the user `bbs`:
+
+   ```
+   useradd --system --home-dir /var/lib/bbs --shell /usr/sbin/nologin bbs
+   ```
+
+2. Let the user `bbs` read the configuration:
+
+   ```
+   chown root:bbs /etc/bbs/bbs.conf
+   chmod 0640 /etc/bbs/bbs.conf
+   ```
+
+3. Load the unit, then start the BBS now and at each boot:
+
+   ```
+   systemctl daemon-reload
+   systemctl enable --now bbs
+   ```
+
+Do not edit the installed unit, because the next `make install` replaces
+it. To change the unit, use `systemctl edit bbs`. That command writes a
+drop-in in `/etc/systemd/system/bbs.service.d`. The unit has commented
+lines for these changes:
+
+- `SupplementaryGroups=asterisk`: for `socket_group = asterisk`. The unit
+  does not start if the group is not on the host. Thus, this line is not
+  active by default.
+- `AmbientCapabilities=CAP_NET_BIND_SERVICE`: for ports below 1024.
+- `ReadWritePaths=/etc/bbs`: for the Configuration screen of the sysop
+  (refer to [Configuration](Configuration)).
+
+The unit starts after the network is online. It also starts after
+PostgreSQL, MySQL, MariaDB and the auth socket of dmodem-login
+(`dmodem-login-authd.service`), if they are on the host.
 
 ## Running as a user of its own
 
@@ -36,7 +76,7 @@ root or the `CAP_NET_BIND_SERVICE` capability. There are two methods to
 give these ports to the BBS without root:
 
 - systemd starts the BBS as its own user with that capability
-  (`User=bbs` and `AmbientCapabilities=` in bbs.service.sample).
+  (`User=bbs` and `AmbientCapabilities=` in bbs.service).
 - You start the BBS as root, and the BBS then stops its root access:
 
 ```
@@ -73,7 +113,8 @@ The user must have these permissions:
 - Write in the locations of the database and the files.
 - Run the program.
 
-Under systemd, do not use `User=` with this method. bbs.service.sample
-tells you how.
+Under systemd, do not use `User=` with this method. The comments in
+bbs.service tell you how. Put the changes in a drop-in (`systemctl edit
+bbs`), and set `User=` and `Group=` to empty values there.
 
 **See also:** [Configuration](Configuration), [Administration](Administration)
